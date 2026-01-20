@@ -1,23 +1,25 @@
 #!/bin/bash
-# Simple load test to trigger HPA
+# scripts/load-test.sh
+# Simple load testing script to trigger HPA
 
 echo "🔥 Starting load test..."
-echo "Press Ctrl+C to stop"
+echo "This will generate traffic to trigger auto-scaling"
+echo "Watch pods scale: kubectl get hpa -n k8s-multi-demo -w"
 echo ""
 
-# Run 50 parallel requests continuously
-for i in {1..50}; do
+# Run 100 concurrent requests for 30 seconds
+for i in {1..100}; do
   (while true; do 
-    curl -s http://localhost:8080/ > /dev/null
-    sleep 0.05
+    curl -s http://k8s-demo.local/ > /dev/null
+    sleep 0.1
   done) &
 done
 
-echo "Load test running with 50 parallel workers..."
-echo ""
-echo "In another terminal, watch scaling with:"
-echo "  kubectl get hpa -n k8s-multi-demo -w"
-echo "  kubectl get pods -n k8s-multi-demo -w"
+echo "Load test running for 30 seconds..."
+sleep 30
 
-# Wait for Ctrl+C
-wait
+# Kill all background jobs
+pkill -P $$
+
+echo "✅ Load test complete!"
+echo "Check HPA: kubectl get hpa -n k8s-demo"

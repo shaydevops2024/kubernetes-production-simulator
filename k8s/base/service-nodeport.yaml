@@ -1,18 +1,19 @@
-# k8s/base/service.yaml
+# k8s/base/service-nodeport.yaml
 
 apiVersion: v1
 kind: Service
 metadata:
-  name: k8s-demo-service
+  name: k8s-demo-nodeport
   namespace: k8s-multi-demo
   labels:
     app: k8s-demo-app
 spec:
-  type: ClusterIP
+  type: NodePort
   selector:
     app: k8s-demo-app  
   ports:
   - port: 80
     targetPort: 8000  
+    nodePort: 30080   
     protocol: TCP
     name: http
