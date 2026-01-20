@@ -1,5 +1,5 @@
 #!/bin/bash
-# deploy-all.sh
+# kind_setup.sh
 # Complete Kubernetes deployment automation - from zero to running application
 # This script does EVERYTHING: cluster creation, app deployment, testing, and verification
 
@@ -251,8 +251,11 @@ print_step "Patching metrics-server for kind (allow insecure TLS)..."
 kubectl patch -n kube-system deployment metrics-server --type=json \
   -p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
 
-print_step "Waiting for metrics-server to be ready..."
-kubectl wait --for=condition=ready pod -l k8s-app=metrics-server -n kube-system --timeout=90s
+print_step "Waiting for rollout to complete..."
+sleep 5
+
+print_step "Waiting for metrics-server deployment to be ready..."
+kubectl rollout status deployment/metrics-server -n kube-system --timeout=120s
 
 print_success "Metrics-server installed and ready!"
 
@@ -400,7 +403,8 @@ echo -e "    # To stop: pkill curl"
 echo ""
 
 echo -e "${CYAN}🗑️  CLEANUP (when done):${NC}"
-echo -e "    kind delete cluster --name ${CLUSTER_NAME}"
+echo -e "    ./cleanup.sh"
+echo -e "    # Or manually: kind delete cluster --name ${CLUSTER_NAME}"
 echo ""
 
 echo -e "${CYAN}📚 NEXT STEPS:${NC}"
@@ -413,6 +417,7 @@ echo -e "  2. ${GREEN}Test the features:${NC}"
 echo -e "     - View Live Logs & CLI Commands"
 echo -e "     - Simulate incidents (crash, not ready)"
 echo -e "     - Test auto-scaling with load test"
+echo -e "     - Try the 'Destroy Everything' button"
 echo ""
 echo -e "  3. ${GREEN}Monitor in terminal:${NC}"
 echo -e "     - Open another terminal"

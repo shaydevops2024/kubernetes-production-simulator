@@ -1,6 +1,6 @@
 # app/src/main.py
 # Main FastAPI application with production-ready endpoints and web UI
-# COMPLETE FIXED VERSION: Proper cleanup, auto-scroll logs, 30s refresh
+# COMPLETE VERSION: With Destroy All functionality, proper cleanup, auto-scroll logs
 
 from fastapi import FastAPI, Response
 from fastapi.responses import HTMLResponse
@@ -58,7 +58,7 @@ SECRET_TOKEN = os.getenv('SECRET_TOKEN', 'no-secret-configured')
 async def ui():
     """
     Serve a professional web UI dashboard
-    Features: Status monitoring, load testing, incident simulation, live logs, CLI commands
+    Features: Status monitoring, load testing, incident simulation, live logs, CLI commands, destroy cluster
     """
     REQUEST_COUNT.labels(method='GET', endpoint='/').inc()
     
@@ -236,6 +236,20 @@ async def ui():
                 box-shadow: 0 5px 15px rgba(237, 137, 54, 0.4);
             }
             
+            .btn-destroy {
+                background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+                color: white;
+                border: 2px solid #dc2626;
+                font-weight: 700;
+                box-shadow: 0 4px 6px rgba(220, 38, 38, 0.3);
+            }
+            
+            .btn-destroy:hover:not(:disabled) {
+                background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%);
+                transform: translateY(-2px);
+                box-shadow: 0 8px 16px rgba(220, 38, 38, 0.4);
+            }
+            
             .footer {
                 text-align: center;
                 margin-top: 30px;
@@ -274,6 +288,48 @@ async def ui():
                 font-weight: 600;
             }
             
+            .destroy-section {
+                margin-top: 40px;
+                padding-top: 30px;
+                border-top: 3px solid #fee2e2;
+                background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+                padding: 25px;
+                border-radius: 12px;
+                margin-left: -40px;
+                margin-right: -40px;
+                margin-bottom: -40px;
+            }
+            
+            .destroy-warning {
+                background: #fee2e2;
+                border-left: 5px solid #dc2626;
+                padding: 20px;
+                margin-bottom: 20px;
+                border-radius: 8px;
+            }
+            
+            .destroy-warning h3 {
+                color: #991b1b;
+                margin-bottom: 10px;
+                font-size: 1.3em;
+            }
+            
+            .destroy-warning p {
+                color: #7f1d1d;
+                margin: 8px 0;
+                line-height: 1.6;
+            }
+            
+            .destroy-warning ul {
+                margin: 15px 0;
+                padding-left: 25px;
+            }
+            
+            .destroy-warning li {
+                color: #7f1d1d;
+                margin: 8px 0;
+            }
+            
             /* Modal Styles */
             .modal {
                 display: none;
@@ -285,6 +341,8 @@ async def ui():
                 height: 100%;
                 background-color: rgba(0,0,0,0.5);
                 overflow-y: auto;
+                align-items: center;
+                justify-content: center;
             }
             
             .modal-content {
@@ -300,6 +358,11 @@ async def ui():
                 box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             }
             
+            .destroy-confirmation-modal .modal-content {
+                border: 3px solid #dc2626;
+                max-width: 600px;
+            }
+            
             .modal-header {
                 display: flex;
                 justify-content: space-between;
@@ -308,9 +371,19 @@ async def ui():
                 border-bottom: 2px solid #e0e0e0;
             }
             
+            .destroy-confirmation-modal .modal-header {
+                background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+                color: white;
+                border-bottom: none;
+            }
+            
             .modal-header h2 {
                 color: #333;
                 margin: 0;
+            }
+            
+            .destroy-confirmation-modal .modal-header h2 {
+                color: white;
             }
             
             .close {
@@ -322,8 +395,16 @@ async def ui():
                 transition: color 0.2s;
             }
             
+            .destroy-confirmation-modal .close {
+                color: white;
+            }
+            
             .close:hover {
                 color: #000;
+            }
+            
+            .destroy-confirmation-modal .close:hover {
+                color: #f0f0f0;
             }
             
             .modal-body {
@@ -455,6 +536,37 @@ async def ui():
                 color: #333;
                 line-height: 1.6;
             }
+            
+            .destroy-info {
+                background: #fff7ed;
+                border-left: 4px solid #f59e0b;
+                padding: 15px;
+                margin: 15px 0;
+                border-radius: 4px;
+            }
+            
+            .destroy-list {
+                background: #f9fafb;
+                padding: 15px 20px;
+                border-radius: 8px;
+                margin: 15px 0;
+            }
+            
+            .destroy-list ul {
+                margin: 10px 0;
+                padding-left: 25px;
+            }
+            
+            .destroy-list li {
+                margin: 8px 0;
+                color: #374151;
+                line-height: 1.6;
+            }
+            
+            .destroy-list h4 {
+                color: #374151;
+                margin-bottom: 10px;
+            }
         </style>
     </head>
     <body>
@@ -535,6 +647,30 @@ async def ui():
                 </a>
             </div>
             
+            <div class="destroy-section">
+                <div class="section-title">🗑️ Cluster Cleanup</div>
+                
+                <div class="destroy-warning">
+                    <h3>⚠️ DANGER ZONE</h3>
+                    <p><strong>Use this when you're completely finished with the demo.</strong></p>
+                    <p>This will provide instructions to destroy:</p>
+                    <ul>
+                        <li>The entire kind cluster (k8s-demo)</li>
+                        <li>All Kubernetes resources (pods, services, deployments)</li>
+                        <li>All configurations (ConfigMaps, Secrets, HPA)</li>
+                        <li>Port-forward processes</li>
+                        <li>Optionally: Docker images</li>
+                    </ul>
+                    <p><strong style="color: #dc2626;">⚠️ This requires running cleanup script on your host machine!</strong></p>
+                </div>
+                
+                <div class="actions">
+                    <button class="btn btn-destroy" onclick="showDestroyConfirmation()">
+                        🗑️ Destroy Everything
+                    </button>
+                </div>
+            </div>
+            
             <div class="footer">
                 Built for Kubernetes Production Learning | 
                 <a href="https://github.com/shaydevops2024/kubernetes-production-simulator" target="_blank">View on GitHub</a>
@@ -608,6 +744,60 @@ async def ui():
                         </div>
                         <button class="btn btn-primary refresh-btn" onclick="refreshLogs()">
                             🔄 Refresh Logs Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Destroy Confirmation Modal -->
+        <div id="destroyModal" class="modal destroy-confirmation-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>🗑️ Destroy Kubernetes Cluster</h2>
+                    <span class="close" onclick="closeDestroyModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="destroy-warning">
+                        <h3>⚠️ FINAL WARNING</h3>
+                        <p>You are about to receive instructions to <strong>permanently delete</strong> the entire Kubernetes demo environment.</p>
+                    </div>
+                    
+                    <div class="destroy-list">
+                        <h4>This will remove:</h4>
+                        <ul>
+                            <li>✗ Kind cluster: <code>k8s-demo</code></li>
+                            <li>✗ Namespace: <code>k8s-multi-demo</code></li>
+                            <li>✗ All pods, services, deployments (2-10 pods)</li>
+                            <li>✗ HPA auto-scaling configuration</li>
+                            <li>✗ NGINX Ingress Controller</li>
+                            <li>✗ Metrics Server</li>
+                            <li>✗ ConfigMaps and Secrets</li>
+                            <li>✗ All port-forward processes</li>
+                            <li>✗ Temporary configuration files</li>
+                            <li>✗ Docker image (optional)</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="destroy-info">
+                        <p><strong>💡 Good News:</strong> You can recreate everything anytime by running:</p>
+                        <p style="margin-top: 10px;"><code>./kind_setup.sh</code></p>
+                    </div>
+                    
+                    <div class="info-box" style="background: #fef2f2; border-color: #dc2626;">
+                        <p><strong>📋 Next Steps:</strong></p>
+                        <p>1. Click "Get Cleanup Instructions" below</p>
+                        <p>2. Follow the instructions provided</p>
+                        <p>3. Close this browser window</p>
+                        <p>4. Run the cleanup script in your terminal</p>
+                    </div>
+                    
+                    <div class="actions" style="margin-top: 25px;">
+                        <button class="btn btn-destroy" onclick="executeDestroy()" style="width: 48%;">
+                            🗑️ Get Cleanup Instructions
+                        </button>
+                        <button class="btn btn-primary" onclick="closeDestroyModal()" style="width: 48%;">
+                            ← Cancel
                         </button>
                     </div>
                 </div>
@@ -753,7 +943,7 @@ async def ui():
             
             async function viewLogs() {
                 const modal = document.getElementById('logsModal');
-                modal.style.display = 'block';
+                modal.style.display = 'flex';
                 await refreshLogs();
                 
                 // Auto-scroll to bottom on first load
@@ -766,7 +956,7 @@ async def ui():
                 }
                 
                 logsAutoRefreshInterval = setInterval(async () => {
-                    if (modal.style.display === 'block') {
+                    if (modal.style.display === 'flex') {
                         await refreshLogs();
                     } else {
                         clearInterval(logsAutoRefreshInterval);
@@ -818,11 +1008,179 @@ async def ui():
                 }
             }
             
+            // Destroy cluster functionality
+            function showDestroyConfirmation() {
+                document.getElementById('destroyModal').style.display = 'flex';
+            }
+            
+            function closeDestroyModal() {
+                document.getElementById('destroyModal').style.display = 'none';
+            }
+            
+            async function executeDestroy() {
+                try {
+                    const response = await fetch('/admin/destroy-cluster', { method: 'POST' });
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        // Show instructions in a nice alert
+                        let instructions = '🗑️ CLUSTER CLEANUP INSTRUCTIONS\\n\\n';
+                        instructions += '⚠️ ' + data.message + '\\n\\n';
+                        instructions += '📋 STEPS TO FOLLOW:\\n\\n';
+                        
+                        data.next_steps.forEach((step, index) => {
+                            instructions += step + '\\n';
+                        });
+                        
+                        instructions += '\\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\\n\\n';
+                        instructions += '🔴 Run this command in your terminal:\\n\\n';
+                        instructions += '   ./cleanup.sh\\n\\n';
+                        instructions += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\\n\\n';
+                        instructions += '💡 This browser window will remain open.\\n';
+                        instructions += 'Close it after running the cleanup script.\\n\\n';
+                        instructions += '✅ You can recreate everything with: ./kind_setup.sh';
+                        
+                        alert(instructions);
+                        
+                        // Create a detailed instructions page
+                        const instructionsWindow = window.open('', '_blank');
+                        if (instructionsWindow) {
+                            instructionsWindow.document.write(`
+                                <!DOCTYPE html>
+                                <html>
+                                <head>
+                                    <title>Cleanup Instructions</title>
+                                    <style>
+                                        body {
+                                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                                            max-width: 800px;
+                                            margin: 50px auto;
+                                            padding: 30px;
+                                            background: #f9fafb;
+                                        }
+                                        .container {
+                                            background: white;
+                                            padding: 40px;
+                                            border-radius: 12px;
+                                            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                                        }
+                                        h1 {
+                                            color: #dc2626;
+                                            border-bottom: 3px solid #dc2626;
+                                            padding-bottom: 15px;
+                                        }
+                                        .warning {
+                                            background: #fee2e2;
+                                            border-left: 5px solid #dc2626;
+                                            padding: 20px;
+                                            margin: 20px 0;
+                                            border-radius: 8px;
+                                        }
+                                        .step {
+                                            background: #f3f4f6;
+                                            padding: 15px 20px;
+                                            margin: 15px 0;
+                                            border-radius: 8px;
+                                            border-left: 4px solid #667eea;
+                                        }
+                                        .command {
+                                            background: #1e1e1e;
+                                            color: #4ec9b0;
+                                            padding: 20px;
+                                            border-radius: 8px;
+                                            font-family: 'Courier New', monospace;
+                                            font-size: 16px;
+                                            margin: 20px 0;
+                                            cursor: pointer;
+                                        }
+                                        .command:hover {
+                                            background: #2d2d2d;
+                                        }
+                                        .success {
+                                            background: #d1fae5;
+                                            border-left: 4px solid #10b981;
+                                            padding: 15px;
+                                            margin: 20px 0;
+                                            border-radius: 8px;
+                                        }
+                                        code {
+                                            background: #f3f4f6;
+                                            padding: 2px 6px;
+                                            border-radius: 4px;
+                                            font-family: 'Courier New', monospace;
+                                        }
+                                    </style>
+                                </head>
+                                <body>
+                                    <div class="container">
+                                        <h1>🗑️ Kubernetes Cluster Cleanup Instructions</h1>
+                                        
+                                        <div class="warning">
+                                            <h3>⚠️ ${data.message}</h3>
+                                            <p>The cleanup must be performed from your <strong>host machine terminal</strong>, not from within the Kubernetes pod.</p>
+                                        </div>
+                                        
+                                        <h2>📋 Step-by-Step Instructions:</h2>
+                                        
+                                        ${data.next_steps.map((step, idx) => `
+                                            <div class="step">
+                                                <strong>${step}</strong>
+                                            </div>
+                                        `).join('')}
+                                        
+                                        <h2>🔴 Command to Run:</h2>
+                                        <div class="command" onclick="navigator.clipboard.writeText('./cleanup.sh'); alert('✅ Copied to clipboard!');" title="Click to copy">
+                                            ./cleanup.sh
+                                            <div style="float: right; color: #858585;">📋 Click to copy</div>
+                                        </div>
+                                        
+                                        <div class="success">
+                                            <h3>✅ After Cleanup:</h3>
+                                            <p>You can recreate the entire demo environment anytime by running:</p>
+                                            <p><code>./kind_setup.sh</code></p>
+                                        </div>
+                                        
+                                        <h2>🗑️ What Will Be Deleted:</h2>
+                                        <ul style="line-height: 2;">
+                                            <li>✗ Kind cluster: <code>k8s-demo</code></li>
+                                            <li>✗ Namespace: <code>k8s-multi-demo</code></li>
+                                            <li>✗ All pods and deployments</li>
+                                            <li>✗ All services and ingress</li>
+                                            <li>✗ HPA and metrics-server</li>
+                                            <li>✗ ConfigMaps and Secrets</li>
+                                            <li>✗ Port-forward processes</li>
+                                            <li>✗ Docker image (optional)</li>
+                                        </ul>
+                                        
+                                        <p style="margin-top: 30px; color: #6b7280;">
+                                            <strong>Note:</strong> Close this browser window after running the cleanup script.
+                                        </p>
+                                    </div>
+                                </body>
+                                </html>
+                            `);
+                        }
+                        
+                        closeDestroyModal();
+                    } else {
+                        alert('❌ Error: ' + (data.message || 'Failed to get cleanup instructions'));
+                    }
+                } catch (error) {
+                    console.error('Destroy error:', error);
+                    alert('❌ Error: ' + error.message);
+                }
+            }
+            
             // Close modal when clicking outside
             window.onclick = function(event) {
-                const modal = document.getElementById('logsModal');
-                if (event.target == modal) {
+                const logsModal = document.getElementById('logsModal');
+                const destroyModal = document.getElementById('destroyModal');
+                
+                if (event.target == logsModal) {
                     closeLogsModal();
+                }
+                if (event.target == destroyModal) {
+                    closeDestroyModal();
                 }
             }
             
@@ -830,6 +1188,7 @@ async def ui():
             document.addEventListener('keydown', function(event) {
                 if (event.key === 'Escape') {
                     closeLogsModal();
+                    closeDestroyModal();
                 }
             });
             
@@ -1094,6 +1453,49 @@ async def reset():
     app_ready = True
     logger.info("✅ App reset to healthy and ready state - all probes passing")
     return {"message": "App reset to healthy state"}
+
+@app.post("/admin/destroy-cluster")
+async def destroy_cluster():
+    """
+    DANGEROUS: Provides instructions to destroy the entire Kubernetes cluster
+    This endpoint cannot actually destroy the cluster (pods can't destroy themselves)
+    Instead, it provides instructions to run the cleanup script on the host
+    """
+    try:
+        logger.warning("🔴 CLUSTER DESTRUCTION INSTRUCTIONS REQUESTED BY USER")
+        logger.warning("Providing instructions for manual cleanup")
+        
+        return {
+            "status": "instructions",
+            "message": "Cluster destruction must be performed from your host machine terminal",
+            "instructions": [
+                "Exit the browser",
+                "Return to your terminal",
+                "Run the cleanup script: ./cleanup.sh",
+                "Or manually delete: kind delete cluster --name k8s-demo",
+                "",
+                "The cleanup script will:",
+                "- Stop all port-forwards",
+                "- Delete the k8s-multi-demo namespace",
+                "- Delete the kind cluster (k8s-demo)",
+                "- Optionally remove Docker images",
+                "- Clean up temporary files"
+            ],
+            "next_steps": [
+                "1. Close this browser window",
+                "2. Return to your terminal",
+                "3. Run: ./cleanup.sh",
+                "4. Confirm when prompted",
+                "5. Everything will be removed"
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Error in destroy endpoint: {e}")
+        return Response(
+            content=f'{{"message": "Error: {str(e)}", "status": "error"}}',
+            status_code=500,
+            media_type="application/json"
+        )
 
 @app.on_event("startup")
 async def startup_event():
