@@ -1028,60 +1028,34 @@ kubectl config use-context kind-k8s-demo
 ## 📁 Project Structure
 
 ```
-kubernetes-production-simulator/
-│
-├── README.md                    # This file
-│
-├── app/                         # Application code
-│   ├── Dockerfile              # Multi-stage Docker build
-│   ├── requirements.txt        # Python dependencies
-│   └── src/
-│       └── main.py             # FastAPI application
-│                                 - Web dashboard
-│                                 - Health/readiness endpoints
-│                                 - Load test controls
-│                                 - Prometheus metrics
-│
-├── k8s/                        # Kubernetes manifests
-│   ├── base/                   # Core resources
-│   │   ├── namespace.yaml      # k8s-multi-demo namespace
-│   │   ├── deployment.yaml     # Main application deployment
-│   │   │                         - 2 replicas (min)
-│   │   │                         - Health/readiness probes
-│   │   │                         - Resource limits
-│   │   │                         - Security context
-│   │   ├── service.yaml        # ClusterIP service (port 80)
-│   │   ├── service-nodeport.yaml    # NodePort service (30080)
-│   │   ├── service-nodeport-8080.yaml # NodePort service (30808)
-│   │   ├── configmap.yaml      # Environment configuration
-│   │   └── secret.yaml         # Sensitive data (base64)
-│   │
-│   ├── ingress/                # Ingress configuration
-│   │   └── ingress.yaml        # NGINX Ingress rules
-│   │                             - Host: k8s-multi-demo.local
-│   │
-│   └── hpa/                    # Auto-scaling
-│       └── hpa.yaml            # Horizontal Pod Autoscaler
-│                                 - CPU-based scaling (70%)
-│                                 - Min: 2, Max: 10 pods
-│
-├── k8s-tests/                  # Test resources
-│   └── nginx-service.yaml      # Test service for debugging
-│
-├── kind_setup.sh               # Complete automated deployment
-│                                 - Cluster creation
-│                                 - Ingress setup
-│                                 - Application deployment
-│                                 - HPA configuration
-│                                 - Testing suite
-│
-├── setup-hpa.sh                # Standalone HPA setup script
-│                                 - Install metrics-server
-│                                 - Configure HPA
-│
-└── load-test.sh                # Load testing script
-                                  - Generate HTTP traffic
-                                  - Trigger HPA scaling
+.
+├── README.md
+├── app
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   └── src
+│       └── main.py
+├── k8s
+│   ├── base
+│   │   ├── configmap.yaml
+│   │   ├── deployment.yaml
+│   │   ├── namespace.yaml
+│   │   ├── secret.yaml
+│   │   ├── service-nodeport-8080.yaml
+│   │   ├── service-nodeport.yaml
+│   │   └── service.yaml
+│   ├── hpa
+│   │   └── hpa.yaml
+│   └── ingress
+│       └── ingress.yaml
+├── k8s-tests
+│   └── nginx-service.yaml
+├── kind_cleanup.sh
+├── kind_setup.sh
+└── scenario-scripts
+    ├── load-test.sh
+    └── setup-hpa.sh
+
 ```
 
 ### Key Files Explained
