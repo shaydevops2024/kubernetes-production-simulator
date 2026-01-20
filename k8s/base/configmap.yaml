@@ -1,0 +1,12 @@
+# k8s/base/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: k8s-multi-demo
+  labels:
+    app: k8s-demo-app
+data:
+  APP_ENV: "production"
+  APP_NAME: "k8s-multi-demo-app"
+  LOG_LEVEL: "INFO"

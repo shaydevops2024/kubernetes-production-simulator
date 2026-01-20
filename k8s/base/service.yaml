@@ -1,0 +1,17 @@
+# k8s/base/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8s-demo-service
+  namespace: k8s-multi-demo
+  labels:
+    app: k8s-demo-app
+spec:
+  type: ClusterIP
+  selector:
+    app: k8s-demo-app
+  ports:
+  - port: 80
+    targetPort: 8000
+    protocol: TCP
+    name: http

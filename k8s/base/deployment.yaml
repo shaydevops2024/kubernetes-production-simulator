@@ -1,0 +1,63 @@
+# k8s/base/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-demo-app
+  namespace: k8s-multi-demo
+  labels:
+    app: k8s-demo-app
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: k8s-demo-app
+  template:
+    metadata:
+      labels:
+        app: k8s-demo-app
+        version: v1
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+      - name: app
+        image: k8s-demo-app:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+          name: http
+          protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: app-config
+        env:
+        - name: SECRET_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: app-secret
+              key: SECRET_TOKEN
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
