@@ -1,379 +1,380 @@
-# 🚀 Kubernetes Production Demo Project
+# 🚀 Kubernetes Production Simulator
 
-A **production-grade Kubernetes learning project** that demonstrates real-world DevOps practices.
+A **production-grade Kubernetes learning project** demonstrating real-world DevOps practices with auto-scaling, monitoring, and incident simulation.
 
 ![Kubernetes](https://img.shields.io/badge/kubernetes-1.28-blue)
 ![Python](https://img.shields.io/badge/python-3.11-green)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.104-teal)
+
+**GitHub:** [shaydevops2024/kubernetes-production-simulator](https://github.com/shaydevops2024/kubernetes-production-simulator)
 
 ---
 
 ## 🎯 What This Project Demonstrates
 
 ✅ **Production-Ready Kubernetes Configuration**
-- Proper resource limits and requests
-- Health and readiness probes
 - Horizontal Pod Autoscaling (HPA)
-- ConfigMaps and Secrets management
-- Ingress for external access
+- Health & readiness probes
+- Resource limits & requests
+- ConfigMaps & Secrets management
+- Ingress routing
 
-✅ **Best Practices**
-- Non-root container user
+✅ **Modern Web Interface**
+- Real-time status monitoring
+- Incident simulation controls
+- Live log viewer
+- Professional UI/UX
+
+✅ **DevOps Best Practices**
+- Non-root containers
 - Multi-stage Docker builds
-- Prometheus metrics endpoint
-- Comprehensive logging
-
-✅ **Real-World Scenarios**
-- Auto-scaling under load
-- Incident simulation (pod crashes)
-- Configuration management
-- Observability
+- Prometheus metrics
+- Comprehensive automation
 
 ---
 
-## 📁 Project Structure
-```
-k8s-production-project/
-├── app/
-│   ├── src/
-│   │   └── main.py          # FastAPI application
-│   ├── Dockerfile            # Multi-stage build
-│   └── requirements.txt
-│
-├── k8s/
-│   ├── base/
-│   │   ├── namespace.yaml
-│   │   ├── deployment.yaml   # Pod configuration
-│   │   ├── service.yaml      # Internal networking
-│   │   ├── configmap.yaml    # Non-sensitive config
-│   │   └── secret.yaml       # Sensitive data
-│   ├── ingress/
-│   │   └── ingress.yaml      # External access
-│   └── hpa/
-│       └── hpa.yaml          # Auto-scaling config
-│
-├── scripts/
-│   ├── deploy.sh             # Automated deployment
-│   └── load-test.sh          # Load testing
-│
-├── Makefile                  # Convenient commands
-└── README.md
-```
+## 📋 Prerequisites
 
----
+### Required Tools:
+- **Docker** ([Install Guide](https://docs.docker.com/get-docker/))
+- **kubectl** ([Install Guide](https://kubernetes.io/docs/tasks/tools/))
+- **kind** (Kubernetes in Docker)
 
-## 🚀 Quick Start (5 Minutes)
+### Install kind:
 
-### Prerequisites
+**On WSL2/Ubuntu:**
 ```bash
-# Install Docker
-# Install kind
-brew install kind  # macOS
-# or
 curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
-
-# Install kubectl
-brew install kubectl  # macOS
+chmod +x ./kind
+sudo mv ./kind /usr/local/bin/kind
 ```
 
-### Step 1: Create Cluster
+**On macOS:**
 ```bash
-make setup
-# or manually:
-kind create cluster --name k8s-demo
-```
-
-### Step 2: Deploy Everything
-```bash
-make deploy
-# This will:
-# - Build Docker image
-# - Deploy to Kubernetes
-# - Install Ingress controller
-# - Configure auto-scaling
-```
-
-### Step 3: Access the Application
-```bash
-# Add to /etc/hosts
-echo "127.0.0.1 k8s-demo.local" | sudo tee -a /etc/hosts
-
-# Open browser
-open http://k8s-demo.local
-```
-
-**You should see a beautiful web dashboard!** 🎉
-
----
-
-## 🧪 How to Test Everything
-
-### 1️⃣ **Verify Deployment**
-```bash
-# Check pods are running
-kubectl get pods -n k8s-demo
-
-# Expected output:
-# NAME                            READY   STATUS    RESTARTS   AGE
-# k8s-demo-app-xxxxxxxxx-xxxxx    1/1     Running   0          1m
-# k8s-demo-app-xxxxxxxxx-xxxxx    1/1     Running   0          1m
-```
-
-### 2️⃣ **Test Web UI**
-
-Open browser: `http://k8s-demo.local`
-
-You should see:
-- ✅ Green "Healthy" status
-- ✅ Green "Ready" status
-- ✅ Environment: production
-- ✅ Interactive buttons
-
-### 3️⃣ **Test API Endpoints**
-```bash
-# Health check
-curl http://k8s-demo.local/health
-# Response: {"status":"healthy"}
-
-# Readiness check
-curl http://k8s-demo.local/ready
-# Response: {"status":"ready"}
-
-# Prometheus metrics
-curl http://k8s-demo.local/metrics
-# Response: (Prometheus format metrics)
-
-# API documentation (Swagger UI)
-open http://k8s-demo.local/docs
-```
-
-### 4️⃣ **Test Auto-Scaling**
-```bash
-# Watch HPA in one terminal
-kubectl get hpa -n k8s-demo -w
-
-# Run load test in another terminal
-make test
-
-# You should see:
-# - CPU usage increase
-# - Pods scale from 2 → 3 → 4... (up to 10)
-# - After load stops, pods scale back down
-```
-
-### 5️⃣ **Simulate Pod Crash**
-
-**Option A: Using Web UI**
-1. Open `http://k8s-demo.local`
-2. Click "💥 Simulate Crash"
-3. Watch the status turn red
-4. Kubernetes will restart the pod automatically!
-
-**Option B: Using API**
-```bash
-curl -X POST http://k8s-demo.local/simulate/crash
-```
-
-**Watch recovery:**
-```bash
-kubectl get pods -n k8s-demo -w
-# You'll see pod restart
-```
-
-### 6️⃣ **Simulate Not Ready**
-```bash
-# Make app not ready
-curl -X POST http://k8s-demo.local/simulate/notready
-
-# Check that Kubernetes stops routing traffic
-kubectl get pods -n k8s-demo
-# Pod shows 1/1 but READY will be 0/1
-
-# Reset
-curl -X POST http://k8s-demo.local/reset
-```
-
-### 7️⃣ **Test Configuration Changes**
-```bash
-# Edit ConfigMap
-kubectl edit configmap app-config -n k8s-demo
-# Change APP_ENV from "production" to "staging"
-
-# Restart pods to pick up new config
-kubectl rollout restart deployment/k8s-demo-app -n k8s-demo
-
-# Verify
-curl http://k8s-demo.local/api/info
-# Should show environment: "staging"
+brew install kind
 ```
 
 ---
 
-## 📊 Monitoring & Observability
+## 🚀 Quick Start
 
-### View Logs
+### **Option 1: WSL2 (Windows)**
 ```bash
-# Live logs
-make logs
-# or
-kubectl logs -f -l app=k8s-demo-app -n k8s-demo
+# 1. Clone repository
+git clone https://github.com/shaydevops2024/kubernetes-production-simulator.git
+cd kubernetes-production-simulator
 
-# Logs from specific pod
-kubectl logs k8s-demo-app-xxxxxxxxx-xxxxx -n k8s-demo
-```
+# 2. Create kind cluster with ingress support
+cat <<EOF | kind create cluster --name k8s-demo --config=-
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  kubeadmConfigPatches:
+  - |
+    kind: InitConfiguration
+    nodeRegistration:
+      kubeletExtraArgs:
+        node-labels: "ingress-ready=true"
+  extraPortMappings:
+  - containerPort: 80
+    hostPort: 80
+    protocol: TCP
+EOF
 
-### Check Resource Usage
-```bash
-# Pod resource usage (requires metrics-server)
-kubectl top pods -n k8s-demo
+# 3. Install NGINX Ingress Controller
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=90s
 
-# Node resource usage
-kubectl top nodes
-```
+# 4. Build and deploy application
+docker build -t k8s-demo-app:latest ./app
+kind load docker-image k8s-demo-app:latest --name k8s-demo
 
-### View Events
-```bash
-# See what Kubernetes is doing
-kubectl get events -n k8s-demo --sort-by='.lastTimestamp'
-```
-
----
-
-## 🎓 Learning Exercises
-
-### Exercise 1: Scale Manually
-```bash
-kubectl scale deployment k8s-demo-app --replicas=5 -n k8s-demo
-kubectl get pods -n k8s-demo -w
-```
-
-### Exercise 2: Update the Application
-```bash
-# Edit app/src/main.py
-# Change the welcome message
-
-# Rebuild and redeploy
-make build
-kubectl rollout restart deployment/k8s-demo-app -n k8s-demo
-
-# Watch rolling update
-kubectl rollout status deployment/k8s-demo-app -n k8s-demo
-```
-
-### Exercise 3: Add New Environment Variable
-```bash
-# Edit k8s/base/configmap.yaml
-# Add: NEW_FEATURE: "enabled"
-
+kubectl apply -f k8s/base/namespace.yaml
 kubectl apply -f k8s/base/configmap.yaml
-kubectl rollout restart deployment/k8s-demo-app -n k8s-demo
-```
+kubectl apply -f k8s/base/secret.yaml
+kubectl apply -f k8s/base/deployment.yaml
+kubectl apply -f k8s/base/service.yaml
+kubectl apply -f k8s/ingress/ingress.yaml
 
----
-
-## 🐛 Troubleshooting
-
-### Pods Not Starting?
-```bash
-kubectl describe pod <pod-name> -n k8s-demo
-kubectl logs <pod-name> -n k8s-demo
-```
-
-### Image Not Found?
-```bash
-# Rebuild and load image
-make build
-```
-
-### Cannot Access via Browser?
-```bash
-# Check /etc/hosts
-cat /etc/hosts | grep k8s-demo
-
-# Check Ingress
-kubectl get ingress -n k8s-demo
-
-# Port forward as backup
-kubectl port-forward svc/k8s-demo-service 8080:80 -n k8s-demo
-# Then open: http://localhost:8080
-```
-
-### HPA Not Working?
-```bash
-# Install metrics-server for kind
+# 5. Setup HPA (auto-scaling)
 kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
-
-# Patch for kind (self-signed certs)
 kubectl patch -n kube-system deployment metrics-server --type=json \
   -p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
+kubectl apply -f k8s/hpa/hpa.yaml
+
+# 6. Wait for pods
+kubectl wait --for=condition=ready pod -l app=k8s-demo-app -n k8s-multi-demo --timeout=120s
+
+# 7. Start port-forward
+kubectl port-forward svc/k8s-demo-service 8080:80 -n k8s-multi-demo > /dev/null 2>&1 &
+
+# 8. Open in Windows browser
+explorer.exe http://localhost:8080
+```
+
+---
+
+### **Option 2: Ubuntu Server (Remote or Local)**
+```bash
+# 1. Clone repository
+git clone https://github.com/shaydevops2024/kubernetes-production-simulator.git
+cd kubernetes-production-simulator
+
+# 2. Create kind cluster
+cat <<EOF | kind create cluster --name k8s-demo --config=-
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  kubeadmConfigPatches:
+  - |
+    kind: InitConfiguration
+    nodeRegistration:
+      kubeletExtraArgs:
+        node-labels: "ingress-ready=true"
+  extraPortMappings:
+  - containerPort: 80
+    hostPort: 80
+    protocol: TCP
+EOF
+
+# 3. Install NGINX Ingress
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=90s
+
+# 4. Deploy application
+docker build -t k8s-demo-app:latest ./app
+kind load docker-image k8s-demo-app:latest --name k8s-demo
+
+kubectl apply -f k8s/base/namespace.yaml
+kubectl apply -f k8s/base/configmap.yaml
+kubectl apply -f k8s/base/secret.yaml
+kubectl apply -f k8s/base/deployment.yaml
+kubectl apply -f k8s/base/service.yaml
+kubectl apply -f k8s/ingress/ingress.yaml
+
+# 5. Setup HPA
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+kubectl patch -n kube-system deployment metrics-server --type=json \
+  -p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
+kubectl apply -f k8s/hpa/hpa.yaml
+
+# 6. Wait for ready
+kubectl wait --for=condition=ready pod -l app=k8s-demo-app -n k8s-multi-demo --timeout=120s
+
+# 7. Access the application
+# Option A: Port-forward (local access)
+kubectl port-forward svc/k8s-demo-service 8080:80 -n k8s-multi-demo
+
+# Option B: SSH tunnel (from your local machine)
+# ssh -L 8080:localhost:8080 user@your-server-ip
+# Then open: http://localhost:8080
+
+# Option C: Use server IP directly
+# Get server IP: hostname -I | awk '{print $1}'
+# Access: http://YOUR_SERVER_IP (requires exposing port 80)
+```
+
+---
+
+### **Option 3: Ubuntu Desktop (with GUI)**
+
+Same as Ubuntu Server, but open browser directly:
+```bash
+# After step 7, start port-forward
+kubectl port-forward svc/k8s-demo-service 8080:80 -n k8s-multi-demo &
+
+# Open browser
+google-chrome http://localhost:8080
+# or
+firefox http://localhost:8080
+```
+
+---
+
+## 🧪 Testing Auto-Scaling (HPA)
+
+### **Method 1: Using the UI**
+1. Open `http://localhost:8080`
+2. Click **"🔥 Start Load Test"**
+3. Open terminal and watch scaling:
+```bash
+   kubectl get hpa -n k8s-multi-demo -w
+```
+4. See pods scale from 2 → 3 → 4...
+5. Click **"🛑 Stop Load Test"**
+6. Watch scale down to 2 (takes ~5 min)
+
+### **Method 2: CLI Load Test (Professional)**
+```bash
+# Terminal 1: Watch HPA
+kubectl get hpa -n k8s-multi-demo -w
+
+# Terminal 2: Generate load
+for i in {1..50}; do 
+  (while true; do 
+    curl -s http://localhost:8080/ > /dev/null
+    sleep 0.1
+  done) &
+done
+
+# Wait 2 minutes, then stop
+pkill curl
+
+# Watch scale down in Terminal 1
+```
+
+---
+
+## 📊 Monitoring Commands
+```bash
+# Watch HPA in real-time
+kubectl get hpa -n k8s-multi-demo -w
+
+# Watch pods scale
+kubectl get pods -n k8s-multi-demo -w
+
+# Check CPU/Memory usage
+kubectl top pods -n k8s-multi-demo
+
+# View logs
+kubectl logs -f -l app=k8s-demo-app -n k8s-multi-demo
+
+# Check all resources
+kubectl get all -n k8s-multi-demo
+```
+
+---
+
+## 🎯 Features to Test
+
+### **1. Auto-Scaling**
+- Start load test (UI or CLI)
+- Watch pods increase automatically
+- Stop load → pods decrease
+
+### **2. Health Probes**
+- Click **"💥 Simulate Crash"** → Pod restarts
+- Click **"⚠️ Simulate Not Ready"** → Traffic stops
+- Click **"🔄 Reset"** → Back to normal
+
+### **3. Live Monitoring**
+- Click **"📋 View Live Logs"**
+- Copy CLI commands directly
+- Watch real-time application logs
+
+---
+
+## 🔄 Update Application
+
+After making code changes:
+```bash
+# 1. Rebuild image
+docker build -t k8s-demo-app:latest ./app --no-cache
+
+# 2. Load into kind
+kind load docker-image k8s-demo-app:latest --name k8s-demo
+
+# 3. Restart deployment
+kubectl rollout restart deployment/k8s-demo-app -n k8s-multi-demo
+
+# 4. Wait for rollout
+kubectl rollout status deployment/k8s-demo-app -n k8s-multi-demo
+
+# 5. Restart port-forward
+pkill -f "port-forward"
+kubectl port-forward svc/k8s-demo-service 8080:80 -n k8s-multi-demo > /dev/null 2>&1 &
 ```
 
 ---
 
 ## 🧹 Cleanup
 ```bash
-# Delete everything
-make clean
-
-# Or manually
+# Delete cluster
 kind delete cluster --name k8s-demo
+
+# Verify deletion
+kind get clusters
 ```
 
 ---
 
-## 📚 What Each Component Does
+## 🐛 Troubleshooting
 
-| Component | Purpose | Why It Matters |
-|-----------|---------|----------------|
-| **Namespace** | Isolates resources | Organization, security boundaries |
-| **Deployment** | Manages pods | Ensures desired state, rolling updates |
-| **Service** | Internal networking | Stable IP for pod communication |
-| **Ingress** | External access | Routes traffic from outside cluster |
-| **ConfigMap** | Non-sensitive config | Change config without rebuilding |
-| **Secret** | Sensitive data | Secure storage of passwords, tokens |
-| **HPA** | Auto-scaling | Handles traffic spikes automatically |
-| **Probes** | Health checks | Auto-restart unhealthy pods |
+### **Pods not starting?**
+```bash
+kubectl describe pod <pod-name> -n k8s-multi-demo
+kubectl logs <pod-name> -n k8s-multi-demo
+```
+
+### **Can't access UI?**
+```bash
+# Check port-forward is running
+ps aux | grep port-forward
+
+# Restart port-forward
+pkill -f "port-forward"
+kubectl port-forward svc/k8s-demo-service 8080:80 -n k8s-multi-demo &
+```
+
+### **HPA not working?**
+```bash
+# Check metrics-server
+kubectl get pods -n kube-system | grep metrics-server
+
+# Reinstall if needed
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+kubectl patch -n kube-system deployment metrics-server --type=json \
+  -p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
+```
 
 ---
 
-## 🎯 Production Readiness Checklist
-
-✅ Resource limits defined  
-✅ Non-root user  
-✅ Health probes configured  
-✅ Configuration externalized  
-✅ Secrets not in Git  
-✅ Auto-scaling enabled  
-✅ Metrics endpoint exposed  
-✅ Proper logging  
-✅ Documentation complete  
+## 📚 Project Structure
+```
+kubernetes-production-simulator/
+├── app/
+│   ├── src/
+│   │   └── main.py          # FastAPI application
+│   ├── Dockerfile            # Multi-stage build
+│   └── requirements.txt
+├── k8s/
+│   ├── base/
+│   │   ├── namespace.yaml
+│   │   ├── deployment.yaml
+│   │   ├── service.yaml
+│   │   ├── configmap.yaml
+│   │   └── secret.yaml
+│   ├── ingress/
+│   │   └── ingress.yaml
+│   └── hpa/
+│       └── hpa.yaml
+└── README.md
+```
 
 ---
 
-## 🤝 Contributing
+## 🎓 What You'll Learn
 
-This is a learning project! Feel free to:
-- Add features
-- Improve documentation
-- Report issues
-- Suggest enhancements
+- ✅ Kubernetes deployments & services
+- ✅ Auto-scaling with HPA
+- ✅ Health & readiness probes
+- ✅ ConfigMaps & Secrets
+- ✅ Ingress routing
+- ✅ Resource management
+- ✅ Monitoring & observability
+- ✅ Incident handling
 
 ---
 
 ## 📝 License
 
-MIT License - Use this for learning and your portfolio!
+MIT License - Free to use for learning and portfolios!
 
 ---
 
-## 🌟 Next Steps
+## 🌟 Star this repo if it helped you learn Kubernetes!
 
-1. **Add Prometheus & Grafana** (monitoring dashboards)
-2. **Implement CI/CD** (GitHub Actions)
-3. **Add database** (PostgreSQL with persistent storage)
-4. **Multi-environment** (dev, staging, prod)
-5. **Service mesh** (Istio or Linkerd)
-
----
-
-**Built with ❤️ for learning Kubernetes**
+**Author:** Shay  
+**GitHub:** [shaydevops2024](https://github.com/shaydevops2024)

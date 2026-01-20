@@ -1,16 +1,21 @@
 # app/src/main.py
 # Main FastAPI application with production-ready endpoints and web UI
+# COMPLETE FIXED VERSION: Proper cleanup, auto-scroll logs, 30s refresh
 
-from fastapi import FastAPI, Response, Request
+from fastapi import FastAPI, Response
 from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
 from prometheus_client import Counter, Histogram, generate_latest
-import time
+import asyncio
 import os
 import logging
+from datetime import datetime
+from collections import deque
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
@@ -23,18 +28,37 @@ REQUEST_DURATION = Histogram('app_request_duration_seconds', 'Request duration')
 # Application state
 app_ready = True
 app_healthy = True
+load_test_running = False
+load_test_task = None
+
+# Log storage (last 100 log entries)
+log_buffer = deque(maxlen=100)
+
+# Custom log handler to capture logs
+class LogBufferHandler(logging.Handler):
+    def emit(self, record):
+        log_entry = self.format(record)
+        log_buffer.append({
+            'timestamp': datetime.now().isoformat(),
+            'level': record.levelname,
+            'message': log_entry
+        })
+
+# Add handler to logger
+buffer_handler = LogBufferHandler()
+buffer_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+logger.addHandler(buffer_handler)
 
 # Read configuration from environment
 APP_ENV = os.getenv('APP_ENV', 'development')
 APP_NAME = os.getenv('APP_NAME', 'k8s-demo-app')
 SECRET_TOKEN = os.getenv('SECRET_TOKEN', 'no-secret-configured')
 
-# Serve the UI at root
 @app.get("/", response_class=HTMLResponse)
 async def ui():
     """
-    Serve a simple web UI dashboard
-    This makes the app more visual and professional
+    Serve a professional web UI dashboard
+    Features: Status monitoring, load testing, incident simulation, live logs, CLI commands
     """
     REQUEST_COUNT.labels(method='GET', endpoint='/').inc()
     
@@ -66,7 +90,7 @@ async def ui():
                 background: white;
                 border-radius: 20px;
                 box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-                max-width: 800px;
+                max-width: 900px;
                 width: 100%;
                 padding: 40px;
             }
@@ -138,6 +162,11 @@ async def ui():
                 color: #0c5460;
             }
             
+            .badge-warning {
+                background: #fff3cd;
+                color: #856404;
+            }
+            
             .actions {
                 display: grid;
                 grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -158,12 +187,17 @@ async def ui():
                 text-align: center;
             }
             
+            .btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+            
             .btn-primary {
                 background: #667eea;
                 color: white;
             }
             
-            .btn-primary:hover {
+            .btn-primary:hover:not(:disabled) {
                 background: #5568d3;
                 transform: translateY(-2px);
                 box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
@@ -174,7 +208,7 @@ async def ui():
                 color: white;
             }
             
-            .btn-success:hover {
+            .btn-success:hover:not(:disabled) {
                 background: #38a169;
                 transform: translateY(-2px);
                 box-shadow: 0 5px 15px rgba(72, 187, 120, 0.4);
@@ -185,7 +219,7 @@ async def ui():
                 color: white;
             }
             
-            .btn-danger:hover {
+            .btn-danger:hover:not(:disabled) {
                 background: #e53e3e;
                 transform: translateY(-2px);
                 box-shadow: 0 5px 15px rgba(245, 101, 101, 0.4);
@@ -196,7 +230,7 @@ async def ui():
                 color: white;
             }
             
-            .btn-warning:hover {
+            .btn-warning:hover:not(:disabled) {
                 background: #dd6b20;
                 transform: translateY(-2px);
                 box-shadow: 0 5px 15px rgba(237, 137, 54, 0.4);
@@ -207,6 +241,15 @@ async def ui():
                 margin-top: 30px;
                 color: #999;
                 font-size: 0.9em;
+            }
+            
+            .footer a {
+                color: #667eea;
+                text-decoration: none;
+            }
+            
+            .footer a:hover {
+                text-decoration: underline;
             }
             
             .live-indicator {
@@ -229,6 +272,188 @@ async def ui():
                 color: #333;
                 margin: 30px 0 15px 0;
                 font-weight: 600;
+            }
+            
+            /* Modal Styles */
+            .modal {
+                display: none;
+                position: fixed;
+                z-index: 1000;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0,0,0,0.5);
+                overflow-y: auto;
+            }
+            
+            .modal-content {
+                background-color: white;
+                margin: 3% auto;
+                padding: 0;
+                border-radius: 15px;
+                width: 90%;
+                max-width: 900px;
+                max-height: 90vh;
+                display: flex;
+                flex-direction: column;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            }
+            
+            .modal-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 25px 30px;
+                border-bottom: 2px solid #e0e0e0;
+            }
+            
+            .modal-header h2 {
+                color: #333;
+                margin: 0;
+            }
+            
+            .close {
+                color: #aaa;
+                font-size: 32px;
+                font-weight: bold;
+                cursor: pointer;
+                line-height: 1;
+                transition: color 0.2s;
+            }
+            
+            .close:hover {
+                color: #000;
+            }
+            
+            .modal-body {
+                padding: 25px 30px;
+                overflow-y: auto;
+                flex: 1;
+            }
+            
+            .cli-commands-section {
+                margin-bottom: 25px;
+            }
+            
+            .cli-commands-section h3 {
+                color: #333;
+                font-size: 1.1em;
+                margin-bottom: 15px;
+            }
+            
+            .cli-command {
+                background: #f8f9fa;
+                padding: 12px 15px;
+                border-radius: 6px;
+                border: 2px solid #e0e0e0;
+                cursor: pointer;
+                transition: all 0.2s;
+                position: relative;
+                margin-bottom: 10px;
+            }
+            
+            .cli-command:hover {
+                border-color: #667eea;
+                background: #f0f4ff;
+            }
+            
+            .cli-command code {
+                color: #333;
+                font-size: 0.9em;
+                font-family: 'Courier New', monospace;
+            }
+            
+            .copy-hint {
+                float: right;
+                color: #667eea;
+                font-size: 0.85em;
+                font-weight: 600;
+            }
+            
+            .cli-command.copied {
+                border-color: #48bb78;
+                background: #d4edda;
+            }
+            
+            .logs-section h3 {
+                color: #333;
+                font-size: 1.1em;
+                margin-bottom: 10px;
+            }
+            
+            .logs-container {
+                background: #1e1e1e;
+                color: #d4d4d4;
+                padding: 20px;
+                border-radius: 8px;
+                font-family: 'Courier New', monospace;
+                font-size: 0.85em;
+                overflow-y: auto;
+                max-height: 400px;
+                min-height: 200px;
+            }
+            
+            .log-entry {
+                margin-bottom: 8px;
+                line-height: 1.6;
+                word-wrap: break-word;
+            }
+            
+            .log-timestamp {
+                color: #858585;
+                margin-right: 8px;
+            }
+            
+            .log-level-INFO {
+                color: #4ec9b0;
+                font-weight: bold;
+                margin-right: 8px;
+            }
+            
+            .log-level-WARNING {
+                color: #dcdcaa;
+                font-weight: bold;
+                margin-right: 8px;
+            }
+            
+            .log-level-ERROR {
+                color: #f48771;
+                font-weight: bold;
+                margin-right: 8px;
+            }
+            
+            .refresh-btn {
+                margin-top: 15px;
+                width: 100%;
+            }
+            
+            .info-box {
+                background: #e7f3ff;
+                border-left: 4px solid #667eea;
+                padding: 15px;
+                margin-bottom: 20px;
+                border-radius: 4px;
+            }
+            
+            .info-box p {
+                margin: 5px 0;
+                color: #333;
+                line-height: 1.6;
+            }
+            
+            .warning-box {
+                background: #fff3cd;
+                border-left: 4px solid #ed8936;
+                padding: 15px;
+                margin-bottom: 20px;
+                border-radius: 4px;
+            }
+            
+            .warning-box p {
+                margin: 5px 0;
+                color: #333;
+                line-height: 1.6;
             }
         </style>
     </head>
@@ -264,20 +489,30 @@ async def ui():
                     </span>
                 </div>
                 <div class="status-item">
-                    <span class="label">Secret Configured:</span>
-                    <span class="value" id="secret-status">Loading...</span>
+                    <span class="label">Load Test Status:</span>
+                    <span class="value" id="load-status">
+                        <span class="badge badge-info">Idle</span>
+                    </span>
                 </div>
             </div>
             
-            <div class="section-title">📊 Quick Actions</div>
+            <div class="section-title">🔥 HPA Load Testing</div>
             
             <div class="actions">
-                <a href="/docs" class="btn btn-primary" target="_blank">
-                    📖 API Documentation
-                </a>
-                <a href="/metrics" class="btn btn-success" target="_blank">
-                    📈 Prometheus Metrics
-                </a>
+                <button class="btn btn-warning" id="start-load-btn" onclick="startLoadTest()">
+                    🔥 Start Load Test
+                </button>
+                <button class="btn btn-danger" id="stop-load-btn" onclick="stopLoadTest()" disabled>
+                    🛑 Stop Load Test
+                </button>
+                <button class="btn btn-primary" onclick="viewLogs()">
+                    📋 View Live Logs & CLI
+                </button>
+            </div>
+            
+            <div class="section-title">⚠️ Incident Simulation</div>
+            
+            <div class="actions">
                 <button class="btn btn-warning" onclick="simulateNotReady()">
                     ⚠️ Simulate Not Ready
                 </button>
@@ -289,9 +524,93 @@ async def ui():
                 </button>
             </div>
             
+            <div class="section-title">📊 API & Metrics</div>
+            
+            <div class="actions">
+                <a href="/docs" class="btn btn-primary" target="_blank">
+                    📖 API Documentation
+                </a>
+                <a href="/metrics" class="btn btn-success" target="_blank">
+                    📈 Prometheus Metrics
+                </a>
+            </div>
+            
             <div class="footer">
                 Built for Kubernetes Production Learning | 
-                <a href="https://github.com/shaydevops2024/kubernetes-production-simulator" target="_blank" style="color: #667eea;">View on GitHub</a>
+                <a href="https://github.com/shaydevops2024/kubernetes-production-simulator" target="_blank">View on GitHub</a>
+            </div>
+        </div>
+        
+        <!-- Logs & CLI Commands Modal -->
+        <div id="logsModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>📋 Live Monitoring & CLI Commands</h2>
+                    <span class="close" onclick="closeLogsModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="info-box">
+                        <p><strong>💡 Pro Tip:</strong> Run these commands in your terminal to watch auto-scaling in real-time!</p>
+                        <p>Click any command below to copy it to your clipboard. Logs auto-refresh every 30 seconds.</p>
+                    </div>
+                    
+                    <div class="cli-commands-section">
+                        <h3>🖥️ Useful kubectl Commands (Click to Copy)</h3>
+                        
+                        <div class="cli-command" onclick="copyCommand(this)" data-command="kubectl get hpa -n k8s-multi-demo -w">
+                            <code>kubectl get hpa -n k8s-multi-demo -w</code>
+                            <span class="copy-hint">📋 Click to copy</span>
+                        </div>
+                        
+                        <div class="cli-command" onclick="copyCommand(this)" data-command="kubectl get pods -n k8s-multi-demo -w">
+                            <code>kubectl get pods -n k8s-multi-demo -w</code>
+                            <span class="copy-hint">📋 Click to copy</span>
+                        </div>
+                        
+                        <div class="cli-command" onclick="copyCommand(this)" data-command="kubectl top pods -n k8s-multi-demo">
+                            <code>kubectl top pods -n k8s-multi-demo</code>
+                            <span class="copy-hint">📋 Click to copy</span>
+                        </div>
+                        
+                        <div class="cli-command" onclick="copyCommand(this)" data-command="kubectl logs -f -l app=k8s-demo-app -n k8s-multi-demo">
+                            <code>kubectl logs -f -l app=k8s-demo-app -n k8s-multi-demo</code>
+                            <span class="copy-hint">📋 Click to copy</span>
+                        </div>
+                        
+                        <div class="cli-command" onclick="copyCommand(this)" data-command="kubectl describe hpa k8s-demo-hpa -n k8s-multi-demo">
+                            <code>kubectl describe hpa k8s-demo-hpa -n k8s-multi-demo</code>
+                            <span class="copy-hint">📋 Click to copy</span>
+                        </div>
+                    </div>
+                    
+                    <div class="cli-commands-section">
+                        <h3>🔥 Manual Load Testing (Optional - Click to Copy)</h3>
+                        
+                        <div class="warning-box">
+                            <p><strong>⚠️ Note:</strong> You can also use the UI buttons above, but manual CLI testing gives you more control.</p>
+                        </div>
+                        
+                        <div class="cli-command" onclick="copyCommand(this)" data-command="for i in {1..50}; do (while true; do curl -s http://localhost:8080/ > /dev/null; sleep 0.1; done) & done">
+                            <code>for i in {1..50}; do (while true; do curl -s http://localhost:8080/ > /dev/null; sleep 0.1; done) & done</code>
+                            <span class="copy-hint">📋 Start load test</span>
+                        </div>
+                        
+                        <div class="cli-command" onclick="copyCommand(this)" data-command="pkill curl">
+                            <code>pkill curl</code>
+                            <span class="copy-hint">📋 Stop load test</span>
+                        </div>
+                    </div>
+                    
+                    <div class="logs-section">
+                        <h3>📊 Application Logs (Auto-refreshing every 30s)</h3>
+                        <div class="logs-container" id="logs-container">
+                            Loading logs...
+                        </div>
+                        <button class="btn btn-primary refresh-btn" onclick="refreshLogs()">
+                            🔄 Refresh Logs Now
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -301,12 +620,12 @@ async def ui():
                 try {
                     // Get config
                     const configRes = await fetch('/api/info');
+                    if (!configRes.ok) throw new Error('Failed to fetch config');
                     const config = await configRes.json();
                     
                     document.getElementById('app-name').textContent = config.app_name;
                     document.getElementById('environment').innerHTML = 
                         `<span class="badge badge-info">${config.environment}</span>`;
-                    document.getElementById('secret-status').textContent = config.secret_configured;
                     
                     // Check health
                     const healthRes = await fetch('/health');
@@ -322,32 +641,197 @@ async def ui():
                         '<span class="badge badge-danger">✗ Not Ready</span>';
                     document.getElementById('ready-status').innerHTML = readyBadge;
                     
+                    // Check load test status
+                    const loadRes = await fetch('/load-test/status');
+                    if (!loadRes.ok) throw new Error('Failed to fetch load status');
+                    const loadData = await loadRes.json();
+                    const loadBadge = loadData.running ?
+                        '<span class="badge badge-warning">🔥 Running</span>' :
+                        '<span class="badge badge-info">Idle</span>';
+                    document.getElementById('load-status').innerHTML = loadBadge;
+                    
+                    // Update buttons
+                    document.getElementById('start-load-btn').disabled = loadData.running;
+                    document.getElementById('stop-load-btn').disabled = !loadData.running;
+                    
                 } catch (error) {
                     console.error('Error updating status:', error);
                 }
             }
             
+            async function startLoadTest() {
+                if (!confirm('🔥 Start Load Test?\\n\\nThis will generate traffic to trigger HPA auto-scaling.\\n\\nWatch scaling with:\\nkubectl get hpa -n k8s-multi-demo -w\\n\\nContinue?')) {
+                    return;
+                }
+                
+                try {
+                    const response = await fetch('/load-test/start', { method: 'POST' });
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        alert('✅ ' + data.message + '\\n\\n📊 Watch scaling:\\nkubectl get hpa -n k8s-multi-demo -w\\nkubectl get pods -n k8s-multi-demo -w');
+                    } else {
+                        alert('⚠️ ' + (data.message || 'Failed to start load test'));
+                    }
+                    updateStatus();
+                } catch (error) {
+                    console.error('Load test start error:', error);
+                    alert('❌ Error starting load test: ' + error.message);
+                }
+            }
+            
+            async function stopLoadTest() {
+                try {
+                    const response = await fetch('/load-test/stop', { method: 'POST' });
+                    if (!response.ok) {
+                        throw new Error('Failed to stop load test');
+                    }
+                    const data = await response.json();
+                    alert('✅ ' + data.message);
+                    await updateStatus();
+                } catch (error) {
+                    console.error('Load test stop error:', error);
+                    alert('❌ Error stopping load test: ' + error.message);
+                    await updateStatus();
+                }
+            }
+            
+            function copyCommand(element) {
+                const command = element.getAttribute('data-command');
+                navigator.clipboard.writeText(command).then(() => {
+                    element.classList.add('copied');
+                    const hint = element.querySelector('.copy-hint');
+                    const originalText = hint.textContent;
+                    hint.textContent = '✅ Copied!';
+                    
+                    setTimeout(() => {
+                        element.classList.remove('copied');
+                        hint.textContent = originalText;
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Copy failed:', err);
+                    alert('Failed to copy: ' + err);
+                });
+            }
+            
+            async function refreshLogs() {
+                const container = document.getElementById('logs-container');
+                const previousScrollHeight = container.scrollHeight;
+                const wasAtBottom = container.scrollTop + container.clientHeight >= previousScrollHeight - 50;
+                
+                try {
+                    const response = await fetch('/logs');
+                    if (!response.ok) throw new Error('Failed to fetch logs');
+                    const logs = await response.json();
+                    
+                    if (logs.length === 0) {
+                        container.innerHTML = '<div class="log-entry"><span class="log-level-INFO">[INFO]</span>No logs available yet. Application just started or no activity recorded.</div>';
+                    } else {
+                        // Show last 50 logs, newest at bottom
+                        const recentLogs = logs.slice(-50);
+                        container.innerHTML = recentLogs.map(log => {
+                            const timestamp = new Date(log.timestamp).toLocaleTimeString();
+                            return `<div class="log-entry">
+                                <span class="log-timestamp">${timestamp}</span>
+                                <span class="log-level-${log.level}">[${log.level}]</span>
+                                <span>${log.message}</span>
+                            </div>`;
+                        }).join('');
+                    }
+                    
+                    // Auto-scroll to bottom if user was already at bottom
+                    if (wasAtBottom) {
+                        container.scrollTop = container.scrollHeight;
+                    }
+                } catch (error) {
+                    console.error('Logs fetch error:', error);
+                    container.innerHTML = `<div class="log-entry"><span class="log-level-ERROR">[ERROR]</span>Error loading logs: ${error.message}</div>`;
+                }
+            }
+            
+            let logsAutoRefreshInterval = null;
+            
+            async function viewLogs() {
+                const modal = document.getElementById('logsModal');
+                modal.style.display = 'block';
+                await refreshLogs();
+                
+                // Auto-scroll to bottom on first load
+                const container = document.getElementById('logs-container');
+                container.scrollTop = container.scrollHeight;
+                
+                // Auto-refresh logs every 30 seconds while modal is open
+                if (logsAutoRefreshInterval) {
+                    clearInterval(logsAutoRefreshInterval);
+                }
+                
+                logsAutoRefreshInterval = setInterval(async () => {
+                    if (modal.style.display === 'block') {
+                        await refreshLogs();
+                    } else {
+                        clearInterval(logsAutoRefreshInterval);
+                        logsAutoRefreshInterval = null;
+                    }
+                }, 30000); // 30 seconds
+            }
+            
+            function closeLogsModal() {
+                const modal = document.getElementById('logsModal');
+                modal.style.display = 'none';
+                if (logsAutoRefreshInterval) {
+                    clearInterval(logsAutoRefreshInterval);
+                    logsAutoRefreshInterval = null;
+                }
+            }
+            
             async function simulateCrash() {
-                if (confirm('This will make the app unhealthy. Kubernetes will restart the pod. Continue?')) {
-                    await fetch('/simulate/crash', { method: 'POST' });
-                    alert('App is now unhealthy! Watch Kubernetes restart the pod.');
-                    setTimeout(updateStatus, 1000);
+                if (confirm('⚠️ This will make the app unhealthy.\\n\\nKubernetes will automatically restart the pod.\\n\\nContinue?')) {
+                    try {
+                        await fetch('/simulate/crash', { method: 'POST' });
+                        alert('💥 App is now unhealthy!\\n\\n✅ Kubernetes will restart the pod automatically.\\n\\n📊 Watch it happen:\\nkubectl get pods -n k8s-multi-demo -w');
+                        setTimeout(updateStatus, 1000);
+                    } catch (error) {
+                        alert('Error: ' + error);
+                    }
                 }
             }
             
             async function simulateNotReady() {
-                if (confirm('This will make the app not ready. Kubernetes will stop routing traffic. Continue?')) {
-                    await fetch('/simulate/notready', { method: 'POST' });
-                    alert('App is now not ready! Kubernetes will stop sending traffic.');
-                    setTimeout(updateStatus, 1000);
+                if (confirm('⚠️ This will make the app not ready.\\n\\nKubernetes will stop routing traffic to this pod.\\n\\nContinue?')) {
+                    try {
+                        await fetch('/simulate/notready', { method: 'POST' });
+                        alert('⚠️ App is now not ready!\\n\\n🚫 Kubernetes will stop sending traffic.\\n\\n📊 Check status:\\nkubectl describe pod <pod-name> -n k8s-multi-demo');
+                        setTimeout(updateStatus, 1000);
+                    } catch (error) {
+                        alert('Error: ' + error);
+                    }
                 }
             }
             
             async function resetApp() {
-                await fetch('/reset', { method: 'POST' });
-                alert('App reset to healthy state!');
-                setTimeout(updateStatus, 1000);
+                try {
+                    await fetch('/reset', { method: 'POST' });
+                    alert('✅ App reset to healthy state!\\n\\nAll probes are now passing.');
+                    setTimeout(updateStatus, 1000);
+                } catch (error) {
+                    alert('Error: ' + error);
+                }
             }
+            
+            // Close modal when clicking outside
+            window.onclick = function(event) {
+                const modal = document.getElementById('logsModal');
+                if (event.target == modal) {
+                    closeLogsModal();
+                }
+            }
+            
+            // Close modal with Escape key
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    closeLogsModal();
+                }
+            });
             
             // Update status every 3 seconds
             updateStatus();
@@ -405,42 +889,238 @@ async def metrics():
     """
     return Response(content=generate_latest(), media_type="text/plain")
 
+@app.get("/logs")
+async def get_logs():
+    """
+    Get recent application logs
+    Returns last 100 log entries for the live log viewer
+    """
+    return list(log_buffer)
+
+@app.get("/load-test/status")
+async def load_test_status():
+    """Check if load test is running"""
+    global load_test_running
+    return {"running": load_test_running}
+
+@app.post("/load-test/start")
+async def start_load_test():
+    """
+    Start a load test to trigger HPA scaling
+    Generates HTTP requests to the Kubernetes service (distributed across all pods)
+    """
+    global load_test_running, load_test_task
+    
+    if load_test_running:
+        return {"message": "Load test already running", "status": "running"}
+    
+    try:
+        # Start background load generation
+        load_test_running = True
+        load_test_task = asyncio.create_task(generate_load())
+        logger.warning("🔥 LOAD TEST STARTED - Generating traffic to trigger HPA scaling")
+        logger.info("Load test will run for 2 minutes or until manually stopped")
+        
+        return {
+            "message": "Load test started! Generating load for 2 minutes. Watch: kubectl get hpa -n k8s-multi-demo -w",
+            "status": "started",
+            "duration": "2 minutes (or until stopped)"
+        }
+    except Exception as e:
+        load_test_running = False
+        logger.error(f"Failed to start load test: {e}")
+        return Response(
+            content=f'{{"message": "Error: {str(e)}", "status": "error"}}',
+            status_code=500,
+            media_type="application/json"
+        )
+
+@app.post("/load-test/stop")
+async def stop_load_test():
+    """Stop the running load test with aggressive cleanup"""
+    global load_test_running, load_test_task
+    
+    if not load_test_running:
+        return {"message": "No load test running", "status": "idle"}
+    
+    try:
+        # Set flag first to stop new requests
+        load_test_running = False
+        logger.info("🛑 Stopping load test...")
+        
+        # Cancel the task
+        if load_test_task and not load_test_task.done():
+            load_test_task.cancel()
+            try:
+                # Wait for task to cancel, with timeout
+                await asyncio.wait_for(load_test_task, timeout=2.0)
+            except (asyncio.CancelledError, asyncio.TimeoutError):
+                logger.info("Load test task cancelled successfully")
+            except Exception as e:
+                logger.warning(f"Error cancelling task: {e}")
+        
+        load_test_task = None
+        
+        # Force garbage collection to clean up any lingering connections
+        import gc
+        gc.collect()
+        
+        # Wait a moment for connections to fully close
+        await asyncio.sleep(0.5)
+        
+        logger.info("🛑 LOAD TEST STOPPED - All traffic generation ended")
+        logger.info("All connections closed. CPU should drop within 30 seconds.")
+        logger.info("Pods will scale down to minimum in ~5 minutes")
+        
+        return {
+            "message": "Load test stopped. CPU will drop within 30s. Pods will scale down in ~5 minutes.",
+            "status": "stopped"
+        }
+    except Exception as e:
+        logger.error(f"Error stopping load test: {e}")
+        load_test_running = False
+        load_test_task = None
+        return {
+            "message": f"Load test stopped (with error: {str(e)}). If CPU stays high, run: kubectl rollout restart deployment/k8s-demo-app -n k8s-multi-demo",
+            "status": "stopped"
+        }
+
+async def generate_load():
+    """
+    Generate HTTP load by making requests to the Kubernetes service
+    This distributes load across all pods and triggers HPA scaling
+    """
+    global load_test_running
+    import aiohttp
+    
+    # Target the Kubernetes service (not localhost!)
+    # This ensures requests are distributed across all pods
+    service_url = 'http://k8s-demo-service.k8s-multi-demo.svc.cluster.local'
+    
+    logger.info(f"Load generator targeting: {service_url}")
+    
+    start_time = asyncio.get_event_loop().time()
+    duration = 120  # 2 minutes
+    request_count = 0
+    session = None
+    
+    try:
+        # Create aiohttp session
+        timeout = aiohttp.ClientTimeout(total=5)
+        session = aiohttp.ClientSession(timeout=timeout)
+        
+        while load_test_running and (asyncio.get_event_loop().time() - start_time) < duration:
+            try:
+                # Make 20 concurrent requests per batch
+                tasks = []
+                for _ in range(20):
+                    if not load_test_running:  # Check flag frequently for quick stop
+                        break
+                    task = session.get(service_url)
+                    tasks.append(task)
+                
+                if not load_test_running:  # Exit early if stopped
+                    logger.info("Load test stopped by user - exiting immediately")
+                    break
+                
+                # Execute all requests concurrently
+                responses = await asyncio.gather(*tasks, return_exceptions=True)
+                request_count += len(responses)
+                
+                # Log progress every 100 requests
+                if request_count % 100 == 0:
+                    logger.info(f"Load test: {request_count} requests sent, {int(asyncio.get_event_loop().time() - start_time)}s elapsed")
+                
+                # Small delay to control request rate
+                await asyncio.sleep(0.05)
+                
+            except asyncio.CancelledError:
+                logger.info("Load test cancelled by user")
+                break
+            except Exception as e:
+                if load_test_running:  # Only log if not intentionally stopped
+                    logger.error(f"Load generation error: {e}")
+                await asyncio.sleep(0.5)  # Back off on errors
+    
+    except Exception as e:
+        logger.error(f"Load test failed: {e}")
+    
+    finally:
+        # Clean up session properly
+        if session and not session.closed:
+            logger.info("Closing aiohttp session and all connections...")
+            await session.close()
+            # Give time for connections to properly close
+            await asyncio.sleep(0.25)
+        
+        load_test_running = False
+        elapsed = int(asyncio.get_event_loop().time() - start_time)
+        logger.info(f"🏁 LOAD TEST COMPLETED - {request_count} requests in {elapsed}s")
+        logger.info("All connections closed. CPU should drop to normal within 30 seconds.")
+        logger.info("HPA will scale down pods to minimum in ~5 minutes")
+
 @app.post("/simulate/crash")
 async def simulate_crash():
     """
     Simulate app becoming unhealthy (for testing liveness probe)
-    This is for incident simulation in Stage 7
+    This is for incident simulation and learning purposes
     """
     global app_healthy
     app_healthy = False
-    logger.error("App health set to unhealthy - liveness probe will fail!")
+    logger.error("INCIDENT SIMULATION: App health set to unhealthy - liveness probe will fail!")
+    logger.warning("Kubernetes will detect this and restart the pod automatically")
     return {"message": "App is now unhealthy - will be restarted by Kubernetes"}
 
 @app.post("/simulate/notready")
 async def simulate_notready():
     """
     Simulate app becoming not ready (for testing readiness probe)
-    This is for incident simulation in Stage 7
+    This is for incident simulation and learning purposes
     """
     global app_ready
     app_ready = False
-    logger.warning("App readiness set to false - will stop receiving traffic!")
+    logger.warning("INCIDENT SIMULATION: App readiness set to false - will stop receiving traffic!")
+    logger.info("Kubernetes will stop routing traffic to this pod")
     return {"message": "App is now not ready - Kubernetes will stop routing traffic"}
 
 @app.post("/reset")
 async def reset():
-    """Reset app to healthy state"""
+    """
+    Reset app to healthy state
+    Restores both health and readiness to normal
+    """
     global app_healthy, app_ready
     app_healthy = True
     app_ready = True
-    logger.info("App reset to healthy and ready state")
+    logger.info("✅ App reset to healthy and ready state - all probes passing")
     return {"message": "App reset to healthy state"}
 
-# Startup event
 @app.on_event("startup")
 async def startup_event():
-    logger.info(f"Starting {APP_NAME} in {APP_ENV} environment")
-    logger.info("Application ready to accept requests")
+    """Application startup event"""
+    logger.info(f"========================================")
+    logger.info(f"Starting {APP_NAME}")
+    logger.info(f"Environment: {APP_ENV}")
+    logger.info(f"Secret configured: {'yes' if SECRET_TOKEN != 'no-secret-configured' else 'no'}")
+    logger.info(f"Application ready to accept requests")
+    logger.info(f"========================================")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Application shutdown event"""
+    global load_test_running, load_test_task
+    
+    if load_test_running:
+        logger.info("Stopping load test on application shutdown...")
+        load_test_running = False
+        if load_test_task and not load_test_task.done():
+            load_test_task.cancel()
+            try:
+                await load_test_task
+            except asyncio.CancelledError:
+                pass
+    
+    logger.info("Application shutting down")
 
 if __name__ == "__main__":
     import uvicorn
