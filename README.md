@@ -1120,6 +1120,12 @@ kubernetes-production-simulator/
 
 ## 🧹 Cleanup
 
+### Script for deletion:
+
+``` bash
+    ./kind_cleanup.sh
+```
+
 ### Delete Everything
 
 ```bash
@@ -1442,11 +1448,9 @@ By working with this project, you will understand:
 
 ---
 
-## 📞 Contact & Support
+## 📞 Contact & Author
 
-**Project Repository**: [github.com/shaydevops2024/kubernetes-production-simulator](https://github.com/shaydevops2024/kubernetes-production-simulator)
-
-**Author**: Shay  
+**Author**: Shay Guedj
 **GitHub**: [@shaydevops2024](https://github.com/shaydevops2024)
 
 **Issues & Questions**: [Create an issue on GitHub](https://github.com/shaydevops2024/kubernetes-production-simulator/issues)
