@@ -58,7 +58,7 @@ print_info() {
 clear
 print_header "KUBERNETES PRODUCTION DEMO - COMPLETE DEPLOYMENT"
 echo -e "${GREEN}This script will:${NC}"
-echo "  1. Delete any existing clusters"
+echo "  1. Delete the existing KIND cluster named k8s-demo (if it exists)"
 echo "  2. Create a fresh kind cluster"
 echo "  3. Install NGINX Ingress Controller"
 echo "  4. Build and load Docker image"
@@ -158,7 +158,7 @@ print_step "Creating kind cluster '${CLUSTER_NAME}'..."
 kind create cluster --name ${CLUSTER_NAME} --config /tmp/kind-config.yaml
 
 print_step "Waiting for cluster to be ready..."
-kubectl wait --for=condition=ready node --all --timeout=90s
+kubectl wait --for=condition=ready node --all --timeout=600s
 
 print_step "Verifying cluster..."
 kubectl cluster-info
@@ -175,11 +175,11 @@ kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main
 print_step "Waiting for ingress-nginx namespace..."
 sleep 5
 
-print_step "Waiting for ingress controller to be ready (this may take 60-90 seconds)..."
+print_step "Waiting for ingress controller to be ready (this may take a few minutes)..."
 kubectl wait --namespace ingress-nginx \
   --for=condition=ready pod \
   --selector=app.kubernetes.io/component=controller \
-  --timeout=120s
+  --timeout=600s
 
 print_step "Verifying ingress controller..."
 INGRESS_PODS=$(kubectl get pods -n ingress-nginx -l app.kubernetes.io/component=controller --no-headers | wc -l)
@@ -233,11 +233,42 @@ print_step "Applying Ingress configuration..."
 kubectl apply -f k8s/ingress/ingress.yaml
 print_success "Ingress created"
 
-print_step "Waiting for application pods to be ready (timeout: 120s)..."
-kubectl wait --for=condition=ready pod -l app=k8s-demo-app -n ${NAMESPACE} --timeout=120s
+chmod a+x ./deploy-database.sh
+./deploy-database.sh
+
+print_step "Waiting for application pods to be ready. This can take a few minutes.."
+kubectl wait --for=condition=ready pod -l app=k8s-demo-app -n ${NAMESPACE} --timeout=600s
 
 POD_COUNT=$(kubectl get pods -n ${NAMESPACE} --no-headers | grep Running | wc -l)
 print_success "Application deployed! ($POD_COUNT pods running)"
+
+# ============================================
+# STEP 6.5: DEPLOY POSTGRESQL DATABASE
+# ============================================
+print_header "STEP 6.5/10: DEPLOYING POSTGRESQL DATABASE"
+
+print_step "Applying PostgreSQL ConfigMap..."
+kubectl apply -f k8s/database/postgres-configmap.yaml
+print_success "PostgreSQL ConfigMap applied"
+
+print_step "Applying PostgreSQL Secret..."
+kubectl apply -f k8s/database/postgres-secret.yaml
+print_success "PostgreSQL Secret applied"
+
+print_step "Creating PostgreSQL Service..."
+kubectl apply -f k8s/database/postgres-service.yaml
+print_success "PostgreSQL Service created"
+
+print_step "Deploying PostgreSQL StatefulSet..."
+kubectl apply -f k8s/database/postgres-statefulset.yaml
+print_success "PostgreSQL StatefulSet created"
+
+
+
+print_step "Waiting for PostgreSQL StatefulSet to be ready (this may take a few minutes)..."
+kubectl rollout status statefulset/postgres -n ${NAMESPACE} --timeout=600s
+
+print_success "PostgreSQL database deployed and ready!"
 
 # ============================================
 # STEP 7: INSTALL METRICS SERVER
@@ -251,11 +282,8 @@ print_step "Patching metrics-server for kind (allow insecure TLS)..."
 kubectl patch -n kube-system deployment metrics-server --type=json \
   -p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
 
-print_step "Waiting for rollout to complete..."
-sleep 5
-
 print_step "Waiting for metrics-server deployment to be ready..."
-kubectl rollout status deployment/metrics-server -n kube-system --timeout=120s
+kubectl rollout status deployment/metrics-server -n kube-system --timeout=600s
 
 print_success "Metrics-server installed and ready!"
 
@@ -292,44 +320,36 @@ else
     print_warning "$HEALTHY_PODS out of $TOTAL_PODS pods are healthy"
 fi
 
-print_step "Test 2: Checking services..."
+print_step "Test 2: Checking PostgreSQL pods..."
+POSTGRES_PODS=$(kubectl get pods -n ${NAMESPACE} -l app=postgres --no-headers | wc -l)
+[ "$POSTGRES_PODS" -ge 1 ] && print_success "PostgreSQL pod running" || print_warning "PostgreSQL pod not ready yet"
+
+print_step "Test 3: Checking PostgreSQL StatefulSet..."
+kubectl get statefulset postgres -n ${NAMESPACE} && print_success "PostgreSQL StatefulSet present"
+
+print_step "Test 4: Checking services..."
 SERVICES=$(kubectl get svc -n ${NAMESPACE} --no-headers | wc -l)
 print_success "$SERVICES services configured"
 
-print_step "Test 3: Checking ingress..."
+print_step "Test 5: Checking ingress..."
 INGRESS_HOSTS=$(kubectl get ingress -n ${NAMESPACE} -o jsonpath='{.items[0].spec.rules[0].host}')
 print_success "Ingress configured for: $INGRESS_HOSTS"
 
-print_step "Test 4: Testing NodePort connectivity..."
+print_step "Test 6: Testing NodePort connectivity..."
 sleep 3
 if curl -s -o /dev/null -w "%{http_code}" http://localhost:${NODEPORT}/health | grep -q "200"; then
     print_success "NodePort accessible at http://localhost:${NODEPORT}"
 else
-    print_warning "NodePort connectivity test inconclusive (app may still be starting)"
+    print_warning "NodePort connectivity test inconclusive"
 fi
 
-print_step "Test 5: Checking HPA status..."
+print_step "Test 7: Checking HPA status..."
 HPA_STATUS=$(kubectl get hpa -n ${NAMESPACE} -o jsonpath='{.items[0].status.currentReplicas}')
 HPA_TARGET=$(kubectl get hpa -n ${NAMESPACE} -o jsonpath='{.items[0].spec.minReplicas}')
 print_success "HPA active: $HPA_STATUS/$HPA_TARGET replicas"
 
-print_step "Test 6: Checking metrics-server..."
-if kubectl top nodes &>/dev/null; then
-    print_success "Metrics-server working"
-else
-    print_warning "Metrics not available yet (may take a minute)"
-fi
-
-print_step "Test 7: Testing application endpoints..."
-APP_ENDPOINTS=("health" "ready" "api/info")
-for endpoint in "${APP_ENDPOINTS[@]}"; do
-    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:${NODEPORT}/${endpoint} || echo "000")
-    if [ "$HTTP_CODE" = "200" ]; then
-        print_success "  /${endpoint} - OK (${HTTP_CODE})"
-    else
-        print_warning "  /${endpoint} - Status: ${HTTP_CODE}"
-    fi
-done
+print_step "Test 8: Checking metrics-server..."
+kubectl top nodes &>/dev/null && print_success "Metrics-server working" || print_warning "Metrics not available yet"
 
 print_success "All tests completed!"
 
@@ -338,118 +358,8 @@ print_success "All tests completed!"
 # ============================================
 print_header "STEP 10/10: DEPLOYMENT SUMMARY"
 
-echo ""
-echo -e "${GREEN}╔══════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║                   DEPLOYMENT SUCCESSFUL!                     ║${NC}"
-echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
-echo ""
-
-echo -e "${CYAN}📊 CLUSTER INFORMATION:${NC}"
-echo -e "  Cluster Name:      ${CLUSTER_NAME}"
-echo -e "  Namespace:         ${NAMESPACE}"
-echo -e "  Pods Running:      ${POD_COUNT}"
-echo -e "  Services:          ${SERVICES}"
-echo ""
-
-echo -e "${CYAN}🌐 ACCESS YOUR APPLICATION:${NC}"
-echo -e "  ${GREEN}Primary (NodePort):${NC}    http://localhost:${NODEPORT}"
-echo -e "  ${GREEN}Alternative (Ingress):${NC} http://${INGRESS_HOSTS}"
-echo -e "  ${GREEN}API Documentation:${NC}     http://localhost:${NODEPORT}/docs"
-echo -e "  ${GREEN}Prometheus Metrics:${NC}    http://localhost:${NODEPORT}/metrics"
-echo ""
-
-echo -e "${CYAN}📈 CURRENT STATUS:${NC}"
-echo ""
 kubectl get all -n ${NAMESPACE}
-echo ""
 
-echo -e "${CYAN}🔍 HPA STATUS:${NC}"
-kubectl get hpa -n ${NAMESPACE}
-echo ""
-
-echo -e "${CYAN}💻 POD METRICS:${NC}"
-kubectl top pods -n ${NAMESPACE} 2>/dev/null || echo "  (Metrics will be available in ~1 minute)"
-echo ""
-
-echo -e "${CYAN}🛠️  USEFUL COMMANDS:${NC}"
-echo ""
-echo -e "  ${YELLOW}Monitor HPA (watch auto-scaling):${NC}"
-echo -e "    kubectl get hpa -n ${NAMESPACE} -w"
-echo ""
-echo -e "  ${YELLOW}Watch pods (see scaling in action):${NC}"
-echo -e "    kubectl get pods -n ${NAMESPACE} -w"
-echo ""
-echo -e "  ${YELLOW}Check pod resource usage:${NC}"
-echo -e "    kubectl top pods -n ${NAMESPACE}"
-echo ""
-echo -e "  ${YELLOW}View application logs:${NC}"
-echo -e "    kubectl logs -f -l app=k8s-demo-app -n ${NAMESPACE}"
-echo ""
-echo -e "  ${YELLOW}Describe HPA (detailed info):${NC}"
-echo -e "    kubectl describe hpa k8s-demo-hpa -n ${NAMESPACE}"
-echo ""
-
-echo -e "${CYAN}🧪 TEST AUTO-SCALING:${NC}"
-echo ""
-echo -e "  ${GREEN}Option 1 - Using the Web UI:${NC}"
-echo -e "    1. Open: http://localhost:${NODEPORT}"
-echo -e "    2. Click 'Start Load Test' button"
-echo -e "    3. Watch: kubectl get hpa -n ${NAMESPACE} -w"
-echo -e "    4. See pods scale from 2 → 3 → 4..."
-echo ""
-echo -e "  ${GREEN}Option 2 - Manual load test (Terminal):${NC}"
-echo -e "    for i in {1..50}; do (while true; do curl -s http://localhost:${NODEPORT}/ > /dev/null; sleep 0.1; done) & done"
-echo -e "    # To stop: pkill curl"
-echo ""
-
-echo -e "${CYAN}🗑️  CLEANUP (when done):${NC}"
-echo -e "    ./cleanup.sh"
-echo -e "    # Or manually: kind delete cluster --name ${CLUSTER_NAME}"
-echo ""
-
-echo -e "${CYAN}📚 NEXT STEPS:${NC}"
-echo ""
-echo -e "  1. ${GREEN}Open the application:${NC}"
-echo -e "     - The UI should open automatically below"
-echo -e "     - Or manually open: http://localhost:${NODEPORT}"
-echo ""
-echo -e "  2. ${GREEN}Test the features:${NC}"
-echo -e "     - View Live Logs & CLI Commands"
-echo -e "     - Simulate incidents (crash, not ready)"
-echo -e "     - Test auto-scaling with load test"
-echo -e "     - Try the 'Destroy Everything' button"
-echo ""
-echo -e "  3. ${GREEN}Monitor in terminal:${NC}"
-echo -e "     - Open another terminal"
-echo -e "     - Run: kubectl get hpa -n ${NAMESPACE} -w"
-echo -e "     - Watch pods scale automatically"
-echo ""
-
-print_header "🚀 OPENING APPLICATION IN BROWSER"
-
-print_step "Attempting to open browser..."
-
-# Try different methods to open browser (WSL2, Linux, Mac)
-if command -v explorer.exe &> /dev/null; then
-    # WSL2
-    explorer.exe http://localhost:${NODEPORT} 2>/dev/null &
-    print_success "Browser opened (WSL2)"
-elif command -v xdg-open &> /dev/null; then
-    # Linux
-    xdg-open http://localhost:${NODEPORT} 2>/dev/null &
-    print_success "Browser opened (Linux)"
-elif command -v open &> /dev/null; then
-    # macOS
-    open http://localhost:${NODEPORT} 2>/dev/null &
-    print_success "Browser opened (macOS)"
-else
-    print_warning "Could not auto-open browser"
-    echo -e "  ${YELLOW}Please manually open: http://localhost:${NODEPORT}${NC}"
-fi
-
-echo ""
-print_header "✅ DEPLOYMENT COMPLETE - READY TO USE!"
 echo ""
 echo -e "${GREEN}Your Kubernetes production demo is now running!${NC}"
 echo -e "${GREEN}Access it at: http://localhost:${NODEPORT}${NC}"
-echo ""

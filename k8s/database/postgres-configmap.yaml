@@ -1,0 +1,193 @@
+# k8s/database/postgres-configmap.yaml
+# PostgreSQL configuration and initialization scripts
+# These scripts run automatically when the database is first created
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: k8s-multi-demo
+  labels:
+    app: postgres
+    component: database
+data:
+  # Database name
+  POSTGRES_DB: k8s_demo_db
+  
+  # PostgreSQL configuration parameters
+  POSTGRES_MAX_CONNECTIONS: "100"
+  POSTGRES_SHARED_BUFFERS: "128MB"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-scripts
+  namespace: k8s-multi-demo
+  labels:
+    app: postgres
+    component: database
+data:
+  # Initialization script - creates tables and sample data
+  01-init-schema.sql: |
+    -- Create extension for UUID generation
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    
+    -- Users table for authentication demo
+    CREATE TABLE IF NOT EXISTS users (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        username VARCHAR(50) UNIQUE NOT NULL,
+        email VARCHAR(100) UNIQUE NOT NULL,
+        full_name VARCHAR(100),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        is_active BOOLEAN DEFAULT true
+    );
+    
+    -- Tasks table for CRUD operations demo
+    CREATE TABLE IF NOT EXISTS tasks (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        title VARCHAR(200) NOT NULL,
+        description TEXT,
+        status VARCHAR(20) DEFAULT 'pending',
+        priority INTEGER DEFAULT 1,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        completed_at TIMESTAMP WITH TIME ZONE
+    );
+    
+    -- Application metrics table for tracking
+    CREATE TABLE IF NOT EXISTS app_metrics (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        metric_name VARCHAR(100) NOT NULL,
+        metric_value NUMERIC,
+        metric_type VARCHAR(50),
+        recorded_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        meta_data JSONB
+    );
+    
+    -- Create indexes for better performance
+    CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id);
+    CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+    CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON tasks(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_metrics_name ON app_metrics(metric_name);
+    CREATE INDEX IF NOT EXISTS idx_metrics_recorded_at ON app_metrics(recorded_at DESC);
+    
+    -- Create updated_at trigger function
+    CREATE OR REPLACE FUNCTION update_updated_at_column()
+    RETURNS TRIGGER AS $$
+    BEGIN
+        NEW.updated_at = CURRENT_TIMESTAMP;
+        RETURN NEW;
+    END;
+    $$ language 'plpgsql';
+    
+    -- Apply trigger to users table
+    DROP TRIGGER IF EXISTS update_users_updated_at ON users;
+    CREATE TRIGGER update_users_updated_at
+        BEFORE UPDATE ON users
+        FOR EACH ROW
+        EXECUTE FUNCTION update_updated_at_column();
+    
+    -- Apply trigger to tasks table
+    DROP TRIGGER IF EXISTS update_tasks_updated_at ON tasks;
+    CREATE TRIGGER update_tasks_updated_at
+        BEFORE UPDATE ON tasks
+        FOR EACH ROW
+        EXECUTE FUNCTION update_updated_at_column();
+
+  02-seed-data.sql: |
+    -- Insert sample users
+    INSERT INTO users (username, email, full_name) VALUES
+        ('demo_user', 'demo@k8s-demo.local', 'Demo User'),
+        ('john_doe', 'john@k8s-demo.local', 'John Doe'),
+        ('jane_smith', 'jane@k8s-demo.local', 'Jane Smith')
+    ON CONFLICT (username) DO NOTHING;
+    
+    -- Insert sample tasks
+    INSERT INTO tasks (user_id, title, description, status, priority) 
+    SELECT 
+        u.id,
+        'Welcome to K8s Demo!',
+        'This is a sample task to demonstrate database integration with Kubernetes. You can create, read, update, and delete tasks through the API.',
+        'completed',
+        1
+    FROM users u WHERE u.username = 'demo_user'
+    ON CONFLICT DO NOTHING;
+    
+    INSERT INTO tasks (user_id, title, description, status, priority) 
+    SELECT 
+        u.id,
+        'Test HPA Auto-scaling',
+        'Click the "Start Load Test" button to trigger Horizontal Pod Autoscaler and watch the pods scale from 2 to 10.',
+        'pending',
+        2
+    FROM users u WHERE u.username = 'demo_user'
+    ON CONFLICT DO NOTHING;
+    
+    INSERT INTO tasks (user_id, title, description, status, priority) 
+    SELECT 
+        u.id,
+        'Explore Database Dashboard',
+        'Check out the Database tab in the UI to see live connection status, table statistics, and recent queries.',
+        'pending',
+        3
+    FROM users u WHERE u.username = 'demo_user'
+    ON CONFLICT DO NOTHING;
+    
+    -- Insert initial metrics
+    INSERT INTO app_metrics (metric_name, metric_value, metric_type, meta_data) VALUES
+        ('database_initialized', 1, 'counter', '{"version": "1.0", "timestamp": "' || CURRENT_TIMESTAMP || '"}'),
+        ('initial_users_count', 3, 'gauge', '{"description": "Number of users created during initialization"}'),
+        ('initial_tasks_count', 3, 'gauge', '{"description": "Number of tasks created during initialization"}');
+
+  03-create-views.sql: |
+    -- Create useful views for the dashboard
+    
+    -- View for task statistics by user
+    CREATE OR REPLACE VIEW user_task_stats AS
+    SELECT 
+        u.id as user_id,
+        u.username,
+        u.full_name,
+        COUNT(t.id) as total_tasks,
+        COUNT(CASE WHEN t.status = 'completed' THEN 1 END) as completed_tasks,
+        COUNT(CASE WHEN t.status = 'pending' THEN 1 END) as pending_tasks,
+        COUNT(CASE WHEN t.status = 'in_progress' THEN 1 END) as in_progress_tasks
+    FROM users u
+    LEFT JOIN tasks t ON u.id = t.user_id
+    GROUP BY u.id, u.username, u.full_name;
+    
+    -- View for recent activity
+    CREATE OR REPLACE VIEW recent_activity AS
+    SELECT 
+        'task' as activity_type,
+        t.id,
+        t.title as description,
+        u.username,
+        t.created_at as activity_time
+    FROM tasks t
+    JOIN users u ON t.user_id = u.id
+    ORDER BY t.created_at DESC
+    LIMIT 50;
+    
+    -- View for database statistics
+    CREATE OR REPLACE VIEW database_stats AS
+    SELECT 
+        'users' as table_name,
+        COUNT(*) as row_count,
+        pg_size_pretty(pg_total_relation_size('users')) as table_size
+    FROM users
+    UNION ALL
+    SELECT 
+        'tasks' as table_name,
+        COUNT(*) as row_count,
+        pg_size_pretty(pg_total_relation_size('tasks')) as table_size
+    FROM tasks
+    UNION ALL
+    SELECT 
+        'app_metrics' as table_name,
+        COUNT(*) as row_count,
+        pg_size_pretty(pg_total_relation_size('app_metrics')) as table_size
+    FROM app_metrics;
