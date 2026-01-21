@@ -1,0 +1,326 @@
+<!-- app/src/static/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K8s Production Demo</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- Modal Overlay -->
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Notification</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-body">
+                Message here
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeModal()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <!-- Left Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1>🚀 K8s Demo</h1>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-item active" onclick="switchTab('dashboard')">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-text">Dashboard</span>
+                </div>
+                <div class="nav-item" onclick="switchTab('database')">
+                    <span class="nav-icon">🗄️</span>
+                    <span class="nav-text">Database</span>
+                </div>
+                <div class="nav-item" onclick="switchTab('loadtest')">
+                    <span class="nav-icon">⚡</span>
+                    <span class="nav-text">Load Test</span>
+                </div>
+                <div class="nav-item" onclick="switchTab('logs')">
+                    <span class="nav-icon">📝</span>
+                    <span class="nav-text">Logs</span>
+                </div>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="developer-info">
+                    Developed by<br>
+                    <strong>Shay Guedj</strong><br>
+                    DevOps Engineer
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <div class="content-wrapper">
+                <!-- Dashboard Tab -->
+                <div id="dashboard-tab" class="tab-content active">
+                    <h2 class="page-title">System Status</h2>
+                    
+                    <!-- Cluster Stats Grid (NEW) -->
+                    <div class="cluster-stats-grid">
+                        <div class="cluster-stat-box" onclick="showClusterDetails('pods')">
+                            <div class="cluster-stat-label">Pods Running</div>
+                            <div class="cluster-stat-value" id="cluster-pods-count">-</div>
+                        </div>
+                        <div class="cluster-stat-box" onclick="showClusterDetails('nodes')">
+                            <div class="cluster-stat-label">Nodes</div>
+                            <div class="cluster-stat-value" id="cluster-nodes-count">-</div>
+                        </div>
+                        <div class="cluster-stat-box" onclick="showClusterDetails('replicas')">
+                            <div class="cluster-stat-label">App Replicas</div>
+                            <div class="cluster-stat-value" id="cluster-replicas-count">-</div>
+                        </div>
+                    </div>
+                    
+                    <div class="status-card">
+                        <h3>Application Info</h3>
+                        <div class="status-item">
+                            <span class="label">Environment</span>
+                            <span class="value" id="app-env">Loading...</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">Application</span>
+                            <span class="value" id="app-name">Loading...</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">Health Status</span>
+                            <span class="badge badge-success" id="health-badge">✓ Healthy</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">Readiness</span>
+                            <span class="badge badge-success" id="ready-badge">✓ Ready</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">Secret Configured</span>
+                            <span class="badge" id="secret-badge">Loading...</span>
+                        </div>
+                    </div>
+                    
+                    <h3 class="section-title">Actions</h3>
+                    
+                    <!-- 5-Column Button Grid -->
+                    <div class="button-grid">
+                        <button class="btn btn-primary" onclick="viewMetrics()">📊 View Metrics</button>
+                        <button class="btn btn-danger" onclick="makeUnhealthy()">💔 Make Unhealthy</button>
+                        <button class="btn btn-warning" onclick="simulateNotReady()">⏸️ Not Ready</button>
+                        <button class="btn btn-primary" onclick="resetApp()">🔄 Reset App</button>
+                        <button class="btn btn-secondary" onclick="showMonitoringCommands()">📊 Monitoring</button>
+                    </div>
+                    
+                    <!-- CLI Commands Section (appears below grid) -->
+                    <div id="cli-commands-container" class="cli-commands-container" style="display: none;">
+                        <div class="cli-commands">
+                            <h4 id="cli-commands-title">CLI Commands</h4>
+                            <div id="cli-commands-list"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Database Tab -->
+                <div id="database-tab" class="tab-content">
+                    <h2 class="page-title">Database Management</h2>
+                    
+                    <div class="status-card">
+                        <h3>Database Connection <span id="db-status-badge" class="badge badge-success">🟢 Connected</span></h3>
+                        <div class="status-item">
+                            <span class="label">Database URL</span>
+                            <span class="value" id="db-url">Loading...</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Sticky Stats Section -->
+                    <div class="sticky-stats">
+                        <h3 class="section-title">Database Statistics</h3>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <h3>👥 Users</h3>
+                                <div class="stat-value" id="users-count">0</div>
+                                <div class="stat-label"><span id="active-users-count">0</span> active</div>
+                            </div>
+                            <div class="stat-card">
+                                <h3>✓ Tasks</h3>
+                                <div class="stat-value" id="tasks-count">0</div>
+                                <div class="stat-label"><span id="pending-tasks-count">0</span> pending</div>
+                            </div>
+                            <div class="stat-card">
+                                <h3>📊 Metrics</h3>
+                                <div class="stat-value" id="metrics-count">0</div>
+                                <div class="stat-label">recorded events</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h3 class="section-title">Add New Data</h3>
+                    <div class="form-grid">
+                        <div class="form-section">
+                            <h3>➕ Create New User</h3>
+                            <form id="create-user-form">
+                                <div class="form-group">
+                                    <label>Username *</label>
+                                    <input type="text" id="user-username" required placeholder="e.g., alice_dev">
+                                </div>
+                                <div class="form-group">
+                                    <label>Email *</label>
+                                    <input type="email" id="user-email" required placeholder="e.g., alice@example.com">
+                                </div>
+                                <div class="form-group">
+                                    <label>Full Name *</label>
+                                    <input type="text" id="user-fullname" required placeholder="e.g., Alice Johnson">
+                                </div>
+                                <button type="submit" class="btn btn-primary" style="width: 100%;">Create User</button>
+                            </form>
+                            <div id="user-success" class="success-message"></div>
+                        </div>
+                        
+                        <div class="form-section">
+                            <h3>➕ Create New Task</h3>
+                            <form id="create-task-form">
+                                <div class="form-group">
+                                    <label>Assign to User *</label>
+                                    <select id="task-user-id" required>
+                                        <option value="">Loading users...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Title *</label>
+                                    <input type="text" id="task-title" required placeholder="e.g., Deploy to production">
+                                </div>
+                                <div class="form-group">
+                                    <label>Description</label>
+                                    <textarea id="task-description" rows="3" placeholder="Task details..."></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label>Status *</label>
+                                    <select id="task-status" required>
+                                        <option value="pending" selected>⏳ Pending</option>
+                                        <option value="in_progress">🔄 In Progress</option>
+                                        <option value="completed">✅ Completed</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Priority *</label>
+                                    <select id="task-priority" required>
+                                        <option value="1" selected>🟢 Low (1)</option>
+                                        <option value="2">🟡 Medium (2)</option>
+                                        <option value="3">🔴 High (3)</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary" style="width: 100%;">Create Task</button>
+                            </form>
+                            <div id="task-success" class="success-message"></div>
+                        </div>
+                    </div>
+                    
+                    <div id="cli-section" class="cli-commands" style="display: none;">
+                        <h4>🔧 Verify Your Changes via CLI</h4>
+                        <div id="cli-commands-db-list"></div>
+                    </div>
+                    
+                    <h3 class="section-title" id="users-section">Recent Users</h3>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Full Name</th>
+                                    <th>Tasks</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-tbody">
+                                <tr><td colspan="6" style="text-align: center;">Loading users...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <h3 class="section-title" id="tasks-section">Recent Tasks</h3>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>User</th>
+                                    <th>Status</th>
+                                    <th>Priority</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tasks-tbody">
+                                <tr><td colspan="5" style="text-align: center;">Loading tasks...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="actions">
+                        <button class="btn btn-primary" onclick="refreshDatabaseData()">🔄 Refresh Data</button>
+                        <button class="btn btn-secondary" onclick="exportDatabaseStats()">📥 Export Stats</button>
+                    </div>
+                </div>
+                
+                <!-- Load Test Tab -->
+                <div id="loadtest-tab" class="tab-content">
+                    <h2 class="page-title">HPA Load Testing</h2>
+                    
+                    <div class="status-card">
+                        <h3>Load Test Control</h3>
+                        <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                            Trigger horizontal pod autoscaling by generating CPU load. Watch pods scale from 2 to 10!
+                        </p>
+                        <div class="status-item">
+                            <span class="label">Load Test Status</span>
+                            <span id="load-status" class="badge badge-grey">Not Running</span>
+                        </div>
+                    </div>
+                    
+                    <div class="actions">
+                        <button class="btn btn-primary" onclick="startLoadTest()" id="start-load-btn">⚡ Start Load Test</button>
+                        <button class="btn btn-danger" onclick="stopLoadTest()" id="stop-load-btn" disabled>🛑 Stop Load Test</button>
+                    </div>
+                    
+                    <div class="cli-commands" style="margin-top: 20px;">
+                        <h4>📊 Monitor Auto-Scaling</h4>
+                        <div class="cli-command">
+                            <code>kubectl get hpa -n k8s-multi-demo -w</code>
+                            <button class="copy-btn" onclick="copyCommand(this)">📋 Copy</button>
+                        </div>
+                        <div class="cli-command">
+                            <code>kubectl get pods -n k8s-multi-demo -w</code>
+                            <button class="copy-btn" onclick="copyCommand(this)">📋 Copy</button>
+                        </div>
+                        <div class="cli-command">
+                            <code>kubectl top pods -n k8s-multi-demo</code>
+                            <button class="copy-btn" onclick="copyCommand(this)">📋 Copy</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Logs Tab -->
+                <div id="logs-tab" class="tab-content">
+                    <h2 class="page-title">Live Application Logs</h2>
+                    
+                    <div class="status-card">
+                        <div class="log-viewer" id="log-viewer">Loading logs...</div>
+                    </div>
+                    
+                    <div class="actions">
+                        <button class="btn btn-primary" onclick="refreshLogs()">🔄 Refresh Logs</button>
+                        <button class="btn btn-secondary" onclick="clearLogs()">🗑️ Clear Display</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/static/app.js"></script>
+</body>
+</html>
