@@ -12,9 +12,8 @@ COPY requirements.txt .
 # Install dependencies BEFORE switching user
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code (BOTH FILES!)
-COPY src/main.py .
-COPY src/database.py .
+# Copy entire src directory (includes main.py, database.py, AND static/)
+COPY src/ .
 
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser && \

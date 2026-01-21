@@ -2,7 +2,7 @@
 # Database connection, models, and CRUD operations
 # SQLAlchemy setup with async support for PostgreSQL
 
-from sqlalchemy import create_engine, Column, String, Integer, Boolean, DateTime, Text, Float, ForeignKey, Index
+from sqlalchemy import create_engine, Column, String, Integer, Boolean, DateTime, Text, Float, ForeignKey, Index, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.dialects.postgresql import UUID, JSONB
@@ -161,8 +161,8 @@ def check_db_connection():
     """
     try:
         db = SessionLocal()
-        # Try a simple query
-        db.execute("SELECT 1")
+        # Try a simple query (wrapped in text() for SQLAlchemy 2.0)
+        db.execute(text("SELECT 1"))
         db.close()
         return True, "Database connection successful"
     except Exception as e:
