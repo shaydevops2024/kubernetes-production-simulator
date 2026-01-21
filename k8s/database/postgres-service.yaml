@@ -1,0 +1,41 @@
+# k8s/database/postgres-service.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: k8s-multi-demo
+  labels:
+    app: postgres
+    component: database
+spec:
+  type: ClusterIP
+  selector:
+    app: postgres
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+    protocol: TCP
+  # Headless service is not needed for single replica
+  # but kept for future StatefulSet scaling
+  clusterIP: None
+---
+# Regular service for application access
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+  namespace: k8s-multi-demo
+  labels:
+    app: postgres
+    component: database
+spec:
+  type: ClusterIP
+  selector:
+    app: postgres
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+    protocol: TCP

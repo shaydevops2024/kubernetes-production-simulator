@@ -1,7 +1,9 @@
 # app/src/main.py
 # Main FastAPI application with production-ready endpoints and web UI
 # COMPLETE VERSION: With Destroy All functionality, proper cleanup, auto-scroll logs
-
+from database import get_db, check_db_connection, get_db_stats, User, Task
+from sqlalchemy.orm import Session
+from fastapi import Depends
 from fastapi import FastAPI, Response
 from fastapi.responses import HTMLResponse
 from prometheus_client import Counter, Histogram, generate_latest
@@ -1496,6 +1498,31 @@ async def destroy_cluster():
             status_code=500,
             media_type="application/json"
         )
+
+@app.get("/db/health")
+async def database_health():
+    """Check database connection"""
+    connected, message = check_db_connection()
+    if connected:
+        return {"database": "connected", "message": message, "stats": get_db_stats()}
+    return Response(content=f'{{"error": "{message}"}}', status_code=503)
+
+@app.get("/api/db/stats")
+async def get_database_stats():
+    """Get database statistics"""
+    return get_db_stats()
+
+@app.get("/api/users")
+async def get_users(db: Session = Depends(get_db)):
+    """Get all users"""
+    users = db.query(User).all()
+    return [user.to_dict() for user in users]
+
+@app.get("/api/tasks")
+async def get_tasks(db: Session = Depends(get_db)):
+    """Get all tasks"""
+    tasks = db.query(Task).all()
+    return [task.to_dict() for task in tasks]
 
 @app.on_event("startup")
 async def startup_event():
