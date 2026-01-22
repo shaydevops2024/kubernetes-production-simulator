@@ -185,6 +185,17 @@ print_step "Verifying ingress controller..."
 INGRESS_PODS=$(kubectl get pods -n ingress-nginx -l app.kubernetes.io/component=controller --no-headers | wc -l)
 print_success "Ingress controller ready! ($INGRESS_PODS pod running)"
 
+# Add to /etc/hosts
+echo ""
+echo "Configuring /etc/hosts..."
+if ! grep -q "k8s-multi-demo.internal" /etc/hosts; then
+    echo "127.0.0.1 k8s-multi-demo.internal" | sudo tee -a /etc/hosts
+    echo "✅ Added to /etc/hosts"
+else
+    echo "✅ Already in /etc/hosts"
+fi
+
+
 # ============================================
 # STEP 5: BUILD DOCKER IMAGE
 # ============================================
@@ -208,6 +219,10 @@ print_header "STEP 6/10: DEPLOYING APPLICATION"
 print_step "Creating namespace '${NAMESPACE}'..."
 kubectl apply -f k8s/base/namespace.yaml
 print_success "Namespace created"
+
+print_step "Creating Service Account and RBAC..."
+kubectl apply -f k8s/base/rbac.yaml
+print_success "RBAC configured"
 
 print_step "Applying ConfigMap..."
 kubectl apply -f k8s/base/configmap.yaml
@@ -354,6 +369,32 @@ kubectl top nodes &>/dev/null && print_success "Metrics-server working" || print
 print_success "All tests completed!"
 
 # ============================================
+# STEP 9.5: CONFIGURE HOSTS FILE FOR INGRESS
+# ============================================
+print_header "STEP 9.5/10: CONFIGURING HOSTS FILE"
+
+print_step "Checking /etc/hosts for ingress hostname..."
+HOSTS_ENTRY="127.0.0.1 k8s-multi-demo.internal"
+
+if grep -q "k8s-multi-demo.internal" /etc/hosts 2>/dev/null; then
+    print_success "Host entry already exists in /etc/hosts"
+else
+    print_step "Adding k8s-multi-demo.internal to /etc/hosts..."
+    
+    if [ -w /etc/hosts ]; then
+        echo "$HOSTS_ENTRY" >> /etc/hosts
+        print_success "Successfully added to /etc/hosts"
+    else
+        print_warning "Cannot write to /etc/hosts (need sudo)"
+        echo ""
+        echo -e "${YELLOW}To enable ingress access, please run:${NC}"
+        echo -e "${YELLOW}  echo '$HOSTS_ENTRY' | sudo tee -a /etc/hosts${NC}"
+        echo ""
+    fi
+fi
+
+
+# ============================================
 # STEP 10: DISPLAY RESULTS
 # ============================================
 print_header "STEP 10/10: DEPLOYMENT SUMMARY"
@@ -362,4 +403,6 @@ kubectl get all -n ${NAMESPACE}
 
 echo ""
 echo -e "${GREEN}Your Kubernetes production demo is now running!${NC}"
-echo -e "${GREEN}Access it at: http://localhost:${NODEPORT}${NC}"
+echo -e "${GREEN}Access it at:
+  - NodePort: http://localhost:${NODEPORT}
+  - Ingress:  http://k8s-multi-demo.internal (requires /etc/hosts entry)${NC}"
