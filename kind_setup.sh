@@ -426,7 +426,7 @@ if grep -qi microsoft /proc/version 2>/dev/null; then
     echo ""
     echo "📌 Run this in *PowerShell as Administrator*:"
     echo ""
-    echo " '  Add-Content C:\Windows\System32\drivers\etc\hosts "127.0.0.1 k8s-multi-demo.internal ' "
+    echo " '  Add-Content C:\Windows\System32\drivers\etc\hosts "127.0.0.1 k8s-multi-demo.internal" ' "
     echo ""
     echo "After that, open your browser and go to:"
     echo "  http://k8s-multi-demo.internal"
