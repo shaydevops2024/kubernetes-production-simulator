@@ -196,6 +196,8 @@ else
 fi
 
 
+
+
 # ============================================
 # STEP 5: BUILD DOCKER IMAGE
 # ============================================
@@ -403,6 +405,40 @@ kubectl get all -n ${NAMESPACE}
 
 echo ""
 echo -e "${GREEN}Your Kubernetes production demo is now running!${NC}"
-echo -e "${GREEN}Access it at:
-  - NodePort: http://localhost:${NODEPORT}
-  - Ingress:  http://k8s-multi-demo.internal (requires /etc/hosts entry)${NC}"
+
+
+echo ""
+echo "=============================================="
+echo "🔧 DNS / Hosts Configuration"
+echo "=============================================="
+echo ""
+
+if grep -qi microsoft /proc/version 2>/dev/null; then
+    echo "🪟 Detected WSL environment"
+    echo ""
+    echo -e "${GREEN}Your application is available at:
+      - NodePort: http://localhost:${NODEPORT}
+      - Ingress:  http://k8s-multi-demo.internal${NC}"
+    echo ""
+    echo "To access 'http://k8s-multi-demo.internal' from Windows, you must add the following entry"
+    echo "to your Windows hosts file (ADMIN rights required):"
+    echo "  '127.0.0.1  k8s-multi-demo.internal' "
+    echo ""
+    echo "📌 Run this in *PowerShell as Administrator*:"
+    echo ""
+    echo " '  Add-Content C:\Windows\System32\drivers\etc\hosts "127.0.0.1 k8s-multi-demo.internal ' "
+    echo ""
+    echo "After that, open your browser and go to:"
+    echo "  http://k8s-multi-demo.internal"
+else
+    echo -e "${GREEN}Access it at:
+      - NodePort: http://localhost:${NODEPORT}
+      - Ingress:  http://k8s-multi-demo.internal (requires /etc/hosts entry)${NC}" 
+fi
+
+echo ""
+echo "=============================================="
+echo -e "${GREEN}✅ Setup completed successfully${NC}"
+echo "=============================================="
+
+
