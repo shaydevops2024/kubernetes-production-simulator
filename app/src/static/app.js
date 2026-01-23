@@ -14,7 +14,12 @@ var currentRefreshSeconds = 5; // Default 5 seconds
 window.addEventListener('DOMContentLoaded', function() {
     loadConfig();
     startStatusMonitoring();
-    startClusterStatsMonitoring();
+    
+    // Don't start cluster stats monitoring here - it will be controlled by dashboard refresh
+    // startClusterStatsMonitoring();
+    
+    // Initialize dashboard refresh with default 5 seconds
+    initDashboardRefresh();
     
     var taskSubmit = document.getElementById('create-task-form').querySelector('button[type="submit"]');
     if (taskSubmit) {
@@ -125,10 +130,16 @@ function changeRefreshInterval() {
     
     if (value === "off") {
         currentRefreshSeconds = 0;
+        console.log("Auto-refresh: OFF");
         return;
     }
     
     currentRefreshSeconds = parseInt(value);
+    console.log("Auto-refresh interval set to: " + currentRefreshSeconds + " seconds");
+    
+    // Update immediately first
+    updateClusterStats();
+    updateStatusBadges();
     
     // Start new interval
     dashboardRefreshInterval = setInterval(function() {
@@ -398,7 +409,7 @@ function switchTab(tabName) {
     if (tabName === 'dashboard') {
         initDashboardRefresh();
         startStatusMonitoring();
-        startClusterStatsMonitoring();
+        // Don't start cluster stats monitoring - use user-controlled refresh interval instead
     } else if (tabName === 'database') {
         refreshDatabaseData();
         fetchDatabaseInfo();
