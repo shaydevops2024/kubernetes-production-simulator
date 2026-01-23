@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: k8s-multi-demo
+data:
+  # Application configuration
+  APP_ENV: "production"
+  APP_NAME: "k8s-demo-app"
+  LOG_LEVEL: "info"
+  MAX_CONNECTIONS: "100"
+  CACHE_ENABLED: "true"
+  
+  # Feature flags
+  FEATURE_NEW_UI: "true"
+  FEATURE_ANALYTICS: "true"
+  
+  # Configuration file
+  app.properties: |
+    server.port=8000
+    server.name=k8s-demo
+    database.pool.size=10
+    database.timeout=5000
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secrets
+  namespace: k8s-multi-demo
+type: Opaque
+stringData:
+  # Database credentials
+  DB_PASSWORD: "supersecret123"
+  DB_USERNAME: "admin"
+  
+  # API keys
+  API_KEY: "abc123xyz789"
+  JWT_SECRET: "my-secret-jwt-key-do-not-share"
+  
+  # External service credentials
+  EXTERNAL_API_TOKEN: "token-abc-xyz-123"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: k8s-multi-demo
+data:
+  nginx.conf: |
+    user nginx;
+    worker_processes auto;
+    error_log /var/log/nginx/error.log;
+    
+    events {
+        worker_connections 1024;
+    }
+    
+    http {
+        log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                        '$status $body_bytes_sent "$http_referer" '
+                        '"$http_user_agent" "$http_x_forwarded_for"';
+        
+        access_log /var/log/nginx/access.log main;
+        
+        server {
+            listen 80;
+            server_name localhost;
+            
+            location / {
+                proxy_pass http://k8s-demo-service:8000;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+            }
+        }
+    }

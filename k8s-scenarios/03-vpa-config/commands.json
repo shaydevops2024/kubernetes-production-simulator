@@ -1,0 +1,31 @@
+{
+  "difficulty": "medium",
+  "duration": "25 min",
+  "commands": [
+    {
+      "name": "Check Current Resources",
+      "command": "kubectl describe deployment k8s-demo-deployment -n k8s-multi-demo | grep -A 5 'Requests:'",
+      "description": "View current resource requests"
+    },
+    {
+      "name": "View Pod Resource Usage",
+      "command": "kubectl top pods -n k8s-multi-demo",
+      "description": "Check actual resource consumption"
+    },
+    {
+      "name": "Apply VPA Configuration",
+      "command": "kubectl apply -f vpa.yaml",
+      "description": "Create VPA resource (if available)"
+    },
+    {
+      "name": "Get VPA Recommendations",
+      "command": "kubectl describe vpa -n k8s-multi-demo",
+      "description": "View VPA recommendations"
+    },
+    {
+      "name": "Monitor Changes",
+      "command": "kubectl get pods -n k8s-multi-demo -w",
+      "description": "Watch for pod recreations"
+    }
+  ]
+}

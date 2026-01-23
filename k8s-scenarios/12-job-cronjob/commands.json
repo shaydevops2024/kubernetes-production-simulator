@@ -1,0 +1,36 @@
+{
+  "difficulty": "easy",
+  "duration": "20 min",
+  "commands": [
+    {
+      "name": "Create a Job",
+      "command": "kubectl create job test-job --image=busybox -n k8s-multi-demo -- echo 'Hello from Job'",
+      "description": "Create a simple job"
+    },
+    {
+      "name": "Check Job Status",
+      "command": "kubectl get jobs -n k8s-multi-demo",
+      "description": "View job completion status"
+    },
+    {
+      "name": "View Job Logs",
+      "command": "kubectl logs job/test-job -n k8s-multi-demo",
+      "description": "See job output"
+    },
+    {
+      "name": "Create CronJob",
+      "command": "kubectl create cronjob test-cron --image=busybox --schedule='*/5 * * * *' -n k8s-multi-demo -- date",
+      "description": "Create scheduled job (every 5 min)"
+    },
+    {
+      "name": "List CronJobs",
+      "command": "kubectl get cronjobs -n k8s-multi-demo",
+      "description": "View CronJob schedule"
+    },
+    {
+      "name": "Delete Job",
+      "command": "kubectl delete job test-job -n k8s-multi-demo",
+      "description": "Clean up completed job"
+    }
+  ]
+}

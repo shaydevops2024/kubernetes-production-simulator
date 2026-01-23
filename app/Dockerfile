@@ -1,42 +1,73 @@
 # app/Dockerfile
-# Multi-stage Docker build for Python FastAPI application
+# Multi-stage build for Python FastAPI application with baked-in scenarios
+# FIXED: Proper paths for app/src/ structure
 
-FROM python:3.11-slim
+# Stage 1: Builder
+FROM python:3.11-slim as builder
 
-# Set working directory
-WORKDIR /app
+WORKDIR /build
 
-# Install kubectl and curl
+# Install build dependencies
 RUN apt-get update && apt-get install -y \
-    curl \
-    && curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
-    && chmod +x kubectl \
-    && mv kubectl /usr/local/bin/ \
-    && apt-get clean \
+    gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first (for better caching)
-COPY requirements.txt .
-
-# Install dependencies BEFORE switching user
+# Copy requirements and install Python packages to /usr/local (system-wide)
+COPY app/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy entire src directory (includes main.py, database.py, AND static/)
-COPY src/ .
+# Stage 2: Runtime
+FROM python:3.11-slim
 
-# Create non-root user for security
+WORKDIR /app
+
+# Install runtime dependencies (kubectl for terminal functionality)
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install kubectl
+RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
+    && chmod +x kubectl \
+    && mv kubectl /usr/local/bin/
+
+# Copy Python packages from builder (system-wide installation)
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy application code
+# Your structure: app/src/database.py, app/src/main.py, app/src/static/
+COPY app/src/ /app/src/
+
+# CRITICAL: Copy scenarios into the image at /scenarios
+# This happens BEFORE we create the user, so it's done as root
+COPY k8s-scenarios/ /scenarios/
+
+# Now create non-root user and set ownership
 RUN useradd -m -u 1000 appuser && \
-    chown -R appuser:appuser /app
+    chown -R appuser:appuser /app && \
+    chown -R appuser:appuser /scenarios && \
+    chmod -R 755 /scenarios && \
+    chmod +x /scenarios/*/validate.sh
 
 # Switch to non-root user
 USER appuser
 
-# Expose application port
+# Set Python path so imports work correctly
+# This allows "from database import" to find /app/src/database.py
+ENV PYTHONPATH=/app/src
+
+# Set Python to run in unbuffered mode
+ENV PYTHONUNBUFFERED=1
+
+# Expose port
 EXPOSE 8000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
 
-# Run the application
+# Run the application from /app/src directory
+# This way "from database import" works
+WORKDIR /app/src
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

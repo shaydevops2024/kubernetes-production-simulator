@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K8s Scenarios - Production Simulator</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .scenario-grid-container {
+            padding: 30px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        .scenario-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .scenario-card {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .scenario-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary-color);
+            box-shadow: 0 8px 24px rgba(52, 152, 219, 0.3);
+        }
+        
+        .scenario-card.special {
+            background: linear-gradient(135deg, var(--card-bg) 0%, #2d1b4e 100%);
+            border-color: #9d4edd;
+        }
+        
+        .scenario-card.special:hover {
+            border-color: #9d4edd;
+            box-shadow: 0 8px 24px rgba(157, 78, 221, 0.4);
+        }
+        
+        .special-badge {
+            background: #9d4edd;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .scenario-number {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        .scenario-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+        
+        .scenario-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .difficulty {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .difficulty.easy {
+            background: #10b981;
+            color: white;
+        }
+        
+        .difficulty.medium {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .difficulty.hard {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .duration {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        /* Special scenarios positioning */
+        .scenario-card.special:nth-last-child(2) {
+            grid-column: 2;
+        }
+        
+        .scenario-card.special:nth-last-child(1) {
+            grid-column: 3;
+        }
+        
+        /* Modal styles */
+        .scenario-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .scenario-modal.active {
+            display: flex;
+        }
+        
+        .scenario-modal-content {
+            background: var(--card-bg);
+            border: 2px solid var(--primary-color);
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            animation: slideUp 0.3s ease;
+        }
+        
+        .scenario-modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: transparent;
+            border: none;
+            font-size: 32px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: color 0.3s;
+            line-height: 1;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+        }
+        
+        .scenario-modal-close:hover {
+            color: var(--danger-color);
+        }
+        
+        .scenario-modal-title {
+            font-size: 28px;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            padding-right: 40px;
+        }
+        
+        .scenario-modal-description {
+            line-height: 1.8;
+            color: var(--text-primary);
+            margin-bottom: 30px;
+        }
+        
+        .scenario-modal-description h3 {
+            color: var(--primary-color);
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        
+        .scenario-modal-description ul {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .scenario-modal-description li {
+            margin-bottom: 8px;
+        }
+        
+        .btn-start-scenario {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+        }
+        
+        .btn-start-scenario:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .loading-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+        
+        .loading-spinner {
+            border: 4px solid var(--border-color);
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="scenario-grid-container">
+        <div class="page-header">
+            <h1 class="page-title">🎮 Interactive Kubernetes Scenarios</h1>
+            <p style="color: var(--text-secondary); margin-bottom: 30px;">
+                Select a scenario to practice Kubernetes operations in a real cluster environment.
+            </p>
+        </div>
+        
+        <div id="scenarios-loading" class="loading-state">
+            <div class="loading-spinner"></div>
+            <p>Loading scenarios...</p>
+        </div>
+        
+        <div id="scenarios-grid" class="scenario-grid" style="display: none;">
+            <!-- Scenarios will be dynamically loaded here -->
+        </div>
+    </div>
+    
+    <!-- Scenario Modal -->
+    <div id="scenario-modal" class="scenario-modal">
+        <div class="scenario-modal-content">
+            <button class="scenario-modal-close" onclick="closeScenarioModal()">&times;</button>
+            <h2 id="modal-scenario-title" class="scenario-modal-title"></h2>
+            <div id="modal-scenario-description" class="scenario-modal-description"></div>
+            <button id="modal-start-btn" class="btn-start-scenario" onclick="startScenario()">
+                Let's Start →
+            </button>
+        </div>
+    </div>
+    
+    <script>
+        let scenarios = [];
+        let currentScenario = null;
+        
+        // Load scenarios on page load
+        async function loadScenarios() {
+            try {
+                const response = await fetch('/api/scenarios');
+                const data = await response.json();
+                scenarios = data.scenarios;
+                
+                renderScenarios();
+                document.getElementById('scenarios-loading').style.display = 'none';
+                document.getElementById('scenarios-grid').style.display = 'grid';
+            } catch (error) {
+                console.error('Error loading scenarios:', error);
+                document.getElementById('scenarios-loading').innerHTML = `
+                    <p style="color: var(--danger-color);">Failed to load scenarios</p>
+                    <p style="color: var(--text-secondary); font-size: 14px;">${error.message}</p>
+                `;
+            }
+        }
+        
+        // Render scenario cards
+        function renderScenarios() {
+            const grid = document.getElementById('scenarios-grid');
+            grid.innerHTML = '';
+            
+            scenarios.forEach((scenario, index) => {
+                const card = document.createElement('div');
+                card.className = `scenario-card ${scenario.special ? 'special' : ''}`;
+                card.onclick = () => openScenarioModal(scenario);
+                
+                card.innerHTML = `
+                    ${scenario.special ? '<div class="special-badge">⭐ SPECIAL MULTI SCENARIO</div>' : ''}
+                    <div class="scenario-number">Scenario #${index + 1}</div>
+                    <div class="scenario-title">${scenario.name}</div>
+                    <div class="scenario-meta">
+                        <span class="difficulty ${scenario.difficulty}">${scenario.difficulty.toUpperCase()}</span>
+                        <span class="duration">⏱️ ${scenario.duration}</span>
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
+        }
+        
+        // Open scenario modal
+        function openScenarioModal(scenario) {
+            currentScenario = scenario;
+            
+            document.getElementById('modal-scenario-title').textContent = scenario.name;
+            
+            // Convert markdown to simple HTML (basic conversion)
+            let description = scenario.readme || scenario.description || 'No description available';
+            description = description
+                .replace(/### (.*?)$/gm, '<h3>$1</h3>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\* (.*?)$/gm, '<li>$1</li>')
+                .replace(/(<li>.*?<\/li>\n?)+/gs, '<ul>$&</ul>')
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/^(?!<[hup])/gm, '<p>')
+                .replace(/(?<!>)$/gm, '</p>');
+            
+            document.getElementById('modal-scenario-description').innerHTML = description;
+            document.getElementById('scenario-modal').classList.add('active');
+        }
+        
+        // Close scenario modal
+        function closeScenarioModal() {
+            document.getElementById('scenario-modal').classList.remove('active');
+            currentScenario = null;
+        }
+        
+        // Start scenario (open terminal page)
+        function startScenario() {
+            if (currentScenario) {
+                window.open(`/static/terminal.html?scenario=${currentScenario.id}`, '_blank');
+                closeScenarioModal();
+            }
+        }
+        
+        // Close modal when clicking outside
+        document.getElementById('scenario-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeScenarioModal();
+            }
+        });
+        
+        // Load scenarios when page loads
+        document.addEventListener('DOMContentLoaded', loadScenarios);
+    </script>
+</body>
+</html>

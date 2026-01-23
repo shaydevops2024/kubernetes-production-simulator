@@ -1,0 +1,41 @@
+{
+  "difficulty": "hard",
+  "duration": "35 min",
+  "commands": [
+    {
+      "name": "Deploy Blue Version",
+      "command": "kubectl apply -f deployment-blue.yaml",
+      "description": "Deploy version 1 (blue)"
+    },
+    {
+      "name": "Check Blue Pods",
+      "command": "kubectl get pods -n k8s-multi-demo -l version=blue",
+      "description": "Verify blue deployment"
+    },
+    {
+      "name": "Deploy Green Version",
+      "command": "kubectl apply -f deployment-green.yaml",
+      "description": "Deploy version 2 (green)"
+    },
+    {
+      "name": "Check Green Pods",
+      "command": "kubectl get pods -n k8s-multi-demo -l version=green",
+      "description": "Verify green deployment"
+    },
+    {
+      "name": "Switch to Green",
+      "command": "kubectl patch service k8s-demo-service -n k8s-multi-demo -p '{\"spec\":{\"selector\":{\"version\":\"green\"}}}'",
+      "description": "Route traffic to green"
+    },
+    {
+      "name": "Verify Traffic",
+      "command": "kubectl describe service k8s-demo-service -n k8s-multi-demo | grep -A 5 Selector",
+      "description": "Confirm selector change"
+    },
+    {
+      "name": "Rollback to Blue",
+      "command": "kubectl patch service k8s-demo-service -n k8s-multi-demo -p '{\"spec\":{\"selector\":{\"version\":\"blue\"}}}'",
+      "description": "Instant rollback"
+    }
+  ]
+}

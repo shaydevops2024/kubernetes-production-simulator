@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-with-node-selector
+  namespace: k8s-multi-demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: node-selector-demo
+  template:
+    metadata:
+      labels:
+        app: node-selector-demo
+    spec:
+      nodeSelector:
+        workload: frontend
+      containers:
+      - name: nginx
+        image: nginx:latest
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-with-affinity
+  namespace: k8s-multi-demo
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: affinity-demo
+  template:
+    metadata:
+      labels:
+        app: affinity-demo
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: disktype
+                operator: In
+                values:
+                - ssd
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - affinity-demo
+              topologyKey: kubernetes.io/hostname
+      tolerations:
+      - key: "dedicated"
+        operator: "Equal"
+        value: "backend"
+        effect: "NoSchedule"
+      containers:
+      - name: app
+        image: nginx:latest
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi

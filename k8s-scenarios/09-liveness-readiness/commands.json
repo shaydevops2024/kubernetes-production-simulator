@@ -1,0 +1,36 @@
+{
+  "difficulty": "medium",
+  "duration": "25 min",
+  "commands": [
+    {
+      "name": "Check Deployment Probes",
+      "command": "kubectl get deployment k8s-demo-deployment -n k8s-multi-demo -o yaml | grep -A 10 'livenessProbe\\|readinessProbe'",
+      "description": "View configured probes"
+    },
+    {
+      "name": "Check Pod Health",
+      "command": "kubectl get pods -n k8s-multi-demo -o wide",
+      "description": "See ready status"
+    },
+    {
+      "name": "Test Liveness Endpoint",
+      "command": "kubectl exec -n k8s-multi-demo deployment/k8s-demo-deployment -- curl -s http://localhost:8000/health",
+      "description": "Manually test health endpoint"
+    },
+    {
+      "name": "Test Readiness Endpoint",
+      "command": "kubectl exec -n k8s-multi-demo deployment/k8s-demo-deployment -- curl -s http://localhost:8000/ready",
+      "description": "Manually test readiness endpoint"
+    },
+    {
+      "name": "Simulate Unhealthy",
+      "command": "kubectl exec -n k8s-multi-demo deployment/k8s-demo-deployment -- curl -X POST http://localhost:8000/simulate/crash",
+      "description": "Make pod unhealthy to trigger restart"
+    },
+    {
+      "name": "Watch Pod Restart",
+      "command": "kubectl get pods -n k8s-multi-demo -w",
+      "description": "Observe liveness probe triggering restart"
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "difficulty": "hard",
+  "duration": "45 min",
+  "commands": [
+    {
+      "name": "Phase 1.1 - Create PDB",
+      "command": "kubectl apply -f pdb.yaml -n k8s-multi-demo",
+      "description": "Create Pod Disruption Budget with minAvailable=2"
+    },
+    {
+      "name": "Phase 1.2 - Verify PDB",
+      "command": "kubectl get pdb -n k8s-multi-demo",
+      "description": "Check PDB status"
+    },
+    {
+      "name": "Phase 1.3 - Check Baseline",
+      "command": "kubectl get pods -n k8s-multi-demo && kubectl get deployment -n k8s-multi-demo",
+      "description": "Verify current deployment state"
+    },
+    {
+      "name": "Phase 2.1 - Delete Random Pod",
+      "command": "kubectl delete pod -n k8s-multi-demo $(kubectl get pods -n k8s-multi-demo -o name | head -1)",
+      "description": "Delete a pod and watch recovery"
+    },
+    {
+      "name": "Phase 2.2 - Monitor PDB Status",
+      "command": "kubectl describe pdb -n k8s-multi-demo",
+      "description": "Check disruptions allowed and current status"
+    },
+    {
+      "name": "Phase 2.3 - Watch Pod Recovery",
+      "command": "kubectl get pods -n k8s-multi-demo -w",
+      "description": "Monitor pod recreation (Ctrl+C to stop)"
+    },
+    {
+      "name": "Phase 2.4 - Cordon Node",
+      "command": "kubectl cordon k8s-demo-worker",
+      "description": "Prepare node for draining"
+    },
+    {
+      "name": "Phase 2.5 - Attempt Drain with PDB",
+      "command": "kubectl drain k8s-demo-worker --ignore-daemonsets --delete-emptydir-data",
+      "description": "Try to drain node - PDB will control eviction rate"
+    },
+    {
+      "name": "Phase 2.6 - Check PDB During Drain",
+      "command": "kubectl get pdb -n k8s-multi-demo -w",
+      "description": "Watch PDB enforce constraints (Ctrl+C to stop)"
+    },
+    {
+      "name": "Phase 2.7 - View Drain Events",
+      "command": "kubectl get events --sort-by='.lastTimestamp' -n k8s-multi-demo | grep -i 'disruption\\|evict'",
+      "description": "See PDB-related events"
+    },
+    {
+      "name": "Phase 3.1 - Uncordon Node",
+      "command": "kubectl uncordon k8s-demo-worker",
+      "description": "Restore node to normal"
+    },
+    {
+      "name": "Phase 3.2 - Verify All Pods Running",
+      "command": "kubectl get pods -n k8s-multi-demo",
+      "description": "Check all pods are healthy"
+    },
+    {
+      "name": "Phase 3.3 - Check PDB Compliance",
+      "command": "kubectl describe pdb -n k8s-multi-demo",
+      "description": "Verify no PDB violations occurred"
+    },
+    {
+      "name": "Phase 3.4 - Final Health Check",
+      "command": "kubectl get deployment,pods,pdb -n k8s-multi-demo",
+      "description": "Comprehensive status check"
+    }
+  ]
+}

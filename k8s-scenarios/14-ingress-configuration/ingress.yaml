@@ -1,0 +1,176 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: demo-ingress
+  namespace: k8s-multi-demo
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: demo.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: k8s-demo-service
+            port:
+              number: 8000
+---
+# Path-based routing ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: path-based-ingress
+  namespace: k8s-multi-demo
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: app.local
+    http:
+      paths:
+      - path: /api(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: k8s-demo-service
+            port:
+              number: 8000
+      - path: /static(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: static-service
+            port:
+              number: 80
+---
+# Multiple host ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: multi-host-ingress
+  namespace: k8s-multi-demo
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: api.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: k8s-demo-service
+            port:
+              number: 8000
+  - host: web.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: web-service
+            port:
+              number: 80
+---
+# Ingress with TLS
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tls-ingress
+  namespace: k8s-multi-demo
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - secure.example.com
+    secretName: tls-secret
+  rules:
+  - host: secure.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: k8s-demo-service
+            port:
+              number: 8000
+---
+# Service types for comparison
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-clusterip
+  namespace: k8s-multi-demo
+spec:
+  type: ClusterIP
+  selector:
+    app: k8s-demo-app
+  ports:
+  - protocol: TCP
+    port: 8000
+    targetPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-nodeport
+  namespace: k8s-multi-demo
+spec:
+  type: NodePort
+  selector:
+    app: k8s-demo-app
+  ports:
+  - protocol: TCP
+    port: 8000
+    targetPort: 8000
+    nodePort: 30080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-loadbalancer
+  namespace: k8s-multi-demo
+spec:
+  type: LoadBalancer
+  selector:
+    app: k8s-demo-app
+  ports:
+  - protocol: TCP
+    port: 8000
+    targetPort: 8000
+---
+# Ingress with custom headers
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: custom-headers-ingress
+  namespace: k8s-multi-demo
+  annotations:
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Custom-Header: CustomValue";
+      more_set_headers "X-Frame-Options: DENY";
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: api.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: k8s-demo-service
+            port:
+              number: 8000

@@ -1,7 +1,7 @@
 # app/src/main.py
 from database import get_db, check_db_connection, get_db_stats, User, Task, init_db
 from sqlalchemy.orm import Session
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi import FastAPI, Response
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -16,6 +16,8 @@ from collections import deque
 from pathlib import Path
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
+import json
+import shlex
 
 logging.basicConfig(
     level=logging.INFO,
@@ -542,6 +544,307 @@ async def startup_event():
     
     logger.info(f"Application ready")
     logger.info(f"========================================")
+
+@app.get("/api/scenarios")
+async def get_scenarios():
+    """Get list of available scenarios with proper error handling"""
+    try:
+        scenarios_dir = Path("/scenarios")
+        
+        # Check if directory exists
+        if not scenarios_dir.exists():
+            logger.warning(f"Scenarios directory not found: {scenarios_dir}")
+            return {"scenarios": []}
+        
+        if not scenarios_dir.is_dir():
+            logger.error(f"Scenarios path exists but is not a directory: {scenarios_dir}")
+            return {"scenarios": []}
+        
+        scenarios = []
+        
+        # Get list of scenario directories
+        try:
+            scenario_dirs = sorted([d for d in scenarios_dir.iterdir() if d.is_dir()])
+        except Exception as e:
+            logger.error(f"Error listing scenarios directory: {e}")
+            return {"scenarios": []}
+        
+        logger.info(f"Found {len(scenario_dirs)} scenario directories")
+        
+        # Process each scenario directory
+        for scenario_dir in scenario_dirs:
+            try:
+                readme_path = scenario_dir / "README.md"
+                commands_path = scenario_dir / "commands.json"
+                
+                # Basic scenario info
+                scenario_info = {
+                    "id": scenario_dir.name,
+                    "name": scenario_dir.name.replace("-", " ").title(),
+                    "description": "No description available",
+                    "difficulty": "medium",
+                    "duration": "20 min",
+                    "special": "special" in scenario_dir.name.lower(),
+                    "readme": ""
+                }
+                
+                # Read README if it exists
+                if readme_path.exists():
+                    try:
+                        with open(readme_path, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                            # Extract first non-header paragraph as description
+                            lines = [l.strip() for l in content.split('\n') if l.strip() and not l.startswith('#')]
+                            if lines:
+                                scenario_info["description"] = lines[0][:200]  # Limit description length
+                            scenario_info["readme"] = content
+                    except UnicodeDecodeError:
+                        logger.warning(f"Unicode decode error reading README for {scenario_dir.name}, trying with errors='replace'")
+                        try:
+                            with open(readme_path, 'r', encoding='utf-8', errors='replace') as f:
+                                content = f.read()
+                                scenario_info["readme"] = content
+                        except Exception as e:
+                            logger.error(f"Failed to read README for {scenario_dir.name}: {e}")
+                            scenario_info["readme"] = f"Error loading README: {str(e)}"
+                    except Exception as e:
+                        logger.error(f"Error reading README for {scenario_dir.name}: {e}")
+                        scenario_info["readme"] = f"Error loading README: {str(e)}"
+                
+                # Read commands.json if it exists
+                if commands_path.exists():
+                    try:
+                        with open(commands_path, 'r', encoding='utf-8') as f:
+                            commands_data = json.load(f)
+                            scenario_info["commands"] = commands_data.get("commands", [])
+                            scenario_info["difficulty"] = commands_data.get("difficulty", "medium")
+                            scenario_info["duration"] = commands_data.get("duration", "20 min")
+                    except json.JSONDecodeError as e:
+                        logger.error(f"JSON decode error in commands.json for {scenario_dir.name}: {e}")
+                        scenario_info["commands"] = []
+                    except Exception as e:
+                        logger.error(f"Error reading commands.json for {scenario_dir.name}: {e}")
+                        scenario_info["commands"] = []
+                else:
+                    scenario_info["commands"] = []
+                
+                scenarios.append(scenario_info)
+                
+            except Exception as e:
+                logger.error(f"Error processing scenario {scenario_dir.name}: {e}")
+                # Continue with next scenario instead of failing completely
+                continue
+        
+        logger.info(f"Successfully processed {len(scenarios)} scenarios")
+        return {"scenarios": scenarios}
+        
+    except Exception as e:
+        logger.error(f"Fatal error in get_scenarios: {e}", exc_info=True)
+        # Return empty list instead of crashing
+        return {"scenarios": [], "error": str(e)}
+
+@app.get("/api/scenarios/{scenario_id}")
+async def get_scenario(scenario_id: str):
+    """Get details of a specific scenario with proper error handling"""
+    try:
+        scenario_dir = Path(f"/scenarios/{scenario_id}")
+        
+        if not scenario_dir.exists():
+            raise HTTPException(status_code=404, detail="Scenario not found")
+        
+        scenario_info = {
+            "id": scenario_id,
+            "name": scenario_id.replace("-", " ").title(),
+            "readme": "",
+            "commands": [],
+            "difficulty": "medium",
+            "duration": "20 min"
+        }
+        
+        readme_path = scenario_dir / "README.md"
+        if readme_path.exists():
+            try:
+                with open(readme_path, 'r', encoding='utf-8') as f:
+                    scenario_info["readme"] = f.read()
+            except Exception as e:
+                logger.error(f"Error reading README for {scenario_id}: {e}")
+                scenario_info["readme"] = f"Error loading README: {str(e)}"
+        
+        commands_path = scenario_dir / "commands.json"
+        if commands_path.exists():
+            try:
+                with open(commands_path, 'r', encoding='utf-8') as f:
+                    commands_data = json.load(f)
+                    scenario_info["commands"] = commands_data.get("commands", [])
+                    scenario_info["difficulty"] = commands_data.get("difficulty", "medium")
+                    scenario_info["duration"] = commands_data.get("duration", "20 min")
+            except Exception as e:
+                logger.error(f"Error reading commands.json for {scenario_id}: {e}")
+        
+        return scenario_info
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in get_scenario for {scenario_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/scenarios/{scenario_id}/validate")
+async def validate_scenario(scenario_id: str):
+    """Run validation script for a scenario"""
+    scenario_dir = Path(f"/scenarios/{scenario_id}")
+    validate_script = scenario_dir / "validate.sh"
+    
+    if not validate_script.exists():
+        return {"success": False, "message": "Validation script not found"}
+    
+    try:
+        result = subprocess.run(
+            ["bash", str(validate_script)],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            cwd=str(scenario_dir)
+        )
+        
+        return {
+            "success": result.returncode == 0,
+            "output": result.stdout,
+            "error": result.stderr,
+            "returncode": result.returncode
+        }
+    except subprocess.TimeoutExpired:
+        return {"success": False, "message": "Validation timed out"}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+@app.websocket("/ws/terminal/{scenario_id}")
+async def terminal_websocket(websocket: WebSocket, scenario_id: str):
+    """WebSocket endpoint for interactive terminal"""
+    await websocket.accept()
+    logger.info(f"Terminal WebSocket connected for scenario: {scenario_id}")
+    
+    try:
+        while True:
+            # Receive command from client
+            data = await websocket.receive_text()
+            message = json.loads(data)
+            
+            if message.get("type") == "command":
+                command = message.get("command", "").strip()
+                
+                if not command:
+                    continue
+                
+                # Security: Validate command (basic validation)
+                # In production, you'd want more strict validation
+                logger.info(f"Executing command: {command}")
+                
+                try:
+                    # Execute command in a subprocess
+                    process = await asyncio.create_subprocess_shell(
+                        command,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE,
+                        stdin=asyncio.subprocess.PIPE,
+                    )
+                    
+                    # Send output as it comes
+                    async def read_stream(stream, stream_type):
+                        while True:
+                            line = await stream.readline()
+                            if not line:
+                                break
+                            
+                            output = line.decode('utf-8', errors='replace')
+                            await websocket.send_json({
+                                "type": "output",
+                                "stream": stream_type,
+                                "data": output
+                            })
+                    
+                    # Read both stdout and stderr concurrently
+                    await asyncio.gather(
+                        read_stream(process.stdout, "stdout"),
+                        read_stream(process.stderr, "stderr")
+                    )
+                    
+                    # Wait for process to complete
+                    await process.wait()
+                    
+                    # Send completion message
+                    await websocket.send_json({
+                        "type": "complete",
+                        "returncode": process.returncode
+                    })
+                    
+                except Exception as e:
+                    logger.error(f"Command execution error: {e}")
+                    await websocket.send_json({
+                        "type": "error",
+                        "message": str(e)
+                    })
+            
+            elif message.get("type") == "validate":
+                # Run validation script
+                scenario_dir = Path(f"/scenarios/{scenario_id}")
+                validate_script = scenario_dir / "validate.sh"
+                
+                if validate_script.exists():
+                    try:
+                        process = await asyncio.create_subprocess_shell(
+                            f"bash {validate_script}",
+                            stdout=asyncio.subprocess.PIPE,
+                            stderr=asyncio.subprocess.PIPE,
+                            cwd=str(scenario_dir)
+                        )
+                        
+                        # Stream validation output
+                        async def read_stream(stream, stream_type):
+                            while True:
+                                line = await stream.readline()
+                                if not line:
+                                    break
+                                
+                                output = line.decode('utf-8', errors='replace')
+                                await websocket.send_json({
+                                    "type": "validation_output",
+                                    "stream": stream_type,
+                                    "data": output
+                                })
+                        
+                        await asyncio.gather(
+                            read_stream(process.stdout, "stdout"),
+                            read_stream(process.stderr, "stderr")
+                        )
+                        
+                        await process.wait()
+                        
+                        await websocket.send_json({
+                            "type": "validation_complete",
+                            "success": process.returncode == 0,
+                            "returncode": process.returncode
+                        })
+                        
+                    except Exception as e:
+                        await websocket.send_json({
+                            "type": "error",
+                            "message": f"Validation error: {str(e)}"
+                        })
+                else:
+                    await websocket.send_json({
+                        "type": "error",
+                        "message": "Validation script not found"
+                    })
+    
+    except WebSocketDisconnect:
+        logger.info(f"Terminal WebSocket disconnected for scenario: {scenario_id}")
+    except Exception as e:
+        logger.error(f"WebSocket error: {e}")
+        try:
+            await websocket.close()
+        except:
+            pass
 
 @app.on_event("shutdown")
 async def shutdown_event():

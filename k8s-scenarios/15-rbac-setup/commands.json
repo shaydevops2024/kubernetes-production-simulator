@@ -1,0 +1,36 @@
+{
+  "difficulty": "hard",
+  "duration": "30 min",
+  "commands": [
+    {
+      "name": "Create ServiceAccount",
+      "command": "kubectl create serviceaccount demo-sa -n k8s-multi-demo",
+      "description": "Create service account"
+    },
+    {
+      "name": "Create Role",
+      "command": "kubectl create role pod-reader --verb=get,list --resource=pods -n k8s-multi-demo",
+      "description": "Create role with limited permissions"
+    },
+    {
+      "name": "Create RoleBinding",
+      "command": "kubectl create rolebinding demo-binding --role=pod-reader --serviceaccount=k8s-multi-demo:demo-sa -n k8s-multi-demo",
+      "description": "Bind role to service account"
+    },
+    {
+      "name": "Test Permissions (Allowed)",
+      "command": "kubectl auth can-i list pods --as=system:serviceaccount:k8s-multi-demo:demo-sa -n k8s-multi-demo",
+      "description": "Should return 'yes'"
+    },
+    {
+      "name": "Test Permissions (Denied)",
+      "command": "kubectl auth can-i delete pods --as=system:serviceaccount:k8s-multi-demo:demo-sa -n k8s-multi-demo",
+      "description": "Should return 'no'"
+    },
+    {
+      "name": "List Roles",
+      "command": "kubectl get roles -n k8s-multi-demo",
+      "description": "View all roles"
+    }
+  ]
+}

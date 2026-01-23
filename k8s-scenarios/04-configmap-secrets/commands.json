@@ -1,0 +1,31 @@
+{
+  "difficulty": "easy",
+  "duration": "15 min",
+  "commands": [
+    {
+      "name": "List ConfigMaps",
+      "command": "kubectl get configmap -n k8s-multi-demo",
+      "description": "View existing ConfigMaps"
+    },
+    {
+      "name": "Describe ConfigMap",
+      "command": "kubectl describe configmap -n k8s-multi-demo",
+      "description": "See ConfigMap contents"
+    },
+    {
+      "name": "List Secrets",
+      "command": "kubectl get secrets -n k8s-multi-demo",
+      "description": "View secrets (values hidden)"
+    },
+    {
+      "name": "Check Env Variables",
+      "command": "kubectl exec -n k8s-multi-demo deployment/k8s-demo-deployment -- env | grep -E 'APP_ENV|SECRET'",
+      "description": "Verify environment variables in pod"
+    },
+    {
+      "name": "Create New ConfigMap",
+      "command": "kubectl create configmap test-config --from-literal=test.key=test.value -n k8s-multi-demo",
+      "description": "Create a test ConfigMap"
+    }
+  ]
+}

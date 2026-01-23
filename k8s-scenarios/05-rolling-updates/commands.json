@@ -1,0 +1,36 @@
+{
+  "difficulty": "easy",
+  "duration": "20 min",
+  "commands": [
+    {
+      "name": "Check Current Version",
+      "command": "kubectl get deployment k8s-demo-deployment -n k8s-multi-demo -o jsonpath='{.spec.template.spec.containers[0].image}'",
+      "description": "View current image version"
+    },
+    {
+      "name": "Update Image",
+      "command": "kubectl set image deployment/k8s-demo-deployment k8s-demo-app=k8s-demo-app:v2 -n k8s-multi-demo",
+      "description": "Trigger rolling update to v2"
+    },
+    {
+      "name": "Watch Rollout",
+      "command": "kubectl rollout status deployment/k8s-demo-deployment -n k8s-multi-demo",
+      "description": "Monitor rollout progress"
+    },
+    {
+      "name": "View Rollout History",
+      "command": "kubectl rollout history deployment/k8s-demo-deployment -n k8s-multi-demo",
+      "description": "See deployment revisions"
+    },
+    {
+      "name": "Rollback Deployment",
+      "command": "kubectl rollout undo deployment/k8s-demo-deployment -n k8s-multi-demo",
+      "description": "Rollback to previous version"
+    },
+    {
+      "name": "Verify Pods",
+      "command": "kubectl get pods -n k8s-multi-demo",
+      "description": "Check all pods are running"
+    }
+  ]
+}

@@ -1,0 +1,602 @@
+# app/src/static/terminal.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K8s Terminal - Interactive Scenario</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            overflow: hidden;
+        }
+        
+        .terminal-header {
+            background: #16213e;
+            padding: 15px 30px;
+            border-bottom: 2px solid #0f3460;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .terminal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #3498db;
+        }
+        
+        .terminal-container {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+        
+        .commands-sidebar {
+            width: 30%;
+            background: #16213e;
+            border-right: 2px solid #0f3460;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .sidebar-header {
+            font-size: 18px;
+            font-weight: 600;
+            color: #3498db;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #0f3460;
+        }
+        
+        .command-item {
+            background: #1a1a2e;
+            padding: 15px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .command-item:hover {
+            background: #0f3460;
+            transform: translateX(5px);
+        }
+        
+        .command-step {
+            font-size: 14px;
+            font-weight: 600;
+            color: #3498db;
+            margin-bottom: 8px;
+        }
+        
+        .command-code {
+            background: #000;
+            color: #0f0;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            margin: 8px 0;
+            word-wrap: break-word;
+            cursor: pointer;
+        }
+        
+        .command-desc {
+            font-size: 12px;
+            color: #888;
+            margin-top: 6px;
+            line-height: 1.4;
+        }
+        
+        .command-copy-btn {
+            margin-top: 8px;
+            padding: 6px 12px;
+            background: #0f3460;
+            color: #3498db;
+            border: 1px solid #3498db;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        
+        .command-copy-btn:hover {
+            background: #3498db;
+            color: white;
+        }
+        
+        .terminal-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            background: #000;
+        }
+        
+        .terminal-wrapper {
+            flex: 1;
+            background: #000;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 10px;
+            overflow: hidden;
+        }
+        
+        #terminal {
+            height: 100%;
+        }
+        
+        .terminal-actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-validate {
+            background: #10b981;
+            color: white;
+            flex: 1;
+        }
+        
+        .btn-validate:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+        
+        .btn-validate:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-clear {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-clear:hover {
+            background: #dc2626;
+        }
+        
+        .btn-back {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .btn-back:hover {
+            background: #4b5563;
+        }
+        
+        .validation-status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+        
+        .validation-status.success {
+            background: #10b981;
+            color: white;
+            display: block;
+        }
+        
+        .validation-status.error {
+            background: #ef4444;
+            color: white;
+            display: block;
+        }
+        
+        .validation-status.running {
+            background: #f59e0b;
+            color: white;
+            display: block;
+        }
+        
+        /* Custom scrollbar */
+        .commands-sidebar::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .commands-sidebar::-webkit-scrollbar-track {
+            background: #1a1a2e;
+        }
+        
+        .commands-sidebar::-webkit-scrollbar-thumb {
+            background: #3498db;
+            border-radius: 4px;
+        }
+        
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            font-size: 18px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="terminal-header">
+        <div class="terminal-title" id="scenario-title">Loading...</div>
+        <button class="btn btn-back" onclick="goBack()">← Back to Scenarios</button>
+    </div>
+    
+    <div class="terminal-container">
+        <!-- Left Sidebar - Commands -->
+        <div class="commands-sidebar">
+            <div class="sidebar-header">📋 Commands</div>
+            <div id="commands-list">
+                <div class="loading">Loading commands...</div>
+            </div>
+        </div>
+        
+        <!-- Right Side - Terminal -->
+        <div class="terminal-main">
+            <div class="terminal-wrapper">
+                <div id="terminal"></div>
+            </div>
+            
+            <div id="validation-status" class="validation-status"></div>
+            
+            <div class="terminal-actions">
+                <button id="validate-btn" class="btn btn-validate" onclick="validateScenario()">
+                    ✅ Validate Scenario
+                </button>
+                <button class="btn btn-clear" onclick="clearTerminal()">
+                    🗑️ Clear Terminal
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+    <script>
+        let terminal;
+        let fitAddon;
+        let ws;
+        let scenarioId;
+        let currentScenario;
+        let commandHistory = [];
+        let historyIndex = -1;
+        let currentLine = '';
+        
+        // Get scenario ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        scenarioId = urlParams.get('scenario');
+        
+        if (!scenarioId) {
+            alert('No scenario specified');
+            window.close();
+        }
+        
+        // Initialize terminal
+        function initTerminal() {
+            terminal = new Terminal({
+                cursorBlink: true,
+                fontSize: 14,
+                fontFamily: 'Courier New, monospace',
+                theme: {
+                    background: '#000000',
+                    foreground: '#ffffff',
+                    cursor: '#00ff00',
+                    selection: '#3498db',
+                    black: '#000000',
+                    red: '#ff0000',
+                    green: '#00ff00',
+                    yellow: '#ffff00',
+                    blue: '#0000ff',
+                    magenta: '#ff00ff',
+                    cyan: '#00ffff',
+                    white: '#ffffff'
+                },
+                cols: 80,
+                rows: 30
+            });
+            
+            fitAddon = new FitAddon.FitAddon();
+            terminal.loadAddon(fitAddon);
+            
+            terminal.open(document.getElementById('terminal'));
+            fitAddon.fit();
+            
+            // Welcome message
+            terminal.writeln('\x1b[1;32mWelcome to K8s Interactive Terminal\x1b[0m');
+            terminal.writeln('\x1b[36mScenario: ' + scenarioId + '\x1b[0m');
+            terminal.writeln('');
+            terminal.writeln('\x1b[33mTip: Click commands on the left or type directly\x1b[0m');
+            terminal.writeln('\x1b[33mUse Up/Down arrows for command history\x1b[0m');
+            terminal.writeln('');
+            
+            prompt();
+            
+            // Handle terminal input
+            terminal.onData(handleTerminalData);
+            
+            // Fit terminal on window resize
+            window.addEventListener('resize', () => {
+                fitAddon.fit();
+            });
+        }
+        
+        // Prompt
+        function prompt() {
+            terminal.write('\r\n\x1b[1;32mclaude@k8s-simulator\x1b[0m:\x1b[1;34m~\x1b[0m$ ');
+            currentLine = '';
+        }
+        
+        // Handle terminal input
+        function handleTerminalData(data) {
+            const code = data.charCodeAt(0);
+            
+            // Enter key
+            if (code === 13) {
+                terminal.write('\r\n');
+                if (currentLine.trim()) {
+                    commandHistory.push(currentLine);
+                    historyIndex = commandHistory.length;
+                    executeCommand(currentLine);
+                } else {
+                    prompt();
+                }
+                return;
+            }
+            
+            // Backspace
+            if (code === 127) {
+                if (currentLine.length > 0) {
+                    currentLine = currentLine.slice(0, -1);
+                    terminal.write('\b \b');
+                }
+                return;
+            }
+            
+            // Up arrow (previous command)
+            if (data === '\x1b[A') {
+                if (historyIndex > 0) {
+                    // Clear current line
+                    terminal.write('\r\x1b[K');
+                    terminal.write('\x1b[1;32mclaude@k8s-simulator\x1b[0m:\x1b[1;34m~\x1b[0m$ ');
+                    
+                    historyIndex--;
+                    currentLine = commandHistory[historyIndex];
+                    terminal.write(currentLine);
+                }
+                return;
+            }
+            
+            // Down arrow (next command)
+            if (data === '\x1b[B') {
+                if (historyIndex < commandHistory.length - 1) {
+                    // Clear current line
+                    terminal.write('\r\x1b[K');
+                    terminal.write('\x1b[1;32mclaude@k8s-simulator\x1b[0m:\x1b[1;34m~\x1b[0m$ ');
+                    
+                    historyIndex++;
+                    currentLine = commandHistory[historyIndex];
+                    terminal.write(currentLine);
+                } else if (historyIndex === commandHistory.length - 1) {
+                    // Clear current line
+                    terminal.write('\r\x1b[K');
+                    terminal.write('\x1b[1;32mclaude@k8s-simulator\x1b[0m:\x1b[1;34m~\x1b[0m$ ');
+                    
+                    historyIndex = commandHistory.length;
+                    currentLine = '';
+                }
+                return;
+            }
+            
+            // Ctrl+C
+            if (code === 3) {
+                terminal.write('^C');
+                currentLine = '';
+                prompt();
+                return;
+            }
+            
+            // Printable characters
+            if (code >= 32 && code < 127) {
+                currentLine += data;
+                terminal.write(data);
+            }
+        }
+        
+        // Execute command via WebSocket
+        function executeCommand(command) {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                terminal.writeln('\x1b[31mWebSocket not connected\x1b[0m');
+                prompt();
+                return;
+            }
+            
+            ws.send(JSON.stringify({
+                type: 'command',
+                command: command
+            }));
+        }
+        
+        // Initialize WebSocket
+        function initWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/terminal/${scenarioId}`;
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+            };
+            
+            ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                
+                if (message.type === 'output') {
+                    // Write output to terminal
+                    terminal.write(message.data);
+                } else if (message.type === 'complete') {
+                    // Command completed
+                    prompt();
+                } else if (message.type === 'error') {
+                    terminal.writeln('\x1b[31mError: ' + message.message + '\x1b[0m');
+                    prompt();
+                } else if (message.type === 'validation_output') {
+                    // Validation output
+                    terminal.write(message.data);
+                } else if (message.type === 'validation_complete') {
+                    const statusDiv = document.getElementById('validation-status');
+                    const validateBtn = document.getElementById('validate-btn');
+                    
+                    if (message.success) {
+                        statusDiv.className = 'validation-status success';
+                        statusDiv.textContent = '✅ Scenario validated successfully!';
+                    } else {
+                        statusDiv.className = 'validation-status error';
+                        statusDiv.textContent = '❌ Validation failed. Check the output above.';
+                    }
+                    
+                    validateBtn.disabled = false;
+                    validateBtn.textContent = '✅ Validate Scenario';
+                    
+                    prompt();
+                }
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                terminal.writeln('\r\n\x1b[31mWebSocket error\x1b[0m');
+            };
+            
+            ws.onclose = () => {
+                console.log('WebSocket closed');
+                terminal.writeln('\r\n\x1b[31mConnection closed\x1b[0m');
+            };
+        }
+        
+        // Load scenario details
+        async function loadScenario() {
+            try {
+                const response = await fetch(`/api/scenarios/${scenarioId}`);
+                currentScenario = await response.json();
+                
+                document.getElementById('scenario-title').textContent = currentScenario.name;
+                
+                renderCommands();
+            } catch (error) {
+                console.error('Error loading scenario:', error);
+                document.getElementById('commands-list').innerHTML = `
+                    <div style="color: #ef4444; padding: 20px;">
+                        Failed to load scenario commands
+                    </div>
+                `;
+            }
+        }
+        
+        // Render commands
+        function renderCommands() {
+            const commandsList = document.getElementById('commands-list');
+            commandsList.innerHTML = '';
+            
+            if (!currentScenario.commands || currentScenario.commands.length === 0) {
+                commandsList.innerHTML = '<div style="color: #888;">No commands available</div>';
+                return;
+            }
+            
+            currentScenario.commands.forEach((cmd, index) => {
+                const cmdItem = document.createElement('div');
+                cmdItem.className = 'command-item';
+                
+                cmdItem.innerHTML = `
+                    <div class="command-step">Step ${index + 1}: ${cmd.name || 'Command'}</div>
+                    <div class="command-code">${cmd.command}</div>
+                    ${cmd.description ? `<div class="command-desc">${cmd.description}</div>` : ''}
+                    <button class="command-copy-btn" onclick="copyAndRunCommand('${escapeHtml(cmd.command)}')">
+                        Run Command
+                    </button>
+                `;
+                
+                commandsList.appendChild(cmdItem);
+            });
+        }
+        
+        // Copy and run command
+        function copyAndRunCommand(command) {
+            // Copy to clipboard
+            navigator.clipboard.writeText(command);
+            
+            // Type it in terminal
+            currentLine = command;
+            terminal.write('\r\x1b[K');
+            terminal.write('\x1b[1;32mclaude@k8s-simulator\x1b[0m:\x1b[1;34m~\x1b[0m$ ');
+            terminal.write(command);
+        }
+        
+        // Validate scenario
+        function validateScenario() {
+            const statusDiv = document.getElementById('validation-status');
+            const validateBtn = document.getElementById('validate-btn');
+            
+            statusDiv.className = 'validation-status running';
+            statusDiv.textContent = '⏳ Running validation...';
+            validateBtn.disabled = true;
+            validateBtn.textContent = '⏳ Validating...';
+            
+            terminal.writeln('\r\n\x1b[1;33m=== Starting Scenario Validation ===\x1b[0m\r\n');
+            
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'validate'
+                }));
+            } else {
+                statusDiv.className = 'validation-status error';
+                statusDiv.textContent = '❌ WebSocket not connected';
+                validateBtn.disabled = false;
+                validateBtn.textContent = '✅ Validate Scenario';
+            }
+        }
+        
+        // Clear terminal
+        function clearTerminal() {
+            terminal.clear();
+            terminal.writeln('\x1b[1;32mTerminal cleared\x1b[0m');
+            prompt();
+        }
+        
+        // Go back to scenarios
+        function goBack() {
+            window.close();
+        }
+        
+        // Escape HTML
+        function escapeHtml(text) {
+            return text.replace(/'/g, "\\'").replace(/"/g, '\\"');
+        }
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            initTerminal();
+            initWebSocket();
+            loadScenario();
+        });
+    </script>
+</body>
+</html>

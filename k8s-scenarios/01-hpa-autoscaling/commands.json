@@ -1,0 +1,51 @@
+{
+  "difficulty": "easy",
+  "duration": "15 min",
+  "commands": [
+    {
+      "name": "Check HPA Status",
+      "command": "kubectl get hpa -n k8s-multi-demo",
+      "description": "View current HPA configuration and status"
+    },
+    {
+      "name": "Check Current Pods",
+      "command": "kubectl get pods -n k8s-multi-demo",
+      "description": "See how many pods are currently running"
+    },
+    {
+      "name": "View Pod Resource Usage",
+      "command": "kubectl top pods -n k8s-multi-demo",
+      "description": "Check CPU and memory consumption of pods"
+    },
+    {
+      "name": "Generate Load",
+      "command": "kubectl run -n k8s-multi-demo load-generator --image=busybox --restart=Never -- /bin/sh -c \"while true; do wget -q -O- http://k8s-demo-service; done\"",
+      "description": "Start a load generator to increase CPU usage"
+    },
+    {
+      "name": "Watch HPA (Live)",
+      "command": "kubectl get hpa -n k8s-multi-demo -w",
+      "description": "Monitor HPA scaling in real-time (Ctrl+C to stop)"
+    },
+    {
+      "name": "Watch Pods (Live)",
+      "command": "kubectl get pods -n k8s-multi-demo -w",
+      "description": "Watch pods being created during scale-up (Ctrl+C to stop)"
+    },
+    {
+      "name": "Describe HPA Details",
+      "command": "kubectl describe hpa -n k8s-multi-demo",
+      "description": "View detailed HPA configuration and events"
+    },
+    {
+      "name": "Stop Load Generator",
+      "command": "kubectl delete pod load-generator -n k8s-multi-demo",
+      "description": "Remove load generator to trigger scale-down"
+    },
+    {
+      "name": "Final Pod Count",
+      "command": "kubectl get pods -n k8s-multi-demo",
+      "description": "Verify pods have scaled back down"
+    }
+  ]
+}

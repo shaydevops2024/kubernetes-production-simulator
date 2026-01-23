@@ -1,0 +1,43 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: app-pdb-minavailable
+  namespace: k8s-multi-demo
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: k8s-demo-app
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: app-pdb-maxunavailable
+  namespace: k8s-multi-demo
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: k8s-demo-app
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: app-pdb-percentage
+  namespace: k8s-multi-demo
+spec:
+  minAvailable: 50%
+  selector:
+    matchLabels:
+      app: k8s-demo-app
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: database-pdb
+  namespace: k8s-multi-demo
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: postgres

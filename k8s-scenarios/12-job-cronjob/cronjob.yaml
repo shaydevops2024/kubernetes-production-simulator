@@ -1,0 +1,56 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: database-backup
+  namespace: k8s-multi-demo
+spec:
+  schedule: "0 * * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: backup
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: backup
+            image: busybox
+            command:
+            - sh
+            - -c
+            - |
+              echo "Starting backup at $(date)"
+              echo "Backing up database..."
+              sleep 10
+              echo "Backup completed successfully"
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: metrics-report
+  namespace: k8s-multi-demo
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Replace
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: reporter
+            image: busybox
+            command: ['sh', '-c', 'date; echo "Generating metrics report"; sleep 5; echo "Report generated"']
+            resources:
+              requests:
+                cpu: 50m
+                memory: 64Mi
+              limits:
+                cpu: 100m
+                memory: 128Mi

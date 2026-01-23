@@ -1,0 +1,36 @@
+{
+  "difficulty": "hard",
+  "duration": "30 min",
+  "commands": [
+    {
+      "name": "List StatefulSets",
+      "command": "kubectl get statefulset -n k8s-multi-demo",
+      "description": "View StatefulSets"
+    },
+    {
+      "name": "Describe StatefulSet",
+      "command": "kubectl describe statefulset postgres -n k8s-multi-demo",
+      "description": "See StatefulSet details"
+    },
+    {
+      "name": "Check PVCs",
+      "command": "kubectl get pvc -n k8s-multi-demo",
+      "description": "View persistent volume claims"
+    },
+    {
+      "name": "Check Pod Names",
+      "command": "kubectl get pods -n k8s-multi-demo -l app=postgres",
+      "description": "See stable pod identities"
+    },
+    {
+      "name": "Scale StatefulSet",
+      "command": "kubectl scale statefulset postgres --replicas=2 -n k8s-multi-demo",
+      "description": "Scale up StatefulSet"
+    },
+    {
+      "name": "Watch Scaling",
+      "command": "kubectl get pods -n k8s-multi-demo -l app=postgres -w",
+      "description": "Observe ordered pod creation"
+    }
+  ]
+}

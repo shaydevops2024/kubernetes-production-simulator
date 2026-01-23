@@ -1,0 +1,31 @@
+{
+  "difficulty": "medium",
+  "duration": "20 min",
+  "commands": [
+    {
+      "name": "Create PDB",
+      "command": "kubectl apply -f pdb.yaml",
+      "description": "Create Pod Disruption Budget"
+    },
+    {
+      "name": "Check PDB Status",
+      "command": "kubectl get pdb -n k8s-multi-demo",
+      "description": "View PDB configuration"
+    },
+    {
+      "name": "Describe PDB",
+      "command": "kubectl describe pdb -n k8s-multi-demo",
+      "description": "See disruptions allowed"
+    },
+    {
+      "name": "Test Pod Deletion",
+      "command": "kubectl delete pod -n k8s-multi-demo -l app=k8s-demo-app --wait=false",
+      "description": "Try to delete pods (PDB will control)"
+    },
+    {
+      "name": "Monitor PDB",
+      "command": "kubectl get pdb -n k8s-multi-demo -w",
+      "description": "Watch PDB status changes"
+    }
+  ]
+}

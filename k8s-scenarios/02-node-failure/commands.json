@@ -1,0 +1,56 @@
+{
+  "difficulty": "medium",
+  "duration": "20 min",
+  "commands": [
+    {
+      "name": "List All Nodes",
+      "command": "kubectl get nodes",
+      "description": "View all nodes in the cluster"
+    },
+    {
+      "name": "Check Node Details",
+      "command": "kubectl describe nodes",
+      "description": "See detailed information about nodes"
+    },
+    {
+      "name": "View Pods Distribution",
+      "command": "kubectl get pods -n k8s-multi-demo -o wide",
+      "description": "See which nodes are running which pods"
+    },
+    {
+      "name": "Cordon a Node",
+      "command": "kubectl cordon k8s-demo-control-plane",
+      "description": "Mark node as unschedulable (prevents new pods)"
+    },
+    {
+      "name": "Verify Node Status",
+      "command": "kubectl get nodes",
+      "description": "Confirm node is cordoned (SchedulingDisabled)"
+    },
+    {
+      "name": "Drain the Node",
+      "command": "kubectl drain k8s-demo-control-plane --ignore-daemonsets --delete-emptydir-data",
+      "description": "Safely evict all pods from the node"
+    },
+    {
+      "name": "Watch Pod Migration",
+      "command": "kubectl get pods -n k8s-multi-demo -o wide -w",
+      "description": "Observe pods being rescheduled (Ctrl+C to stop)"
+    },
+    {
+      "name": "Check Cluster Events",
+      "command": "kubectl get events --sort-by='.lastTimestamp' | tail -20",
+      "description": "View recent cluster events"
+    },
+    {
+      "name": "Uncordon the Node",
+      "command": "kubectl uncordon k8s-demo-control-plane",
+      "description": "Make node schedulable again"
+    },
+    {
+      "name": "Verify Final State",
+      "command": "kubectl get nodes && kubectl get pods -n k8s-multi-demo",
+      "description": "Confirm cluster is back to normal"
+    }
+  ]
+}

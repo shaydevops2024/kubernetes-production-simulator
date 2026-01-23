@@ -1,0 +1,31 @@
+{
+  "difficulty": "easy",
+  "duration": "15 min",
+  "commands": [
+    {
+      "name": "List DaemonSets",
+      "command": "kubectl get daemonset -A",
+      "description": "View all DaemonSets in cluster"
+    },
+    {
+      "name": "Create DaemonSet",
+      "command": "kubectl apply -f daemonset.yaml",
+      "description": "Deploy example DaemonSet"
+    },
+    {
+      "name": "Check DaemonSet Status",
+      "command": "kubectl get daemonset -n k8s-multi-demo",
+      "description": "View DaemonSet details"
+    },
+    {
+      "name": "List DaemonSet Pods",
+      "command": "kubectl get pods -n k8s-multi-demo -o wide | grep daemonset",
+      "description": "See pods on each node"
+    },
+    {
+      "name": "Describe DaemonSet",
+      "command": "kubectl describe daemonset -n k8s-multi-demo",
+      "description": "View detailed information"
+    }
+  ]
+}

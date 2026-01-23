@@ -1,0 +1,71 @@
+{
+  "difficulty": "hard",
+  "duration": "40 min",
+  "commands": [
+    {
+      "name": "Phase 1.1 - Check StatefulSet",
+      "command": "kubectl get statefulset postgres -n k8s-multi-demo",
+      "description": "Verify StatefulSet is running"
+    },
+    {
+      "name": "Phase 1.2 - List PVCs",
+      "command": "kubectl get pvc -n k8s-multi-demo",
+      "description": "See persistent volume claims"
+    },
+    {
+      "name": "Phase 1.3 - Write Test Data",
+      "command": "kubectl exec -n k8s-multi-demo postgres-0 -- psql -U postgres -c \"CREATE TABLE test_recovery (id INT, data TEXT); INSERT INTO test_recovery VALUES (1, 'recovery_test');\"",
+      "description": "Write data to database"
+    },
+    {
+      "name": "Phase 1.4 - Verify Data",
+      "command": "kubectl exec -n k8s-multi-demo postgres-0 -- psql -U postgres -c \"SELECT * FROM test_recovery;\"",
+      "description": "Confirm data exists"
+    },
+    {
+      "name": "Phase 2.1 - Delete StatefulSet",
+      "command": "kubectl delete statefulset postgres -n k8s-multi-demo --cascade=orphan",
+      "description": "Delete StatefulSet but keep pods and PVCs"
+    },
+    {
+      "name": "Phase 2.2 - Verify PVCs Remain",
+      "command": "kubectl get pvc -n k8s-multi-demo",
+      "description": "Confirm PVCs are still bound"
+    },
+    {
+      "name": "Phase 2.3 - Delete Pods",
+      "command": "kubectl delete pods -n k8s-multi-demo -l app=postgres",
+      "description": "Delete pods to simulate failure"
+    },
+    {
+      "name": "Phase 3.1 - Recreate StatefulSet",
+      "command": "kubectl apply -f postgres-statefulset.yaml",
+      "description": "Recreate StatefulSet with same config"
+    },
+    {
+      "name": "Phase 3.2 - Watch Recovery",
+      "command": "kubectl get pods -n k8s-multi-demo -l app=postgres -w",
+      "description": "Watch ordered pod creation (Ctrl+C to stop)"
+    },
+    {
+      "name": "Phase 3.3 - Wait for Ready",
+      "command": "kubectl wait --for=condition=ready pod -l app=postgres -n k8s-multi-demo --timeout=120s",
+      "description": "Wait for pods to be ready"
+    },
+    {
+      "name": "Phase 3.4 - Verify Data Recovery",
+      "command": "kubectl exec -n k8s-multi-demo postgres-0 -- psql -U postgres -c \"SELECT * FROM test_recovery;\"",
+      "description": "Confirm data was recovered"
+    },
+    {
+      "name": "Phase 3.5 - Check PVC Bindings",
+      "command": "kubectl describe pod postgres-0 -n k8s-multi-demo | grep -A 5 'Volumes:'",
+      "description": "Verify correct PVC mounted"
+    },
+    {
+      "name": "Phase 3.6 - Final Health Check",
+      "command": "kubectl get statefulset,pods,pvc -n k8s-multi-demo",
+      "description": "Comprehensive status verification"
+    }
+  ]
+}

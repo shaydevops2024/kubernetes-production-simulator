@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: rolling-demo-service
+  namespace: k8s-multi-demo
+spec:
+  selector:
+    app: rolling-demo
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+  type: ClusterIP

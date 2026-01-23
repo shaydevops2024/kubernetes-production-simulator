@@ -64,6 +64,7 @@ echo "  2. All Kubernetes resources in namespace: '${NAMESPACE}'"
 echo "  3. Docker image: '${APP_IMAGE}' (optional)"
 echo "  4. All running port-forwards"
 echo "  5. Temporary configuration files"
+echo "  6. All scenarios copied to pods"
 echo ""
 echo -e "${RED}This action CANNOT be undone!${NC}"
 echo ""
@@ -121,7 +122,7 @@ print_header "STEP 2/6: DELETING KUBERNETES NAMESPACE"
 
 print_step "Checking if namespace exists..."
 if kubectl get namespace ${NAMESPACE} &>/dev/null; then
-    print_step "Deleting namespace '${NAMESPACE}' (this removes ALL resources)..."
+    print_step "Deleting namespace '${NAMESPACE}' (this removes ALL resources including scenarios)..."
     
     # Show what will be deleted
     echo ""
@@ -135,7 +136,7 @@ if kubectl get namespace ${NAMESPACE} &>/dev/null; then
     print_step "Waiting for namespace to be fully deleted..."
     kubectl wait --for=delete namespace/${NAMESPACE} --timeout=60s 2>/dev/null || true
     
-    print_success "Namespace '${NAMESPACE}' deleted"
+    print_success "Namespace '${NAMESPACE}' deleted (all pods with scenarios removed)"
 else
     print_info "Namespace '${NAMESPACE}' not found (already deleted)"
 fi
@@ -223,7 +224,7 @@ else
 fi
 
 # ============================================
-# STEP 6: CLEANUP KUBECTL CONTEXT
+# STEP 6: KUBECTL CONTEXT CLEANUP
 # ============================================
 print_header "STEP 6/6: KUBECTL CONTEXT CLEANUP"
 
@@ -253,6 +254,7 @@ echo -e "${CYAN}✅ REMOVED:${NC}"
 echo "  ✓ Kind cluster: ${CLUSTER_NAME}"
 echo "  ✓ Kubernetes namespace: ${NAMESPACE}"
 echo "  ✓ All pods, services, deployments"
+echo "  ✓ All 18 scenarios (removed from pods)"
 echo "  ✓ HPA, Ingress, ConfigMaps, Secrets"
 echo "  ✓ Port-forward processes"
 echo "  ✓ Temporary files"

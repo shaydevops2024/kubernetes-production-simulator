@@ -1,0 +1,32 @@
+# k8s-scenarios/06-network-policies/commands.json
+{
+  "difficulty": "hard",
+  "duration": "30 min",
+  "commands": [
+    {
+      "name": "Check Existing Policies",
+      "command": "kubectl get networkpolicies -n k8s-multi-demo",
+      "description": "List current network policies"
+    },
+    {
+      "name": "Test Connectivity Before",
+      "command": "kubectl run test-pod --image=busybox -n k8s-multi-demo -- sleep 3600",
+      "description": "Create test pod"
+    },
+    {
+      "name": "Apply Network Policy",
+      "command": "kubectl apply -f network-policy.yaml",
+      "description": "Apply network policy rules"
+    },
+    {
+      "name": "Describe Policy",
+      "command": "kubectl describe networkpolicy -n k8s-multi-demo",
+      "description": "View policy details"
+    },
+    {
+      "name": "Test Connectivity After",
+      "command": "kubectl exec -n k8s-multi-demo test-pod -- wget -O- http://k8s-demo-service --timeout=2",
+      "description": "Test if policy allows/denies traffic"
+    }
+  ]
+}

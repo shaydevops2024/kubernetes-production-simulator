@@ -1,0 +1,31 @@
+{
+  "difficulty": "easy",
+  "duration": "15 min",
+  "commands": [
+    {
+      "name": "Check Initial State",
+      "command": "kubectl get pods -n k8s-multi-demo",
+      "description": "Note pod names and count"
+    },
+    {
+      "name": "Delete a Pod",
+      "command": "kubectl delete pod -n k8s-multi-demo -l app=k8s-demo-app --field-selector=status.phase=Running | head -1",
+      "description": "Force delete one pod"
+    },
+    {
+      "name": "Watch Recovery",
+      "command": "kubectl get pods -n k8s-multi-demo -w",
+      "description": "Watch pod being recreated"
+    },
+    {
+      "name": "Check Events",
+      "command": "kubectl get events -n k8s-multi-demo --sort-by='.lastTimestamp' | grep -i 'created\\|started'",
+      "description": "View recovery events"
+    },
+    {
+      "name": "Verify Final State",
+      "command": "kubectl get pods -n k8s-multi-demo",
+      "description": "Confirm all pods are running"
+    }
+  ]
+}

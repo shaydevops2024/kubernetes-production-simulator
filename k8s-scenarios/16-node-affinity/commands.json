@@ -1,0 +1,36 @@
+{
+  "difficulty": "medium",
+  "duration": "25 min",
+  "commands": [
+    {
+      "name": "List Node Labels",
+      "command": "kubectl get nodes --show-labels",
+      "description": "View current node labels"
+    },
+    {
+      "name": "Add Node Label",
+      "command": "kubectl label nodes k8s-demo-control-plane workload=frontend",
+      "description": "Label a node"
+    },
+    {
+      "name": "Check Pod Placement",
+      "command": "kubectl get pods -n k8s-multi-demo -o wide",
+      "description": "See which nodes run pods"
+    },
+    {
+      "name": "Taint a Node",
+      "command": "kubectl taint nodes k8s-demo-control-plane key=value:NoSchedule",
+      "description": "Add taint to prevent scheduling"
+    },
+    {
+      "name": "View Taints",
+      "command": "kubectl describe nodes | grep -A 5 Taints",
+      "description": "See all node taints"
+    },
+    {
+      "name": "Remove Taint",
+      "command": "kubectl taint nodes k8s-demo-control-plane key-",
+      "description": "Remove taint"
+    }
+  ]
+}

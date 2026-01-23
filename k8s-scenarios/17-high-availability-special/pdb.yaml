@@ -1,0 +1,21 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: k8s-demo-pdb
+  namespace: k8s-multi-demo
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: k8s-demo-app
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: k8s-demo-pdb-percentage
+  namespace: k8s-multi-demo
+spec:
+  minAvailable: 50%
+  selector:
+    matchLabels:
+      app: k8s-demo-app

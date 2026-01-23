@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-green
+  namespace: k8s-multi-demo
+  labels:
+    app: bluegreen-demo
+    version: green
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: bluegreen-demo
+      version: green
+  template:
+    metadata:
+      labels:
+        app: bluegreen-demo
+        version: green
+    spec:
+      containers:
+      - name: app
+        image: nginx:1.22
+        ports:
+        - containerPort: 80
+        env:
+        - name: VERSION
+          value: "GREEN-v2.0"
+        - name: BACKGROUND_COLOR
+          value: "green"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
