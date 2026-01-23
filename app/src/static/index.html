@@ -1,4 +1,4 @@
-<!-- app/src/static/index.html -->
+# app/src/static/index.html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,7 +18,7 @@
             <div class="modal-body" id="modal-body">
                 Message here
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer" id="modal-footer">
                 <button class="btn btn-primary" onclick="closeModal()">OK</button>
             </div>
         </div>
@@ -28,7 +28,7 @@
         <!-- Left Sidebar -->
         <div class="sidebar">
             <div class="sidebar-header">
-                <h1>🚀 K8s Demo</h1>
+                <h1>DevOps<br>Simulator</h1>
             </div>
             <nav class="sidebar-nav">
                 <div class="nav-item active" onclick="switchTab('dashboard')">
@@ -37,11 +37,11 @@
                 </div>
                 <div class="nav-item" onclick="switchTab('database')">
                     <span class="nav-icon">🗄️</span>
-                    <span class="nav-text">Database</span>
+                    <span class="nav-text">StatefulSet-DB</span>
                 </div>
                 <div class="nav-item" onclick="switchTab('loadtest')">
                     <span class="nav-icon">⚡</span>
-                    <span class="nav-text">Load Test</span>
+                    <span class="nav-text">HPA- Load Test</span>
                 </div>
                 <div class="nav-item" onclick="switchTab('logs')">
                     <span class="nav-icon">📝</span>
@@ -52,6 +52,7 @@
                 <div class="developer-info">
                     Developed by<br>
                     <strong>Shay Guedj</strong><br>
+                    <button class="btn-profile" onclick="showDeveloperProfile()">Click Me</button>
                     DevOps Engineer
                 </div>
             </div>
@@ -62,21 +63,45 @@
             <div class="content-wrapper">
                 <!-- Dashboard Tab -->
                 <div id="dashboard-tab" class="tab-content active">
-                    <h2 class="page-title">System Status</h2>
+                    <div class="page-header-with-button">
+                        <h2 class="page-title">System Status</h2>
+                        <div class="refresh-control">
+                            <label for="refresh-interval">Auto-refresh:</label>
+                            <select id="refresh-interval" onchange="changeRefreshInterval()">
+                                <option value="5">5 sec</option>
+                                <option value="10">10 sec</option>
+                                <option value="15">15 sec</option>
+                                <option value="30">30 sec</option>
+                                <option value="45">45 sec</option>
+                                <option value="60">60 sec</option>
+                                <option value="off">Off</option>
+                            </select>
+                        </div>
+                    </div>
                     
-                    <!-- Cluster Stats Grid (NEW) -->
+                    <!-- Cluster Stats Grid (Updated with two-column layout for Deployments) -->
                     <div class="cluster-stats-grid">
+                        <div class="cluster-stat-box" onclick="showClusterDetails('deployments')">
+                            <div class="deployment-stats-container">
+                                <div class="deployment-stat-column">
+                                    <div class="deployment-stat-label">Deployments</div>
+                                    <div class="deployment-stat-value" id="cluster-deployments-count">-</div>
+                                </div>
+                                <div class="deployment-stat-column">
+                                    <div class="deployment-stat-label">Ready</div>
+                                    <div class="deployment-stat-value" id="cluster-deployments-ready">-</div>
+                                </div>
+                            </div>
+                        </div>
                         <div class="cluster-stat-box" onclick="showClusterDetails('pods')">
-                            <div class="cluster-stat-label">Pods Running</div>
+                            <div class="cluster-stat-label">Pods</div>
                             <div class="cluster-stat-value" id="cluster-pods-count">-</div>
+                            <div class="cluster-stat-sublabel" id="cluster-pods-ready">-</div>
                         </div>
                         <div class="cluster-stat-box" onclick="showClusterDetails('nodes')">
                             <div class="cluster-stat-label">Nodes</div>
                             <div class="cluster-stat-value" id="cluster-nodes-count">-</div>
-                        </div>
-                        <div class="cluster-stat-box" onclick="showClusterDetails('replicas')">
-                            <div class="cluster-stat-label">App Replicas</div>
-                            <div class="cluster-stat-value" id="cluster-replicas-count">-</div>
+                            <div class="cluster-stat-sublabel" id="cluster-nodes-status">-</div>
                         </div>
                     </div>
                     
@@ -104,15 +129,15 @@
                         </div>
                     </div>
                     
-                    <h3 class="section-title">Actions</h3>
+                    <h3 class="section-title">Actions to test basic k8s behavior</h3>
                     
-                    <!-- 5-Column Button Grid -->
+                    <!-- Action Buttons with Spacing -->
                     <div class="button-grid">
-                        <button class="btn btn-primary" onclick="viewMetrics()">📊 View Metrics</button>
                         <button class="btn btn-danger" onclick="makeUnhealthy()">💔 Make Unhealthy</button>
                         <button class="btn btn-warning" onclick="simulateNotReady()">⏸️ Not Ready</button>
                         <button class="btn btn-primary" onclick="resetApp()">🔄 Reset App</button>
-                        <button class="btn btn-secondary" onclick="showMonitoringCommands()">📊 Monitoring</button>
+                        <div style="width: 100%;"></div>
+                        <button class="btn btn-secondary" onclick="showMonitoringCommands()">📊 Basic CLI Info Commands</button>
                     </div>
                     
                     <!-- CLI Commands Section (appears below grid) -->
@@ -126,7 +151,10 @@
                 
                 <!-- Database Tab -->
                 <div id="database-tab" class="tab-content">
-                    <h2 class="page-title">Database Management</h2>
+                    <div class="page-header-with-button">
+                        <h2 class="page-title">Database Management</h2>
+                        <button class="btn btn-secondary" onclick="window.open('/metrics', '_blank')">📊 Metrics</button>
+                    </div>
                     
                     <div class="status-card">
                         <h3>Database Connection <span id="db-status-badge" class="badge badge-success">🟢 Connected</span></h3>
@@ -134,12 +162,20 @@
                             <span class="label">Database URL</span>
                             <span class="value" id="db-url">Loading...</span>
                         </div>
+                        <div class="status-item">
+                            <span class="label">Uses Secret</span>
+                            <span class="value" id="db-secret-info">Loading...</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">Uses ConfigMap</span>
+                            <span class="value" id="db-configmap-info">Loading...</span>
+                        </div>
                     </div>
                     
-                    <!-- Sticky Stats Section -->
+                    <!-- Sticky Stats Section - 2 column grid -->
                     <div class="sticky-stats">
                         <h3 class="section-title">Database Statistics</h3>
-                        <div class="stats-grid">
+                        <div class="stats-grid-two-col">
                             <div class="stat-card">
                                 <h3>👥 Users</h3>
                                 <div class="stat-value" id="users-count">0</div>
@@ -150,15 +186,10 @@
                                 <div class="stat-value" id="tasks-count">0</div>
                                 <div class="stat-label"><span id="pending-tasks-count">0</span> pending</div>
                             </div>
-                            <div class="stat-card">
-                                <h3>📊 Metrics</h3>
-                                <div class="stat-value" id="metrics-count">0</div>
-                                <div class="stat-label">recorded events</div>
-                            </div>
                         </div>
                     </div>
                     
-                    <h3 class="section-title">Add New Data</h3>
+                    <h3 class="section-title">Add New Data to test the DB</h3>
                     <div class="form-grid">
                         <div class="form-section">
                             <h3>➕ Create New User</h3>

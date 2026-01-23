@@ -19,6 +19,7 @@ spec:
         app: k8s-demo-app
         version: v1
     spec:
+      serviceAccountName: k8s-demo-sa
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000

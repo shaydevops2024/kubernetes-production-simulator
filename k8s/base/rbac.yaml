@@ -1,0 +1,67 @@
+# k8s/base/rbac.yaml
+# RBAC configuration to allow pods to access cluster information
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: k8s-demo-sa
+  namespace: k8s-multi-demo
+  labels:
+    app: k8s-demo-app
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: k8s-demo-role
+  namespace: k8s-multi-demo
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "endpoints"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "statefulsets", "replicasets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["autoscaling"]
+  resources: ["horizontalpodautoscalers"]
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: k8s-demo-rolebinding
+  namespace: k8s-multi-demo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: k8s-demo-role
+subjects:
+- kind: ServiceAccount
+  name: k8s-demo-sa
+  namespace: k8s-multi-demo
+
+---
+# ClusterRole for accessing nodes (cluster-wide resource)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: k8s-demo-node-reader
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: k8s-demo-node-reader-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: k8s-demo-node-reader
+subjects:
+- kind: ServiceAccount
+  name: k8s-demo-sa
+  namespace: k8s-multi-demo

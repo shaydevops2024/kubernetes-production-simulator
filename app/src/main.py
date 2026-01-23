@@ -11,9 +11,11 @@ import asyncio
 import os
 import logging
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone
 from collections import deque
 from pathlib import Path
+from kubernetes import client, config
+from kubernetes.client.rest import ApiException
 
 logging.basicConfig(
     level=logging.INFO,
@@ -37,6 +39,19 @@ load_test_running = False
 load_test_task = None
 
 log_buffer = deque(maxlen=100)
+
+# Initialize Kubernetes client
+try:
+    config.load_incluster_config()
+    k8s_apps_v1 = client.AppsV1Api()
+    k8s_core_v1 = client.CoreV1Api()
+    k8s_available = True
+    logger.info("✅ Kubernetes client initialized successfully")
+except Exception as e:
+    logger.error(f"⚠️ Failed to initialize Kubernetes client: {e}")
+    k8s_apps_v1 = None
+    k8s_core_v1 = None
+    k8s_available = False
 
 class LogBufferHandler(logging.Handler):
     def emit(self, record):
@@ -85,6 +100,30 @@ def run_kubectl_command(command):
         logger.error(f"Kubectl command failed: {e}")
         return None
 
+def calculate_age(creation_timestamp):
+    """Calculate age from creation timestamp"""
+    try:
+        if isinstance(creation_timestamp, str):
+            created = datetime.fromisoformat(creation_timestamp.replace('Z', '+00:00'))
+        else:
+            created = creation_timestamp
+        
+        now = datetime.now(timezone.utc)
+        delta = now - created
+        days = delta.days
+        hours = delta.seconds // 3600
+        minutes = delta.seconds // 60
+        
+        if days > 0:
+            return f"{days}d"
+        elif hours > 0:
+            return f"{hours}h"
+        else:
+            return f"{minutes}m"
+    except Exception as e:
+        logger.error(f"Error calculating age: {e}")
+        return "unknown"
+
 @app.get("/")
 async def root():
     """Serve the main HTML page"""
@@ -124,89 +163,173 @@ async def get_config():
 
 @app.get("/api/cluster/stats")
 async def get_cluster_stats():
-    """Get Kubernetes cluster statistics"""
+    """Get Kubernetes cluster statistics with detailed kubectl-style output"""
     namespace = "k8s-multi-demo"
     
-    # Get pods count
-    pods_output = run_kubectl_command(f"kubectl get pods -n {namespace} -o json")
-    pods_count = 0
-    pods_list = []
-    if pods_output:
-        import json
-        try:
-            pods_data = json.loads(pods_output)
-            pods_count = len(pods_data.get('items', []))
-            pods_list = [
-                {
-                    'name': pod['metadata']['name'],
-                    'status': pod['status']['phase'],
-                    'ready': sum(1 for c in pod['status'].get('containerStatuses', []) if c.get('ready', False))
-                }
-                for pod in pods_data.get('items', [])
-            ]
-        except:
-            pass
+    if not k8s_available or not k8s_apps_v1 or not k8s_core_v1:
+        return {
+            "deployments": {"count": 0, "details": []},
+            "pods": {"count": 0, "details": []},
+            "nodes": {"count": 0, "details": []}
+        }
     
-    # Get nodes count
-    nodes_output = run_kubectl_command("kubectl get nodes -o json")
-    nodes_count = 0
-    nodes_list = []
-    if nodes_output:
-        import json
-        try:
-            nodes_data = json.loads(nodes_output)
-            nodes_count = len(nodes_data.get('items', []))
-            nodes_list = [
-                {
-                    'name': node['metadata']['name'],
-                    'status': next((c['type'] for c in node['status'].get('conditions', []) if c['status'] == 'True'), 'Unknown')
-                }
-                for node in nodes_data.get('items', [])
-            ]
-        except:
-            pass
+    deployments_info = {"count": 0, "details": []}
+    pods_info = {"count": 0, "details": []}
+    nodes_info = {"count": 0, "details": []}
     
-    # Get deployment replicas
-    replicas_output = run_kubectl_command(f"kubectl get deployment k8s-demo-app -n {namespace} -o json")
-    replicas_count = 0
-    replicas_desired = 0
-    replicas_list = []
-    if replicas_output:
-        import json
-        try:
-            deployment_data = json.loads(replicas_output)
-            replicas_desired = deployment_data['spec'].get('replicas', 0)
-            replicas_count = deployment_data['status'].get('readyReplicas', 0)
+    # Get deployments
+    try:
+        deployments = k8s_apps_v1.list_namespaced_deployment(namespace=namespace)
+        deployments_info["count"] = len(deployments.items)
+        
+        for deployment in deployments.items:
+            name = deployment.metadata.name
+            spec_replicas = deployment.spec.replicas or 0
+            ready_replicas = deployment.status.ready_replicas or 0
+            updated_replicas = deployment.status.updated_replicas or 0
+            available_replicas = deployment.status.available_replicas or 0
+            age = calculate_age(deployment.metadata.creation_timestamp)
             
-            # Get pod names for this deployment
-            pods_for_deployment = run_kubectl_command(f"kubectl get pods -n {namespace} -l app=k8s-demo-app -o json")
-            if pods_for_deployment:
-                pods_deployment_data = json.loads(pods_for_deployment)
-                replicas_list = [
-                    {
-                        'name': pod['metadata']['name'],
-                        'status': pod['status']['phase']
-                    }
-                    for pod in pods_deployment_data.get('items', [])
-                ]
-        except:
-            pass
+            deployments_info["details"].append({
+                "name": name,
+                "ready": f"{ready_replicas}/{spec_replicas}",
+                "up_to_date": updated_replicas,
+                "available": available_replicas,
+                "age": age
+            })
+    except ApiException as e:
+        logger.error(f"Error fetching deployments: {e}")
+    
+    # Get pods
+    try:
+        pods = k8s_core_v1.list_namespaced_pod(namespace=namespace)
+        pods_info["count"] = len(pods.items)
+        
+        for pod in pods.items:
+            name = pod.metadata.name
+            status = pod.status.phase or "Unknown"
+            
+            # Calculate ready containers
+            container_statuses = pod.status.container_statuses or []
+            ready_count = sum(1 for c in container_statuses if c.ready)
+            total_count = len(container_statuses)
+            ready = f"{ready_count}/{total_count}"
+            
+            # Get restarts
+            restarts = sum(c.restart_count for c in container_statuses)
+            
+            age = calculate_age(pod.metadata.creation_timestamp)
+            
+            pods_info["details"].append({
+                "name": name,
+                "ready": ready,
+                "status": status,
+                "restarts": restarts,
+                "age": age
+            })
+    except ApiException as e:
+        logger.error(f"Error fetching pods: {e}")
+    
+    # Get nodes
+    try:
+        nodes = k8s_core_v1.list_node()
+        nodes_info["count"] = len(nodes.items)
+        
+        for node in nodes.items:
+            name = node.metadata.name
+            
+            # Get status
+            status = "Unknown"
+            conditions = node.status.conditions or []
+            for condition in conditions:
+                if condition.type == "Ready":
+                    status = "Ready" if condition.status == "True" else "NotReady"
+                    break
+            
+            # Get roles
+            labels = node.metadata.labels or {}
+            roles = []
+            if 'node-role.kubernetes.io/control-plane' in labels:
+                roles.append('control-plane')
+            if 'node-role.kubernetes.io/master' in labels:
+                roles.append('master')
+            role = ','.join(roles) if roles else '<none>'
+            
+            age = calculate_age(node.metadata.creation_timestamp)
+            
+            # Get version
+            version = node.status.node_info.kubelet_version if node.status.node_info else 'unknown'
+            
+            nodes_info["details"].append({
+                "name": name,
+                "status": status,
+                "roles": role,
+                "age": age,
+                "version": version
+            })
+    except ApiException as e:
+        logger.error(f"Error fetching nodes: {e}")
     
     return {
-        "pods": {
-            "count": pods_count,
-            "list": pods_list
-        },
-        "nodes": {
-            "count": nodes_count,
-            "list": nodes_list
-        },
-        "replicas": {
-            "current": replicas_count,
-            "desired": replicas_desired,
-            "list": replicas_list
-        }
+        "deployments": deployments_info,
+        "pods": pods_info,
+        "nodes": nodes_info
     }
+
+@app.get("/api/db/info")
+async def get_database_info():
+    """Get database StatefulSet information including secrets and configmaps"""
+    namespace = "k8s-multi-demo"
+    
+    info = {
+        "uses_secret": False,
+        "secret_name": None,
+        "uses_configmap": False,
+        "configmap_name": None
+    }
+    
+    if not k8s_available or not k8s_apps_v1:
+        return info
+    
+    try:
+        # Get the postgres StatefulSet
+        statefulsets = k8s_apps_v1.list_namespaced_stateful_set(namespace=namespace)
+        
+        for sts in statefulsets.items:
+            if 'postgres' in sts.metadata.name.lower():
+                # Check for secrets and configmaps in the pod spec
+                containers = sts.spec.template.spec.containers or []
+                volumes = sts.spec.template.spec.volumes or []
+                
+                # Check environment variables for secrets
+                for container in containers:
+                    if container.env:
+                        for env_var in container.env:
+                            if env_var.value_from and env_var.value_from.secret_key_ref:
+                                info["uses_secret"] = True
+                                info["secret_name"] = env_var.value_from.secret_key_ref.name
+                                break
+                    
+                    # Check env_from for configmaps
+                    if container.env_from:
+                        for env_from in container.env_from:
+                            if env_from.config_map_ref:
+                                info["uses_configmap"] = True
+                                info["configmap_name"] = env_from.config_map_ref.name
+                
+                # Check volumes for configmaps
+                for volume in volumes:
+                    if volume.config_map:
+                        info["uses_configmap"] = True
+                        if not info["configmap_name"]:
+                            info["configmap_name"] = volume.config_map.name
+                
+                break
+                
+    except ApiException as e:
+        logger.error(f"Error fetching StatefulSet info: {e}")
+    
+    return info
 
 @app.post("/loadtest/start")
 async def start_load_test():
@@ -411,6 +534,11 @@ async def startup_event():
         logger.info(f"✅ {message}")
     else:
         logger.warning(f"⚠️ {message}")
+    
+    if k8s_available:
+        logger.info(f"✅ Kubernetes client ready")
+    else:
+        logger.warning(f"⚠️ Kubernetes client not available")
     
     logger.info(f"Application ready")
     logger.info(f"========================================")

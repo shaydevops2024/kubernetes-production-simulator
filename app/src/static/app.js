@@ -1,4 +1,5 @@
 // app/src/static/app.js
+// app/src/static/app.js
 
 // Global state
 var autoRefreshInterval = null;
@@ -6,12 +7,19 @@ var statusMonitorInterval = null;
 var clusterStatsInterval = null;
 var currentCLISection = null;
 var clusterStatsData = null;
+var dashboardRefreshInterval = null;
+var currentRefreshSeconds = 5; // Default 5 seconds
 
 // Load config and start monitoring on startup
 window.addEventListener('DOMContentLoaded', function() {
     loadConfig();
     startStatusMonitoring();
-    startClusterStatsMonitoring();
+    
+    // Don't start cluster stats monitoring here - it will be controlled by dashboard refresh
+    // startClusterStatsMonitoring();
+    
+    // Initialize dashboard refresh with default 5 seconds
+    initDashboardRefresh();
     
     var taskSubmit = document.getElementById('create-task-form').querySelector('button[type="submit"]');
     if (taskSubmit) {
@@ -30,18 +38,36 @@ window.addEventListener('DOMContentLoaded', function() {
 
 window.addEventListener('beforeunload', function() {
     stopAutoRefresh();
+    
+    // Stop dashboard refresh if active
+    if (dashboardRefreshInterval) {
+        clearInterval(dashboardRefreshInterval);
+        dashboardRefreshInterval = null;
+    }
     stopStatusMonitoring();
     stopClusterStatsMonitoring();
 });
 
 // Modal functions
-function showModal(title, message) {
+function showModal(title, message, hideCloseButton) {
     var overlay = document.getElementById('modal-overlay');
     var titleEl = document.getElementById('modal-title');
     var bodyEl = document.getElementById('modal-body');
+    var closeBtn = overlay.querySelector('.modal-close');
+    var footer = document.getElementById('modal-footer');
     
     titleEl.textContent = title;
     bodyEl.innerHTML = message;
+    
+    // Hide or show close button and footer based on parameter
+    if (hideCloseButton) {
+        if (closeBtn) closeBtn.style.display = 'none';
+        if (footer) footer.style.display = 'none';
+    } else {
+        if (closeBtn) closeBtn.style.display = 'block';
+        if (footer) footer.style.display = 'block';
+    }
+    
     overlay.classList.add('active');
 }
 
@@ -91,6 +117,48 @@ function stopClusterStatsMonitoring() {
     }
 }
 
+// Dashboard auto-refresh control
+function changeRefreshInterval() {
+    var select = document.getElementById("refresh-interval");
+    var value = select.value;
+    
+    // Stop existing interval
+    if (dashboardRefreshInterval) {
+        clearInterval(dashboardRefreshInterval);
+        dashboardRefreshInterval = null;
+    }
+    
+    if (value === "off") {
+        currentRefreshSeconds = 0;
+        console.log("Auto-refresh: OFF");
+        return;
+    }
+    
+    currentRefreshSeconds = parseInt(value);
+    console.log("Auto-refresh interval set to: " + currentRefreshSeconds + " seconds");
+    
+    // Update immediately first
+    updateClusterStats();
+    updateStatusBadges();
+    
+    // Start new interval
+    dashboardRefreshInterval = setInterval(function() {
+        updateClusterStats();
+        updateStatusBadges();
+    }, currentRefreshSeconds * 1000);
+}
+
+// Initialize refresh on dashboard tab activation
+function initDashboardRefresh() {
+    var select = document.getElementById("refresh-interval");
+    if (select) {
+        // Set default to 5 seconds
+        select.value = "5";
+        changeRefreshInterval();
+    }
+}
+
+
 function updateClusterStats() {
     var dashboardTab = document.getElementById('dashboard-tab');
     if (!dashboardTab || !dashboardTab.classList.contains('active')) {
@@ -102,13 +170,43 @@ function updateClusterStats() {
         .then(function(data) {
             clusterStatsData = data;
             
-            var podsCount = document.getElementById('cluster-pods-count');
-            var nodesCount = document.getElementById('cluster-nodes-count');
-            var replicasCount = document.getElementById('cluster-replicas-count');
+            // Update Deployments (two-column display)
+            var deploymentsCount = document.getElementById('cluster-deployments-count');
+            var deploymentsReady = document.getElementById('cluster-deployments-ready');
+            if (deploymentsCount) {
+                deploymentsCount.textContent = data.deployments.count;
+            }
+            if (deploymentsReady && data.deployments.details.length > 0) {
+                var mainDeployment = data.deployments.details[0];
+                // Show just the replica count (e.g., "5/5") without extra text
+                deploymentsReady.textContent = mainDeployment.ready;
+            }
             
-            if (podsCount) podsCount.textContent = data.pods.count;
-            if (nodesCount) nodesCount.textContent = data.nodes.count;
-            if (replicasCount) replicasCount.textContent = data.replicas.current + '/' + data.replicas.desired;
+            // Update Pods
+            var podsCount = document.getElementById('cluster-pods-count');
+            var podsReady = document.getElementById('cluster-pods-ready');
+            if (podsCount) {
+                podsCount.textContent = data.pods.count;
+            }
+            if (podsReady && data.pods.details.length > 0) {
+                var readyPods = data.pods.details.filter(function(p) { 
+                    return p.status === 'Running'; 
+                }).length;
+                podsReady.textContent = readyPods + ' running';
+            }
+            
+            // Update Nodes
+            var nodesCount = document.getElementById('cluster-nodes-count');
+            var nodesStatus = document.getElementById('cluster-nodes-status');
+            if (nodesCount) {
+                nodesCount.textContent = data.nodes.count;
+            }
+            if (nodesStatus && data.nodes.details.length > 0) {
+                var readyNodes = data.nodes.details.filter(function(n) { 
+                    return n.status === 'Ready'; 
+                }).length;
+                nodesStatus.textContent = readyNodes + ' ready';
+            }
         })
         .catch(function(e) {
             console.error('Cluster stats error:', e);
@@ -122,55 +220,83 @@ function showClusterDetails(type) {
     }
     
     var title = '';
-    var content = '<pre>';
+    var content = '<pre style="text-align: left; font-family: monospace; font-size: 12px;">';
     
-    if (type === 'pods') {
-        title = 'Pods Running';
-        content += 'NAME                                    STATUS      READY\n';
-        content += '─────────────────────────────────────────────────────────\n';
-        var pods = clusterStatsData.pods.list;
+    if (type === 'deployments') {
+        title = 'Deployments';
+        content += 'NAME                READY    UP-TO-DATE   AVAILABLE   AGE\n';
+        content += '─────────────────────────────────────────────────────────────\n';
+        var deployments = clusterStatsData.deployments.details;
+        if (deployments && deployments.length > 0) {
+            for (var i = 0; i < deployments.length; i++) {
+                var d = deployments[i];
+                var name = (d.name || '').padEnd(20, ' ');
+                var ready = (d.ready || '').padEnd(9, ' ');
+                var upToDate = (String(d.up_to_date) || '0').padEnd(13, ' ');
+                var available = (String(d.available) || '0').padEnd(12, ' ');
+                content += name + ready + upToDate + available + d.age + '\n';
+            }
+        } else {
+            content += 'No deployments found\n';
+        }
+    } else if (type === 'pods') {
+        title = 'Pods';
+        content += 'NAME                                        READY    STATUS      RESTARTS   AGE\n';
+        content += '───────────────────────────────────────────────────────────────────────────────\n';
+        var pods = clusterStatsData.pods.details;
         if (pods && pods.length > 0) {
             for (var i = 0; i < pods.length; i++) {
                 var pod = pods[i];
-                var name = pod.name.padEnd(40, ' ');
-                var status = pod.status.padEnd(12, ' ');
-                content += name + status + pod.ready + '\n';
+                var name = (pod.name || '').padEnd(44, ' ');
+                var ready = (pod.ready || '').padEnd(9, ' ');
+                var status = (pod.status || '').padEnd(12, ' ');
+                var restarts = (String(pod.restarts) || '0').padEnd(11, ' ');
+                content += name + ready + status + restarts + pod.age + '\n';
             }
         } else {
             content += 'No pods found\n';
         }
     } else if (type === 'nodes') {
         title = 'Cluster Nodes';
-        content += 'NAME                                    STATUS\n';
-        content += '─────────────────────────────────────────────────────\n';
-        var nodes = clusterStatsData.nodes.list;
+        content += 'NAME                                STATUS    ROLES            AGE     VERSION\n';
+        content += '────────────────────────────────────────────────────────────────────────────────\n';
+        var nodes = clusterStatsData.nodes.details;
         if (nodes && nodes.length > 0) {
             for (var i = 0; i < nodes.length; i++) {
                 var node = nodes[i];
-                var name = node.name.padEnd(40, ' ');
-                content += name + node.status + '\n';
+                var name = (node.name || '').padEnd(36, ' ');
+                var status = (node.status || '').padEnd(10, ' ');
+                var roles = (node.roles || '<none>').padEnd(17, ' ');
+                var age = (node.age || '').padEnd(8, ' ');
+                content += name + status + roles + age + node.version + '\n';
             }
         } else {
             content += 'No nodes found\n';
-        }
-    } else if (type === 'replicas') {
-        title = 'Application Replicas';
-        content += 'NAME                                    STATUS\n';
-        content += '─────────────────────────────────────────────────────\n';
-        var replicas = clusterStatsData.replicas.list;
-        if (replicas && replicas.length > 0) {
-            for (var i = 0; i < replicas.length; i++) {
-                var replica = replicas[i];
-                var name = replica.name.padEnd(40, ' ');
-                content += name + replica.status + '\n';
-            }
-        } else {
-            content += 'No replicas found\n';
         }
     }
     
     content += '</pre>';
     showModal(title, content);
+}
+
+// Developer profile popup
+function showDeveloperProfile() {
+    var profileHTML = '<div style="text-align: left; padding: 20px; line-height: 1.8;">';
+    profileHTML += '<h3 style="margin-top: 0; color: #2c3e50;">Author: Shay Guedj</h3>';
+    profileHTML += '<p style="margin: 15px 0; color: #555; font-size: 14px;">';
+    profileHTML += 'DevOps Engineer with 3+ years of hands-on experience architecting and managing cloud-native infrastructures on AWS. ';
+    profileHTML += 'Proven expertise in Kubernetes orchestration, microservices deployment, and Infrastructure as Code using Terraform and Ansible. ';
+    profileHTML += 'Skilled in implementing GitOps workflows, optimizing CI/CD pipelines with Jenkins, and driving cost efficiency through cloud resource optimization. ';
+    profileHTML += 'Strong background in monitoring solutions with Grafana, Prometheus, and CloudWatch, combined with advanced Linux/Windows server administration and Python/Bash scripting for automation.';
+    profileHTML += '</p>';
+    profileHTML += '<div style="margin-top: 25px; display: flex; gap: 10px; justify-content: center;">';
+    profileHTML += '<button class="btn btn-primary" onclick="window.open(\'https://github.com/shaydevops2024/kubernetes-production-simulator\', \'_blank\'); closeModal();" style="padding: 10px 20px;">🚀 Visit My GitHub</button>';
+    profileHTML += '<button class="btn btn-secondary" onclick="closeModal()" style="padding: 10px 20px;">Close</button>';
+    profileHTML += '</div>';
+    profileHTML += '</div>';
+    
+    // Pass true to hide the X button and OK button
+    showModal('Developer Profile', profileHTML, true);
 }
 
 // Status monitoring
@@ -268,6 +394,12 @@ function switchTab(tabName) {
     
     stopAutoRefresh();
     
+    // Stop dashboard refresh if active
+    if (dashboardRefreshInterval) {
+        clearInterval(dashboardRefreshInterval);
+        dashboardRefreshInterval = null;
+    }
+    
     var cliContainer = document.getElementById('cli-commands-container');
     if (cliContainer) {
         cliContainer.style.display = 'none';
@@ -275,10 +407,12 @@ function switchTab(tabName) {
     }
     
     if (tabName === 'dashboard') {
+        initDashboardRefresh();
         startStatusMonitoring();
-        startClusterStatsMonitoring();
+        // Don't start cluster stats monitoring - use user-controlled refresh interval instead
     } else if (tabName === 'database') {
         refreshDatabaseData();
+        fetchDatabaseInfo();
         startAutoRefresh();
         stopStatusMonitoring();
         stopClusterStatsMonitoring();
@@ -311,10 +445,6 @@ function stopAutoRefresh() {
 }
 
 // Dashboard button functions
-function viewMetrics() {
-    window.location.href = '/metrics';
-}
-
 function makeUnhealthy() {
     var commands = '<div class="cli-command"><code>kubectl get pods -n k8s-multi-demo -w</code><button class="copy-btn" onclick="copyCommand(this)">📋 Copy</button></div>';
     commands += '<div class="cli-command"><code>kubectl describe pod -n k8s-multi-demo -l app=k8s-demo-app | grep -A 10 "Liveness"</code><button class="copy-btn" onclick="copyCommand(this)">📋 Copy</button></div>';
@@ -461,6 +591,47 @@ function refreshDatabaseData(skipUserDropdown) {
         .then(function(r) { return r.json(); })
         .then(function(tasks) { updateTasksTable(tasks); })
         .catch(function(e) { console.error('Tasks error:', e); });
+    
+    // Fetch database configuration info
+    fetchDatabaseInfo();
+}
+
+
+// Fetch database StatefulSet info (secrets and configmaps)
+function fetchDatabaseInfo() {
+    fetch("/api/db/info")
+        .then(function(r) { return r.json(); })
+        .then(function(info) {
+            var secretInfo = document.getElementById("db-secret-info");
+            var configmapInfo = document.getElementById("db-configmap-info");
+            
+            if (secretInfo) {
+                if (info.uses_secret && info.secret_name) {
+                    secretInfo.innerHTML = "<span class=\"badge badge-success\">✓ Yes</span> - " + escapeHtml(info.secret_name);
+                } else if (info.uses_secret) {
+                    secretInfo.innerHTML = "<span class=\"badge badge-success\">✓ Yes</span>";
+                } else {
+                    secretInfo.innerHTML = "<span class=\"badge badge-grey\">✗ No</span>";
+                }
+            }
+            
+            if (configmapInfo) {
+                if (info.uses_configmap && info.configmap_name) {
+                    configmapInfo.innerHTML = "<span class=\"badge badge-success\">✓ Yes</span> - " + escapeHtml(info.configmap_name);
+                } else if (info.uses_configmap) {
+                    configmapInfo.innerHTML = "<span class=\"badge badge-success\">✓ Yes</span>";
+                } else {
+                    configmapInfo.innerHTML = "<span class=\"badge badge-grey\">✗ No</span>";
+                }
+            }
+        })
+        .catch(function(e) { 
+            console.error("Database info error:", e);
+            var secretInfo = document.getElementById("db-secret-info");
+            var configmapInfo = document.getElementById("db-configmap-info");
+            if (secretInfo) secretInfo.textContent = "Error loading info";
+            if (configmapInfo) configmapInfo.textContent = "Error loading info";
+        });
 }
 
 function updateUsersTable(users) {
