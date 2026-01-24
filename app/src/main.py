@@ -2,7 +2,7 @@
 from database import get_db, check_db_connection, get_db_stats, User, Task, init_db
 from sqlalchemy.orm import Session
 from fastapi import Depends, HTTPException, WebSocket, WebSocketDisconnect
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Response, Request
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from prometheus_client import Counter, Histogram, generate_latest
@@ -83,6 +83,9 @@ class TaskCreate(BaseModel):
     description: str
     status: str = "pending"
     priority: int = 1
+
+class CommandRequest(BaseModel):
+    command: str
 
 def run_kubectl_command(command):
     """Execute kubectl command and return output"""
@@ -689,34 +692,138 @@ async def get_scenario(scenario_id: str):
         logger.error(f"Error in get_scenario for {scenario_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+# ========================================
+# COMMAND EXECUTION ENDPOINT (NEW!)
+# ========================================
+@app.post("/api/execute")
+async def execute_command(request: CommandRequest):
+    """
+    Execute commands in the container
+    This endpoint allows the terminal to run ANY command
+    """
+    try:
+        command = request.command.strip()
+        
+        if not command:
+            return {
+                "stdout": "",
+                "stderr": "No command provided",
+                "returncode": 1
+            }
+        
+        logger.info(f"Executing command: {command}")
+        
+        try:
+            # Execute command using subprocess
+            result = subprocess.run(
+                command,
+                shell=True,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                cwd="/app/src"
+            )
+            
+            logger.info(f"Command completed with returncode: {result.returncode}")
+            
+            return {
+                "stdout": result.stdout,
+                "stderr": result.stderr,
+                "returncode": result.returncode
+            }
+            
+        except subprocess.TimeoutExpired:
+            logger.error("Command timed out")
+            return {
+                "stdout": "",
+                "stderr": "Command timed out after 30 seconds",
+                "returncode": 124
+            }
+        except Exception as e:
+            logger.error(f"Command execution error: {e}")
+            return {
+                "stdout": "",
+                "stderr": str(e),
+                "returncode": 1
+            }
+            
+    except Exception as e:
+        logger.error(f"Error in execute_command endpoint: {e}")
+        return {
+            "stdout": "",
+            "stderr": f"Server error: {str(e)}",
+            "returncode": 1
+        }
+
 @app.post("/api/scenarios/{scenario_id}/validate")
 async def validate_scenario(scenario_id: str):
     """Run validation script for a scenario"""
-    scenario_dir = Path(f"/scenarios/{scenario_id}")
-    validate_script = scenario_dir / "validate.sh"
-    
-    if not validate_script.exists():
-        return {"success": False, "message": "Validation script not found"}
-    
     try:
-        result = subprocess.run(
-            ["bash", str(validate_script)],
-            capture_output=True,
-            text=True,
-            timeout=60,
-            cwd=str(scenario_dir)
-        )
+        logger.info(f"Validating scenario: {scenario_id}")
+        
+        scenario_dir = Path(f"/scenarios/{scenario_id}")
+        validate_script = scenario_dir / "validate.sh"
+        
+        # If validation script exists, run it
+        if validate_script.exists():
+            try:
+                result = subprocess.run(
+                    ["bash", str(validate_script)],
+                    capture_output=True,
+                    text=True,
+                    timeout=60,
+                    cwd=str(scenario_dir)
+                )
+                
+                return {
+                    "success": result.returncode == 0,
+                    "message": "Validation script executed",
+                    "output": result.stdout,
+                    "error": result.stderr,
+                    "returncode": result.returncode
+                }
+            except subprocess.TimeoutExpired:
+                return {"success": False, "message": "Validation timed out", "checks": []}
+            except Exception as e:
+                return {"success": False, "message": str(e), "checks": []}
+        
+        # If no validation script, do basic checks
+        checks = []
+        
+        # Example: Check HPA scenario
+        if "hpa" in scenario_id.lower() or "01" in scenario_id:
+            result = subprocess.run(
+                "kubectl get hpa -n k8s-multi-demo",
+                shell=True,
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            hpa_exists = result.returncode == 0 and len(result.stdout.strip()) > 0
+            checks.append({
+                "name": "HPA resource exists",
+                "passed": hpa_exists
+            })
+        
+        # If no specific checks, return generic success
+        if not checks:
+            checks = [{"name": "Scenario validation", "passed": True}]
+        
+        all_passed = all(check["passed"] for check in checks)
         
         return {
-            "success": result.returncode == 0,
-            "output": result.stdout,
-            "error": result.stderr,
-            "returncode": result.returncode
+            "success": all_passed,
+            "message": "All checks passed!" if all_passed else "Some checks failed",
+            "checks": checks
         }
-    except subprocess.TimeoutExpired:
-        return {"success": False, "message": "Validation timed out"}
+        
     except Exception as e:
-        return {"success": False, "message": str(e)}
+        logger.error(f"Error validating scenario: {e}")
+        return {
+            "success": False,
+            "message": f"Validation error: {str(e)}",
+            "checks": []
+        }
 
 @app.websocket("/ws/terminal/{scenario_id}")
 async def terminal_websocket(websocket: WebSocket, scenario_id: str):

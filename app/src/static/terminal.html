@@ -1,602 +1,685 @@
-# app/src/static/terminal.html
+<!-- File: app/src/static/terminal.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>K8s Terminal - Interactive Scenario</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
+    <title>K8s Interactive Terminal</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #1a1a2e;
-            color: #eee;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Droid Sans Mono', 'Source Code Pro', 'Courier New', monospace;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
             overflow: hidden;
         }
-        
+
         .terminal-header {
-            background: #16213e;
-            padding: 15px 30px;
-            border-bottom: 2px solid #0f3460;
+            background: #2d2d2d;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #3e3e3e;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-shrink: 0;
         }
-        
-        .terminal-title {
-            font-size: 20px;
-            font-weight: 600;
-            color: #3498db;
-        }
-        
-        .terminal-container {
+
+        .header-left {
             display: flex;
-            height: calc(100vh - 60px);
+            align-items: center;
+            gap: 1rem;
         }
-        
-        .commands-sidebar {
-            width: 30%;
-            background: #16213e;
-            border-right: 2px solid #0f3460;
-            padding: 20px;
-            overflow-y: auto;
-        }
-        
-        .sidebar-header {
-            font-size: 18px;
+
+        .terminal-title {
+            font-size: 1rem;
             font-weight: 600;
-            color: #3498db;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #0f3460;
+            color: #4ec9b0;
         }
-        
-        .command-item {
-            background: #1a1a2e;
-            padding: 15px;
-            margin-bottom: 12px;
-            border-radius: 8px;
-            border-left: 4px solid #3498db;
-            cursor: pointer;
-            transition: all 0.3s;
+
+        .scenario-name {
+            font-size: 0.9rem;
+            color: #9cdcfe;
         }
-        
-        .command-item:hover {
-            background: #0f3460;
-            transform: translateX(5px);
+
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
         }
-        
-        .command-step {
-            font-size: 14px;
-            font-weight: 600;
-            color: #3498db;
-            margin-bottom: 8px;
-        }
-        
-        .command-code {
-            background: #000;
-            color: #0f0;
-            padding: 8px 12px;
+
+        .btn {
+            padding: 0.5rem 1rem;
             border-radius: 4px;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            margin: 8px 0;
-            word-wrap: break-word;
+            border: none;
+            font-size: 0.875rem;
+            font-weight: 500;
             cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
         }
-        
-        .command-desc {
-            font-size: 12px;
-            color: #888;
-            margin-top: 6px;
-            line-height: 1.4;
+
+        .btn-secondary {
+            background: #3e3e3e;
+            color: #cccccc;
         }
-        
-        .command-copy-btn {
-            margin-top: 8px;
-            padding: 6px 12px;
-            background: #0f3460;
-            color: #3498db;
-            border: 1px solid #3498db;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.3s;
+
+        .btn-secondary:hover {
+            background: #4e4e4e;
         }
-        
-        .command-copy-btn:hover {
-            background: #3498db;
+
+        .btn-cancel {
+            background: #f85149;
+            color: white;
+            display: none;
+        }
+
+        .btn-cancel:hover {
+            background: #da3633;
+        }
+
+        .btn-cancel.visible {
+            display: inline-block;
+        }
+
+        .btn-validate {
+            background: #238636;
             color: white;
         }
-        
+
+        .btn-validate:hover {
+            background: #2ea043;
+        }
+
+        .btn-back {
+            background: #0e639c;
+            color: white;
+        }
+
+        .btn-back:hover {
+            background: #1177bb;
+        }
+
         .terminal-main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .commands-sidebar {
+            width: 320px;
+            background: #3a3a3a;
+            border-right: 1px solid #4e4e4e;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            order: 0;
+        }
+
+        .sidebar-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #4e4e4e;
+            background: #454545;
+        }
+
+        .sidebar-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #e0e0e0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem;
+        }
+
+        .sidebar-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .sidebar-content::-webkit-scrollbar-track {
+            background: #2d2d2d;
+        }
+
+        .sidebar-content::-webkit-scrollbar-thumb {
+            background: #5e5e5e;
+            border-radius: 4px;
+        }
+
+        .command-item {
+            background: #4e4e4e;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .command-item:hover {
+            background: #5e5e5e;
+            border-left-color: #0e639c;
+        }
+
+        .command-item-text {
+            color: #e0e0e0;
+            font-size: 0.85rem;
+            margin-bottom: 0.25rem;
+            word-break: break-all;
+        }
+
+        .command-item-desc {
+            color: #b0b0b0;
+            font-size: 0.75rem;
+        }
+
+        .terminal-container {
             flex: 1;
             display: flex;
             flex-direction: column;
-            padding: 20px;
-            background: #000;
-        }
-        
-        .terminal-wrapper {
-            flex: 1;
-            background: #000;
-            border: 2px solid #333;
-            border-radius: 8px;
-            padding: 10px;
             overflow: hidden;
+            order: 1;
         }
-        
-        #terminal {
-            height: 100%;
-        }
-        
-        .terminal-actions {
-            margin-top: 20px;
-            display: flex;
-            gap: 15px;
-        }
-        
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .btn-validate {
-            background: #10b981;
-            color: white;
+
+        .terminal-output {
             flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            font-size: 14px;
+            line-height: 1.6;
+            background: #1e1e1e;
         }
-        
-        .btn-validate:hover {
-            background: #059669;
-            transform: translateY(-2px);
+
+        .terminal-output::-webkit-scrollbar {
+            width: 12px;
         }
-        
-        .btn-validate:disabled {
-            background: #555;
-            cursor: not-allowed;
-            transform: none;
+
+        .terminal-output::-webkit-scrollbar-track {
+            background: #252526;
         }
-        
-        .btn-clear {
-            background: #ef4444;
-            color: white;
+
+        .terminal-output::-webkit-scrollbar-thumb {
+            background: #3e3e3e;
+            border-radius: 6px;
         }
-        
-        .btn-clear:hover {
-            background: #dc2626;
+
+        .terminal-output::-webkit-scrollbar-thumb:hover {
+            background: #4e4e4e;
         }
-        
-        .btn-back {
-            background: #6b7280;
-            color: white;
+
+        .terminal-line {
+            margin-bottom: 0.5rem;
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
-        
-        .btn-back:hover {
-            background: #4b5563;
+
+        .welcome-message {
+            color: #4ec9b0;
+            font-weight: 600;
+            margin-bottom: 1rem;
         }
-        
-        .validation-status {
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 15px;
-            display: none;
+
+        .tip-message {
+            color: #ce9178;
+            margin-bottom: 1.5rem;
         }
-        
-        .validation-status.success {
-            background: #10b981;
-            color: white;
-            display: block;
+
+        .command-line {
+            display: flex;
+            margin-bottom: 0.25rem;
         }
-        
-        .validation-status.error {
-            background: #ef4444;
-            color: white;
-            display: block;
+
+        .prompt {
+            color: #4ec9b0;
+            font-weight: 600;
+            margin-right: 0.5rem;
+            flex-shrink: 0;
         }
-        
-        .validation-status.running {
-            background: #f59e0b;
-            color: white;
-            display: block;
+
+        .command-text {
+            color: #9cdcfe;
         }
-        
-        /* Custom scrollbar */
-        .commands-sidebar::-webkit-scrollbar {
-            width: 8px;
+
+        .output-text {
+            color: #cccccc;
+            padding-left: 0;
         }
-        
-        .commands-sidebar::-webkit-scrollbar-track {
-            background: #1a1a2e;
+
+        .error-text {
+            color: #f48771;
         }
-        
-        .commands-sidebar::-webkit-scrollbar-thumb {
-            background: #3498db;
-            border-radius: 4px;
+
+        .success-text {
+            color: #89d185;
         }
-        
-        .loading {
+
+        .warning-text {
+            color: #dcdcaa;
+        }
+
+        .loading-indicator {
+            color: #ce9178;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .terminal-input-area {
+            background: #252526;
+            border-top: 1px solid #3e3e3e;
+            padding: 1rem 1.5rem;
             display: flex;
             align-items: center;
-            justify-content: center;
-            height: 100%;
-            font-size: 18px;
-            color: #888;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .input-prompt {
+            color: #4ec9b0;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        #command-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #9cdcfe;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            caret-color: #9cdcfe;
+        }
+
+        #command-input::placeholder {
+            color: #6a6a6a;
+        }
+
+        #command-input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 968px) {
+            .commands-sidebar {
+                display: none;
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #858585;
+            padding: 2rem;
         }
     </style>
 </head>
 <body>
     <div class="terminal-header">
-        <div class="terminal-title" id="scenario-title">Loading...</div>
-        <button class="btn btn-back" onclick="goBack()">← Back to Scenarios</button>
+        <div class="header-left">
+            <div class="terminal-title">K8s Interactive Terminal</div>
+            <div class="scenario-name" id="scenario-info">Loading...</div>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-cancel" id="cancel-btn" onclick="cancelCommand()">⏹ Cancel (Ctrl+C)</button>
+            <button class="btn btn-secondary" onclick="clearTerminal()">Clear</button>
+            <button class="btn btn-validate" onclick="validateScenario()">✓ Validate</button>
+            <button class="btn btn-back" onclick="window.location.href='/static/scenarios.html'">← Back</button>
+        </div>
     </div>
-    
-    <div class="terminal-container">
-        <!-- Left Sidebar - Commands -->
+
+    <div class="terminal-main">
         <div class="commands-sidebar">
-            <div class="sidebar-header">📋 Commands</div>
-            <div id="commands-list">
-                <div class="loading">Loading commands...</div>
+            <div class="sidebar-header">
+                <div class="sidebar-title">Available Commands</div>
+            </div>
+            <div class="sidebar-content" id="commands-list">
+                <div class="loading-indicator">Loading commands...</div>
             </div>
         </div>
-        
-        <!-- Right Side - Terminal -->
-        <div class="terminal-main">
-            <div class="terminal-wrapper">
-                <div id="terminal"></div>
+
+        <div class="terminal-container">
+            <div class="terminal-output" id="terminal-output">
+                <div class="welcome-message">Welcome to K8s Interactive Terminal</div>
+                <div class="tip-message">Tip: Click commands on the left or type directly. Use Up/Down arrows for history.</div>
+                <div class="loading-indicator">Loading scenario...</div>
             </div>
-            
-            <div id="validation-status" class="validation-status"></div>
-            
-            <div class="terminal-actions">
-                <button id="validate-btn" class="btn btn-validate" onclick="validateScenario()">
-                    ✅ Validate Scenario
-                </button>
-                <button class="btn btn-clear" onclick="clearTerminal()">
-                    🗑️ Clear Terminal
-                </button>
+
+            <div class="terminal-input-area">
+                <span class="input-prompt">claude@k8s-simulator:~$</span>
+                <input 
+                    type="text" 
+                    id="command-input" 
+                    placeholder="Type your command and press Enter..."
+                    autocomplete="off"
+                    spellcheck="false"
+                    autofocus
+                />
             </div>
         </div>
     </div>
-    
-    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+
     <script>
-        let terminal;
-        let fitAddon;
-        let ws;
-        let scenarioId;
-        let currentScenario;
+        const output = document.getElementById('terminal-output');
+        const input = document.getElementById('command-input');
+        const commandsList = document.getElementById('commands-list');
+        const scenarioInfo = document.getElementById('scenario-info');
+        const cancelBtn = document.getElementById('cancel-btn');
+        
+        let scenarioId = new URLSearchParams(window.location.search).get('scenario');
         let commandHistory = [];
         let historyIndex = -1;
-        let currentLine = '';
-        
-        // Get scenario ID from URL
-        const urlParams = new URLSearchParams(window.location.search);
-        scenarioId = urlParams.get('scenario');
-        
-        if (!scenarioId) {
-            alert('No scenario specified');
-            window.close();
-        }
-        
-        // Initialize terminal
-        function initTerminal() {
-            terminal = new Terminal({
-                cursorBlink: true,
-                fontSize: 14,
-                fontFamily: 'Courier New, monospace',
-                theme: {
-                    background: '#000000',
-                    foreground: '#ffffff',
-                    cursor: '#00ff00',
-                    selection: '#3498db',
-                    black: '#000000',
-                    red: '#ff0000',
-                    green: '#00ff00',
-                    yellow: '#ffff00',
-                    blue: '#0000ff',
-                    magenta: '#ff00ff',
-                    cyan: '#00ffff',
-                    white: '#ffffff'
-                },
-                cols: 80,
-                rows: 30
-            });
-            
-            fitAddon = new FitAddon.FitAddon();
-            terminal.loadAddon(fitAddon);
-            
-            terminal.open(document.getElementById('terminal'));
-            fitAddon.fit();
-            
-            // Welcome message
-            terminal.writeln('\x1b[1;32mWelcome to K8s Interactive Terminal\x1b[0m');
-            terminal.writeln('\x1b[36mScenario: ' + scenarioId + '\x1b[0m');
-            terminal.writeln('');
-            terminal.writeln('\x1b[33mTip: Click commands on the left or type directly\x1b[0m');
-            terminal.writeln('\x1b[33mUse Up/Down arrows for command history\x1b[0m');
-            terminal.writeln('');
-            
-            prompt();
-            
-            // Handle terminal input
-            terminal.onData(handleTerminalData);
-            
-            // Fit terminal on window resize
-            window.addEventListener('resize', () => {
-                fitAddon.fit();
-            });
-        }
-        
-        // Prompt
-        function prompt() {
-            terminal.write('\r\n\x1b[1;32mclaude@k8s-simulator\x1b[0m:\x1b[1;34m~\x1b[0m$ ');
-            currentLine = '';
-        }
-        
-        // Handle terminal input
-        function handleTerminalData(data) {
-            const code = data.charCodeAt(0);
-            
-            // Enter key
-            if (code === 13) {
-                terminal.write('\r\n');
-                if (currentLine.trim()) {
-                    commandHistory.push(currentLine);
-                    historyIndex = commandHistory.length;
-                    executeCommand(currentLine);
-                } else {
-                    prompt();
-                }
-                return;
-            }
-            
-            // Backspace
-            if (code === 127) {
-                if (currentLine.length > 0) {
-                    currentLine = currentLine.slice(0, -1);
-                    terminal.write('\b \b');
-                }
-                return;
-            }
-            
-            // Up arrow (previous command)
-            if (data === '\x1b[A') {
-                if (historyIndex > 0) {
-                    // Clear current line
-                    terminal.write('\r\x1b[K');
-                    terminal.write('\x1b[1;32mclaude@k8s-simulator\x1b[0m:\x1b[1;34m~\x1b[0m$ ');
-                    
-                    historyIndex--;
-                    currentLine = commandHistory[historyIndex];
-                    terminal.write(currentLine);
-                }
-                return;
-            }
-            
-            // Down arrow (next command)
-            if (data === '\x1b[B') {
-                if (historyIndex < commandHistory.length - 1) {
-                    // Clear current line
-                    terminal.write('\r\x1b[K');
-                    terminal.write('\x1b[1;32mclaude@k8s-simulator\x1b[0m:\x1b[1;34m~\x1b[0m$ ');
-                    
-                    historyIndex++;
-                    currentLine = commandHistory[historyIndex];
-                    terminal.write(currentLine);
-                } else if (historyIndex === commandHistory.length - 1) {
-                    // Clear current line
-                    terminal.write('\r\x1b[K');
-                    terminal.write('\x1b[1;32mclaude@k8s-simulator\x1b[0m:\x1b[1;34m~\x1b[0m$ ');
-                    
-                    historyIndex = commandHistory.length;
-                    currentLine = '';
-                }
-                return;
-            }
-            
-            // Ctrl+C
-            if (code === 3) {
-                terminal.write('^C');
-                currentLine = '';
-                prompt();
-                return;
-            }
-            
-            // Printable characters
-            if (code >= 32 && code < 127) {
-                currentLine += data;
-                terminal.write(data);
-            }
-        }
-        
-        // Execute command via WebSocket
-        function executeCommand(command) {
-            if (!ws || ws.readyState !== WebSocket.OPEN) {
-                terminal.writeln('\x1b[31mWebSocket not connected\x1b[0m');
-                prompt();
-                return;
-            }
-            
-            ws.send(JSON.stringify({
-                type: 'command',
-                command: command
-            }));
-        }
-        
-        // Initialize WebSocket
-        function initWebSocket() {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/ws/terminal/${scenarioId}`;
-            
-            ws = new WebSocket(wsUrl);
-            
-            ws.onopen = () => {
-                console.log('WebSocket connected');
-            };
-            
-            ws.onmessage = (event) => {
-                const message = JSON.parse(event.data);
-                
-                if (message.type === 'output') {
-                    // Write output to terminal
-                    terminal.write(message.data);
-                } else if (message.type === 'complete') {
-                    // Command completed
-                    prompt();
-                } else if (message.type === 'error') {
-                    terminal.writeln('\x1b[31mError: ' + message.message + '\x1b[0m');
-                    prompt();
-                } else if (message.type === 'validation_output') {
-                    // Validation output
-                    terminal.write(message.data);
-                } else if (message.type === 'validation_complete') {
-                    const statusDiv = document.getElementById('validation-status');
-                    const validateBtn = document.getElementById('validate-btn');
-                    
-                    if (message.success) {
-                        statusDiv.className = 'validation-status success';
-                        statusDiv.textContent = '✅ Scenario validated successfully!';
-                    } else {
-                        statusDiv.className = 'validation-status error';
-                        statusDiv.textContent = '❌ Validation failed. Check the output above.';
-                    }
-                    
-                    validateBtn.disabled = false;
-                    validateBtn.textContent = '✅ Validate Scenario';
-                    
-                    prompt();
-                }
-            };
-            
-            ws.onerror = (error) => {
-                console.error('WebSocket error:', error);
-                terminal.writeln('\r\n\x1b[31mWebSocket error\x1b[0m');
-            };
-            
-            ws.onclose = () => {
-                console.log('WebSocket closed');
-                terminal.writeln('\r\n\x1b[31mConnection closed\x1b[0m');
-            };
-        }
-        
-        // Load scenario details
+        let currentCommands = [];
+        let currentScenario = null;
+        let currentAbortController = null;
+        let isCommandRunning = false;
+
         async function loadScenario() {
+            if (!scenarioId) {
+                addLine('Error: No scenario specified', 'error');
+                return;
+            }
+
             try {
                 const response = await fetch(`/api/scenarios/${scenarioId}`);
-                currentScenario = await response.json();
+                const scenario = await response.json();
                 
-                document.getElementById('scenario-title').textContent = currentScenario.name;
+                currentScenario = scenario;
+                scenarioInfo.textContent = scenario.name;
+                currentCommands = scenario.commands || [];
                 
-                renderCommands();
+                clearOutput();
+                addLine('Welcome to K8s Interactive Terminal', 'success');
+                addLine(`Scenario: ${scenario.name}`, 'success');
+                addLine('');
+                addLine('Tip: Click commands on the left or type ANY command!', 'warning');
+                addLine('     Use Up/Down arrows for command history', 'warning');
+                addLine('     Press Ctrl+C or click Cancel to stop running commands', 'warning');
+                addLine('     Click "✓ Validate" when done to check your work', 'warning');
+                addLine('');
+                
+                displayCommands(currentCommands);
+                
             } catch (error) {
                 console.error('Error loading scenario:', error);
-                document.getElementById('commands-list').innerHTML = `
-                    <div style="color: #ef4444; padding: 20px;">
-                        Failed to load scenario commands
-                    </div>
-                `;
+                addLine(`Error loading scenario: ${error.message}`, 'error');
             }
         }
-        
-        // Render commands
-        function renderCommands() {
-            const commandsList = document.getElementById('commands-list');
-            commandsList.innerHTML = '';
-            
-            if (!currentScenario.commands || currentScenario.commands.length === 0) {
-                commandsList.innerHTML = '<div style="color: #888;">No commands available</div>';
+
+        function displayCommands(commands) {
+            if (commands.length === 0) {
+                commandsList.innerHTML = '<div class="empty-state">No commands available</div>';
                 return;
             }
-            
-            currentScenario.commands.forEach((cmd, index) => {
-                const cmdItem = document.createElement('div');
-                cmdItem.className = 'command-item';
-                
-                cmdItem.innerHTML = `
-                    <div class="command-step">Step ${index + 1}: ${cmd.name || 'Command'}</div>
-                    <div class="command-code">${cmd.command}</div>
-                    ${cmd.description ? `<div class="command-desc">${cmd.description}</div>` : ''}
-                    <button class="command-copy-btn" onclick="copyAndRunCommand('${escapeHtml(cmd.command)}')">
-                        Run Command
-                    </button>
-                `;
-                
-                commandsList.appendChild(cmdItem);
-            });
+
+            commandsList.innerHTML = commands.map((cmd, index) => `
+                <div class="command-item" onclick="executeCommand('${escapeQuotes(cmd.command)}')">
+                    <div class="command-item-text">${escapeHtml(cmd.command)}</div>
+                    ${cmd.description ? `<div class="command-item-desc">${escapeHtml(cmd.description)}</div>` : ''}
+                </div>
+            `).join('');
         }
-        
-        // Copy and run command
-        function copyAndRunCommand(command) {
-            // Copy to clipboard
-            navigator.clipboard.writeText(command);
+
+        function addLine(text, type = 'normal') {
+            const line = document.createElement('div');
+            line.className = 'terminal-line';
             
-            // Type it in terminal
-            currentLine = command;
-            terminal.write('\r\x1b[K');
-            terminal.write('\x1b[1;32mclaude@k8s-simulator\x1b[0m:\x1b[1;34m~\x1b[0m$ ');
-            terminal.write(command);
-        }
-        
-        // Validate scenario
-        function validateScenario() {
-            const statusDiv = document.getElementById('validation-status');
-            const validateBtn = document.getElementById('validate-btn');
-            
-            statusDiv.className = 'validation-status running';
-            statusDiv.textContent = '⏳ Running validation...';
-            validateBtn.disabled = true;
-            validateBtn.textContent = '⏳ Validating...';
-            
-            terminal.writeln('\r\n\x1b[1;33m=== Starting Scenario Validation ===\x1b[0m\r\n');
-            
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                    type: 'validate'
-                }));
+            if (type === 'command') {
+                line.innerHTML = `<div class="command-line"><span class="prompt">claude@k8s-simulator:~$</span><span class="command-text">${escapeHtml(text)}</span></div>`;
             } else {
-                statusDiv.className = 'validation-status error';
-                statusDiv.textContent = '❌ WebSocket not connected';
-                validateBtn.disabled = false;
-                validateBtn.textContent = '✅ Validate Scenario';
+                const className = type === 'error' ? 'error-text' : 
+                                type === 'success' ? 'success-text' : 
+                                type === 'warning' ? 'warning-text' : 
+                                'output-text';
+                line.innerHTML = `<span class="${className}">${escapeHtml(text)}</span>`;
+            }
+            
+            output.appendChild(line);
+            scrollToBottom();
+        }
+
+        async function executeCommand(cmd) {
+            const trimmedCmd = cmd.trim();
+            if (!trimmedCmd) return;
+
+            if (isCommandRunning) {
+                addLine('Another command is already running. Please wait or press Ctrl+C to cancel.', 'warning');
+                return;
+            }
+
+            commandHistory.push(trimmedCmd);
+            historyIndex = commandHistory.length;
+            addLine(trimmedCmd, 'command');
+            input.value = '';
+
+            const loadingLine = document.createElement('div');
+            loadingLine.className = 'terminal-line loading-indicator';
+            loadingLine.textContent = 'Executing...';
+            output.appendChild(loadingLine);
+            scrollToBottom();
+
+            isCommandRunning = true;
+            input.disabled = true;
+            cancelBtn.classList.add('visible');
+
+            currentAbortController = new AbortController();
+
+            try {
+                const result = await executeRealCommand(trimmedCmd, currentAbortController.signal);
+                
+                loadingLine.remove();
+                
+                if (result.cancelled) {
+                    addLine('^C', 'warning');
+                    addLine('Command cancelled', 'warning');
+                } else {
+                    if (result.stdout) {
+                        result.stdout.split('\n').forEach(line => {
+                            addLine(line);
+                        });
+                    }
+                    
+                    if (result.stderr) {
+                        result.stderr.split('\n').forEach(line => {
+                            if (line.trim()) {
+                                addLine(line, 'error');
+                            }
+                        });
+                    }
+                }
+                
+                addLine('');
+                
+            } catch (error) {
+                loadingLine.remove();
+                if (error.name === 'AbortError') {
+                    addLine('^C', 'warning');
+                    addLine('Command cancelled', 'warning');
+                } else {
+                    addLine(`Error: ${error.message}`, 'error');
+                }
+                addLine('');
+            } finally {
+                isCommandRunning = false;
+                input.disabled = false;
+                input.focus();
+                cancelBtn.classList.remove('visible');
+                currentAbortController = null;
             }
         }
-        
-        // Clear terminal
+
+        async function executeRealCommand(cmd, signal) {
+            try {
+                const response = await fetch('/api/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        command: cmd
+                    }),
+                    signal: signal
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const result = await response.json();
+                return result;
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    return { cancelled: true };
+                }
+                console.error('Command execution error:', error);
+                return {
+                    stdout: '',
+                    stderr: error.message,
+                    returncode: 1
+                };
+            }
+        }
+
+        function cancelCommand() {
+            if (currentAbortController && isCommandRunning) {
+                currentAbortController.abort();
+            }
+        }
+
+        async function validateScenario() {
+            if (!scenarioId) {
+                addLine('Error: No scenario to validate', 'error');
+                return;
+            }
+
+            addLine('');
+            addLine('========================================', 'warning');
+            addLine('VALIDATING SCENARIO...', 'warning');
+            addLine('========================================', 'warning');
+            addLine('');
+
+            const loadingLine = document.createElement('div');
+            loadingLine.className = 'terminal-line loading-indicator';
+            loadingLine.textContent = 'Checking your work...';
+            output.appendChild(loadingLine);
+            scrollToBottom();
+
+            try {
+                const response = await fetch(`/api/scenarios/${scenarioId}/validate`, {
+                    method: 'POST'
+                });
+
+                loadingLine.remove();
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    addLine('✓ VALIDATION PASSED!', 'success');
+                    addLine('');
+                    if (result.message) {
+                        addLine(result.message, 'success');
+                    }
+                    if (result.checks) {
+                        result.checks.forEach(check => {
+                            const icon = check.passed ? '✓' : '✗';
+                            const type = check.passed ? 'success' : 'error';
+                            addLine(`${icon} ${check.name}`, type);
+                        });
+                    }
+                } else {
+                    addLine('✗ VALIDATION FAILED', 'error');
+                    addLine('');
+                    if (result.message) {
+                        addLine(result.message, 'error');
+                    }
+                    if (result.checks) {
+                        result.checks.forEach(check => {
+                            const icon = check.passed ? '✓' : '✗';
+                            const type = check.passed ? 'success' : 'error';
+                            addLine(`${icon} ${check.name}`, type);
+                        });
+                    }
+                }
+                
+                addLine('');
+                
+            } catch (error) {
+                loadingLine.remove();
+                addLine(`Validation error: ${error.message}`, 'error');
+                addLine('');
+            }
+        }
+
         function clearTerminal() {
-            terminal.clear();
-            terminal.writeln('\x1b[1;32mTerminal cleared\x1b[0m');
-            prompt();
+            clearOutput();
+            if (currentScenario) {
+                addLine('Welcome to K8s Interactive Terminal', 'success');
+                addLine(`Scenario: ${currentScenario.name}`, 'success');
+                addLine('');
+                addLine('Terminal cleared. Type commands or click on the left sidebar.', 'warning');
+                addLine('');
+            }
         }
-        
-        // Go back to scenarios
-        function goBack() {
-            window.close();
+
+        function clearOutput() {
+            output.innerHTML = '';
         }
-        
-        // Escape HTML
+
+        function scrollToBottom() {
+            output.scrollTop = output.scrollHeight;
+        }
+
         function escapeHtml(text) {
-            return text.replace(/'/g, "\\'").replace(/"/g, '\\"');
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
-        
-        // Initialize on load
-        document.addEventListener('DOMContentLoaded', () => {
-            initTerminal();
-            initWebSocket();
-            loadScenario();
+
+        function escapeQuotes(text) {
+            return text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        }
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                executeCommand(input.value);
+            } else if (e.ctrlKey && e.key === 'c') {
+                e.preventDefault();
+                cancelCommand();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    input.value = commandHistory[historyIndex];
+                }
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    input.value = commandHistory[historyIndex];
+                } else {
+                    historyIndex = commandHistory.length;
+                    input.value = '';
+                }
+            }
         });
+
+        loadScenario();
     </script>
 </body>
 </html>
