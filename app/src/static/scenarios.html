@@ -1,726 +1,352 @@
-<!-- File: app/src/static/scenarios.html -->
+<!-- app/src/static/scenarios.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kubernetes Scenarios - Interactive Learning</title>
+    <title>Kubernetes Learning Scenarios</title>
+    <link rel="stylesheet" href="/static/style.css">
     <style>
-        * {
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 2rem;
         }
 
         .container {
             max-width: 1400px;
             margin: 0 auto;
+            padding: 20px;
         }
 
-        /* Header */
         .header {
             text-align: center;
             color: white;
-            margin-bottom: 3rem;
+            padding: 40px 20px;
         }
 
         .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
+            font-size: 48px;
+            margin: 0 0 15px 0;
             font-weight: 700;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-        }
-
-        .header .icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
         }
 
         .header p {
-            font-size: 1.2rem;
+            font-size: 20px;
             opacity: 0.95;
+            margin: 0;
         }
 
-        /* Scenarios Grid */
         .scenarios-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 25px;
+            margin-top: 40px;
         }
 
         .scenario-card {
             background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
-            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            display: block;
             position: relative;
+            overflow: hidden;
         }
 
         .scenario-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+            transform: translateY(-8px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
         }
 
         .scenario-card.special {
-            border: 2px solid #ffd700;
-            background: linear-gradient(135deg, #fff9e6 0%, #ffffff 100%);
+            border: 3px solid #f59e0b;
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
         }
 
-        .special-badge {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
-            color: #333;
-            padding: 4px 10px;
-            border-radius: 15px;
-            font-size: 0.7rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        .scenario-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
         }
 
         .scenario-number {
-            font-size: 0.85rem;
-            color: #666;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
+            font-size: 14px;
+            font-weight: 700;
+            color: #667eea;
+            background: #e0e7ff;
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        .scenario-card.special .scenario-number {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .difficulty-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .difficulty-easy {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .difficulty-medium {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .difficulty-hard {
+            background: #fecaca;
+            color: #991b1b;
         }
 
         .scenario-title {
-            font-size: 1.3rem;
+            font-size: 22px;
             font-weight: 700;
-            color: #333;
-            margin-bottom: 0.75rem;
+            color: #1a202c;
+            margin: 15px 0 10px 0;
             line-height: 1.3;
         }
 
         .scenario-description {
-            color: #666;
+            color: #4b5563;
+            font-size: 14px;
             line-height: 1.6;
-            margin-bottom: 1rem;
-            font-size: 0.95rem;
+            margin-bottom: 15px;
+            min-height: 60px;
         }
 
         .scenario-meta {
             display: flex;
-            gap: 0.75rem;
-            flex-wrap: wrap;
-            align-items: center;
+            gap: 15px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #e5e7eb;
         }
 
-        .badge {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .badge.easy {
-            background-color: #4caf50;
-            color: white;
-        }
-
-        .badge.medium {
-            background-color: #ff9800;
-            color: white;
-        }
-
-        .badge.hard {
-            background-color: #f44336;
-            color: white;
-        }
-
-        .duration {
+        .meta-item {
             display: flex;
             align-items: center;
-            gap: 4px;
-            color: #666;
-            font-size: 0.85rem;
+            gap: 6px;
+            font-size: 13px;
+            color: #6b7280;
+            font-weight: 500;
         }
 
-        /* Modal - WHITE BACKGROUND, NOT TRANSPARENT */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.6);
-            z-index: 9999;
-            overflow-y: auto;
-            padding: 2rem;
-        }
-
-        .modal-overlay.active {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-content {
-            background-color: #ffffff; /* WHITE BACKGROUND */
-            border-radius: 16px;
-            max-width: 900px;
-            width: 100%;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            position: relative;
-            max-height: 90vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .modal-header {
-            padding: 2rem 2rem 1rem 2rem;
-            border-bottom: 2px solid #f0f0f0;
-            position: relative;
-        }
-
-        .modal-close {
+        .special-badge {
             position: absolute;
-            top: 1rem;
-            right: 1rem;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: #f5f5f5;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #666;
-            transition: all 0.2s;
-        }
-
-        .modal-close:hover {
-            background: #e0e0e0;
-            color: #333;
-        }
-
-        .modal-title {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: #333;
-            margin-bottom: 0.75rem;
-            padding-right: 50px;
-        }
-
-        .modal-meta {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .modal-body {
-            padding: 2rem;
-            overflow-y: auto;
-            flex: 1;
-        }
-
-        /* README Content Styling */
-        .readme-content {
-            color: #333;
-            line-height: 1.8;
-            font-size: 1rem;
-        }
-
-        .readme-content h1 {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #222;
-            margin-top: 0;
-            margin-bottom: 1.5rem;
-            border-bottom: 3px solid #667eea;
-            padding-bottom: 0.75rem;
-        }
-
-        .readme-content h2 {
-            font-size: 1.6rem;
-            font-weight: 600;
-            color: #333;
-            margin-top: 2rem;
-            margin-bottom: 1rem;
-            border-bottom: 2px solid #e0e0e0;
-            padding-bottom: 0.5rem;
-        }
-
-        .readme-content h3 {
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: #444;
-            margin-top: 1.5rem;
-            margin-bottom: 0.75rem;
-        }
-
-        .readme-content h4 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #555;
-            margin-top: 1rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .readme-content p {
-            margin-bottom: 1rem;
-            line-height: 1.7;
-        }
-
-        .readme-content ul,
-        .readme-content ol {
-            margin: 1rem 0 1rem 2rem;
-            line-height: 1.8;
-        }
-
-        .readme-content li {
-            margin-bottom: 0.5rem;
-        }
-
-        .readme-content code {
-            background-color: #f5f5f5;
-            border: 1px solid #e0e0e0;
-            border-radius: 4px;
-            padding: 2px 6px;
-            font-family: 'Courier New', Consolas, Monaco, monospace;
-            font-size: 0.9em;
-            color: #d63384;
-        }
-
-        .readme-content pre {
-            background-color: #2d2d2d;
-            color: #f8f8f2;
-            border-radius: 8px;
-            padding: 1.5rem;
-            overflow-x: auto;
-            margin: 1rem 0;
-            line-height: 1.5;
-        }
-
-        .readme-content pre code {
-            background: none;
-            border: none;
-            padding: 0;
-            color: inherit;
-            font-size: 0.95em;
-        }
-
-        .readme-content blockquote {
-            border-left: 4px solid #667eea;
-            padding-left: 1rem;
-            margin: 1rem 0;
-            color: #666;
-            font-style: italic;
-            background: #f9f9f9;
-            padding: 1rem;
-            border-radius: 4px;
-        }
-
-        .readme-content strong {
-            font-weight: 600;
-            color: #222;
-        }
-
-        .readme-content em {
-            font-style: italic;
-        }
-
-        .readme-content a {
-            color: #667eea;
-            text-decoration: none;
-            border-bottom: 1px solid transparent;
-            transition: border-color 0.2s;
-        }
-
-        .readme-content a:hover {
-            border-bottom-color: #667eea;
-        }
-
-        .readme-content table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 1rem 0;
-        }
-
-        .readme-content th,
-        .readme-content td {
-            border: 1px solid #ddd;
-            padding: 0.75rem;
-            text-align: left;
-        }
-
-        .readme-content th {
-            background-color: #f5f5f5;
-            font-weight: 600;
-        }
-
-        .readme-content hr {
-            border: none;
-            border-top: 2px solid #e0e0e0;
-            margin: 2rem 0;
-        }
-
-        .modal-footer {
-            padding: 1.5rem 2rem;
-            border-top: 2px solid #f0f0f0;
-            display: flex;
-            justify-content: flex-end;
-            gap: 1rem;
-        }
-
-        .btn {
-            padding: 0.75rem 2rem;
-            border-radius: 8px;
-            border: none;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            top: 15px;
+            right: 15px;
+            background: #f59e0b;
             color: white;
-            box-shadow: 0 4px 6px rgba(102, 126, 234, 0.25);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
 
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-secondary {
-            background: #f5f5f5;
-            color: #666;
-        }
-
-        .btn-secondary:hover {
-            background: #e0e0e0;
-        }
-
-        /* Loading & Error States */
         .loading {
             text-align: center;
-            padding: 3rem;
+            padding: 60px 20px;
             color: white;
-            font-size: 1.2rem;
+            font-size: 18px;
         }
 
-        .error {
-            text-align: center;
-            padding: 2rem;
-            background: rgba(244, 67, 54, 0.1);
-            color: #f44336;
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 24px;
+            background: white;
+            color: #667eea;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 20px;
             border-radius: 12px;
-            margin: 2rem;
+            text-align: center;
+            margin-top: 20px;
         }
 
-        /* Responsive */
         @media (max-width: 768px) {
-            body {
-                padding: 1rem;
-            }
-
-            .header h1 {
-                font-size: 2rem;
-            }
-
             .scenarios-grid {
                 grid-template-columns: 1fr;
             }
-
-            .modal-overlay {
-                padding: 0;
+            
+            .header h1 {
+                font-size: 32px;
             }
-
-            .modal-content {
-                border-radius: 0;
-                max-height: 100vh;
-            }
-
-            .modal-title {
-                font-size: 1.5rem;
+            
+            .header p {
+                font-size: 16px;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <header class="header">
-            <div class="icon">🎮</div>
-            <h1>Interactive Kubernetes Scenarios</h1>
-            <p>Select a scenario to practice Kubernetes operations in a real cluster environment.</p>
-        </header>
-
-        <div id="scenarios-container">
-            <div class="loading">Loading scenarios...</div>
+        <div class="header">
+            <h1>🎯 Kubernetes Learning Scenarios</h1>
+            <p>Hands-on Kubernetes scenarios - Learn by doing, not by watching</p>
+            <div style="margin-top: 30px;">
+                <a href="/" class="back-button">
+                    <span>←</span>
+                    <span>Back to Dashboard</span>
+                </a>
+            </div>
         </div>
-    </div>
 
-    <!-- Modal with WHITE background -->
-    <div id="scenario-modal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button class="modal-close" onclick="closeModal()">&times;</button>
-                <h2 class="modal-title" id="modal-title">Scenario Title</h2>
-                <div class="modal-meta" id="modal-meta"></div>
-            </div>
-            <div class="modal-body">
-                <div class="readme-content" id="modal-readme"></div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal()">Close</button>
-                <button class="btn btn-primary" onclick="startScenario()">Let's Start →</button>
-            </div>
+        <div id="scenarios-content" class="loading">
+            <div class="spinner"></div>
+            <div>Loading scenarios...</div>
         </div>
     </div>
 
     <script>
-        let scenarios = [];
-        let currentScenario = null;
-
-        // FIX #1: ADD DIFFICULTY ORDER FOR SORTING
-        const difficultyOrder = {
-            'easy': 1,
-            'medium': 2,
-            'hard': 3
-        };
-
-        // Load scenarios from API
         async function loadScenarios() {
             try {
                 const response = await fetch('/api/scenarios');
                 const data = await response.json();
                 
-                if (data.error) {
-                    showError('Error loading scenarios: ' + data.error);
-                    return;
+                if (data.scenarios && data.scenarios.length > 0) {
+                    renderScenarios(data.scenarios);
+                } else {
+                    document.getElementById('scenarios-content').innerHTML = `
+                        <div class="error-message">
+                            <h3>No Scenarios Found</h3>
+                            <p>No Kubernetes scenarios are currently available.</p>
+                        </div>
+                    `;
                 }
-
-                scenarios = data.scenarios || [];
-                
-                if (scenarios.length === 0) {
-                    showError('No scenarios available');
-                    return;
-                }
-
-                // FIX #1: SORT SCENARIOS BY DIFFICULTY (EASY → MEDIUM → HARD)
-                scenarios.sort((a, b) => {
-                    const diffA = (a.difficulty || 'medium').toLowerCase();
-                    const diffB = (b.difficulty || 'medium').toLowerCase();
-                    
-                    const orderA = difficultyOrder[diffA] || 2;
-                    const orderB = difficultyOrder[diffB] || 2;
-                    
-                    // Sort by difficulty first
-                    if (orderA !== orderB) {
-                        return orderA - orderB;
-                    }
-                    
-                    // If same difficulty, sort by scenario number
-                    const numA = parseInt(a.id.split('-')[0]) || 0;
-                    const numB = parseInt(b.id.split('-')[0]) || 0;
-                    return numA - numB;
-                });
-
-                renderScenarios();
             } catch (error) {
-                console.error('Failed to load scenarios:', error);
-                showError('Failed to load scenarios. Please refresh the page.');
+                document.getElementById('scenarios-content').innerHTML = `
+                    <div class="error-message">
+                        <h3>Error Loading Scenarios</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
             }
         }
 
-        // Render scenarios grid
-        function renderScenarios() {
-            const container = document.getElementById('scenarios-container');
+        function renderScenarios(scenarios) {
+            // Sort scenarios by difficulty: easy -> medium -> hard -> special
+            const difficultyOrder = { 'easy': 1, 'medium': 2, 'hard': 3 };
+            
+            const sortedScenarios = scenarios.sort((a, b) => {
+                // Special scenarios go to the end
+                if (a.special && !b.special) return 1;
+                if (!a.special && b.special) return -1;
+                if (a.special && b.special) return a.id.localeCompare(b.id);
+                
+                // Sort by difficulty
+                const diffA = difficultyOrder[a.difficulty] || 2;
+                const diffB = difficultyOrder[b.difficulty] || 2;
+                
+                if (diffA !== diffB) {
+                    return diffA - diffB;
+                }
+                
+                // If same difficulty, sort by ID
+                return a.id.localeCompare(b.id);
+            });
             
             const grid = document.createElement('div');
             grid.className = 'scenarios-grid';
-
-            scenarios.forEach(scenario => {
-                const card = createScenarioCard(scenario);
+            
+            sortedScenarios.forEach((scenario, index) => {
+                const card = createScenarioCard(scenario, index + 1);
                 grid.appendChild(card);
             });
-
-            container.innerHTML = '';
-            container.appendChild(grid);
+            
+            document.getElementById('scenarios-content').innerHTML = '';
+            document.getElementById('scenarios-content').appendChild(grid);
         }
 
-        // Create scenario card
-        function createScenarioCard(scenario) {
-            const card = document.createElement('div');
-            card.className = 'scenario-card' + (scenario.special ? ' special' : '');
-            card.onclick = () => openScenario(scenario.id);
-
-            const difficultyClass = (scenario.difficulty || 'medium').toLowerCase();
-
-            card.innerHTML = `
+        function createScenarioCard(scenario, number) {
+            const link = document.createElement('a');
+            link.href = `/scenario/${scenario.id}`;
+            link.className = `scenario-card ${scenario.special ? 'special' : ''}`;
+            
+            const difficultyClass = `difficulty-${scenario.difficulty || 'medium'}`;
+            
+            link.innerHTML = `
                 ${scenario.special ? '<div class="special-badge">⭐ SPECIAL</div>' : ''}
-                <div class="scenario-number">Scenario #${scenario.id.split('-')[0]}</div>
+                
+                <div class="scenario-header">
+                    <span class="scenario-number">#${number}</span>
+                    <span class="difficulty-badge ${difficultyClass}">
+                        ${(scenario.difficulty || 'medium').toUpperCase()}
+                    </span>
+                </div>
+                
                 <h3 class="scenario-title">${scenario.name}</h3>
-                <p class="scenario-description">${scenario.description || 'No description available'}</p>
+                
+                <p class="scenario-description">
+                    ${scenario.description || 'A hands-on Kubernetes learning scenario'}
+                </p>
+                
                 <div class="scenario-meta">
-                    <span class="badge ${difficultyClass}">${scenario.difficulty || 'Medium'}</span>
-                    <span class="duration">🕐 ${scenario.duration || '20 min'}</span>
+                    <div class="meta-item">
+                        <span>⏱</span>
+                        <span>${scenario.duration || '20 min'}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span>📝</span>
+                        <span>${scenario.command_count || 0} commands</span>
+                    </div>
                 </div>
             `;
-
-            return card;
+            
+            return link;
         }
 
-        // Open scenario modal
-        function openScenario(scenarioId) {
-            const scenario = scenarios.find(s => s.id === scenarioId);
-            if (!scenario) return;
-
-            currentScenario = scenario;
-
-            // Set title
-            document.getElementById('modal-title').textContent = scenario.name;
-
-            // Set meta
-            const difficultyClass = (scenario.difficulty || 'medium').toLowerCase();
-            const metaHtml = `
-                <span class="badge ${difficultyClass}">${scenario.difficulty || 'Medium'}</span>
-                <span class="duration">🕐 ${scenario.duration || '20 min'}</span>
-            `;
-            document.getElementById('modal-meta').innerHTML = metaHtml;
-
-            // Convert markdown to HTML
-            const readmeHtml = convertMarkdownToHtml(scenario.readme || '# No content available');
-            document.getElementById('modal-readme').innerHTML = readmeHtml;
-
-            // Show modal
-            const modal = document.getElementById('scenario-modal');
-            modal.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-
-        // Close modal
-        function closeModal() {
-            const modal = document.getElementById('scenario-modal');
-            modal.classList.remove('active');
-            document.body.style.overflow = 'auto';
-            currentScenario = null;
-        }
-
-        // Start scenario
-        function startScenario() {
-            if (!currentScenario) return;
-            window.location.href = `/static/terminal.html?scenario=${currentScenario.id}`;
-        }
-
-        // Convert markdown to HTML
-        function convertMarkdownToHtml(markdown) {
-            let html = markdown;
-
-            // Escape HTML in code blocks first
-            const codeBlocks = [];
-            html = html.replace(/```([\s\S]*?)```/g, (match, code) => {
-                codeBlocks.push(code);
-                return `__CODEBLOCK_${codeBlocks.length - 1}__`;
-            });
-
-            // Headers
-            html = html.replace(/^#### (.*$)/gim, '<h4>$1</h4>');
-            html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
-            html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
-            html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
-
-            // Bold
-            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-            html = html.replace(/__(.*?)__/g, '<strong>$1</strong>');
-
-            // Italic
-            html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-            html = html.replace(/_(.*?)_/g, '<em>$1</em>');
-
-            // Inline code
-            html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-
-            // Links
-            html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
-
-            // Lists
-            html = html.replace(/^\* (.+)$/gim, '<li>$1</li>');
-            html = html.replace(/^- (.+)$/gim, '<li>$1</li>');
-            html = html.replace(/^\d+\. (.+)$/gim, '<li>$1</li>');
-
-            // Wrap consecutive <li> in <ul>
-            html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
-
-            // Horizontal rule
-            html = html.replace(/^---$/gim, '<hr>');
-
-            // Blockquotes
-            html = html.replace(/^> (.+)$/gim, '<blockquote>$1</blockquote>');
-
-            // Paragraphs
-            html = html.replace(/\n\n/g, '</p><p>');
-            html = '<p>' + html + '</p>';
-
-            // Restore code blocks
-            codeBlocks.forEach((code, index) => {
-                html = html.replace(`__CODEBLOCK_${index}__`, `<pre><code>${escapeHtml(code.trim())}</code></pre>`);
-            });
-
-            // Clean up
-            html = html.replace(/<p><\/p>/g, '');
-            html = html.replace(/<p>(<h[1-4]>)/g, '$1');
-            html = html.replace(/(<\/h[1-4]>)<\/p>/g, '$1');
-            html = html.replace(/<p>(<ul>)/g, '$1');
-            html = html.replace(/(<\/ul>)<\/p>/g, '$1');
-            html = html.replace(/<p>(<pre>)/g, '$1');
-            html = html.replace(/(<\/pre>)<\/p>/g, '$1');
-            html = html.replace(/<p>(<hr>)<\/p>/g, '$1');
-            html = html.replace(/<p>(<blockquote>)/g, '$1');
-            html = html.replace(/(<\/blockquote>)<\/p>/g, '$1');
-
-            return html;
-        }
-
-        // Escape HTML
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // Show error
-        function showError(message) {
-            const container = document.getElementById('scenarios-container');
-            container.innerHTML = `<div class="error">${message}</div>`;
-        }
-
-        // Close modal on background click
-        document.getElementById('scenario-modal').addEventListener('click', (e) => {
-            if (e.target.id === 'scenario-modal') {
-                closeModal();
-            }
-        });
-
-        // Close modal on Escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                closeModal();
-            }
-        });
-
-        // Load scenarios on page load
         loadScenarios();
     </script>
 </body>

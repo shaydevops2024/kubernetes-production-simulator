@@ -1,31 +1,70 @@
 {
   "difficulty": "medium",
-  "duration": "25 min",
+  "duration": "20 min",
   "commands": [
     {
-      "name": "Check Current Resources",
-      "command": "kubectl describe deployment k8s-demo-deployment -n k8s-multi-demo | grep -A 5 'Requests:'",
-      "description": "View current resource requests"
+      "name": "Step 1: Check if VPA is Installed",
+      "command": "kubectl get crd | grep verticalp",
+      "description": "Verify that Vertical Pod Autoscaler Custom Resource Definition exists",
+      "explanation": "VPA requires custom controllers not included in standard Kubernetes. We check for the VPA CRD (Custom Resource Definition) to confirm VPA is installed. If this returns empty, VPA needs to be installed first.",
+      "what_it_does": "Searches all CRDs for 'verticalpodautoscaler'. If VPA is installed, you'll see verticalpodautoscalers.autoscaling.k8s.io",
+      "next_step": "If the CRD exists, proceed. If not, you need to install VPA first using the official VPA installer."
     },
     {
-      "name": "View Pod Resource Usage",
-      "command": "kubectl top pods -n k8s-multi-demo",
-      "description": "Check actual resource consumption"
+      "name": "Step 2: View Current Pod Resources",
+      "command": "kubectl get pods -n k8s-multi-demo -o json | jq '.items[] | {name: .metadata.name, requests: .spec.containers[].resources.requests, limits: .spec.containers[].resources.limits}'",
+      "description": "Check current resource requests and limits for pods",
+      "explanation": "Before configuring VPA, we examine current resource settings. VPA will recommend or automatically adjust these based on actual usage. Understanding baseline settings helps us evaluate VPA's recommendations.",
+      "what_it_does": "Uses jq to parse pod JSON and extract resource requests/limits. Shows current CPU and memory settings per container.",
+      "next_step": "Note the current CPU and memory requests. VPA will suggest changes based on actual usage patterns."
     },
     {
-      "name": "Apply VPA Configuration",
-      "command": "kubectl apply -f vpa.yaml",
-      "description": "Create VPA resource (if available)"
+      "name": "Step 3: Create VPA Resource",
+      "command": "kubectl apply -f vpa.yaml -n k8s-multi-demo",
+      "description": "Deploy a VPA that monitors pod resource usage",
+      "explanation": "This creates a VPA object targeting our deployment. VPA has three modes: 'Off' (just recommend), 'Initial' (set on pod creation), 'Auto' (update running pods). We typically start with 'Off' to see recommendations before enabling auto-updates.",
+      "what_it_does": "Creates a VPA resource that monitors the target deployment and generates resource recommendations based on actual usage patterns.",
+      "next_step": "VPA needs time (usually 1-2 minutes) to collect metrics and generate recommendations. Wait before checking status."
     },
     {
-      "name": "Get VPA Recommendations",
+      "name": "Step 4: Check VPA Status",
+      "command": "kubectl get vpa -n k8s-multi-demo",
+      "description": "List all VPA resources and their basic status",
+      "explanation": "Shows all VPA objects in the namespace. The MODE column indicates the VPA's operating mode (Off/Initial/Auto). The AGE shows how long it's been collecting data.",
+      "what_it_does": "Displays VPA name, mode, current CPU recommendation, current memory recommendation, and age.",
+      "next_step": "If the VPA was just created, recommendations might show as empty. Wait a bit longer for metrics to accumulate."
+    },
+    {
+      "name": "Step 5: Get VPA Recommendations",
       "command": "kubectl describe vpa -n k8s-multi-demo",
-      "description": "View VPA recommendations"
+      "description": "View detailed VPA recommendations for CPU and memory",
+      "explanation": "The describe command shows VPA's detailed recommendations including lower bound, target, uncapped target, and upper bound for both CPU and memory. Target is what VPA suggests setting as requests, upper bound is the recommended limit.",
+      "what_it_does": "Displays comprehensive VPA analysis including current resource usage statistics and recommendations for each container in the target pods.",
+      "next_step": "Look for the 'Recommendation' section. Compare 'Target' values with current requests to see if adjustments are needed."
     },
     {
-      "name": "Monitor Changes",
-      "command": "kubectl get pods -n k8s-multi-demo -w",
-      "description": "Watch for pod recreations"
+      "name": "Step 6: Monitor Resource Usage Over Time",
+      "command": "kubectl top pods -n k8s-multi-demo",
+      "description": "Check actual resource consumption",
+      "explanation": "VPA bases recommendations on observed usage. kubectl top shows current usage, helping validate VPA recommendations. If actual usage is much lower than requests, VPA will recommend reducing them.",
+      "what_it_does": "Shows real-time CPU (millicores) and memory (Mi) consumption for each pod.",
+      "next_step": "Compare these values with VPA's recommendations. VPA typically recommends requests slightly above average usage to handle spikes."
+    },
+    {
+      "name": "Step 7: View VPA Update History",
+      "command": "kubectl get vpa -n k8s-multi-demo -o yaml",
+      "description": "See complete VPA configuration and status in YAML format",
+      "explanation": "YAML output shows the full VPA spec including update policy, resource policy, and status with detailed recommendations. This is useful for understanding exactly how VPA calculated its suggestions.",
+      "what_it_does": "Outputs complete VPA object with all fields including status.recommendation section with lower/target/upper bounds for CPU and memory.",
+      "next_step": "Examine the status.recommendation section to see all threshold values VPA calculated based on historical usage."
+    },
+    {
+      "name": "Step 8: Delete VPA (Cleanup)",
+      "command": "kubectl delete vpa --all -n k8s-multi-demo",
+      "description": "Remove VPA resources when done testing",
+      "explanation": "Deleting VPA stops resource recommendation generation but doesn't revert any changes it made. If VPA was in Auto mode and updated pod resources, those changes persist. In our demo with Mode: Off, deletion just removes the monitoring.",
+      "what_it_does": "Removes all VPA objects from the namespace, stopping the VPA controller from monitoring these deployments.",
+      "next_step": "VPA is removed. Pod resource requests/limits return to deployment spec values on next pod recreation."
     }
   ]
 }

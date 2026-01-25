@@ -3,34 +3,77 @@
   "duration": "25 min",
   "commands": [
     {
-      "name": "List Ingress",
+      "name": "Step 1: Verify Ingress Controller",
+      "command": "kubectl get pods -n ingress-nginx",
+      "description": "Check that NGINX Ingress Controller is running",
+      "explanation": "Ingress resources need an Ingress Controller to work. Without it, Ingress objects do nothing. NGINX Ingress Controller watches for Ingress resources and configures NGINX to route traffic accordingly. It runs as a pod (often DaemonSet) in the cluster.",
+      "what_it_does": "Lists Ingress Controller pods. Should see nginx-ingress-controller pods in Running state.",
+      "next_step": "If no Ingress Controller is found, you'll need to install one before Ingress resources work."
+    },
+    {
+      "name": "Step 2: Create Basic Ingress",
+      "command": "kubectl apply -f ingress.yaml -n k8s-multi-demo",
+      "description": "Create an Ingress resource to expose services via HTTP",
+      "explanation": "Ingress provides HTTP(S) routing to services. Instead of NodePort or LoadBalancer per service, one Ingress handles multiple services using hostnames and paths. Ingress rules map: host demo.local + path / → service k8s-demo-service. The Ingress Controller reads these rules and configures routing.",
+      "what_it_does": "Creates Ingress with routing rules. Controller configures NGINX to route traffic based on these rules.",
+      "next_step": "Ingress created. Add DNS entry (or /etc/hosts) pointing demo.local to cluster IP."
+    },
+    {
+      "name": "Step 3: View Ingress Status",
       "command": "kubectl get ingress -n k8s-multi-demo",
-      "description": "View ingress resources"
+      "description": "Check Ingress resources and their assigned addresses",
+      "explanation": "The ADDRESS column shows the IP where Ingress is accessible (LoadBalancer IP or NodePort IP). HOSTS shows which hostnames this Ingress handles. ADDRESS might be empty initially while the controller provisions resources.",
+      "what_it_does": "Lists Ingress resources with hosts, address, and age.",
+      "next_step": "Note the ADDRESS. You'll access the service via http://demo.local (resolving to this IP)."
     },
     {
-      "name": "Describe Ingress",
+      "name": "Step 4: Describe Ingress Details",
       "command": "kubectl describe ingress -n k8s-multi-demo",
-      "description": "See ingress rules and endpoints"
+      "description": "View detailed Ingress rules and backend services",
+      "explanation": "Describe shows Rules section with host/path matching and backend services. It shows which service/port each rule routes to. Events section shows if the Ingress Controller successfully processed the Ingress.",
+      "what_it_does": "Displays complete Ingress configuration including all rules, backends, TLS settings, and events.",
+      "next_step": "Review Rules section - shows how host/path combinations map to services."
     },
     {
-      "name": "Check Services",
-      "command": "kubectl get svc -n k8s-multi-demo",
-      "description": "List all services"
+      "name": "Step 5: Test Ingress Routing",
+      "command": "curl -H 'Host: demo.local' http://$(kubectl get ingress -n k8s-multi-demo -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}')/health",
+      "description": "Send HTTP request through Ingress to test routing",
+      "explanation": "This sends a request with Host header to the Ingress address. The Ingress Controller matches the Host header against Ingress rules and routes to the appropriate backend service. Without the Host header, routing might fail if multiple hosts are configured.",
+      "what_it_does": "Makes HTTP request via Ingress. Should get response from the backend service, proving routing works.",
+      "next_step": "Successful response proves Ingress→Service→Pod routing is working correctly."
     },
     {
-      "name": "Test ClusterIP",
-      "command": "kubectl run test --image=busybox -n k8s-multi-demo --rm -it --restart=Never -- wget -O- http://k8s-demo-service:8000",
-      "description": "Test internal service"
+      "name": "Step 6: Check Ingress Controller Logs",
+      "command": "kubectl logs -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx --tail=50",
+      "description": "View Ingress Controller logs for request handling",
+      "explanation": "Ingress Controller logs show HTTP requests it's processing. Look for access logs showing your requests. This is valuable for debugging routing issues, checking which backends are being hit, and monitoring traffic patterns.",
+      "what_it_does": "Shows recent log lines from Ingress Controller, including HTTP access logs.",
+      "next_step": "Should see access log entries for the requests you made, proving traffic flowed through Ingress."
     },
     {
-      "name": "Check NodePort",
-      "command": "kubectl get svc k8s-demo-nodeport -n k8s-multi-demo",
-      "description": "View NodePort assignment"
+      "name": "Step 7: Add Path-Based Routing",
+      "command": "kubectl apply -f ingress-paths.yaml -n k8s-multi-demo",
+      "description": "Update Ingress with multiple path-based routes",
+      "explanation": "Ingress supports path-based routing: /api routes to api-service, /web routes to web-service. This allows one domain to host multiple microservices. The Ingress Controller uses path matching (Prefix or Exact) to route requests.",
+      "what_it_does": "Updates Ingress with additional path rules routing different paths to different services.",
+      "next_step": "Now demo.local/api routes to one service, demo.local/web routes to another."
     },
     {
-      "name": "Test Ingress Endpoint",
-      "command": "curl -H 'Host: k8s-demo.local' http://localhost",
-      "description": "Test ingress routing (if configured)"
+      "name": "Step 8: Test Path-Based Routing",
+      "command": "curl -H 'Host: demo.local' http://$(kubectl get ingress -n k8s-multi-demo -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}')/api/health",
+      "description": "Verify different paths route to correct services",
+      "explanation": "With path-based routing, the path portion of the URL determines which backend receives the request. /api/* goes to api-service, /web/* goes to web-service. This is how API gateways are built in Kubernetes.",
+      "what_it_does": "Makes request to /api path. Should be routed to the api-service backend.",
+      "next_step": "Response comes from api-service, proving path-based routing works."
+    },
+    {
+      "name": "Cleanup: Delete Ingress Resources",
+      "command": "kubectl delete ingress --all -n k8s-multi-demo",
+      "description": "Remove all Ingress resources",
+      "explanation": "Deleting Ingress removes the routing rules. The Ingress Controller stops routing traffic to these services. Services themselves remain but are no longer accessible via Ingress.",
+      "what_it_does": "Deletes all Ingress resources in the namespace.",
+      "next_step": "Ingress deleted. Services need NodePort/LoadBalancer to be accessible externally now.",
+      "cleanup": true
     }
   ]
 }

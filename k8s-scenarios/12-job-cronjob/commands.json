@@ -1,36 +1,104 @@
 {
-  "difficulty": "easy",
+  "difficulty": "medium",
   "duration": "20 min",
   "commands": [
     {
-      "name": "Create a Job",
-      "command": "kubectl create job test-job --image=busybox -n k8s-multi-demo -- echo 'Hello from Job'",
-      "description": "Create a simple job"
+      "name": "Step 1: Create a Job",
+      "command": "kubectl apply -f job.yaml -n k8s-multi-demo",
+      "description": "Create a Job that runs a task to completion",
+      "explanation": "Jobs run pods to completion (exit 0) rather than keeping them running forever. They're perfect for batch processing, data migrations, or one-time tasks. The Job controller ensures the specified number of completions succeed, recreating pods if they fail. Unlike Deployments, Jobs don't restart completed pods - they're done.",
+      "what_it_does": "Creates a Job that runs a task (e.g., data processing). Kubernetes creates pod(s), runs the task, and marks the Job complete when done.",
+      "next_step": "Job created. Watch the pod(s) run to completion. COMPLETIONS column shows progress (e.g., 1/1)."
     },
     {
-      "name": "Check Job Status",
+      "name": "Step 2: Watch Job Progress",
+      "command": "kubectl get jobs -n k8s-multi-demo -w",
+      "description": "Monitor the Job as it runs to completion (Press Ctrl+C to stop)",
+      "explanation": "Jobs show COMPLETIONS (e.g., 1/1) indicating how many pods must complete successfully. DURATION shows how long the Job has been running. When COMPLETIONS reaches the target, the Job is complete. The pods remain (in Completed state) for log inspection unless you set ttlSecondsAfterFinished.",
+      "what_it_does": "Streams Job status showing COMPLETIONS progress from 0/1 to 1/1. Duration increases until completion.",
+      "next_step": "Wait for COMPLETIONS to show 1/1 or your target number. Job is complete when this target is reached."
+    },
+    {
+      "name": "Step 3: Check Job Status",
       "command": "kubectl get jobs -n k8s-multi-demo",
-      "description": "View job completion status"
+      "description": "View completed Job status",
+      "explanation": "After completion, the Job shows COMPLETIONS at target (e.g., 1/1), and AGE shows how long ago it was created. The Job object persists after completion so you can inspect logs or check results. Pods also persist in Completed state unless cleaned up.",
+      "what_it_does": "Shows Job with COMPLETIONS at target, proving successful completion.",
+      "next_step": "Job is complete. Check the pods to see them in 'Completed' status."
     },
     {
-      "name": "View Job Logs",
-      "command": "kubectl logs job/test-job -n k8s-multi-demo",
-      "description": "See job output"
+      "name": "Step 4: View Job Pods",
+      "command": "kubectl get pods -n k8s-multi-demo -l job-name",
+      "description": "List pods created by the Job (they should be in Completed state)",
+      "explanation": "Job pods transition through Pending → Running → Completed. Unlike Deployment pods which run forever, Job pods exit after finishing their task. The pod remains in Completed state so you can retrieve logs with 'kubectl logs'. Completed pods don't consume CPU/memory, just a small amount of etcd space.",
+      "what_it_does": "Shows Job pods in 'Completed' status with restart count and age. Status 'Completed' means the container exited with code 0 (success).",
+      "next_step": "Pods show 'Completed' status. This is normal for Jobs - the task finished successfully."
     },
     {
-      "name": "Create CronJob",
-      "command": "kubectl create cronjob test-cron --image=busybox --schedule='*/5 * * * *' -n k8s-multi-demo -- date",
-      "description": "Create scheduled job (every 5 min)"
+      "name": "Step 5: Check Job Logs",
+      "command": "kubectl logs -n k8s-multi-demo $(kubectl get pods -n k8s-multi-demo -l job-name -o name | head -1)",
+      "description": "View the logs from the completed Job pod",
+      "explanation": "Even after completion, you can retrieve logs from Job pods. This is crucial for verifying what the Job did or debugging failures. Logs persist until the pod is deleted. In production, export logs to external storage before cleanup.",
+      "what_it_does": "Displays stdout/stderr from the completed pod, showing what the Job actually did.",
+      "next_step": "Review the logs to verify the Job's task completed successfully."
     },
     {
-      "name": "List CronJobs",
+      "name": "Step 6: Create a CronJob",
+      "command": "kubectl apply -f cronjob.yaml -n k8s-multi-demo",
+      "description": "Create a CronJob that runs on a schedule",
+      "explanation": "CronJobs are Jobs that run on a schedule (like Unix cron). They use cron syntax (e.g., '*/5 * * * *' for every 5 minutes). The CronJob controller creates a new Job at each scheduled time. This is perfect for periodic tasks like backups, reports, or data cleanup. Each run is a separate Job with its own pods.",
+      "what_it_does": "Creates a CronJob with a schedule. Kubernetes will automatically create Jobs according to the cron schedule.",
+      "next_step": "CronJob created. It will create Jobs based on the schedule. Check back at the scheduled times to see Job creation."
+    },
+    {
+      "name": "Step 7: View CronJob Status",
       "command": "kubectl get cronjobs -n k8s-multi-demo",
-      "description": "View CronJob schedule"
+      "description": "Check CronJob configuration and last execution time",
+      "explanation": "CronJob status shows SCHEDULE (cron syntax), SUSPEND (whether it's paused), ACTIVE (currently running Jobs), LAST SCHEDULE (when last Job was created), and AGE. LAST SCHEDULE shows minutes/hours ago. If it shows '<none>', no Job has run yet (waiting for next schedule).",
+      "what_it_does": "Displays CronJob with its schedule and last run time. ACTIVE shows number of currently running Jobs from this CronJob.",
+      "next_step": "Note the SCHEDULE and LAST SCHEDULE. Wait until next scheduled time to see a Job created."
     },
     {
-      "name": "Delete Job",
-      "command": "kubectl delete job test-job -n k8s-multi-demo",
-      "description": "Clean up completed job"
+      "name": "Step 8: List Jobs Created by CronJob",
+      "command": "kubectl get jobs -n k8s-multi-demo",
+      "description": "View all Jobs created by the CronJob over time",
+      "explanation": "Each CronJob run creates a new Job object with a name like {cronjob-name}-{timestamp}. CronJobs keep a history of recent Jobs (controlled by successfulJobsHistoryLimit and failedJobsHistoryLimit). Old Jobs are automatically cleaned up to prevent clutter.",
+      "what_it_does": "Lists Jobs with timestamps showing when each was created by the CronJob schedule.",
+      "next_step": "You'll see multiple Jobs if the CronJob has run multiple times. Each has a timestamped name."
+    },
+    {
+      "name": "Step 9: Manually Trigger a CronJob",
+      "command": "kubectl create job --from=cronjob/my-cronjob manual-run -n k8s-multi-demo",
+      "description": "Create a Job manually from the CronJob without waiting for schedule",
+      "explanation": "You can trigger a CronJob manually without waiting for the schedule using 'create job --from=cronjob'. This creates a Job with the same spec as the CronJob. Useful for testing CronJobs or running urgent tasks without changing the schedule. The manually-created Job is a regular Job and doesn't affect the CronJob's schedule.",
+      "what_it_does": "Immediately creates a Job from the CronJob spec, bypassing the schedule. Job runs right away.",
+      "next_step": "Check 'kubectl get jobs' - you'll see the manually-created Job running alongside any scheduled ones."
+    },
+    {
+      "name": "Step 10: Suspend a CronJob",
+      "command": "kubectl patch cronjob my-cronjob -n k8s-multi-demo -p '{\"spec\":{\"suspend\":true}}'",
+      "description": "Temporarily stop the CronJob from creating new Jobs",
+      "explanation": "Suspending a CronJob prevents it from creating new Jobs at scheduled times. Existing Jobs continue running. This is useful for maintenance or when you need to temporarily disable scheduled tasks without deleting the CronJob. To resume, set suspend:false.",
+      "what_it_does": "Sets CronJob's suspend field to true. No new Jobs will be created until unsuspended.",
+      "next_step": "CronJob suspended. Check 'kubectl get cronjob' - SUSPEND column shows True. No new Jobs will run."
+    },
+    {
+      "name": "Cleanup: Delete Jobs",
+      "command": "kubectl delete jobs -l job-name -n k8s-multi-demo",
+      "description": "Remove completed Jobs and their pods",
+      "explanation": "Jobs and their pods don't auto-delete after completion (unless ttlSecondsAfterFinished is set). Manual cleanup prevents clutter. This deletes Job objects and their Completed pods.",
+      "what_it_does": "Deletes all Jobs in the namespace, removing their pods too.",
+      "next_step": "Jobs deleted. Completed pods removed. Space freed.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup: Delete CronJob",
+      "command": "kubectl delete cronjob my-cronjob -n k8s-multi-demo",
+      "description": "Remove the CronJob (stops creating new Jobs)",
+      "explanation": "Deleting a CronJob stops future Job creation but doesn't delete existing Jobs. You must delete Jobs separately if you want to clean them up too.",
+      "what_it_does": "Removes the CronJob. No more scheduled Jobs will be created.",
+      "next_step": "CronJob deleted. Existing Jobs remain until manually deleted.",
+      "cleanup": true
     }
   ]
 }

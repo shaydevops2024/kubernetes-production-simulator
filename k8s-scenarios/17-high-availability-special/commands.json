@@ -3,74 +3,86 @@
   "duration": "45 min",
   "commands": [
     {
-      "name": "Phase 1.1 - Create PDB",
+      "name": "Phase 1.1: Create PDB",
       "command": "kubectl apply -f pdb.yaml -n k8s-multi-demo",
-      "description": "Create Pod Disruption Budget with minAvailable=2"
+      "description": "Create Pod Disruption Budget with minAvailable=2",
+      "explanation": "This multi-phase scenario combines PDB, HPA, node draining, and pod deletion to test true high availability. PDB ensures at least 2 pods always run during voluntary disruptions. Combined with HPA, this creates a resilient system that maintains availability during scaling, draining, and failures.",
+      "what_it_does": "Creates PDB requiring minimum 2 available pods at all times.",
+      "next_step": "PDB active. Now we'll stress-test availability with multiple concurrent disruptions."
     },
     {
-      "name": "Phase 1.2 - Verify PDB",
+      "name": "Phase 1.2: Verify PDB",
       "command": "kubectl get pdb -n k8s-multi-demo",
-      "description": "Check PDB status"
+      "description": "Check PDB status and allowed disruptions",
+      "explanation": "Verify PDB is active. ALLOWED DISRUPTIONS shows how many pods can be disrupted now while maintaining minAvailable. If you have 3 pods and minAvailable=2, ALLOWED DISRUPTIONS=1.",
+      "what_it_does": "Displays PDB with current disruption allowance.",
+      "next_step": "Note ALLOWED DISRUPTIONS. This changes as pods are deleted/created."
     },
     {
-      "name": "Phase 1.3 - Check Baseline",
-      "command": "kubectl get pods -n k8s-multi-demo && kubectl get deployment -n k8s-multi-demo",
-      "description": "Verify current deployment state"
-    },
-    {
-      "name": "Phase 2.1 - Delete Random Pod",
+      "name": "Phase 2.1: Delete Random Pod",
       "command": "kubectl delete pod -n k8s-multi-demo $(kubectl get pods -n k8s-multi-demo -o name | head -1)",
-      "description": "Delete a pod and watch recovery"
+      "description": "Delete a pod to test self-healing with PDB",
+      "explanation": "Delete a pod while PDB is active. The deployment immediately recreates it. PDB doesn't prevent this deletion (it's not a drain/eviction). But it ensures that during recreation, you maintain minAvailable pods.",
+      "what_it_does": "Deletes one pod. Deployment recreates it immediately.",
+      "next_step": "Pod deleted and being recreated. PDB ensures minimum availability during recreation."
     },
     {
-      "name": "Phase 2.2 - Monitor PDB Status",
+      "name": "Phase 2.2: Monitor PDB Status",
       "command": "kubectl describe pdb -n k8s-multi-demo",
-      "description": "Check disruptions allowed and current status"
+      "description": "Check disruptions allowed and current status",
+      "explanation": "During pod recreation, ALLOWED DISRUPTIONS drops to 0 temporarily (while one pod is down and being recreated). When the new pod is Ready, ALLOWED DISRUPTIONS returns to 1. This shows PDB dynamically protecting availability.",
+      "what_it_does": "Shows detailed PDB status including current vs. desired availability.",
+      "next_step": "DisruptionsAllowed field shows current state. May be 0 during recreation."
     },
     {
-      "name": "Phase 2.3 - Watch Pod Recovery",
-      "command": "kubectl get pods -n k8s-multi-demo -w",
-      "description": "Monitor pod recreation (Ctrl+C to stop)"
-    },
-    {
-      "name": "Phase 2.4 - Cordon Node",
+      "name": "Phase 2.3: Cordon Node",
       "command": "kubectl cordon k8s-demo-worker",
-      "description": "Prepare node for draining"
+      "description": "Prepare node for draining",
+      "explanation": "Cordoning is step 1 of graceful node maintenance. It prevents new pods from scheduling on the node but doesn't affect running pods. Always cordon before draining.",
+      "what_it_does": "Marks node unschedulable. Existing pods unaffected.",
+      "next_step": "Node cordoned. Ready to drain, but PDB will control the eviction rate."
     },
     {
-      "name": "Phase 2.5 - Attempt Drain with PDB",
-      "command": "kubectl drain k8s-demo-worker --ignore-daemonsets --delete-emptydir-data",
-      "description": "Try to drain node - PDB will control eviction rate"
+      "name": "Phase 2.4: Drain with PDB Protection",
+      "command": "kubectl drain k8s-demo-worker --ignore-daemonsets --delete-emptydir-data --timeout=60s",
+      "description": "Try to drain - PDB controls eviction rate",
+      "explanation": "This is the real test: draining while PDB is active. PDB prevents draining from taking down more pods than allowed. If draining would violate minAvailable, it blocks until safe. You might see 'Cannot evict pod... would violate PDB' messages. This is PDB protecting availability!",
+      "what_it_does": "Attempts to drain node. PDB may slow or block it to maintain availability.",
+      "next_step": "Drain may be slow or blocked by PDB. This proves availability protection works."
     },
     {
-      "name": "Phase 2.6 - Check PDB During Drain",
-      "command": "kubectl get pdb -n k8s-multi-demo -w",
-      "description": "Watch PDB enforce constraints (Ctrl+C to stop)"
-    },
-    {
-      "name": "Phase 2.7 - View Drain Events",
+      "name": "Phase 2.5: Check PDB Events",
       "command": "kubectl get events --sort-by='.lastTimestamp' -n k8s-multi-demo | grep -i 'disruption\\|evict'",
-      "description": "See PDB-related events"
+      "description": "See PDB enforcement in action",
+      "explanation": "Events show when PDB blocked evictions. Messages like 'Cannot evict pod... too few available' prove PDB is actively protecting availability.",
+      "what_it_does": "Filters events for PDB-related messages.",
+      "next_step": "Events show PDB enforcement - proof of availability protection."
     },
     {
-      "name": "Phase 3.1 - Uncordon Node",
+      "name": "Phase 3.1: Uncordon Node",
       "command": "kubectl uncordon k8s-demo-worker",
-      "description": "Restore node to normal"
+      "description": "Restore node to normal",
+      "explanation": "Complete maintenance by uncordoning. Node can receive new pods again.",
+      "what_it_does": "Removes scheduling restrictions from node.",
+      "next_step": "Node operational again.",
+      "cleanup": false
     },
     {
-      "name": "Phase 3.2 - Verify All Pods Running",
+      "name": "Phase 3.2: Verify All Pods Running",
       "command": "kubectl get pods -n k8s-multi-demo",
-      "description": "Check all pods are healthy"
+      "description": "Check all pods healthy",
+      "explanation": "After all disruptions (deletion, drain), verify all pods are Running and Ready. This proves the system maintained availability throughout the chaos.",
+      "what_it_does": "Lists pods, should all be Running/Ready.",
+      "next_step": "All pods healthy. High availability test complete!"
     },
     {
-      "name": "Phase 3.3 - Check PDB Compliance",
-      "command": "kubectl describe pdb -n k8s-multi-demo",
-      "description": "Verify no PDB violations occurred"
-    },
-    {
-      "name": "Phase 3.4 - Final Health Check",
-      "command": "kubectl get deployment,pods,pdb -n k8s-multi-demo",
-      "description": "Comprehensive status check"
+      "name": "Cleanup: Delete PDB",
+      "command": "kubectl delete pdb --all -n k8s-multi-demo",
+      "description": "Remove Pod Disruption Budget",
+      "explanation": "Clean up PDB after testing.",
+      "what_it_does": "Deletes all PDBs in namespace.",
+      "next_step": "PDB removed. HA test scenario complete!",
+      "cleanup": true
     }
   ]
 }

@@ -1,0 +1,752 @@
+<!-- app/src/static/scenario-detail.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kubernetes Scenario - Learn by Doing</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            border-left: 6px solid #667eea;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            margin: 0 0 15px 0;
+            color: #1a202c;
+            font-size: 36px;
+            font-weight: 800;
+        }
+
+        .header-subtitle {
+            color: #6b7280;
+            font-size: 18px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .scenario-meta {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .meta-badge {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .difficulty-easy { background: #c6f6d5; color: #22543d; }
+        .difficulty-medium { background: #fef3c7; color: #78350f; }
+        .difficulty-hard { background: #fecaca; color: #7f1d1d; }
+        .duration { background: #e0e7ff; color: #3730a3; }
+        .commands-count { background: #dbeafe; color: #1e40af; }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 1200px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .readme-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            max-height: calc(100vh - 250px);
+            overflow-y: auto;
+        }
+
+        .readme-panel h2 {
+            margin-top: 0;
+            color: #1a202c;
+            font-size: 22px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 12px;
+        }
+
+        .readme-panel h3 {
+            color: #374151;
+            font-size: 18px;
+            margin-top: 24px;
+        }
+
+        .readme-panel p {
+            color: #4b5563;
+            line-height: 1.7;
+        }
+
+        .readme-panel ul {
+            color: #4b5563;
+            line-height: 1.9;
+        }
+
+        .commands-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            max-height: calc(100vh - 250px);
+            overflow-y: auto;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .panel-header h2 {
+            margin: 0;
+            color: #1a202c;
+            font-size: 24px;
+        }
+
+        .validate-btn {
+            padding: 12px 24px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+        }
+
+        .validate-btn:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4);
+        }
+
+        .validate-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .command-card {
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+
+        .command-card.copied {
+            background: #d1fae5;
+            border-color: #10b981;
+        }
+
+        .command-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 14px;
+        }
+
+        .command-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: #1f2937;
+            margin: 0;
+        }
+
+        .copy-btn {
+            padding: 10px 18px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .copy-btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .copy-btn.copied {
+            background: #10b981;
+        }
+
+        .copy-icon {
+            font-size: 16px;
+        }
+
+        .command-code {
+            background: #1f2937;
+            color: #f3f4f6;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin: 14px 0;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .command-description {
+            color: #6b7280;
+            font-size: 15px;
+            line-height: 1.7;
+            margin-top: 14px;
+        }
+
+        .command-explanation {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 16px;
+            margin-top: 16px;
+            border-radius: 6px;
+        }
+
+        .command-explanation h4 {
+            margin: 0 0 10px 0;
+            color: #1e40af;
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .command-explanation p {
+            margin: 0;
+            color: #475569;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .cleanup-section {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 3px dashed #e5e7eb;
+        }
+
+        .cleanup-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .cleanup-header h3 {
+            margin: 0;
+            color: #dc2626;
+            font-size: 20px;
+        }
+
+        .cleanup-badge {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .yaml-section {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 3px solid #e5e7eb;
+        }
+
+        .yaml-section h3 {
+            color: #1a202c;
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .yaml-file {
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .yaml-filename {
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .yaml-content {
+            background: #1f2937;
+            color: #f3f4f6;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre;
+            line-height: 1.6;
+        }
+
+        .validation-result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 12px;
+            display: none;
+        }
+
+        .validation-result.success {
+            background: #d1fae5;
+            border: 2px solid #10b981;
+            display: block;
+        }
+
+        .validation-result.failure {
+            background: #fee2e2;
+            border: 2px solid #ef4444;
+            display: block;
+        }
+
+        .validation-output {
+            background: #1f2937;
+            color: #f3f4f6;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            margin-top: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 700;
+            transition: all 0.2s;
+            margin-bottom: 20px;
+        }
+
+        .back-button:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+
+        .spinner {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/scenarios" class="back-button">
+            <span>←</span>
+            <span>Back to Scenarios</span>
+        </a>
+
+        <div id="scenario-content" class="loading">
+            <div class="spinner"></div>
+            <div>Loading scenario...</div>
+        </div>
+    </div>
+
+    <script>
+        const scenarioId = window.location.pathname.split('/').pop();
+        let copiedCommands = new Set();
+
+        async function loadScenario() {
+            try {
+                const response = await fetch(`/api/scenarios/${scenarioId}`);
+                const data = await response.json();
+                renderScenario(data);
+            } catch (error) {
+                document.getElementById('scenario-content').innerHTML = `
+                    <div style="background: #fee2e2; padding: 20px; border-radius: 12px; color: #7f1d1d;">
+                        <h3>Error Loading Scenario</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderScenario(scenario) {
+            const difficultyClass = `difficulty-${scenario.difficulty || 'medium'}`;
+            
+            const html = `
+                <div class="header">
+                    <div class="header-top">
+                        <div>
+                            <h1>${scenario.name}</h1>
+                            <div class="header-subtitle">
+                                Hands-on Kubernetes learning - Copy commands and run them in your terminal
+                            </div>
+                        </div>
+                    </div>
+                    <div class="scenario-meta">
+                        <span class="meta-badge ${difficultyClass}">
+                            📊 ${(scenario.difficulty || 'medium').toUpperCase()}
+                        </span>
+                        <span class="meta-badge duration">
+                            ⏱ ${scenario.duration || '20 min'}
+                        </span>
+                        <span class="meta-badge commands-count">
+                            📝 ${scenario.commands.length} Commands
+                        </span>
+                        ${scenario.yaml_files && scenario.yaml_files.length > 0 ? `
+                            <span class="meta-badge" style="background: #fef3c7; color: #92400e;">
+                                📄 ${scenario.yaml_files.length} YAML Files
+                            </span>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <div class="content-grid">
+                    <div class="readme-panel">
+                        <h2>📖 Scenario Overview</h2>
+                        <div id="readme-content"></div>
+                    </div>
+
+                    <div class="commands-panel">
+                        <div class="panel-header">
+                            <h2>🚀 Commands to Execute</h2>
+                            <button class="validate-btn" onclick="validateScenario()">
+                                ✓ Validate Scenario
+                            </button>
+                        </div>
+
+                        <div id="validation-result" class="validation-result"></div>
+                        <div id="commands-list"></div>
+
+                        ${scenario.yaml_files && scenario.yaml_files.length > 0 ? `
+                            <div class="yaml-section">
+                                <h3>📄 YAML Configuration Files</h3>
+                                <div id="yaml-files"></div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('scenario-content').innerHTML = html;
+            renderReadme(scenario.readme);
+            renderCommands(scenario.commands);
+            if (scenario.yaml_files && scenario.yaml_files.length > 0) {
+                renderYamlFiles(scenario.yaml_files);
+            }
+        }
+
+        function renderReadme(markdown) {
+            let html = markdown
+                .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+                .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+                .replace(/^# (.*$)/gim, '<h2>$1</h2>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/^- (.*$)/gim, '<li>$1</li>');
+            
+            html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+            
+            if (!html.startsWith('<h') && !html.startsWith('<ul')) {
+                html = '<p>' + html + '</p>';
+            }
+
+            document.getElementById('readme-content').innerHTML = html;
+        }
+
+        function renderCommands(commands) {
+            const commandsList = document.getElementById('commands-list');
+            
+            // Separate regular commands from cleanup commands
+            const regularCommands = commands.filter(cmd => !cmd.cleanup);
+            const cleanupCommands = commands.filter(cmd => cmd.cleanup);
+            
+            // Render regular commands
+            regularCommands.forEach((cmd, index) => {
+                const commandCard = createCommandCard(cmd, index);
+                commandsList.appendChild(commandCard);
+            });
+            
+            // Render cleanup section if there are cleanup commands
+            if (cleanupCommands.length > 0) {
+                const cleanupSection = document.createElement('div');
+                cleanupSection.className = 'cleanup-section';
+                cleanupSection.innerHTML = `
+                    <div class="cleanup-header">
+                        <h3>🧹 Cleanup Commands</h3>
+                        <span class="cleanup-badge">Optional - Not part of scenario</span>
+                    </div>
+                `;
+                
+                cleanupCommands.forEach((cmd, index) => {
+                    const commandCard = createCommandCard(cmd, regularCommands.length + index);
+                    cleanupSection.appendChild(commandCard);
+                });
+                
+                commandsList.appendChild(cleanupSection);
+            }
+        }
+
+        function createCommandCard(cmd, index) {
+            const commandCard = document.createElement('div');
+            commandCard.className = 'command-card';
+            commandCard.id = `command-${index}`;
+            
+            const isCopied = copiedCommands.has(index);
+            if (isCopied) {
+                commandCard.classList.add('copied');
+            }
+
+            commandCard.innerHTML = `
+                <div class="command-header">
+                    <h3 class="command-title">${cmd.name || `Step ${index + 1}`}</h3>
+                    <button class="copy-btn ${isCopied ? 'copied' : ''}" data-index="${index}" data-command="${btoa(cmd.command)}">
+                        <span class="copy-icon">${isCopied ? '✓' : '📋'}</span>
+                        <span>${isCopied ? 'Copied!' : 'Copy'}</span>
+                    </button>
+                </div>
+                
+                <div class="command-code">${escapeHtml(cmd.command)}</div>
+                
+                <div class="command-description">
+                    ${cmd.description || 'Execute this command in your terminal'}
+                </div>
+                
+                ${cmd.explanation ? `
+                    <div class="command-explanation">
+                        <h4>💡 Why this command?</h4>
+                        <p>${cmd.explanation}</p>
+                    </div>
+                ` : ''}
+                
+                ${cmd.what_it_does ? `
+                    <div class="command-explanation" style="border-color: #8b5cf6; background: #f5f3ff;">
+                        <h4>🔍 What it does:</h4>
+                        <p>${cmd.what_it_does}</p>
+                    </div>
+                ` : ''}
+                
+                ${cmd.next_step ? `
+                    <div class="command-explanation" style="border-color: #f59e0b; background: #fffbeb;">
+                        <h4>➡️ What's next:</h4>
+                        <p>${cmd.next_step}</p>
+                    </div>
+                ` : ''}
+            `;
+            
+            return commandCard;
+        }
+
+        function renderYamlFiles(yamlFiles) {
+            const yamlFilesDiv = document.getElementById('yaml-files');
+            
+            yamlFiles.forEach((file, index) => {
+                const yamlDiv = document.createElement('div');
+                yamlDiv.className = 'yaml-file';
+                
+                yamlDiv.innerHTML = `
+                    <div class="yaml-filename">
+                        <span>📄 ${file.name}</span>
+                        <button class="copy-btn" data-yaml-index="${index}" data-yaml-content="${btoa(file.content)}">
+                            <span class="copy-icon">📋</span>
+                            <span>Copy</span>
+                        </button>
+                    </div>
+                    <div class="yaml-content">${escapeHtml(file.content)}</div>
+                `;
+                
+                yamlFilesDiv.appendChild(yamlDiv);
+            });
+        }
+
+        // Event delegation for copy buttons
+        document.addEventListener('click', async function(e) {
+            const btn = e.target.closest('.copy-btn');
+            if (!btn) return;
+            
+            try {
+                let textToCopy;
+                
+                // Check if it's a command button
+                if (btn.dataset.command) {
+                    textToCopy = atob(btn.dataset.command);
+                    const index = parseInt(btn.dataset.index);
+                    
+                    await navigator.clipboard.writeText(textToCopy);
+                    copiedCommands.add(index);
+                    
+                    const card = document.getElementById(`command-${index}`);
+                    card.classList.add('copied');
+                    btn.classList.add('copied');
+                    btn.innerHTML = '<span class="copy-icon">✓</span><span>Copied!</span>';
+                    
+                    showNotification('Command copied to clipboard!', 'success');
+                }
+                // Check if it's a YAML button
+                else if (btn.dataset.yamlContent) {
+                    textToCopy = atob(btn.dataset.yamlContent);
+                    
+                    await navigator.clipboard.writeText(textToCopy);
+                    btn.classList.add('copied');
+                    btn.innerHTML = '<span class="copy-icon">✓</span><span>Copied!</span>';
+                    
+                    setTimeout(() => {
+                        btn.classList.remove('copied');
+                        btn.innerHTML = '<span class="copy-icon">📋</span><span>Copy</span>';
+                    }, 2000);
+                    
+                    showNotification('YAML content copied to clipboard!', 'success');
+                }
+            } catch (error) {
+                console.error('Copy failed:', error);
+                showNotification('Failed to copy - please try again', 'error');
+            }
+        });
+
+        async function validateScenario() {
+            const btn = document.querySelector('.validate-btn');
+            const resultDiv = document.getElementById('validation-result');
+            
+            btn.disabled = true;
+            btn.textContent = 'Validating...';
+            
+            try {
+                const response = await fetch(`/api/scenarios/${scenarioId}/validate`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                resultDiv.className = `validation-result ${data.success ? 'success' : 'failure'}`;
+                resultDiv.innerHTML = `
+                    <h3>${data.success ? '✅ Validation Passed!' : '❌ Validation Failed'}</h3>
+                    <p>${data.message}</p>
+                    ${data.output ? `<div class="validation-output">${escapeHtml(data.output)}</div>` : ''}
+                `;
+                
+                showNotification(
+                    data.success ? 'Scenario validated successfully!' : 'Validation failed - check the output',
+                    data.success ? 'success' : 'error'
+                );
+            } catch (error) {
+                resultDiv.className = 'validation-result failure';
+                resultDiv.innerHTML = `
+                    <h3>❌ Validation Error</h3>
+                    <p>${error.message}</p>
+                `;
+                showNotification('Validation error occurred', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '✓ Validate Scenario';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 25px;
+                background: ${type === 'success' ? '#10b981' : '#ef4444'};
+                color: white;
+                border-radius: 8px;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                z-index: 10000;
+                font-weight: 600;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        loadScenario();
+    </script>
+</body>
+</html>

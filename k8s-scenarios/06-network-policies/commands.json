@@ -1,32 +1,70 @@
-# k8s-scenarios/06-network-policies/commands.json
 {
-  "difficulty": "hard",
-  "duration": "30 min",
+  "difficulty": "medium",
+  "duration": "20 min",
   "commands": [
     {
-      "name": "Check Existing Policies",
+      "name": "Step 1: Test Pod-to-Pod Communication Before Policy",
+      "command": "kubectl run test-pod --image=busybox -n k8s-multi-demo --rm -it --restart=Never -- wget -O- http://k8s-demo-service:8000/health --timeout=3",
+      "description": "Verify pods can communicate freely before applying network policies",
+      "explanation": "By default, Kubernetes allows all pod-to-pod communication. We test this by creating a temporary pod that makes an HTTP request to our service. '--rm' deletes the pod after execution, '-it' makes it interactive, '--restart=Never' makes it a one-time pod (not a deployment).",
+      "what_it_does": "Creates a busybox pod, makes an HTTP request to the k8s-demo-service, displays the response, then deletes the pod.",
+      "next_step": "Should receive HTTP 200 response with health status. If it fails, there's a connectivity issue unrelated to network policies."
+    },
+    {
+      "name": "Step 2: List Existing Network Policies",
       "command": "kubectl get networkpolicies -n k8s-multi-demo",
-      "description": "List current network policies"
+      "description": "Check if any network policies are currently applied",
+      "explanation": "Network policies act as firewall rules for pod communication. Before applying new policies, we check what already exists. An empty result means all pod-to-pod traffic is allowed (default-allow behavior).",
+      "what_it_does": "Lists all NetworkPolicy resources in the namespace. Shows policy name, pod selector, and age.",
+      "next_step": "Likely shows no policies (or 'No resources found'). This confirms we're starting from a default-allow state."
     },
     {
-      "name": "Test Connectivity Before",
-      "command": "kubectl run test-pod --image=busybox -n k8s-multi-demo -- sleep 3600",
-      "description": "Create test pod"
+      "name": "Step 3: Apply Network Policy",
+      "command": "kubectl apply -f network-policy.yaml -n k8s-multi-demo",
+      "description": "Create a network policy to restrict pod communication",
+      "explanation": "Network policies use pod labels to select which pods to apply rules to and which pods can communicate with them. Once applied, only traffic matching the policy rules is allowed; all other traffic is denied. This implements microsegmentation in Kubernetes.",
+      "what_it_does": "Creates a NetworkPolicy that defines ingress (incoming) and optionally egress (outgoing) rules based on pod selectors, namespaces, or IP blocks.",
+      "next_step": "Policy is created but might take a few seconds to be enforced by the CNI plugin. Wait before testing."
     },
     {
-      "name": "Apply Network Policy",
-      "command": "kubectl apply -f network-policy.yaml",
-      "description": "Apply network policy rules"
-    },
-    {
-      "name": "Describe Policy",
+      "name": "Step 4: Verify Policy is Applied",
       "command": "kubectl describe networkpolicy -n k8s-multi-demo",
-      "description": "View policy details"
+      "description": "View detailed network policy rules and targets",
+      "explanation": "The describe command shows exactly which pods the policy targets (Pod Selector), what incoming traffic is allowed (Ingress), and what outgoing traffic is allowed (Egress). Understanding these rules is crucial for troubleshooting connectivity.",
+      "what_it_does": "Displays policy details including pod selectors, allowed ingress sources, allowed egress destinations, and allowed ports/protocols.",
+      "next_step": "Review the policy rules. Note which pod labels are selected and which traffic sources/destinations are whitelisted."
     },
     {
-      "name": "Test Connectivity After",
-      "command": "kubectl exec -n k8s-multi-demo test-pod -- wget -O- http://k8s-demo-service --timeout=2",
-      "description": "Test if policy allows/denies traffic"
+      "name": "Step 5: Test Communication After Policy (Should Fail)",
+      "command": "kubectl run test-pod-blocked --image=busybox -n k8s-multi-demo --rm -it --restart=Never -- wget -O- http://k8s-demo-service:8000/health --timeout=3",
+      "description": "Attempt the same request - should be blocked if policy is restrictive",
+      "explanation": "With a restrictive network policy in place, requests from pods without matching labels will be blocked. This test pod doesn't have the required labels, so the request should timeout or be refused. This demonstrates the policy is working.",
+      "what_it_does": "Creates a test pod and attempts HTTP request. Expected to fail with timeout or connection refused, proving the network policy is blocking unauthorized traffic.",
+      "next_step": "Should timeout after 3 seconds with a connection error. This proves the NetworkPolicy successfully blocked the request."
+    },
+    {
+      "name": "Step 6: Test from Allowed Pod (Should Succeed)",
+      "command": "kubectl run test-pod-allowed --image=busybox --labels='app=frontend' -n k8s-multi-demo --rm -it --restart=Never -- wget -O- http://k8s-demo-service:8000/health --timeout=3",
+      "description": "Test with a pod that has the correct labels to be allowed by the policy",
+      "explanation": "This pod has the 'app=frontend' label which matches the ingress allow rules in our NetworkPolicy. The policy should permit traffic from this pod. This demonstrates label-based access control in action.",
+      "what_it_does": "Creates a labeled pod matching the NetworkPolicy's allow rules, makes HTTP request, should succeed showing the policy allows labeled pods.",
+      "next_step": "Should successfully connect and receive HTTP response. This proves the NetworkPolicy selectively allows traffic based on labels."
+    },
+    {
+      "name": "Step 7: View Policy Enforcement Logs (if available)",
+      "command": "kubectl get events -n k8s-multi-demo --field-selector involvedObject.kind=NetworkPolicy",
+      "description": "Check for any events related to NetworkPolicy",
+      "explanation": "While NetworkPolicies don't generate events for every blocked connection (that would be too noisy), sometimes there are events for policy creation or errors. This is more useful for troubleshooting policy application issues.",
+      "what_it_does": "Filters Kubernetes events to show only those involving NetworkPolicy objects.",
+      "next_step": "May show policy creation event. For detailed traffic logs, you'd need a CNI plugin with logging like Cilium or Calico."
+    },
+    {
+      "name": "Step 8: Delete Network Policy",
+      "command": "kubectl delete networkpolicy --all -n k8s-multi-demo",
+      "description": "Remove all network policies to restore default-allow behavior",
+      "explanation": "Deleting network policies immediately returns the namespace to default-allow mode where all pods can communicate freely. Use this carefully in production - removing security controls can expose services to unauthorized access.",
+      "what_it_does": "Deletes all NetworkPolicy resources in the namespace. Traffic restrictions are removed instantly.",
+      "next_step": "Policies deleted. Run the test from Step 5 again - it should now succeed since there are no restrictions."
     }
   ]
 }

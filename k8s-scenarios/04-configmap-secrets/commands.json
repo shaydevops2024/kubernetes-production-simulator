@@ -3,29 +3,78 @@
   "duration": "15 min",
   "commands": [
     {
-      "name": "List ConfigMaps",
-      "command": "kubectl get configmap -n k8s-multi-demo",
-      "description": "View existing ConfigMaps"
+      "name": "Step 1: Create ConfigMap from File",
+      "command": "kubectl apply -f configmap.yaml -n k8s-multi-demo",
+      "description": "Create a ConfigMap containing application configuration",
+      "explanation": "ConfigMaps store non-sensitive configuration data as key-value pairs. We use them to externalize config from container images, enabling the same image to work in dev/staging/prod with different configs. ConfigMaps can be mounted as files or exposed as environment variables.",
+      "what_it_does": "Creates a ConfigMap resource containing configuration keys like app settings, feature flags, or connection strings (non-sensitive only).",
+      "next_step": "The ConfigMap is created but not yet used by any pods. Next we'll create a Secret for sensitive data."
     },
     {
-      "name": "Describe ConfigMap",
-      "command": "kubectl describe configmap -n k8s-multi-demo",
-      "description": "See ConfigMap contents"
+      "name": "Step 2: View ConfigMap Content",
+      "command": "kubectl get configmap -n k8s-multi-demo -o yaml",
+      "description": "Display the ConfigMap data in YAML format",
+      "explanation": "This shows the ConfigMap's contents. Unlike Secrets, ConfigMap data is stored in plain text because it's for non-sensitive config. You'll see the actual key-value pairs under the 'data:' section.",
+      "what_it_does": "Outputs ConfigMap YAML showing all keys and their values. Data is human-readable (not base64 encoded like Secrets).",
+      "next_step": "Review the configuration values. Note that sensitive data like passwords should NEVER go in ConfigMaps - use Secrets instead."
     },
     {
-      "name": "List Secrets",
-      "command": "kubectl get secrets -n k8s-multi-demo",
-      "description": "View secrets (values hidden)"
+      "name": "Step 3: Create Secret",
+      "command": "kubectl create secret generic db-credentials --from-literal=username=admin --from-literal=password=secretpass123 -n k8s-multi-demo",
+      "description": "Create a Secret to store sensitive data like credentials",
+      "explanation": "Secrets are like ConfigMaps but designed for sensitive data. They're base64 encoded (not encrypted by default!) and have stricter RBAC controls. '--from-literal' creates secrets from command line values. In production, use '--from-file' or external secret managers.",
+      "what_it_does": "Creates a Secret with username and password keys. Kubernetes stores these base64-encoded, which provides obfuscation but not security - use encryption at rest!",
+      "next_step": "Secret created. Remember: base64 is encoding, not encryption. For true security, enable encryption at rest in etcd."
     },
     {
-      "name": "Check Env Variables",
-      "command": "kubectl exec -n k8s-multi-demo deployment/k8s-demo-deployment -- env | grep -E 'APP_ENV|SECRET'",
-      "description": "Verify environment variables in pod"
+      "name": "Step 4: View Secret (Base64 Encoded)",
+      "command": "kubectl get secret db-credentials -n k8s-multi-demo -o yaml",
+      "description": "Display the Secret showing base64-encoded values",
+      "explanation": "Secret values appear base64-encoded in YAML. This prevents secrets from appearing in command history or being accidentally exposed in logs, but anyone with API access can decode them. The 'data:' section contains encoded values.",
+      "what_it_does": "Shows Secret YAML with base64-encoded values under 'data:'. To decode: echo 'encoded_value' | base64 -d",
+      "next_step": "See the base64 strings? They're NOT encrypted. Use: kubectl get secret db-credentials -o jsonpath='{.data.password}' | base64 -d to decode."
     },
     {
-      "name": "Create New ConfigMap",
-      "command": "kubectl create configmap test-config --from-literal=test.key=test.value -n k8s-multi-demo",
-      "description": "Create a test ConfigMap"
+      "name": "Step 5: Decode Secret Value",
+      "command": "kubectl get secret db-credentials -n k8s-multi-demo -o jsonpath='{.data.password}' | base64 -d && echo",
+      "description": "Decode and display the secret password value",
+      "explanation": "This demonstrates that base64 encoding is NOT encryption - anyone with kubectl access can decode secrets. The jsonpath extracts just the password field, base64 -d decodes it, and echo adds a newline for readability.",
+      "what_it_does": "Extracts the password value from the Secret, decodes it from base64, and prints the plaintext value to terminal.",
+      "next_step": "You'll see 'secretpass123' - the original password. This proves secrets need additional protection like RBAC and etcd encryption."
+    },
+    {
+      "name": "Step 6: Check How Pod Uses ConfigMap",
+      "command": "kubectl get deployment k8s-demo-deployment -n k8s-multi-demo -o yaml | grep -A 10 configMap",
+      "description": "See how the deployment mounts the ConfigMap",
+      "explanation": "ConfigMaps can be consumed two ways: 1) as environment variables (envFrom), or 2) as volume mounts (volumeMounts). This shows which method our deployment uses and how the data becomes available inside containers.",
+      "what_it_does": "Searches deployment YAML for configMap references, showing volume definitions and how they're mounted into the container.",
+      "next_step": "Look for 'configMapRef' (env vars) or 'configMap:' under volumes (file mounts). Each approach has different use cases."
+    },
+    {
+      "name": "Step 7: Update ConfigMap",
+      "command": "kubectl create configmap app-config --from-literal=feature_flag=enabled --from-literal=max_connections=100 -n k8s-multi-demo --dry-run=client -o yaml | kubectl apply -f -",
+      "description": "Update ConfigMap with new values",
+      "explanation": "ConfigMaps can be updated, but changes don't automatically reload in running pods. '--dry-run=client -o yaml' generates YAML without creating the resource, which we pipe to 'apply'. This pattern safely updates existing ConfigMaps.",
+      "what_it_does": "Generates ConfigMap YAML with new values and applies it, updating the existing ConfigMap.",
+      "next_step": "ConfigMap updated, but running pods still have old values. For changes to take effect, restart pods or wait for the kubelet's sync period (minutes)."
+    },
+    {
+      "name": "Cleanup: Delete ConfigMap",
+      "command": "kubectl delete configmap app-config -n k8s-multi-demo",
+      "description": "Remove the ConfigMap resource",
+      "explanation": "This removes the ConfigMap we created during the scenario. It's safe to delete since we're just learning.",
+      "what_it_does": "Deletes the app-config ConfigMap from the namespace.",
+      "next_step": "ConfigMap deleted. If pods were using it, they'd fail to restart until it's recreated.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup: Delete Secret",
+      "command": "kubectl delete secret db-credentials -n k8s-multi-demo",
+      "description": "Remove the Secret resource",
+      "explanation": "This removes the Secret we created during the scenario. Always clean up test secrets to avoid confusion.",
+      "what_it_does": "Deletes the db-credentials Secret from the namespace.",
+      "next_step": "Secret deleted. Cleanup complete!",
+      "cleanup": true
     }
   ]
 }

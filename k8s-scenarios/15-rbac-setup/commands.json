@@ -3,34 +3,104 @@
   "duration": "30 min",
   "commands": [
     {
-      "name": "Create ServiceAccount",
+      "name": "Step 1: Create Service Account",
       "command": "kubectl create serviceaccount demo-sa -n k8s-multi-demo",
-      "description": "Create service account"
+      "description": "Create a ServiceAccount for RBAC demonstration",
+      "explanation": "ServiceAccounts are identities for pods (like user accounts are for humans). Pods run as a ServiceAccount and inherit its permissions. By default, pods use the 'default' ServiceAccount which has minimal permissions. Custom ServiceAccounts let you grant specific permissions via RBAC.",
+      "what_it_does": "Creates a new ServiceAccount named demo-sa in the namespace.",
+      "next_step": "ServiceAccount created. Now we'll grant it specific permissions using Roles and RoleBindings."
     },
     {
-      "name": "Create Role",
-      "command": "kubectl create role pod-reader --verb=get,list --resource=pods -n k8s-multi-demo",
-      "description": "Create role with limited permissions"
+      "name": "Step 2: Create Role with Permissions",
+      "command": "kubectl apply -f rbac.yaml -n k8s-multi-demo",
+      "description": "Create a Role defining specific permissions",
+      "explanation": "Roles define permissions (verbs like get, list, create) on resources (pods, services, deployments). Roles are namespaced - they only grant access within their namespace. ClusterRoles are cluster-wide. The Role we're creating allows reading pods and services but not deleting them.",
+      "what_it_does": "Creates a Role with defined permissions (e.g., get/list pods, get services).",
+      "next_step": "Role created but not yet applied to anyone. Need RoleBinding to grant these permissions to our ServiceAccount."
     },
     {
-      "name": "Create RoleBinding",
-      "command": "kubectl create rolebinding demo-binding --role=pod-reader --serviceaccount=k8s-multi-demo:demo-sa -n k8s-multi-demo",
-      "description": "Bind role to service account"
+      "name": "Step 3: Create RoleBinding",
+      "command": "kubectl create rolebinding demo-binding --role=demo-role --serviceaccount=k8s-multi-demo:demo-sa -n k8s-multi-demo",
+      "description": "Bind the Role to the ServiceAccount",
+      "explanation": "RoleBinding connects a Role to subjects (users, groups, or ServiceAccounts). This grants the ServiceAccount the permissions defined in the Role. After binding, any pod using this ServiceAccount can perform the allowed operations.",
+      "what_it_does": "Creates RoleBinding that grants demo-role permissions to demo-sa ServiceAccount.",
+      "next_step": "RoleBinding complete. ServiceAccount now has the Role's permissions."
     },
     {
-      "name": "Test Permissions (Allowed)",
+      "name": "Step 4: Test Permissions - List Pods",
       "command": "kubectl auth can-i list pods --as=system:serviceaccount:k8s-multi-demo:demo-sa -n k8s-multi-demo",
-      "description": "Should return 'yes'"
+      "description": "Check if ServiceAccount can list pods (should be allowed)",
+      "explanation": "'kubectl auth can-i' tests permissions without actually performing the action. '--as' impersonates the ServiceAccount to test its permissions. This is crucial for verifying RBAC configuration before deploying pods.",
+      "what_it_does": "Tests if demo-sa can list pods. Should return 'yes' if Role grants this permission.",
+      "next_step": "Should output 'yes', proving the ServiceAccount has list pods permission."
     },
     {
-      "name": "Test Permissions (Denied)",
+      "name": "Step 5: Test Permissions - Delete Pods",
       "command": "kubectl auth can-i delete pods --as=system:serviceaccount:k8s-multi-demo:demo-sa -n k8s-multi-demo",
-      "description": "Should return 'no'"
+      "description": "Check if ServiceAccount can delete pods (should be denied)",
+      "explanation": "Testing denied permissions is as important as testing allowed ones. Our Role doesn't include 'delete' on pods, so this should return 'no'. This follows least-privilege principle - grant only necessary permissions.",
+      "what_it_does": "Tests if demo-sa can delete pods. Should return 'no' if Role doesn't grant delete permission.",
+      "next_step": "Should output 'no', proving the ServiceAccount lacks delete permission (as intended)."
     },
     {
-      "name": "List Roles",
-      "command": "kubectl get roles -n k8s-multi-demo",
-      "description": "View all roles"
+      "name": "Step 6: Create Pod Using ServiceAccount",
+      "command": "kubectl run test-pod --image=nginx --serviceaccount=demo-sa -n k8s-multi-demo",
+      "description": "Create a pod that runs with the custom ServiceAccount",
+      "explanation": "Pods specify which ServiceAccount to use via spec.serviceAccountName. The pod inherits all RBAC permissions of that ServiceAccount. The ServiceAccount's token is automatically mounted at /var/run/secrets/kubernetes.io/serviceaccount/, allowing the pod to authenticate to the Kubernetes API.",
+      "what_it_does": "Creates a pod running as demo-sa ServiceAccount. Pod can only perform actions allowed by demo-role.",
+      "next_step": "Pod created using demo-sa. It can now use kubectl inside the pod with demo-sa's permissions."
+    },
+    {
+      "name": "Step 7: Verify ServiceAccount in Pod",
+      "command": "kubectl exec test-pod -n k8s-multi-demo -- cat /var/run/secrets/kubernetes.io/serviceaccount/token | head -c 50 && echo '...'",
+      "description": "Check that ServiceAccount token is mounted in the pod",
+      "explanation": "Kubernetes automatically mounts the ServiceAccount token as a file in every pod. Applications in the pod can read this token to authenticate API requests. The token is a JWT (JSON Web Token) containing the ServiceAccount identity.",
+      "what_it_does": "Reads the first 50 characters of the ServiceAccount token mounted in the pod.",
+      "next_step": "You'll see the beginning of a JWT token, proving the ServiceAccount credentials are available in the pod."
+    },
+    {
+      "name": "Step 8: Test API Access from Pod",
+      "command": "kubectl exec test-pod -n k8s-multi-demo -- sh -c 'apk add --no-cache curl && curl -s -k -H \"Authorization: Bearer $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)\" https://kubernetes.default.svc/api/v1/namespaces/k8s-multi-demo/pods | head -20'",
+      "description": "Make API call from inside pod using ServiceAccount token",
+      "explanation": "This demonstrates how pods authenticate to the Kubernetes API. The pod reads its ServiceAccount token and includes it in Authorization header. The API server verifies the token and checks RBAC to determine what the ServiceAccount can access. This is how kubectl inside pods works.",
+      "what_it_does": "From inside the pod, calls Kubernetes API to list pods using the ServiceAccount token. Should succeed since demo-sa can list pods.",
+      "next_step": "Should see JSON response with pod list, proving the ServiceAccount can successfully call the API with its permissions."
+    },
+    {
+      "name": "Cleanup: Delete Test Pod",
+      "command": "kubectl delete pod test-pod -n k8s-multi-demo",
+      "description": "Remove the test pod",
+      "explanation": "Clean up the test pod used for RBAC demonstration.",
+      "what_it_does": "Deletes the test pod.",
+      "next_step": "Test pod removed.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup: Delete RoleBinding",
+      "command": "kubectl delete rolebinding demo-binding -n k8s-multi-demo",
+      "description": "Remove the RoleBinding",
+      "explanation": "Deleting RoleBinding revokes permissions. The ServiceAccount and Role still exist but are no longer connected. The ServiceAccount loses all permissions granted by this binding.",
+      "what_it_does": "Deletes the RoleBinding, breaking the ServiceAccount→Role connection.",
+      "next_step": "RoleBinding deleted. ServiceAccount no longer has demo-role permissions.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup: Delete Role",
+      "command": "kubectl delete role demo-role -n k8s-multi-demo",
+      "description": "Remove the Role definition",
+      "explanation": "Clean up the Role. Even if RoleBindings existed, they'd be useless without the Role.",
+      "what_it_does": "Deletes the Role resource.",
+      "next_step": "Role deleted.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup: Delete ServiceAccount",
+      "command": "kubectl delete serviceaccount demo-sa -n k8s-multi-demo",
+      "description": "Remove the ServiceAccount",
+      "explanation": "Final cleanup. Deletes the ServiceAccount. Any pods using this ServiceAccount would fail to start after deletion.",
+      "what_it_does": "Deletes the ServiceAccount.",
+      "next_step": "ServiceAccount deleted. RBAC cleanup complete!",
+      "cleanup": true
     }
   ]
 }

@@ -1,36 +1,113 @@
 {
-  "difficulty": "hard",
-  "duration": "30 min",
+  "difficulty": "medium",
+  "duration": "25 min",
   "commands": [
     {
-      "name": "List StatefulSets",
-      "command": "kubectl get statefulset -n k8s-multi-demo",
-      "description": "View StatefulSets"
+      "name": "Step 1: Create StatefulSet",
+      "command": "kubectl apply -f statefulset.yaml -n k8s-multi-demo",
+      "description": "Deploy a StatefulSet for stateful applications",
+      "explanation": "StatefulSets differ from Deployments in key ways: pods get stable names (web-0, web-1), stable network IDs, and ordered deployment/deletion. They're used for databases, key-value stores, and apps needing persistent identity. Each pod gets its own PersistentVolume that survives pod restarts.",
+      "what_it_does": "Creates a StatefulSet with 3 replicas. Kubernetes creates pods sequentially: web-0 first, then web-1 after web-0 is Ready, then web-2.",
+      "next_step": "StatefulSet created. Watch pods being created in order - this sequential startup ensures stable initialization."
     },
     {
-      "name": "Describe StatefulSet",
-      "command": "kubectl describe statefulset postgres -n k8s-multi-demo",
-      "description": "See StatefulSet details"
+      "name": "Step 2: Watch Ordered Pod Creation",
+      "command": "kubectl get pods -n k8s-multi-demo -l app=stateful-demo -w",
+      "description": "Monitor pods being created sequentially (Press Ctrl+C to stop)",
+      "explanation": "Unlike Deployments which create all pods simultaneously, StatefulSets create them one by one. web-0 must be Running and Ready before web-1 starts. This ordered startup is crucial for clustered applications where the first pod might initialize shared state.",
+      "what_it_does": "Streams pod status showing sequential creation: web-0 Running → web-1 Creating → web-1 Running → web-2 Creating, etc.",
+      "next_step": "Watch the sequential pattern. Press Ctrl+C when all 3 pods are Running. Note it takes longer than a Deployment."
     },
     {
-      "name": "Check PVCs",
+      "name": "Step 3: Verify Stable Pod Names",
+      "command": "kubectl get pods -n k8s-multi-demo -l app=stateful-demo",
+      "description": "Check that pods have predictable names with ordinal indexes",
+      "explanation": "StatefulSet pods always have names like {statefulset-name}-{ordinal}. web-0, web-1, web-2. These names never change, even if the pod is rescheduled to another node. This is different from Deployments where pod names are random (app-7d8f9-x8k2l).",
+      "what_it_does": "Lists StatefulSet pods showing ordered naming: web-0, web-1, web-2. These names are DNS-resolvable within the cluster.",
+      "next_step": "Note the stable names. If you delete web-1, the new pod will also be named web-1 - same identity, same storage."
+    },
+    {
+      "name": "Step 4: Check Persistent Volumes",
       "command": "kubectl get pvc -n k8s-multi-demo",
-      "description": "View persistent volume claims"
+      "description": "View PersistentVolumeClaims created for each pod",
+      "explanation": "StatefulSets automatically create PVCs for each pod using volumeClaimTemplates. Each pod gets its own volume named like: {volumeClaimTemplate-name}-{pod-name}. These volumes persist even if the pod is deleted - when the pod recreates, it reattaches to the same volume.",
+      "what_it_does": "Shows PVCs like 'data-web-0', 'data-web-1', 'data-web-2'. Each is bound to a PersistentVolume and claimed by its respective pod.",
+      "next_step": "See the pattern? data-web-0 is bound to web-0. This binding persists across pod deletions."
     },
     {
-      "name": "Check Pod Names",
-      "command": "kubectl get pods -n k8s-multi-demo -l app=postgres",
-      "description": "See stable pod identities"
+      "name": "Step 5: Test Stable Network Identity",
+      "command": "kubectl get svc -n k8s-multi-demo -l app=stateful-demo",
+      "description": "Check the headless service providing stable DNS names",
+      "explanation": "StatefulSets use a 'headless service' (ClusterIP: None) to give each pod a stable DNS name: {pod-name}.{service-name}.{namespace}.svc.cluster.local. Unlike regular services that load-balance, headless services let you address individual pods. This is critical for peer-to-peer apps like Cassandra or Kafka.",
+      "what_it_does": "Shows the headless service. Note ClusterIP is 'None' - it doesn't load balance, just provides DNS for individual pods.",
+      "next_step": "Each pod is reachable at web-0.stateful-svc.k8s-multi-demo.svc.cluster.local (replace web-0 with web-1, web-2, etc)."
     },
     {
-      "name": "Scale StatefulSet",
-      "command": "kubectl scale statefulset postgres --replicas=2 -n k8s-multi-demo",
-      "description": "Scale up StatefulSet"
+      "name": "Step 6: Delete a Pod to Test Recreation",
+      "command": "kubectl delete pod web-1 -n k8s-multi-demo",
+      "description": "Delete the middle pod to see StatefulSet recreate it with same identity",
+      "explanation": "When you delete a StatefulSet pod, Kubernetes recreates it with the EXACT same name and reattaches the SAME PVC. This is fundamentally different from Deployments where a new pod gets a random name and new storage. The pod's identity (name, DNS, storage) is preserved.",
+      "what_it_does": "Deletes web-1. The StatefulSet controller detects this and immediately creates a new web-1 pod with the same PVC.",
+      "next_step": "Wait a few seconds then check pods. A new web-1 will exist with AGE of seconds, but same name and volume."
     },
     {
-      "name": "Watch Scaling",
-      "command": "kubectl get pods -n k8s-multi-demo -l app=postgres -w",
-      "description": "Observe ordered pod creation"
+      "name": "Step 7: Verify Pod Recreated with Same Identity",
+      "command": "kubectl get pods -n k8s-multi-demo -l app=stateful-demo && kubectl get pvc -n k8s-multi-demo",
+      "description": "Confirm new pod has same name and reattached to same PVC",
+      "explanation": "This demonstrates StatefulSet's key feature: stable identity. The new web-1 has the same name, same DNS name, and reattached to data-web-1 PVC. Any data written to the volume before deletion is still there. This enables stateful apps to survive pod failures without data loss.",
+      "what_it_does": "Shows web-1 exists again (with recent AGE) and data-web-1 PVC is still bound to the new web-1 pod.",
+      "next_step": "web-1 is back with its original identity and storage. Applications connected to web-1's DNS name automatically reconnect."
+    },
+    {
+      "name": "Step 8: Scale StatefulSet Up",
+      "command": "kubectl scale statefulset web -n k8s-multi-demo --replicas=5",
+      "description": "Scale up to 5 replicas to see ordered pod creation",
+      "explanation": "Scaling StatefulSets is also ordered. When scaling from 3 to 5, Kubernetes creates web-3, waits for it to be Ready, then creates web-4. This ordering ensures each new pod can join the cluster properly, especially important for distributed systems with consensus algorithms.",
+      "what_it_does": "Increases replicas to 5. Kubernetes will create web-3 and web-4 sequentially, along with their PVCs.",
+      "next_step": "New pods web-3 and web-4 will be created in order. Each gets its own PVC: data-web-3, data-web-4."
+    },
+    {
+      "name": "Step 9: Scale StatefulSet Down",
+      "command": "kubectl scale statefulset web -n k8s-multi-demo --replicas=2",
+      "description": "Scale down to 2 replicas to see reverse-ordered deletion",
+      "explanation": "StatefulSet scale-down is reverse-ordered: highest ordinal first. Scaling from 5 to 2 deletes web-4, then web-3, then web-2 (after each finishes terminating). This ordering allows graceful shutdown - the newest members leave first. IMPORTANT: PVCs are NOT deleted! They persist for manual cleanup.",
+      "what_it_does": "Reduces replicas to 2. Deletes web-4, web-3, web-2 in that order. PVCs data-web-4, data-web-3, data-web-2 remain!",
+      "next_step": "Pods are deleted but their PVCs survive. If you scale back up, the pods reattach to their old volumes with data intact."
+    },
+    {
+      "name": "Step 10: Check Orphaned PVCs",
+      "command": "kubectl get pvc -n k8s-multi-demo",
+      "description": "Verify that PVCs from deleted pods still exist",
+      "explanation": "This is a critical StatefulSet behavior: scaling down or deleting doesn't remove PVCs. This prevents accidental data loss. You must manually delete PVCs when you're certain you don't need the data. If you scale back up, pods reattach to existing PVCs, restoring their state.",
+      "what_it_does": "Shows PVCs for data-web-0, data-web-1 (in use) and data-web-2, data-web-3, data-web-4 (orphaned). Orphaned PVCs are still bound and consuming storage.",
+      "next_step": "Orphaned PVCs remain until manually deleted. This is intentional - protects data from accidental loss."
+    },
+    {
+      "name": "Cleanup: Delete StatefulSet",
+      "command": "kubectl delete statefulset web -n k8s-multi-demo",
+      "description": "Delete the StatefulSet (pods deleted in reverse order)",
+      "explanation": "Deleting a StatefulSet deletes pods in reverse order: web-1 then web-0. Each pod must fully terminate before the next deletion starts. PVCs are NOT deleted - you must remove them separately if you want to free storage.",
+      "what_it_does": "Deletes the StatefulSet and its pods (in reverse order). Headless service and PVCs remain.",
+      "next_step": "StatefulSet deleted. Pods gone in reverse order. Check PVCs - they're still there!",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup: Delete PVCs",
+      "command": "kubectl delete pvc -l app=stateful-demo -n k8s-multi-demo",
+      "description": "Remove all PersistentVolumeClaims created by the StatefulSet",
+      "explanation": "PVCs must be manually deleted. This step is important because PVCs consume storage resources. In production, carefully verify you don't need the data before deleting!",
+      "what_it_does": "Deletes all PVCs labeled with app=stateful-demo. Underlying PersistentVolumes may be deleted depending on reclaim policy.",
+      "next_step": "PVCs deleted. All storage freed. StatefulSet scenario complete!",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup: Delete Headless Service",
+      "command": "kubectl delete svc stateful-svc -n k8s-multi-demo",
+      "description": "Remove the headless service",
+      "explanation": "Clean up the headless service used for stable DNS names.",
+      "what_it_does": "Deletes the headless service.",
+      "next_step": "Service deleted. Full cleanup complete!",
+      "cleanup": true
     }
   ]
 }

@@ -3,69 +3,86 @@
   "duration": "40 min",
   "commands": [
     {
-      "name": "Phase 1.1 - Check StatefulSet",
-      "command": "kubectl get statefulset postgres -n k8s-multi-demo",
-      "description": "Verify StatefulSet is running"
+      "name": "Phase 1.1: Deploy StatefulSet",
+      "command": "kubectl apply -f postgres-statefulset.yaml -n k8s-multi-demo",
+      "description": "Create a StatefulSet simulating a database cluster",
+      "explanation": "This advanced scenario tests StatefulSet resilience through pod deletion, PVC retention, and recovery. StatefulSets are critical for stateful apps like databases. We'll simulate failures and verify data persistence and identity preservation.",
+      "what_it_does": "Creates a 3-replica StatefulSet with PersistentVolumes.",
+      "next_step": "StatefulSet deploying. Watch ordered pod creation."
     },
     {
-      "name": "Phase 1.2 - List PVCs",
-      "command": "kubectl get pvc -n k8s-multi-demo",
-      "description": "See persistent volume claims"
+      "name": "Phase 1.2: Verify Ordered Creation",
+      "command": "kubectl get pods -n k8s-multi-demo -l app=postgres-demo -w",
+      "description": "Watch sequential pod creation (Ctrl+C to stop)",
+      "explanation": "StatefulSets create pods sequentially: postgres-0, then postgres-1 after postgres-0 is Ready, then postgres-2. This ensures proper initialization order for clustered apps.",
+      "what_it_does": "Streams pod status showing ordered creation.",
+      "next_step": "Wait for all 3 pods Running/Ready, then Ctrl+C."
     },
     {
-      "name": "Phase 1.3 - Write Test Data",
-      "command": "kubectl exec -n k8s-multi-demo postgres-0 -- psql -U postgres -c \"CREATE TABLE test_recovery (id INT, data TEXT); INSERT INTO test_recovery VALUES (1, 'recovery_test');\"",
-      "description": "Write data to database"
+      "name": "Phase 1.3: Write Data to Pod",
+      "command": "kubectl exec postgres-1 -n k8s-multi-demo -- sh -c 'echo \"test-data-$(date +%s)\" > /data/test-file.txt && cat /data/test-file.txt'",
+      "description": "Write test data to pod's persistent volume",
+      "explanation": "Write data to postgres-1's volume. We'll delete the pod and verify the data persists when it recreates (proving PVC persistence).",
+      "what_it_does": "Writes timestamped test data to /data in postgres-1's volume.",
+      "next_step": "Data written. Note the content - we'll verify it survives pod deletion."
     },
     {
-      "name": "Phase 1.4 - Verify Data",
-      "command": "kubectl exec -n k8s-multi-demo postgres-0 -- psql -U postgres -c \"SELECT * FROM test_recovery;\"",
-      "description": "Confirm data exists"
+      "name": "Phase 2.1: Delete Middle Pod",
+      "command": "kubectl delete pod postgres-1 -n k8s-multi-demo",
+      "description": "Delete pod to test recreation with same identity",
+      "explanation": "Delete postgres-1. StatefulSet recreates it with SAME name and reattaches SAME PVC. The data we wrote survives.",
+      "what_it_does": "Deletes postgres-1. StatefulSet controller immediately recreates it.",
+      "next_step": "Pod deleted. Watch it recreate with same name and storage."
     },
     {
-      "name": "Phase 2.1 - Delete StatefulSet",
-      "command": "kubectl delete statefulset postgres -n k8s-multi-demo --cascade=orphan",
-      "description": "Delete StatefulSet but keep pods and PVCs"
+      "name": "Phase 2.2: Verify Data Survived",
+      "command": "kubectl exec postgres-1 -n k8s-multi-demo -- cat /data/test-file.txt",
+      "description": "Confirm data persisted after pod recreation",
+      "explanation": "The new postgres-1 pod reattached to the same PVC, so our test file still exists. This proves StatefulSet's persistent identity and storage.",
+      "what_it_does": "Reads the test file we created earlier from the recreated pod.",
+      "next_step": "File contents match what we wrote earlier. Data survived pod deletion!"
     },
     {
-      "name": "Phase 2.2 - Verify PVCs Remain",
-      "command": "kubectl get pvc -n k8s-multi-demo",
-      "description": "Confirm PVCs are still bound"
+      "name": "Phase 2.3: Delete All Pods",
+      "command": "kubectl delete pods -l app=postgres-demo -n k8s-multi-demo --force --grace-period=0",
+      "description": "Simulate catastrophic failure - delete all pods",
+      "explanation": "Delete ALL StatefulSet pods simultaneously (disaster scenario). StatefulSet recreates them in order with same names and PVCs. This tests maximum resilience.",
+      "what_it_does": "Force-deletes all 3 pods instantly.",
+      "next_step": "All pods being recreated. StatefulSet maintains ordered recreation."
     },
     {
-      "name": "Phase 2.3 - Delete Pods",
-      "command": "kubectl delete pods -n k8s-multi-demo -l app=postgres",
-      "description": "Delete pods to simulate failure"
+      "name": "Phase 2.4: Monitor Recovery",
+      "command": "kubectl get pods -n k8s-multi-demo -l app=postgres-demo",
+      "description": "Watch all pods recover with same identities",
+      "explanation": "After mass deletion, pods recreate in order: postgres-0 first, then postgres-1, then postgres-2. Each reattaches to its original PVC. Run this several times to watch recovery.",
+      "what_it_does": "Shows current pod status during recovery.",
+      "next_step": "All pods will be Running again with same names and data intact."
     },
     {
-      "name": "Phase 3.1 - Recreate StatefulSet",
-      "command": "kubectl apply -f postgres-statefulset.yaml",
-      "description": "Recreate StatefulSet with same config"
+      "name": "Phase 3.1: Verify All Data Intact",
+      "command": "kubectl exec postgres-1 -n k8s-multi-demo -- cat /data/test-file.txt",
+      "description": "Final check - data survived mass pod deletion",
+      "explanation": "Even after deleting all pods, the data persists because PVCs were never deleted. This demonstrates StatefulSet's core value for stateful applications.",
+      "what_it_does": "Reads test file from recovered pod.",
+      "next_step": "Data still there! StatefulSet successfully maintained state through chaos."
     },
     {
-      "name": "Phase 3.2 - Watch Recovery",
-      "command": "kubectl get pods -n k8s-multi-demo -l app=postgres -w",
-      "description": "Watch ordered pod creation (Ctrl+C to stop)"
+      "name": "Cleanup: Delete StatefulSet",
+      "command": "kubectl delete statefulset postgres-demo -n k8s-multi-demo",
+      "description": "Remove StatefulSet",
+      "explanation": "Deletes StatefulSet and pods (in reverse order). PVCs remain!",
+      "what_it_does": "Deletes StatefulSet. Pods terminate in reverse: postgres-2, postgres-1, postgres-0.",
+      "next_step": "StatefulSet deleted. Check PVCs - they're still there!",
+      "cleanup": true
     },
     {
-      "name": "Phase 3.3 - Wait for Ready",
-      "command": "kubectl wait --for=condition=ready pod -l app=postgres -n k8s-multi-demo --timeout=120s",
-      "description": "Wait for pods to be ready"
-    },
-    {
-      "name": "Phase 3.4 - Verify Data Recovery",
-      "command": "kubectl exec -n k8s-multi-demo postgres-0 -- psql -U postgres -c \"SELECT * FROM test_recovery;\"",
-      "description": "Confirm data was recovered"
-    },
-    {
-      "name": "Phase 3.5 - Check PVC Bindings",
-      "command": "kubectl describe pod postgres-0 -n k8s-multi-demo | grep -A 5 'Volumes:'",
-      "description": "Verify correct PVC mounted"
-    },
-    {
-      "name": "Phase 3.6 - Final Health Check",
-      "command": "kubectl get statefulset,pods,pvc -n k8s-multi-demo",
-      "description": "Comprehensive status verification"
+      "name": "Cleanup: Delete PVCs",
+      "command": "kubectl delete pvc -l app=postgres-demo -n k8s-multi-demo",
+      "description": "Remove all PersistentVolumeClaims",
+      "explanation": "StatefulSet PVCs must be manually deleted. This frees storage.",
+      "what_it_does": "Deletes all PVCs created by the StatefulSet.",
+      "next_step": "PVCs deleted. Storage freed. Scenario complete!",
+      "cleanup": true
     }
   ]
 }

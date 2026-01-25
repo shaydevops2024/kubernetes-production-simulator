@@ -1,42 +1,78 @@
 {
+  "difficulty": "medium",
+  "duration": "15 min",
   "commands": [
     {
+      "name": "Step 1: Check Current HPA Configuration",
       "command": "kubectl get hpa -n k8s-multi-demo",
-      "description": "View current HPA configuration and status"
+      "description": "View the current Horizontal Pod Autoscaler configuration and status",
+      "explanation": "The 'kubectl get hpa' command shows all HPA resources in the namespace. HPA automatically scales pods based on metrics like CPU usage. We check this first to understand the baseline configuration before generating load.",
+      "what_it_does": "Displays HPA name, reference (which deployment it controls), current/min/max replicas, and current CPU utilization percentage.",
+      "next_step": "You should see an HPA configured with min 2 and max 10 replicas. Note the current replica count before proceeding."
     },
     {
+      "name": "Step 2: Check Current Pod Count",
       "command": "kubectl get pods -n k8s-multi-demo",
-      "description": "Check current number of pods"
+      "description": "List all pods to see the baseline number of running instances",
+      "explanation": "Before generating load, we need to know how many pods are currently running. This serves as our baseline. Kubernetes shows pod status, restarts, and age - all important for monitoring scaling behavior.",
+      "what_it_does": "Lists all pods with their status (Running, Pending, etc.), readiness state (e.g., 1/1), restart count, and age.",
+      "next_step": "Count the number of k8s-demo-deployment pods. This should match the HPA's current replicas (usually 2 at baseline)."
     },
     {
+      "name": "Step 3: Monitor Resource Usage",
       "command": "kubectl top pods -n k8s-multi-demo",
-      "description": "View pod resource usage (CPU and memory)"
+      "description": "View real-time CPU and memory usage for all pods",
+      "explanation": "The 'kubectl top' command queries the metrics-server to show current resource consumption. This is crucial because HPA makes scaling decisions based on these metrics. We use it to verify metrics are being collected before testing autoscaling.",
+      "what_it_does": "Shows current CPU (in millicores) and memory (in Mi/Gi) usage for each pod. HPA uses these values to calculate utilization percentage.",
+      "next_step": "Verify that pods show low CPU usage (should be under 50m typically). This confirms metrics-server is working and we're ready to generate load."
     },
     {
+      "name": "Step 4: Generate Load to Trigger Scaling",
       "command": "kubectl run -n k8s-multi-demo load-generator --image=busybox --restart=Never -- /bin/sh -c \"for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do wget -q -O- http://k8s-demo-service; sleep 2; done\"",
-      "description": "Generate moderate load (15 requests over 30 seconds)"
+      "description": "Create a pod that generates HTTP traffic to increase CPU load",
+      "explanation": "We create a temporary pod using busybox that sends 15 HTTP requests (one every 2 seconds) to our service. This simulates user traffic and increases CPU utilization. We use 'wget' instead of curl because busybox doesn't include curl by default. The '--restart=Never' makes it a pod (not a deployment), and it will stop after completing the loop.",
+      "what_it_does": "Creates a one-time pod that makes 15 HTTP GET requests over 30 seconds to the k8s-demo-service, which distributes requests across all pods, increasing their CPU usage.",
+      "next_step": "Wait about 30-60 seconds for the load to affect CPU metrics. HPA checks metrics every 15 seconds by default, so scaling won't be instant."
     },
     {
+      "name": "Step 5: Check HPA Status During Load",
       "command": "kubectl get hpa -n k8s-multi-demo",
-      "description": "Check HPA status during load"
+      "description": "Monitor HPA to see if it's detecting the increased CPU usage",
+      "explanation": "After generating load, we check if HPA has detected the CPU increase. The TARGETS column shows current vs target CPU usage. If current exceeds target (e.g., 80% vs 50% target), HPA will scale up.",
+      "what_it_does": "Shows updated HPA status including current CPU utilization and desired replicas. If CPU is above target, REPLICAS will show a higher desired count.",
+      "next_step": "Look for CPU utilization above 50% (the target). You may need to run this command multiple times to see the change."
     },
     {
+      "name": "Step 6: Verify Pod Scaling",
       "command": "kubectl get pods -n k8s-multi-demo",
-      "description": "Check if HPA scaled up the pods"
+      "description": "Check if HPA has created additional pods",
+      "explanation": "HPA scales by modifying the deployment's replica count. We verify the scaling action by listing pods again. New pods will show 'ContainerCreating' initially, then 'Running' when ready.",
+      "what_it_does": "Lists all pods, showing any newly created instances. Compare this count with Step 2 to confirm scaling occurred.",
+      "next_step": "You should see more pods than the initial count (likely 3-6 pods depending on load). Some may still be starting up."
     },
     {
+      "name": "Step 7: View HPA Scaling Events",
       "command": "kubectl describe hpa k8s-demo-hpa -n k8s-multi-demo",
-      "description": "View detailed HPA scaling events"
+      "description": "Get detailed HPA information including scaling decision history",
+      "explanation": "The 'describe' command provides comprehensive HPA details including its configuration, current metrics, and most importantly, the Events section which shows when and why scaling decisions were made. This is essential for understanding HPA behavior.",
+      "what_it_does": "Shows HPA configuration (min/max replicas, target metrics), current status, and events log with timestamps showing 'ScaledUp' events with reasons like 'cpu resource utilization above target'.",
+      "next_step": "Scroll to the Events section at the bottom. You should see messages like 'New size: 4; reason: cpu resource utilization (80%) is above target (50%)'"
     },
     {
+      "name": "Step 8: Clean Up Load Generator",
       "command": "kubectl delete pod load-generator -n k8s-multi-demo",
-      "description": "Remove the load generator pod"
+      "description": "Remove the load generator pod to stop generating traffic",
+      "explanation": "We delete the load generator pod to stop the artificial load. This is important because we want to observe HPA scale-down behavior. Without this step, the pod would eventually stop on its own, but manual deletion ensures consistent timing for the demo.",
+      "what_it_does": "Immediately terminates and removes the load-generator pod, stopping all HTTP requests to the service.",
+      "next_step": "After deleting the load generator, CPU usage will gradually decrease. HPA will wait 5 minutes (default scale-down stabilization) before reducing replicas."
     },
     {
-      "command": "kubectl get pods -n k8s-multi-demo",
-      "description": "Watch pods scale down after load stops"
+      "name": "Step 9: Monitor Scale Down",
+      "command": "kubectl get pods -n k8s-multi-demo -w",
+      "description": "Watch pods in real-time to observe HPA scaling down (Press Ctrl+C to stop)",
+      "explanation": "The '-w' (watch) flag continuously monitors pod changes. After load stops, HPA will eventually scale down to min replicas (2). However, scale-down is deliberately slower than scale-up to prevent flapping (rapid scale up/down cycles). This command lets you observe the gradual termination of excess pods.",
+      "what_it_does": "Continuously displays pod status changes. You'll see pods transition to 'Terminating' status as HPA reduces the replica count back to the minimum.",
+      "next_step": "Press Ctrl+C when you've seen enough. The scale-down process can take 5-10 minutes. Final state should be 2 running pods matching the HPA minimum."
     }
-  ],
-  "difficulty": "medium",
-  "duration": "15 min"
+  ]
 }

@@ -1,7 +1,7 @@
 # app/src/main.py
 from database import get_db, check_db_connection, get_db_stats, User, Task, init_db
 from sqlalchemy.orm import Session
-from fastapi import Depends, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import Depends, HTTPException
 from fastapi import FastAPI, Response, Request
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -84,9 +84,6 @@ class TaskCreate(BaseModel):
     status: str = "pending"
     priority: int = 1
 
-class CommandRequest(BaseModel):
-    command: str
-
 def run_kubectl_command(command):
     """Execute kubectl command and return output"""
     try:
@@ -133,6 +130,16 @@ def calculate_age(creation_timestamp):
 async def root():
     """Serve the main HTML page"""
     return FileResponse(str(static_dir / "index.html"))
+
+@app.get("/scenarios")
+async def scenarios_page():
+    """Serve the scenarios list page"""
+    return FileResponse(str(static_dir / "scenarios.html"))
+
+@app.get("/scenario/{scenario_id}")
+async def scenario_detail_page(scenario_id: str):
+    """Serve the scenario detail page"""
+    return FileResponse(str(static_dir / "scenario-detail.html"))
 
 @app.get("/health")
 async def health():
@@ -243,27 +250,24 @@ async def get_cluster_stats():
         for node in nodes.items:
             name = node.metadata.name
             
-            # Get status
-            status = "Unknown"
+            # Get node status
             conditions = node.status.conditions or []
-            for condition in conditions:
-                if condition.type == "Ready":
-                    status = "Ready" if condition.status == "True" else "NotReady"
-                    break
+            ready_condition = next((c for c in conditions if c.type == "Ready"), None)
+            status = "Ready" if ready_condition and ready_condition.status == "True" else "NotReady"
             
             # Get roles
             labels = node.metadata.labels or {}
             roles = []
-            if 'node-role.kubernetes.io/control-plane' in labels:
-                roles.append('control-plane')
-            if 'node-role.kubernetes.io/master' in labels:
-                roles.append('master')
-            role = ','.join(roles) if roles else '<none>'
+            if "node-role.kubernetes.io/control-plane" in labels or "node-role.kubernetes.io/master" in labels:
+                roles.append("control-plane")
+            if "node-role.kubernetes.io/worker" in labels:
+                roles.append("worker")
+            role = ",".join(roles) if roles else "worker"
             
             age = calculate_age(node.metadata.creation_timestamp)
             
             # Get version
-            version = node.status.node_info.kubelet_version if node.status.node_info else 'unknown'
+            version = node.status.node_info.kubelet_version if node.status.node_info else "unknown"
             
             nodes_info["details"].append({
                 "name": name,
@@ -281,80 +285,167 @@ async def get_cluster_stats():
         "nodes": nodes_info
     }
 
-@app.get("/api/db/info")
-async def get_database_info():
-    """Get database StatefulSet information including secrets and configmaps"""
-    namespace = "k8s-multi-demo"
-    
-    info = {
-        "uses_secret": False,
-        "secret_name": None,
-        "uses_configmap": False,
-        "configmap_name": None
-    }
-    
-    if not k8s_available or not k8s_apps_v1:
-        return info
-    
+@app.post("/api/database/init")
+async def initialize_database(db: Session = Depends(get_db)):
+    """Initialize database with schema"""
     try:
-        # Get the postgres StatefulSet
-        statefulsets = k8s_apps_v1.list_namespaced_stateful_set(namespace=namespace)
-        
-        for sts in statefulsets.items:
-            if 'postgres' in sts.metadata.name.lower():
-                # Check for secrets and configmaps in the pod spec
-                containers = sts.spec.template.spec.containers or []
-                volumes = sts.spec.template.spec.volumes or []
-                
-                # Check environment variables for secrets
-                for container in containers:
-                    if container.env:
-                        for env_var in container.env:
-                            if env_var.value_from and env_var.value_from.secret_key_ref:
-                                info["uses_secret"] = True
-                                info["secret_name"] = env_var.value_from.secret_key_ref.name
-                                break
-                    
-                    # Check env_from for configmaps
-                    if container.env_from:
-                        for env_from in container.env_from:
-                            if env_from.config_map_ref:
-                                info["uses_configmap"] = True
-                                info["configmap_name"] = env_from.config_map_ref.name
-                
-                # Check volumes for configmaps
-                for volume in volumes:
-                    if volume.config_map:
-                        info["uses_configmap"] = True
-                        if not info["configmap_name"]:
-                            info["configmap_name"] = volume.config_map.name
-                
-                break
-                
-    except ApiException as e:
-        logger.error(f"Error fetching StatefulSet info: {e}")
-    
-    return info
+        init_db()
+        return {"message": "Database initialized successfully"}
+    except Exception as e:
+        logger.error(f"Database initialization error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/loadtest/start")
+@app.get("/api/database/status")
+async def database_status(db: Session = Depends(get_db)):
+    """Check database connection status"""
+    try:
+        is_connected = check_db_connection(db)
+        stats = get_db_stats(db) if is_connected else {}
+        
+        return {
+            "connected": is_connected,
+            "stats": stats
+        }
+    except Exception as e:
+        logger.error(f"Database status check error: {e}")
+        return {
+            "connected": False,
+            "error": str(e)
+        }
+
+@app.post("/api/users")
+async def create_user(user: UserCreate, db: Session = Depends(get_db)):
+    """Create a new user"""
+    try:
+        db_user = User(
+            username=user.username,
+            email=user.email,
+            full_name=user.full_name
+        )
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+        
+        return {
+            "id": str(db_user.id),
+            "username": db_user.username,
+            "email": db_user.email,
+            "full_name": db_user.full_name,
+            "created_at": db_user.created_at.isoformat()
+        }
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error creating user: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/users")
+async def list_users(db: Session = Depends(get_db)):
+    """List all users"""
+    try:
+        users = db.query(User).all()
+        return {
+            "users": [
+                {
+                    "id": str(user.id),
+                    "username": user.username,
+                    "email": user.email,
+                    "full_name": user.full_name,
+                    "created_at": user.created_at.isoformat()
+                }
+                for user in users
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Error listing users: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/tasks")
+async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
+    """Create a new task"""
+    try:
+        db_task = Task(
+            user_id=task.user_id,
+            title=task.title,
+            description=task.description,
+            status=task.status,
+            priority=task.priority
+        )
+        db.add(db_task)
+        db.commit()
+        db.refresh(db_task)
+        
+        return {
+            "id": str(db_task.id),
+            "user_id": str(db_task.user_id),
+            "title": db_task.title,
+            "description": db_task.description,
+            "status": db_task.status,
+            "priority": db_task.priority,
+            "created_at": db_task.created_at.isoformat()
+        }
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error creating task: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/tasks")
+async def list_tasks(db: Session = Depends(get_db)):
+    """List all tasks"""
+    try:
+        tasks = db.query(Task).all()
+        return {
+            "tasks": [
+                {
+                    "id": str(task.id),
+                    "user_id": str(task.user_id),
+                    "title": task.title,
+                    "description": task.description,
+                    "status": task.status,
+                    "priority": task.priority,
+                    "created_at": task.created_at.isoformat()
+                }
+                for task in tasks
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Error listing tasks: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/load-test/start")
 async def start_load_test():
+    """Start load testing"""
     global load_test_running, load_test_task
     
     if load_test_running:
-        return {"message": "Load test already running", "status": "running"}
+        return {"message": "Load test already running"}
+    
+    async def generate_load():
+        global load_test_running
+        logger.info("Load test started")
+        
+        while load_test_running:
+            try:
+                # Simulate some CPU load
+                _ = sum(i * i for i in range(10000))
+                await asyncio.sleep(0.1)
+            except Exception as e:
+                logger.error(f"Load test error: {e}")
+                break
+        
+        logger.info("Load test stopped")
     
     load_test_running = True
     load_test_task = asyncio.create_task(generate_load())
     
-    logger.info("🚀 LOAD TEST STARTED")
-    return {"message": "Load test started successfully", "status": "running"}
+    return {"message": "Load test started", "status": "running"}
 
-@app.post("/loadtest/stop")
+@app.post("/api/load-test/stop")
 async def stop_load_test():
+    """Stop load testing"""
     global load_test_running, load_test_task
     
     if not load_test_running:
-        return {"message": "No load test running", "status": "stopped"}
+        return {"message": "Load test not running"}
     
     load_test_running = False
     
@@ -365,198 +456,24 @@ async def stop_load_test():
         except asyncio.CancelledError:
             pass
     
-    logger.info("🛑 LOAD TEST STOPPED")
     return {"message": "Load test stopped", "status": "stopped"}
 
-async def generate_load():
-    global load_test_running
-    import aiohttp
-    
-    service_url = 'http://k8s-demo-service.k8s-multi-demo.svc.cluster.local'
-    start_time = asyncio.get_event_loop().time()
-    duration = 120
-    request_count = 0
-    session = None
-    
-    try:
-        timeout = aiohttp.ClientTimeout(total=5)
-        session = aiohttp.ClientSession(timeout=timeout)
-        
-        while load_test_running and (asyncio.get_event_loop().time() - start_time) < duration:
-            try:
-                tasks = []
-                for _ in range(20):
-                    if not load_test_running:
-                        break
-                    task = session.get(service_url)
-                    tasks.append(task)
-                
-                if not load_test_running:
-                    break
-                
-                responses = await asyncio.gather(*tasks, return_exceptions=True)
-                request_count += len(responses)
-                
-                if request_count % 100 == 0:
-                    logger.info(f"Load test: {request_count} requests sent")
-                
-                await asyncio.sleep(0.05)
-                
-            except asyncio.CancelledError:
-                break
-            except Exception as e:
-                if load_test_running:
-                    logger.error(f"Load generation error: {e}")
-                await asyncio.sleep(0.5)
-    
-    except Exception as e:
-        logger.error(f"Load test failed: {e}")
-    
-    finally:
-        if session and not session.closed:
-            await session.close()
-            await asyncio.sleep(0.25)
-        
-        load_test_running = False
-        logger.info(f"🏁 LOAD TEST COMPLETED - {request_count} requests")
-
-@app.post("/simulate/crash")
-async def simulate_crash():
-    global app_healthy
-    app_healthy = False
-    logger.error("INCIDENT SIMULATION: App unhealthy")
-    return {"message": "App is now unhealthy - will be restarted by Kubernetes"}
-
-@app.post("/simulate/notready")
-async def simulate_notready():
-    global app_ready
-    app_ready = False
-    logger.warning("INCIDENT SIMULATION: App not ready")
-    return {"message": "App is now not ready - Kubernetes will stop routing traffic"}
-
-@app.post("/reset")
-async def reset():
-    global app_healthy, app_ready
-    app_healthy = True
-    app_ready = True
-    logger.info("✅ App reset to healthy state")
-    return {"message": "App reset to healthy state"}
-
-@app.get("/db/health")
-async def database_health():
-    connected, message = check_db_connection()
-    if connected:
-        return {"database": "connected", "message": message, "stats": get_db_stats()}
-    return Response(content=f'{{"error": "{message}"}}', status_code=503)
-
-@app.get("/api/db/stats")
-async def get_database_stats():
-    return get_db_stats()
-
-@app.get("/api/users")
-async def get_users(db: Session = Depends(get_db)):
-    users = db.query(User).all()
-    return [user.to_dict() for user in users]
-
-@app.get("/api/tasks")
-async def get_tasks(db: Session = Depends(get_db)):
-    tasks = db.query(Task).all()
-    return [task.to_dict() for task in tasks]
-
-@app.post("/api/users/create")
-async def create_user(user_data: UserCreate, db: Session = Depends(get_db)):
-    try:
-        existing_user = db.query(User).filter(
-            (User.username == user_data.username) | (User.email == user_data.email)
-        ).first()
-        
-        if existing_user:
-            raise HTTPException(status_code=400, detail="Username or email already exists")
-        
-        new_user = User(
-            username=user_data.username,
-            email=user_data.email,
-            full_name=user_data.full_name
-        )
-        
-        db.add(new_user)
-        db.commit()
-        db.refresh(new_user)
-        
-        logger.info(f"✅ New user created: {user_data.username}")
-        
-        return {
-            "message": "User created successfully",
-            "user": new_user.to_dict()
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Error creating user: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/tasks/create")
-async def create_task(task_data: TaskCreate, db: Session = Depends(get_db)):
-    try:
-        user = db.query(User).filter(User.id == task_data.user_id).first()
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        new_task = Task(
-            user_id=task_data.user_id,
-            title=task_data.title,
-            description=task_data.description,
-            status=task_data.status,
-            priority=task_data.priority
-        )
-        
-        db.add(new_task)
-        db.commit()
-        db.refresh(new_task)
-        
-        logger.info(f"✅ New task created: '{task_data.title}'")
-        
-        return {
-            "message": "Task created successfully",
-            "task": new_task.to_dict()
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Error creating task: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.on_event("startup")
-async def startup_event():
-    logger.info(f"========================================")
-    logger.info(f"Starting {APP_NAME}")
-    logger.info(f"Environment: {APP_ENV}")
-    
-    connected, message = check_db_connection()
-    if connected:
-        logger.info(f"✅ {message}")
-    else:
-        logger.warning(f"⚠️ {message}")
-    
-    if k8s_available:
-        logger.info(f"✅ Kubernetes client ready")
-    else:
-        logger.warning(f"⚠️ Kubernetes client not available")
-    
-    logger.info(f"Application ready")
-    logger.info(f"========================================")
+@app.get("/api/load-test/status")
+async def load_test_status():
+    """Get load test status"""
+    return {
+        "running": load_test_running,
+        "status": "running" if load_test_running else "stopped"
+    }
 
 @app.get("/api/scenarios")
 async def get_scenarios():
-    """Get list of available scenarios with proper error handling"""
+    """Get list of all available scenarios with enhanced metadata"""
     try:
         scenarios_dir = Path("/scenarios")
         
-        # Check if directory exists
         if not scenarios_dir.exists():
-            logger.warning(f"Scenarios directory not found: {scenarios_dir}")
+            logger.warning(f"Scenarios directory does not exist: {scenarios_dir}")
             return {"scenarios": []}
         
         if not scenarios_dir.is_dir():
@@ -588,7 +505,8 @@ async def get_scenarios():
                     "difficulty": "medium",
                     "duration": "20 min",
                     "special": "special" in scenario_dir.name.lower(),
-                    "readme": ""
+                    "readme": "",
+                    "command_count": 0
                 }
                 
                 # Read README if it exists
@@ -599,17 +517,8 @@ async def get_scenarios():
                             # Extract first non-header paragraph as description
                             lines = [l.strip() for l in content.split('\n') if l.strip() and not l.startswith('#')]
                             if lines:
-                                scenario_info["description"] = lines[0][:200]  # Limit description length
+                                scenario_info["description"] = lines[0][:200]
                             scenario_info["readme"] = content
-                    except UnicodeDecodeError:
-                        logger.warning(f"Unicode decode error reading README for {scenario_dir.name}, trying with errors='replace'")
-                        try:
-                            with open(readme_path, 'r', encoding='utf-8', errors='replace') as f:
-                                content = f.read()
-                                scenario_info["readme"] = content
-                        except Exception as e:
-                            logger.error(f"Failed to read README for {scenario_dir.name}: {e}")
-                            scenario_info["readme"] = f"Error loading README: {str(e)}"
                     except Exception as e:
                         logger.error(f"Error reading README for {scenario_dir.name}: {e}")
                         scenario_info["readme"] = f"Error loading README: {str(e)}"
@@ -619,23 +528,16 @@ async def get_scenarios():
                     try:
                         with open(commands_path, 'r', encoding='utf-8') as f:
                             commands_data = json.load(f)
-                            scenario_info["commands"] = commands_data.get("commands", [])
+                            scenario_info["command_count"] = len(commands_data.get("commands", []))
                             scenario_info["difficulty"] = commands_data.get("difficulty", "medium")
                             scenario_info["duration"] = commands_data.get("duration", "20 min")
-                    except json.JSONDecodeError as e:
-                        logger.error(f"JSON decode error in commands.json for {scenario_dir.name}: {e}")
-                        scenario_info["commands"] = []
                     except Exception as e:
                         logger.error(f"Error reading commands.json for {scenario_dir.name}: {e}")
-                        scenario_info["commands"] = []
-                else:
-                    scenario_info["commands"] = []
                 
                 scenarios.append(scenario_info)
                 
             except Exception as e:
                 logger.error(f"Error processing scenario {scenario_dir.name}: {e}")
-                # Continue with next scenario instead of failing completely
                 continue
         
         logger.info(f"Successfully processed {len(scenarios)} scenarios")
@@ -643,12 +545,11 @@ async def get_scenarios():
         
     except Exception as e:
         logger.error(f"Fatal error in get_scenarios: {e}", exc_info=True)
-        # Return empty list instead of crashing
         return {"scenarios": [], "error": str(e)}
 
 @app.get("/api/scenarios/{scenario_id}")
 async def get_scenario(scenario_id: str):
-    """Get details of a specific scenario with proper error handling"""
+    """Get detailed information about a specific scenario including YAML files"""
     try:
         scenario_dir = Path(f"/scenarios/{scenario_id}")
         
@@ -660,10 +561,12 @@ async def get_scenario(scenario_id: str):
             "name": scenario_id.replace("-", " ").title(),
             "readme": "",
             "commands": [],
+            "yaml_files": [],
             "difficulty": "medium",
             "duration": "20 min"
         }
         
+        # Read README
         readme_path = scenario_dir / "README.md"
         if readme_path.exists():
             try:
@@ -673,6 +576,7 @@ async def get_scenario(scenario_id: str):
                 logger.error(f"Error reading README for {scenario_id}: {e}")
                 scenario_info["readme"] = f"Error loading README: {str(e)}"
         
+        # Read commands.json
         commands_path = scenario_dir / "commands.json"
         if commands_path.exists():
             try:
@@ -683,129 +587,31 @@ async def get_scenario(scenario_id: str):
                     scenario_info["duration"] = commands_data.get("duration", "20 min")
             except Exception as e:
                 logger.error(f"Error reading commands.json for {scenario_id}: {e}")
+                scenario_info["commands"] = []
+        
+        # Find all YAML files in the scenario directory
+        try:
+            yaml_files = list(scenario_dir.glob("*.yaml")) + list(scenario_dir.glob("*.yml"))
+            for yaml_file in yaml_files:
+                try:
+                    with open(yaml_file, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        scenario_info["yaml_files"].append({
+                            "name": yaml_file.name,
+                            "content": content
+                        })
+                except Exception as e:
+                    logger.error(f"Error reading YAML file {yaml_file.name}: {e}")
+        except Exception as e:
+            logger.error(f"Error finding YAML files for {scenario_id}: {e}")
         
         return scenario_info
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error in get_scenario for {scenario_id}: {e}", exc_info=True)
+        logger.error(f"Error in get_scenario: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
-
-# ========================================
-# COMMAND EXECUTION ENDPOINT (NEW!)
-# ========================================
-@app.post("/api/execute")
-async def execute_command(request: CommandRequest):
-    """
-    Execute commands in the container
-    This endpoint allows the terminal to run ANY command
-    """
-    try:
-        command = request.command.strip()
-        
-        if not command:
-            return {
-                "stdout": "",
-                "stderr": "No command provided",
-                "returncode": 1
-            }
-        
-        logger.info(f"Executing command: {command}")
-        
-        # Special handling for watch commands
-        is_watch_command = ' -w' in command or '--watch' in command or ' watch ' in command
-        
-        if is_watch_command:
-            # For watch commands, run for limited time and return output
-            logger.info("Watch command detected - running for 15 seconds")
-            try:
-                import signal
-                
-                # Start the process
-                process = subprocess.Popen(
-                    command,
-                    shell=True,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True,
-                    cwd="/app/src"
-                )
-                
-                # Wait for 15 seconds
-                try:
-                    stdout, stderr = process.communicate(timeout=15)
-                    returncode = process.returncode
-                except subprocess.TimeoutExpired:
-                    # Kill the process after timeout
-                    process.kill()
-                    stdout, stderr = process.communicate()
-                    returncode = 0  # Treat as success since watch commands run indefinitely
-                    
-                    # Add helpful message
-                    if stdout:
-                        stdout += "\n[Watch stopped after 15 seconds - press Ctrl+C to stop watch commands]"
-                    else:
-                        stdout = "[Watch stopped after 15 seconds - no output captured]\n[Tip: Watch commands show live updates. The output above is from 15 seconds of monitoring]"
-                
-                return {
-                    "stdout": stdout,
-                    "stderr": stderr,
-                    "returncode": returncode
-                }
-                
-            except Exception as e:
-                logger.error(f"Watch command error: {e}")
-                return {
-                    "stdout": "",
-                    "stderr": f"Error executing watch command: {str(e)}",
-                    "returncode": 1
-                }
-        
-        # Regular commands - use standard timeout
-        try:
-            timeout = 30
-            
-            # Execute command using subprocess
-            result = subprocess.run(
-                command,
-                shell=True,
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-                cwd="/app/src"
-            )
-            
-            logger.info(f"Command completed with returncode: {result.returncode}")
-            
-            return {
-                "stdout": result.stdout,
-                "stderr": result.stderr,
-                "returncode": result.returncode
-            }
-            
-        except subprocess.TimeoutExpired:
-            logger.error(f"Command timed out after {timeout} seconds")
-            return {
-                "stdout": "",
-                "stderr": f"Command timed out after {timeout} seconds. Tip: For long-running commands, consider using & to run in background.",
-                "returncode": 124
-            }
-        except Exception as e:
-            logger.error(f"Command execution error: {e}")
-            return {
-                "stdout": "",
-                "stderr": str(e),
-                "returncode": 1
-            }
-            
-    except Exception as e:
-        logger.error(f"Error in execute_command endpoint: {e}")
-        return {
-            "stdout": "",
-            "stderr": f"Server error: {str(e)}",
-            "returncode": 1
-        }
 
 @app.post("/api/scenarios/{scenario_id}/validate")
 async def validate_scenario(scenario_id: str):
@@ -816,71 +622,58 @@ async def validate_scenario(scenario_id: str):
         scenario_dir = Path(f"/scenarios/{scenario_id}")
         validate_script = scenario_dir / "validate.sh"
         
-        # If validation script exists, run it
-        if validate_script.exists():
-            try:
-                result = subprocess.run(
-                    ["bash", str(validate_script)],
-                    capture_output=True,
-                    text=True,
-                    timeout=60,
-                    cwd=str(scenario_dir)
-                )
-                
-                return {
-                    "success": result.returncode == 0,
-                    "message": "Validation completed",
-                    "output": result.stdout,
-                    "error": result.stderr,
-                    "returncode": result.returncode
-                }
-            except subprocess.TimeoutExpired:
-                return {"success": False, "message": "Validation timed out", "checks": []}
-            except Exception as e:
-                return {"success": False, "message": str(e), "checks": []}
+        if not validate_script.exists():
+            return {
+                "success": False,
+                "message": "No validation script found for this scenario",
+                "output": "",
+                "error": ""
+            }
         
-        # If no validation script, do basic checks
-        checks = []
-        
-        # Example: Check HPA scenario
-        if "hpa" in scenario_id.lower() or "01" in scenario_id:
+        try:
             result = subprocess.run(
-                "kubectl get hpa -n k8s-multi-demo",
-                shell=True,
+                ["bash", str(validate_script)],
                 capture_output=True,
                 text=True,
-                timeout=10
+                timeout=60,
+                cwd=str(scenario_dir)
             )
-            hpa_exists = result.returncode == 0 and len(result.stdout.strip()) > 0
-            checks.append({
-                "name": "HPA resource exists",
-                "passed": hpa_exists
-            })
-        
-        # If no specific checks, return generic success
-        if not checks:
-            checks = [{"name": "Scenario validation", "passed": True}]
-        
-        all_passed = all(check["passed"] for check in checks)
-        
-        return {
-            "success": all_passed,
-            "message": "All checks passed!" if all_passed else "Some checks failed",
-            "checks": checks
-        }
-        
+            
+            return {
+                "success": result.returncode == 0,
+                "message": "Validation completed successfully" if result.returncode == 0 else "Validation completed with failures",
+                "output": result.stdout,
+                "error": result.stderr,
+                "returncode": result.returncode
+            }
+            
+        except subprocess.TimeoutExpired:
+            return {
+                "success": False,
+                "message": "Validation timed out after 60 seconds",
+                "output": "",
+                "error": "Timeout expired"
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"Validation error: {str(e)}",
+                "output": "",
+                "error": str(e)
+            }
+            
     except Exception as e:
-        logger.error(f"Error validating scenario: {e}")
+        logger.error(f"Error in validate_scenario: {e}")
         return {
             "success": False,
-            "message": f"Validation error: {str(e)}",
-            "checks": []
+            "message": f"Server error: {str(e)}",
+            "output": "",
+            "error": str(e)
         }
-
 
 @app.post("/api/scenarios/{scenario_id}/reset")
 async def reset_scenario(scenario_id: str):
-    """Reset a scenario by running its cleanup script"""
+    """Reset a scenario by cleaning up resources"""
     try:
         logger.info(f"Resetting scenario: {scenario_id}")
         
@@ -888,9 +681,12 @@ async def reset_scenario(scenario_id: str):
         cleanup_script = scenario_dir / "cleanup.sh"
         
         if not cleanup_script.exists():
+            # If no cleanup script, try to provide generic cleanup based on scenario
             return {
                 "success": False,
-                "message": "No cleanup script found for this scenario"
+                "message": "No cleanup script found. Please manually clean up resources.",
+                "output": "",
+                "error": ""
             }
         
         try:
@@ -910,144 +706,28 @@ async def reset_scenario(scenario_id: str):
             }
             
         except subprocess.TimeoutExpired:
-            return {"success": False, "message": "Reset timed out"}
+            return {
+                "success": False,
+                "message": "Reset timed out after 60 seconds",
+                "output": "",
+                "error": "Timeout expired"
+            }
         except Exception as e:
-            return {"success": False, "message": str(e)}
+            return {
+                "success": False,
+                "message": f"Reset error: {str(e)}",
+                "output": "",
+                "error": str(e)
+            }
             
     except Exception as e:
         logger.error(f"Error resetting scenario: {e}")
         return {
             "success": False,
-            "message": f"Reset error: {str(e)}"
+            "message": f"Reset error: {str(e)}",
+            "output": "",
+            "error": str(e)
         }
-
-@app.websocket("/ws/terminal/{scenario_id}")
-async def terminal_websocket(websocket: WebSocket, scenario_id: str):
-    """WebSocket endpoint for interactive terminal"""
-    await websocket.accept()
-    logger.info(f"Terminal WebSocket connected for scenario: {scenario_id}")
-    
-    try:
-        while True:
-            # Receive command from client
-            data = await websocket.receive_text()
-            message = json.loads(data)
-            
-            if message.get("type") == "command":
-                command = message.get("command", "").strip()
-                
-                if not command:
-                    continue
-                
-                # Security: Validate command (basic validation)
-                # In production, you'd want more strict validation
-                logger.info(f"Executing command: {command}")
-                
-                try:
-                    # Execute command in a subprocess
-                    process = await asyncio.create_subprocess_shell(
-                        command,
-                        stdout=asyncio.subprocess.PIPE,
-                        stderr=asyncio.subprocess.PIPE,
-                        stdin=asyncio.subprocess.PIPE,
-                    )
-                    
-                    # Send output as it comes
-                    async def read_stream(stream, stream_type):
-                        while True:
-                            line = await stream.readline()
-                            if not line:
-                                break
-                            
-                            output = line.decode('utf-8', errors='replace')
-                            await websocket.send_json({
-                                "type": "output",
-                                "stream": stream_type,
-                                "data": output
-                            })
-                    
-                    # Read both stdout and stderr concurrently
-                    await asyncio.gather(
-                        read_stream(process.stdout, "stdout"),
-                        read_stream(process.stderr, "stderr")
-                    )
-                    
-                    # Wait for process to complete
-                    await process.wait()
-                    
-                    # Send completion message
-                    await websocket.send_json({
-                        "type": "complete",
-                        "returncode": process.returncode
-                    })
-                    
-                except Exception as e:
-                    logger.error(f"Command execution error: {e}")
-                    await websocket.send_json({
-                        "type": "error",
-                        "message": str(e)
-                    })
-            
-            elif message.get("type") == "validate":
-                # Run validation script
-                scenario_dir = Path(f"/scenarios/{scenario_id}")
-                validate_script = scenario_dir / "validate.sh"
-                
-                if validate_script.exists():
-                    try:
-                        process = await asyncio.create_subprocess_shell(
-                            f"bash {validate_script}",
-                            stdout=asyncio.subprocess.PIPE,
-                            stderr=asyncio.subprocess.PIPE,
-                            cwd=str(scenario_dir)
-                        )
-                        
-                        # Stream validation output
-                        async def read_stream(stream, stream_type):
-                            while True:
-                                line = await stream.readline()
-                                if not line:
-                                    break
-                                
-                                output = line.decode('utf-8', errors='replace')
-                                await websocket.send_json({
-                                    "type": "validation_output",
-                                    "stream": stream_type,
-                                    "data": output
-                                })
-                        
-                        await asyncio.gather(
-                            read_stream(process.stdout, "stdout"),
-                            read_stream(process.stderr, "stderr")
-                        )
-                        
-                        await process.wait()
-                        
-                        await websocket.send_json({
-                            "type": "validation_complete",
-                            "success": process.returncode == 0,
-                            "returncode": process.returncode
-                        })
-                        
-                    except Exception as e:
-                        await websocket.send_json({
-                            "type": "error",
-                            "message": f"Validation error: {str(e)}"
-                        })
-                else:
-                    await websocket.send_json({
-                        "type": "error",
-                        "message": "Validation script not found"
-                    })
-    
-    except WebSocketDisconnect:
-        logger.info(f"Terminal WebSocket disconnected for scenario: {scenario_id}")
-    except Exception as e:
-        logger.error(f"WebSocket error: {e}")
-        try:
-            await websocket.close()
-        except:
-            pass
 
 @app.on_event("shutdown")
 async def shutdown_event():

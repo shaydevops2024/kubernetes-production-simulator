@@ -1,31 +1,70 @@
 {
   "difficulty": "easy",
-  "duration": "15 min",
+  "duration": "10 min",
   "commands": [
     {
-      "name": "Check Initial State",
+      "name": "Step 1: Check Current Pod Status",
       "command": "kubectl get pods -n k8s-multi-demo",
-      "description": "Note pod names and count"
+      "description": "List all pods and their current running status",
+      "explanation": "Before testing self-healing, we establish a baseline of healthy pods. Kubernetes Deployments maintain desired replica count - if a pod dies, the controller immediately creates a replacement. This is the foundation of Kubernetes self-healing.",
+      "what_it_does": "Shows all pods with status, age, and restart count. All should be Running with 0 restarts initially.",
+      "next_step": "Note the pod names and count. We'll delete one and watch Kubernetes recreate it automatically."
     },
     {
-      "name": "Delete a Pod",
-      "command": "kubectl delete pod -n k8s-multi-demo -l app=k8s-demo-app --field-selector=status.phase=Running | head -1",
-      "description": "Force delete one pod"
+      "name": "Step 2: Delete a Pod to Trigger Self-Healing",
+      "command": "kubectl delete pod -n k8s-multi-demo $(kubectl get pods -n k8s-multi-demo -o name | grep k8s-demo-deployment | head -1)",
+      "description": "Forcibly delete one pod to simulate a failure",
+      "explanation": "This simulates a pod crash or node failure. The command uses a subshell '$()' to get one pod name and delete it. Because the pod belongs to a Deployment, the ReplicaSet controller immediately detects replica count is below desired and creates a replacement.",
+      "what_it_does": "Deletes one random pod from the deployment. Kubernetes reconciliation loop kicks in within seconds to create a replacement.",
+      "next_step": "Pod is deleted. The Deployment controller is already creating a new pod to maintain the desired replica count."
     },
     {
-      "name": "Watch Recovery",
+      "name": "Step 3: Watch Self-Healing in Action",
       "command": "kubectl get pods -n k8s-multi-demo -w",
-      "description": "Watch pod being recreated"
+      "description": "Monitor pods in real-time to see the new pod being created (Press Ctrl+C to stop)",
+      "explanation": "The watch flag streams pod changes. You'll see the deleted pod in 'Terminating' state while a new pod appears in 'ContainerCreating' then 'Running'. This demonstrates Kubernetes' declarative model - you declare desired state (N replicas), and Kubernetes maintains it.",
+      "what_it_does": "Displays live pod status updates showing the deleted pod terminating and a new pod being created and started.",
+      "next_step": "Wait until you see a new pod reach 'Running' state with READY 1/1, then press Ctrl+C."
     },
     {
-      "name": "Check Events",
-      "command": "kubectl get events -n k8s-multi-demo --sort-by='.lastTimestamp' | grep -i 'created\\|started'",
-      "description": "View recovery events"
+      "name": "Step 4: Verify Replica Count Maintained",
+      "command": "kubectl get deployment k8s-demo-deployment -n k8s-multi-demo",
+      "description": "Confirm the deployment still has the desired number of pods",
+      "explanation": "Even after deleting a pod, the READY column should show the desired replica count (e.g., 2/2). This proves the ReplicaSet controller successfully healed the disruption by creating a replacement pod.",
+      "what_it_does": "Shows deployment status with current vs. desired replicas. Should be equal, proving self-healing worked.",
+      "next_step": "READY should match DESIRED (e.g., 2/2). This confirms self-healing maintained availability despite the pod deletion."
     },
     {
-      "name": "Verify Final State",
+      "name": "Step 5: Check Pod Ages",
+      "command": "kubectl get pods -n k8s-multi-demo -o custom-columns=NAME:.metadata.name,AGE:.metadata.creationTimestamp",
+      "description": "View pod creation times to identify the newly created pod",
+      "explanation": "After self-healing, one pod will have a very recent creation time compared to others. This custom-columns output shows exact creation timestamps, proving a new pod was created rather than the old one recovering.",
+      "what_it_does": "Lists pods with their exact creation timestamps. The newest pod is the one created by self-healing.",
+      "next_step": "One pod will have a timestamp from seconds/minutes ago - that's the self-healed replacement."
+    },
+    {
+      "name": "Step 6: Simulate Multiple Pod Failures",
+      "command": "kubectl delete pods -n k8s-multi-demo -l app=k8s-demo --force --grace-period=0",
+      "description": "Delete ALL app pods simultaneously",
+      "explanation": "This tests Kubernetes' ability to recover from massive failures. '--force --grace-period=0' immediately kills all matching pods. The Deployment controller detects all replicas are gone and rapidly creates replacements. '--force' is dangerous in production - use only for testing!",
+      "what_it_does": "Immediately terminates all pods with the app=k8s-demo label. ReplicaSet controller creates replacements for all of them.",
+      "next_step": "Multiple pods are being deleted. Kubernetes will recreate all of them to meet the desired replica count."
+    },
+    {
+      "name": "Step 7: Monitor Mass Recovery",
       "command": "kubectl get pods -n k8s-multi-demo",
-      "description": "Confirm all pods are running"
+      "description": "Check that all pods were recreated after mass deletion",
+      "explanation": "After deleting all pods, run this command every few seconds. You'll see all pods have recent creation times and restart counts reset to 0 (they're new pods, not restarts). This demonstrates Kubernetes can recover from complete application failure.",
+      "what_it_does": "Shows current pod status. All should be Running with ages of seconds/minutes, proving mass recreation succeeded.",
+      "next_step": "All pods should be Running. Their ages will be very recent (all created around the same time)."
+    },
+    {
+      "name": "Step 8: Verify Service Availability",
+      "command": "kubectl get endpoints -n k8s-multi-demo",
+      "description": "Check that service endpoints were updated with new pod IPs",
+      "explanation": "When pods are recreated, they get new IP addresses. Kubernetes Services automatically update their endpoint list to point to the new IPs. This shows how Services abstract away pod IP changes, maintaining connectivity even during self-healing.",
+      "what_it_does": "Displays service endpoints showing IP addresses of backing pods. Should show current running pod IPs, not old ones.",
+      "next_step": "Endpoints should match current pod IPs. This proves the service automatically tracked the new pods created by self-healing."
     }
   ]
 }

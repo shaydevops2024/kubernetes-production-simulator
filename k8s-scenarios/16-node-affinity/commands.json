@@ -1,36 +1,88 @@
 {
   "difficulty": "medium",
-  "duration": "25 min",
+  "duration": "20 min",
   "commands": [
     {
-      "name": "List Node Labels",
+      "name": "Step 1: Label Nodes",
+      "command": "kubectl label nodes k8s-demo-worker disktype=ssd && kubectl label nodes k8s-demo-worker2 disktype=hdd",
+      "description": "Add custom labels to nodes for affinity rules",
+      "explanation": "Node affinity uses labels to control pod placement. First, label nodes with characteristics (disktype, GPU availability, zone, etc.). Then create pods with affinity rules that prefer or require specific labels. This is more flexible than nodeSelector.",
+      "what_it_does": "Labels two nodes with disktype: one ssd, one hdd. Pods can use these labels in affinity rules.",
+      "next_step": "Nodes labeled. Now pods can require or prefer specific disk types using node affinity."
+    },
+    {
+      "name": "Step 2: View Node Labels",
       "command": "kubectl get nodes --show-labels",
-      "description": "View current node labels"
+      "description": "Verify the labels were applied to nodes",
+      "explanation": "Nodes have many default labels (os, arch, hostname) plus custom labels you add. The --show-labels flag displays all labels for each node. This helps verify your labels and understand what's available for affinity rules.",
+      "what_it_does": "Lists nodes with all their labels, including the disktype labels we just added.",
+      "next_step": "Confirm disktype labels on your nodes. These will be used in affinity rules."
     },
     {
-      "name": "Add Node Label",
-      "command": "kubectl label nodes k8s-demo-control-plane workload=frontend",
-      "description": "Label a node"
+      "name": "Step 3: Deploy with Required Node Affinity",
+      "command": "kubectl apply -f node-affinity.yaml -n k8s-multi-demo",
+      "description": "Create deployment with requiredDuringSchedulingIgnoredDuringExecution affinity",
+      "explanation": "Node affinity has two types: 'required' (hard constraint - pod won't schedule if no matching nodes) and 'preferred' (soft constraint - scheduler tries to match but schedules anyway if impossible). 'requiredDuringSchedulingIgnoredDuringExecution' means the rule is enforced at scheduling but not checked after the pod is running (so nodes can be relabeled without evicting pods).",
+      "what_it_does": "Creates deployment with required affinity rule: pods must run on nodes with disktype=ssd.",
+      "next_step": "Deployment created. Scheduler will only place pods on nodes labeled disktype=ssd."
     },
     {
-      "name": "Check Pod Placement",
+      "name": "Step 4: Verify Pod Placement",
       "command": "kubectl get pods -n k8s-multi-demo -o wide",
-      "description": "See which nodes run pods"
+      "description": "Check which nodes the pods were scheduled on",
+      "explanation": "The NODE column shows where pods landed. With required affinity for disktype=ssd, all pods should be on the node(s) with that label. If no nodes match, pods stay Pending. This proves affinity rules are enforced.",
+      "what_it_does": "Lists pods with their assigned nodes. All should be on the disktype=ssd node.",
+      "next_step": "All pods should be on the node labeled disktype=ssd. No pods on disktype=hdd node."
     },
     {
-      "name": "Taint a Node",
-      "command": "kubectl taint nodes k8s-demo-control-plane key=value:NoSchedule",
-      "description": "Add taint to prevent scheduling"
+      "name": "Step 5: Check Pod Events",
+      "command": "kubectl describe pod -n k8s-multi-demo -l app=affinity-demo | grep -A 5 Events",
+      "description": "View scheduling events showing affinity decisions",
+      "explanation": "Pod events show why the scheduler placed the pod on a specific node. For affinity, you'll see messages like 'Successfully assigned' with node name, or 'FailedScheduling' if no nodes matched. Events are crucial for debugging affinity issues.",
+      "what_it_does": "Shows scheduling events for affinity-demo pods, including which node was chosen and why.",
+      "next_step": "Events show successful scheduling to disktype=ssd nodes, proving affinity rules worked."
     },
     {
-      "name": "View Taints",
-      "command": "kubectl describe nodes | grep -A 5 Taints",
-      "description": "See all node taints"
+      "name": "Step 6: Test Preferred Node Affinity",
+      "command": "kubectl apply -f node-affinity-preferred.yaml -n k8s-multi-demo",
+      "description": "Deploy with preferredDuringSchedulingIgnoredDuringExecution affinity",
+      "explanation": "Preferred affinity is a soft constraint with weight (1-100). If multiple preferences exist, scheduler adds weights for matching rules. The node with highest total weight wins. If no matching nodes exist, pods schedule anyway (unlike required). Use preferred for optimization (like spreading across zones) when hard requirements would cause scheduling failures.",
+      "what_it_does": "Creates deployment with preferred affinity: prefers disktype=ssd but can schedule on any node.",
+      "next_step": "Pods prefer ssd nodes but will schedule on hdd nodes if ssd is full or unavailable."
     },
     {
-      "name": "Remove Taint",
-      "command": "kubectl taint nodes k8s-demo-control-plane key-",
-      "description": "Remove taint"
+      "name": "Step 7: Remove Node Label",
+      "command": "kubectl label nodes k8s-demo-worker disktype-",
+      "description": "Remove label from node (note the trailing dash)",
+      "explanation": "Removing a label (with '-' suffix) doesn't affect already-running pods ('IgnoredDuringExecution' part of affinity). Existing pods stay put. Only new pods scheduled after label removal are affected. This is important - you can safely relabel nodes in production without pod disruption.",
+      "what_it_does": "Removes disktype label from k8s-demo-worker node. Running pods aren't evicted.",
+      "next_step": "Label removed. Existing pods stay running. New pods can't schedule there if they require disktype=ssd."
+    },
+    {
+      "name": "Step 8: Verify Pods Still Running",
+      "command": "kubectl get pods -n k8s-multi-demo -o wide",
+      "description": "Confirm existing pods weren't evicted after label removal",
+      "explanation": "This demonstrates 'IgnoredDuringExecution' - affinity rules are only checked at scheduling, not continuously. Even though the node no longer has the required label, pods stay running. If the pod restarts or is recreated, it won't schedule on this node anymore.",
+      "what_it_does": "Shows pods are still running on the node even after its label was removed.",
+      "next_step": "Pods remain running despite label removal, proving 'IgnoredDuringExecution' behavior."
+    },
+    {
+      "name": "Cleanup: Delete Deployments",
+      "command": "kubectl delete deployment -l app=affinity-demo -n k8s-multi-demo",
+      "description": "Remove affinity test deployments",
+      "explanation": "Clean up the test deployments used for affinity demonstration.",
+      "what_it_does": "Deletes deployments with affinity rules.",
+      "next_step": "Deployments deleted.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup: Remove Node Labels",
+      "command": "kubectl label nodes --all disktype-",
+      "description": "Remove disktype labels from all nodes",
+      "explanation": "Clean up custom labels. The '--all' flag applies to all nodes. This resets nodes to their original state.",
+      "what_it_does": "Removes disktype label from all nodes in the cluster.",
+      "next_step": "Labels removed. Nodes back to default state. Cleanup complete!",
+      "cleanup": true
     }
   ]
 }

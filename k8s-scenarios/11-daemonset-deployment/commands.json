@@ -3,29 +3,77 @@
   "duration": "15 min",
   "commands": [
     {
-      "name": "List DaemonSets",
-      "command": "kubectl get daemonset -A",
-      "description": "View all DaemonSets in cluster"
+      "name": "Step 1: Create DaemonSet",
+      "command": "kubectl apply -f daemonset.yaml -n k8s-multi-demo",
+      "description": "Deploy a DaemonSet that runs one pod on every node",
+      "explanation": "DaemonSets ensure exactly one pod copy runs on each node (or subset of nodes via node selectors). They're used for node-level services like log collectors (Fluentd), monitoring agents (Datadog, Prometheus node-exporter), or networking components (CNI). When you add a node, Kubernetes automatically schedules the DaemonSet pod there.",
+      "what_it_does": "Creates a DaemonSet. Kubernetes immediately schedules one pod per node, bypassing the normal scheduler to ensure coverage.",
+      "next_step": "DaemonSet created. Check how many pods were created - should match your node count."
     },
     {
-      "name": "Create DaemonSet",
-      "command": "kubectl apply -f daemonset.yaml",
-      "description": "Deploy example DaemonSet"
-    },
-    {
-      "name": "Check DaemonSet Status",
+      "name": "Step 2: Count DaemonSet Pods",
       "command": "kubectl get daemonset -n k8s-multi-demo",
-      "description": "View DaemonSet details"
+      "description": "View DaemonSet status showing desired vs current pods",
+      "explanation": "The DESIRED column shows target pod count (number of nodes), CURRENT shows how many are running, READY shows how many passed readiness checks. For DaemonSets, DESIRED automatically adjusts as nodes are added/removed from the cluster.",
+      "what_it_does": "Shows DaemonSet summary: name, DESIRED, CURRENT, READY, UP-TO-DATE, AVAILABLE, NODE SELECTOR, AGE.",
+      "next_step": "DESIRED should equal your cluster's node count. CURRENT should match DESIRED once all pods deploy."
     },
     {
-      "name": "List DaemonSet Pods",
-      "command": "kubectl get pods -n k8s-multi-demo -o wide | grep daemonset",
-      "description": "See pods on each node"
+      "name": "Step 3: List DaemonSet Pods on Each Node",
+      "command": "kubectl get pods -n k8s-multi-demo -l app=daemonset-demo -o wide",
+      "description": "See which node each DaemonSet pod is running on",
+      "explanation": "The NODE column shows pod placement. You should see one pod per node. DaemonSets ignore node taints and resource constraints that would normally prevent scheduling - they're privileged workloads that MUST run on nodes.",
+      "what_it_does": "Lists DaemonSet pods with NODE column showing distribution. Each node should have exactly one pod.",
+      "next_step": "Verify one pod per node. If you have 3 nodes, you should see 3 pods, each on a different node."
     },
     {
-      "name": "Describe DaemonSet",
-      "command": "kubectl describe daemonset -n k8s-multi-demo",
-      "description": "View detailed information"
+      "name": "Step 4: Check Pod Distribution",
+      "command": "kubectl get nodes && kubectl get pods -n k8s-multi-demo -l app=daemonset-demo -o custom-columns=POD:.metadata.name,NODE:.spec.nodeName",
+      "description": "Compare node list with pod placement to confirm coverage",
+      "explanation": "This command shows all nodes followed by DaemonSet pod placement. Every node (except control-plane if using taints) should appear in the pod list. This proves the DaemonSet achieved full cluster coverage.",
+      "what_it_does": "First lists all nodes, then shows DaemonSet pod-to-node mapping. Easy to verify complete coverage.",
+      "next_step": "Every worker node should have a corresponding DaemonSet pod. Control-plane might be skipped due to taints."
+    },
+    {
+      "name": "Step 5: Delete a DaemonSet Pod",
+      "command": "kubectl delete pod -n k8s-multi-demo $(kubectl get pods -n k8s-multi-demo -l app=daemonset-demo -o name | head -1)",
+      "description": "Delete one pod to see it immediately recreated on the same node",
+      "explanation": "DaemonSets maintain the one-pod-per-node guarantee. When you delete a pod, the DaemonSet controller immediately creates a replacement on the SAME node. This is different from Deployments which might schedule the replacement anywhere.",
+      "what_it_does": "Deletes one DaemonSet pod. Controller immediately recreates it on the same node to maintain coverage.",
+      "next_step": "Check pods quickly - you'll see the pod being recreated on the same node it was deleted from."
+    },
+    {
+      "name": "Step 6: Verify Pod Recreated on Same Node",
+      "command": "kubectl get pods -n k8s-multi-demo -l app=daemonset-demo -o wide",
+      "description": "Confirm the new pod is on the same node as the deleted one",
+      "explanation": "DaemonSets pin pods to specific nodes. The recreated pod must be on the same node to maintain the one-per-node distribution. Check the AGE column - one pod will be very young but on the same NODE as before.",
+      "what_it_does": "Shows pods with NODE and AGE. The newest pod is on the same node where you deleted a pod.",
+      "next_step": "Node coverage maintained. One pod per node, even after deletion. This is DaemonSet's core guarantee."
+    },
+    {
+      "name": "Step 7: Check DaemonSet Update Strategy",
+      "command": "kubectl get daemonset -n k8s-multi-demo -o yaml | grep -A 5 updateStrategy",
+      "description": "View how the DaemonSet handles updates",
+      "explanation": "DaemonSets support two update strategies: RollingUpdate (gradually update pods) and OnDelete (manual update by deleting pods). RollingUpdate has maxUnavailable setting controlling how many nodes can be without the DaemonSet pod during updates. This is crucial for node-level services that need high availability.",
+      "what_it_does": "Shows updateStrategy section with type (RollingUpdate or OnDelete) and maxUnavailable setting.",
+      "next_step": "RollingUpdate is recommended for production. maxUnavailable=1 means only one node at a time loses the DaemonSet pod during updates."
+    },
+    {
+      "name": "Step 8: View DaemonSet Events",
+      "command": "kubectl describe daemonset -n k8s-multi-demo | grep -A 10 Events",
+      "description": "Check events for pod creation and scheduling activity",
+      "explanation": "DaemonSet events show when pods were created on each node. Unlike Deployments, DaemonSet scheduling is deterministic - each pod must go to a specific node. Events help debug situations where DaemonSet pods aren't appearing on certain nodes (usually due to taints or resource constraints).",
+      "what_it_does": "Shows recent DaemonSet events including SuccessfulCreate events for each pod and node.",
+      "next_step": "Look for SuccessfulCreate events. Should see one per node indicating the pod was successfully scheduled."
+    },
+    {
+      "name": "Cleanup: Delete DaemonSet",
+      "command": "kubectl delete daemonset -l app=daemonset-demo -n k8s-multi-demo",
+      "description": "Remove the DaemonSet and all its pods",
+      "explanation": "Deleting a DaemonSet immediately removes all its pods from all nodes. Unlike StatefulSets, there's no ordered deletion - all pods are terminated simultaneously. This can cause service disruption for node-level services.",
+      "what_it_does": "Deletes the DaemonSet. All pods across all nodes are terminated immediately.",
+      "next_step": "DaemonSet and all pods deleted. Cleanup complete!",
+      "cleanup": true
     }
   ]
 }

@@ -1,36 +1,86 @@
 {
-  "difficulty": "easy",
+  "difficulty": "medium",
   "duration": "20 min",
   "commands": [
     {
-      "name": "Check Current Version",
-      "command": "kubectl get deployment k8s-demo-deployment -n k8s-multi-demo -o jsonpath='{.spec.template.spec.containers[0].image}'",
-      "description": "View current image version"
+      "name": "Step 1: Check Current Deployment Version",
+      "command": "kubectl get deployment k8s-demo-deployment -n k8s-multi-demo -o jsonpath='{.spec.template.spec.containers[0].image}' && echo",
+      "description": "View the current container image version",
+      "explanation": "Before updating, we need to know what version is currently running. This jsonpath query extracts just the image field from the deployment spec. Deployments use container image tags to track versions.",
+      "what_it_does": "Extracts and displays the full image path including tag (e.g., myapp:v1.0) from the first container in the deployment spec.",
+      "next_step": "Note the current image tag. We'll update to a new version and observe the rollout process."
     },
     {
-      "name": "Update Image",
-      "command": "kubectl set image deployment/k8s-demo-deployment k8s-demo-app=k8s-demo-app:v2 -n k8s-multi-demo",
-      "description": "Trigger rolling update to v2"
-    },
-    {
-      "name": "Watch Rollout",
+      "name": "Step 2: View Current Rollout Status",
       "command": "kubectl rollout status deployment/k8s-demo-deployment -n k8s-multi-demo",
-      "description": "Monitor rollout progress"
+      "description": "Check the current state of the deployment rollout",
+      "explanation": "The rollout status command shows whether a deployment is currently updating or stable. Before starting an update, we verify there's no ongoing rollout. This prevents update conflicts.",
+      "what_it_does": "Shows rollout progress. If stable, returns 'deployment successfully rolled out'. If updating, shows progress like '1 out of 2 new replicas have been updated'.",
+      "next_step": "Should show 'successfully rolled out'. If it shows updating, wait for completion before proceeding."
     },
     {
-      "name": "View Rollout History",
+      "name": "Step 3: Deploy Version 1",
+      "command": "kubectl apply -f deployment-v1.yaml -n k8s-multi-demo",
+      "description": "Deploy or verify the initial version (v1)",
+      "explanation": "This applies deployment-v1.yaml which sets up our baseline version. If the deployment exists, 'apply' updates it. If not, it creates it. Kubernetes compares the desired state (YAML) with current state and makes necessary changes.",
+      "what_it_does": "Creates or updates the deployment to v1 configuration. Kubernetes creates pods matching the v1 spec.",
+      "next_step": "Wait for pods to be ready. The deployment controller will create new pods if needed."
+    },
+    {
+      "name": "Step 4: Monitor Initial Deployment",
+      "command": "kubectl get pods -n k8s-multi-demo -w",
+      "description": "Watch pods being created for v1 (Press Ctrl+C to stop)",
+      "explanation": "The watch flag streams pod status changes. For a new deployment, you'll see pods go from Pending -> ContainerCreating -> Running. For updates, you'll see new pods created while old ones terminate. This real-time view helps understand deployment behavior.",
+      "what_it_does": "Continuously displays pod status changes until you press Ctrl+C. Shows the complete lifecycle of pod creation and initialization.",
+      "next_step": "Wait until all pods show '1/1 Ready' status, then press Ctrl+C to stop watching."
+    },
+    {
+      "name": "Step 5: Update to Version 2",
+      "command": "kubectl apply -f deployment-v2.yaml -n k8s-multi-demo",
+      "description": "Apply the updated deployment manifest with v2",
+      "explanation": "This triggers a rolling update. Kubernetes compares v2 YAML with the current deployment, detects the image change, and begins gradually replacing v1 pods with v2 pods. The RollingUpdate strategy (maxUnavailable, maxSurge) controls how many pods update at once.",
+      "what_it_does": "Updates the deployment spec to v2. Deployment controller starts creating v2 pods and terminating v1 pods according to the rolling update strategy.",
+      "next_step": "The update begins immediately. Kubernetes will maintain minimum availability while transitioning to v2."
+    },
+    {
+      "name": "Step 6: Watch Rolling Update Progress",
+      "command": "kubectl rollout status deployment/k8s-demo-deployment -n k8s-multi-demo",
+      "description": "Monitor the rolling update in real-time",
+      "explanation": "Rollout status provides live progress updates during deployment changes. It shows how many pods have been updated and how many are waiting. This is essential for monitoring production deployments.",
+      "what_it_does": "Tracks the rollout showing messages like 'Waiting for deployment rollout to finish: 1 out of 2 new replicas have been updated' until completion.",
+      "next_step": "Command will block until rollout completes. You'll see progress messages, then 'deployment successfully rolled out' when done."
+    },
+    {
+      "name": "Step 7: Verify New Version Running",
+      "command": "kubectl get pods -n k8s-multi-demo -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.spec.containers[0].image}{\"\\n\"}{end}'",
+      "description": "List all pods with their image versions",
+      "explanation": "After the rollout, we verify all pods are running the new image. This jsonpath creates a table showing pod names and images. All pods should show the v2 image tag if the rollout succeeded.",
+      "what_it_does": "Displays a tab-separated list of pod names and their container images, confirming all pods are on v2.",
+      "next_step": "All pod images should show the v2 tag. If any show v1, the rollout may have failed or is incomplete."
+    },
+    {
+      "name": "Step 8: Check Rollout History",
       "command": "kubectl rollout history deployment/k8s-demo-deployment -n k8s-multi-demo",
-      "description": "See deployment revisions"
+      "description": "View deployment revision history",
+      "explanation": "Kubernetes keeps a history of deployment revisions. Each rollout creates a new revision. By default, it keeps the last 10 revisions. This history enables rollbacks to previous versions if the new version has issues.",
+      "what_it_does": "Lists all deployment revisions with revision numbers and change causes. Most recent is at the bottom.",
+      "next_step": "You'll see at least 2 revisions: the original v1 and the current v2. REVISION column numbers them sequentially."
     },
     {
-      "name": "Rollback Deployment",
+      "name": "Step 9: Rollback to Previous Version",
       "command": "kubectl rollout undo deployment/k8s-demo-deployment -n k8s-multi-demo",
-      "description": "Rollback to previous version"
+      "description": "Rollback the deployment to the previous revision",
+      "explanation": "'rollout undo' reverts to the previous revision, which is v1 in our case. This is crucial for quickly recovering from bad deployments. Undo triggers another rolling update, but backwards - replacing v2 pods with v1 pods.",
+      "what_it_does": "Initiates a rollback to the previous revision (revision N-1). Uses the same rolling update strategy but in reverse.",
+      "next_step": "Rollback begins immediately. Monitor with 'kubectl rollout status' to see it complete."
     },
     {
-      "name": "Verify Pods",
-      "command": "kubectl get pods -n k8s-multi-demo",
-      "description": "Check all pods are running"
+      "name": "Step 10: Verify Rollback Succeeded",
+      "command": "kubectl get deployment k8s-demo-deployment -n k8s-multi-demo -o jsonpath='{.spec.template.spec.containers[0].image}' && echo",
+      "description": "Confirm the deployment is back to v1",
+      "explanation": "After rollback, we verify the deployment spec shows the v1 image again. This confirms the undo operation succeeded and we're back to the known-good state.",
+      "what_it_does": "Displays the current image tag from the deployment spec. Should show v1 after successful rollback.",
+      "next_step": "Image should show v1 tag. Rollback complete! This demonstrates how Kubernetes enables safe, quick recovery from bad deployments."
     }
   ]
 }
