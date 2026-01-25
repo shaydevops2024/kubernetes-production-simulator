@@ -1,4 +1,3 @@
-<!-- app/src/static/scenario-detail.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,61 +6,84 @@
     <title>Kubernetes Scenario - Learn by Doing</title>
     <link rel="stylesheet" href="/static/style.css">
     <style>
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
+            padding: 0;
         }
 
         .container {
-            max-width: 1600px;
-            margin: 0 auto;
-            padding: 20px;
+            max-width: 100%;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 700;
+            transition: all 0.2s;
+            margin-bottom: 15px;
+            width: fit-content;
+        }
+
+        .back-button:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
         }
 
         .header {
             background: white;
             border-radius: 16px;
-            padding: 40px;
-            margin-bottom: 20px;
+            padding: 30px 40px;
+            margin-bottom: 15px;
             box-shadow: 0 8px 16px rgba(0,0,0,0.1);
             border-left: 6px solid #667eea;
         }
 
-        .header-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 20px;
-        }
-
         .header h1 {
-            margin: 0 0 15px 0;
+            margin: 0 0 12px 0;
             color: #1a202c;
-            font-size: 36px;
+            font-size: 32px;
             font-weight: 800;
         }
 
         .header-subtitle {
             color: #6b7280;
-            font-size: 18px;
-            margin-bottom: 20px;
-            line-height: 1.6;
+            font-size: 16px;
+            margin-bottom: 18px;
+            line-height: 1.5;
         }
 
         .scenario-meta {
             display: flex;
-            gap: 15px;
+            gap: 12px;
             flex-wrap: wrap;
             align-items: center;
         }
 
         .meta-badge {
-            padding: 8px 16px;
+            padding: 7px 14px;
             border-radius: 8px;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
             display: flex;
             align-items: center;
@@ -76,57 +98,74 @@
 
         .content-grid {
             display: grid;
-            grid-template-columns: 400px 1fr;
-            gap: 20px;
-            margin-top: 20px;
+            grid-template-columns: 30% 70%;
+            gap: 15px;
+            flex: 1;
+            min-height: 0;
+            height: calc(100vh - 250px);
+        }
+
+        @media (max-width: 1400px) {
+            .content-grid {
+                grid-template-columns: 35% 65%;
+            }
         }
 
         @media (max-width: 1200px) {
             .content-grid {
                 grid-template-columns: 1fr;
+                height: auto;
             }
         }
 
         .readme-panel {
             background: white;
             border-radius: 12px;
-            padding: 30px;
+            padding: 35px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            max-height: calc(100vh - 250px);
             overflow-y: auto;
+            height: 100%;
         }
 
         .readme-panel h2 {
-            margin-top: 0;
+            margin: 0 0 20px 0;
             color: #1a202c;
-            font-size: 22px;
+            font-size: 24px;
+            font-weight: 800;
             border-bottom: 3px solid #667eea;
-            padding-bottom: 12px;
+            padding-bottom: 15px;
         }
 
         .readme-panel h3 {
             color: #374151;
-            font-size: 18px;
+            font-size: 19px;
             margin-top: 24px;
+            font-weight: 700;
         }
 
         .readme-panel p {
             color: #4b5563;
-            line-height: 1.7;
+            line-height: 1.8;
+            font-size: 15px;
         }
 
         .readme-panel ul {
             color: #4b5563;
-            line-height: 1.9;
+            line-height: 2;
+            padding-left: 20px;
+        }
+
+        .readme-panel li {
+            margin-bottom: 8px;
         }
 
         .commands-panel {
             background: white;
             border-radius: 12px;
-            padding: 30px;
+            padding: 35px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            max-height: calc(100vh - 250px);
             overflow-y: auto;
+            height: 100%;
         }
 
         .panel-header {
@@ -142,6 +181,7 @@
             margin: 0;
             color: #1a202c;
             font-size: 24px;
+            font-weight: 800;
         }
 
         .validate-btn {
@@ -191,7 +231,7 @@
         }
 
         .command-title {
-            font-size: 17px;
+            font-size: 18px;
             font-weight: 700;
             color: #1f2937;
             margin: 0;
@@ -307,6 +347,7 @@
             color: #1a202c;
             font-size: 20px;
             margin-bottom: 20px;
+            font-weight: 700;
         }
 
         .yaml-file {
@@ -324,6 +365,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            font-size: 16px;
         }
 
         .yaml-content {
@@ -372,36 +414,15 @@
             white-space: pre-wrap;
         }
 
-        .back-button {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 24px;
-            background: white;
-            color: #667eea;
-            border: 2px solid #667eea;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 700;
-            transition: all 0.2s;
-            margin-bottom: 20px;
-        }
-
-        .back-button:hover {
-            background: #667eea;
-            color: white;
-            transform: translateY(-2px);
-        }
-
         .loading {
             text-align: center;
             padding: 60px 20px;
-            color: #6b7280;
+            color: white;
         }
 
         .spinner {
-            border: 4px solid #f3f4f6;
-            border-top: 4px solid #667eea;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
             border-radius: 50%;
             width: 40px;
             height: 40px;
@@ -452,13 +473,9 @@
             
             const html = `
                 <div class="header">
-                    <div class="header-top">
-                        <div>
-                            <h1>${scenario.name}</h1>
-                            <div class="header-subtitle">
-                                Hands-on Kubernetes learning - Copy commands and run them in your terminal
-                            </div>
-                        </div>
+                    <h1>${scenario.name}</h1>
+                    <div class="header-subtitle">
+                        Hands-on Kubernetes learning - Copy commands and run them in your terminal
                     </div>
                     <div class="scenario-meta">
                         <span class="meta-badge ${difficultyClass}">
@@ -472,7 +489,7 @@
                         </span>
                         ${scenario.yaml_files && scenario.yaml_files.length > 0 ? `
                             <span class="meta-badge" style="background: #fef3c7; color: #92400e;">
-                                📄 ${scenario.yaml_files.length} YAML Files
+                                📄 ${scenario.yaml_files.length} YAML ${scenario.yaml_files.length === 1 ? 'File' : 'Files'}
                             </span>
                         ` : ''}
                     </div>
@@ -535,17 +552,14 @@
         function renderCommands(commands) {
             const commandsList = document.getElementById('commands-list');
             
-            // Separate regular commands from cleanup commands
             const regularCommands = commands.filter(cmd => !cmd.cleanup);
             const cleanupCommands = commands.filter(cmd => cmd.cleanup);
             
-            // Render regular commands
             regularCommands.forEach((cmd, index) => {
                 const commandCard = createCommandCard(cmd, index);
                 commandsList.appendChild(commandCard);
             });
             
-            // Render cleanup section if there are cleanup commands
             if (cleanupCommands.length > 0) {
                 const cleanupSection = document.createElement('div');
                 cleanupSection.className = 'cleanup-section';
@@ -637,7 +651,6 @@
             });
         }
 
-        // Event delegation for copy buttons
         document.addEventListener('click', async function(e) {
             const btn = e.target.closest('.copy-btn');
             if (!btn) return;
@@ -645,7 +658,6 @@
             try {
                 let textToCopy;
                 
-                // Check if it's a command button
                 if (btn.dataset.command) {
                     textToCopy = atob(btn.dataset.command);
                     const index = parseInt(btn.dataset.index);
@@ -660,7 +672,6 @@
                     
                     showNotification('Command copied to clipboard!', 'success');
                 }
-                // Check if it's a YAML button
                 else if (btn.dataset.yamlContent) {
                     textToCopy = atob(btn.dataset.yamlContent);
                     

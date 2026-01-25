@@ -16,7 +16,7 @@
       "description": "List all pods to see the baseline number of running instances",
       "explanation": "Before generating load, we need to know how many pods are currently running. This serves as our baseline. Kubernetes shows pod status, restarts, and age - all important for monitoring scaling behavior.",
       "what_it_does": "Lists all pods with their status (Running, Pending, etc.), readiness state (e.g., 1/1), restart count, and age.",
-      "next_step": "Count the number of k8s-demo-deployment pods. This should match the HPA's current replicas (usually 2 at baseline)."
+      "next_step": "Count the number of k8s-demo-app pods. This should match the HPA's current replicas (usually 2 at baseline)."
     },
     {
       "name": "Step 3: Monitor Resource Usage",
