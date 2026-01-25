@@ -713,14 +713,66 @@ async def execute_command(request: CommandRequest):
         
         logger.info(f"Executing command: {command}")
         
+        # Special handling for watch commands
+        is_watch_command = ' -w' in command or '--watch' in command or ' watch ' in command
+        
+        if is_watch_command:
+            # For watch commands, run for limited time and return output
+            logger.info("Watch command detected - running for 15 seconds")
+            try:
+                import signal
+                
+                # Start the process
+                process = subprocess.Popen(
+                    command,
+                    shell=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    cwd="/app/src"
+                )
+                
+                # Wait for 15 seconds
+                try:
+                    stdout, stderr = process.communicate(timeout=15)
+                    returncode = process.returncode
+                except subprocess.TimeoutExpired:
+                    # Kill the process after timeout
+                    process.kill()
+                    stdout, stderr = process.communicate()
+                    returncode = 0  # Treat as success since watch commands run indefinitely
+                    
+                    # Add helpful message
+                    if stdout:
+                        stdout += "\n[Watch stopped after 15 seconds - press Ctrl+C to stop watch commands]"
+                    else:
+                        stdout = "[Watch stopped after 15 seconds - no output captured]\n[Tip: Watch commands show live updates. The output above is from 15 seconds of monitoring]"
+                
+                return {
+                    "stdout": stdout,
+                    "stderr": stderr,
+                    "returncode": returncode
+                }
+                
+            except Exception as e:
+                logger.error(f"Watch command error: {e}")
+                return {
+                    "stdout": "",
+                    "stderr": f"Error executing watch command: {str(e)}",
+                    "returncode": 1
+                }
+        
+        # Regular commands - use standard timeout
         try:
+            timeout = 30
+            
             # Execute command using subprocess
             result = subprocess.run(
                 command,
                 shell=True,
                 capture_output=True,
                 text=True,
-                timeout=30,
+                timeout=timeout,
                 cwd="/app/src"
             )
             
@@ -733,10 +785,10 @@ async def execute_command(request: CommandRequest):
             }
             
         except subprocess.TimeoutExpired:
-            logger.error("Command timed out")
+            logger.error(f"Command timed out after {timeout} seconds")
             return {
                 "stdout": "",
-                "stderr": "Command timed out after 30 seconds",
+                "stderr": f"Command timed out after {timeout} seconds. Tip: For long-running commands, consider using & to run in background.",
                 "returncode": 124
             }
         except Exception as e:
@@ -777,7 +829,7 @@ async def validate_scenario(scenario_id: str):
                 
                 return {
                     "success": result.returncode == 0,
-                    "message": "Validation script executed",
+                    "message": "Validation completed",
                     "output": result.stdout,
                     "error": result.stderr,
                     "returncode": result.returncode
@@ -823,6 +875,50 @@ async def validate_scenario(scenario_id: str):
             "success": False,
             "message": f"Validation error: {str(e)}",
             "checks": []
+        }
+
+
+@app.post("/api/scenarios/{scenario_id}/reset")
+async def reset_scenario(scenario_id: str):
+    """Reset a scenario by running its cleanup script"""
+    try:
+        logger.info(f"Resetting scenario: {scenario_id}")
+        
+        scenario_dir = Path(f"/scenarios/{scenario_id}")
+        cleanup_script = scenario_dir / "cleanup.sh"
+        
+        if not cleanup_script.exists():
+            return {
+                "success": False,
+                "message": "No cleanup script found for this scenario"
+            }
+        
+        try:
+            result = subprocess.run(
+                ["bash", str(cleanup_script)],
+                capture_output=True,
+                text=True,
+                timeout=60,
+                cwd=str(scenario_dir)
+            )
+            
+            return {
+                "success": result.returncode == 0,
+                "message": "Scenario reset successfully" if result.returncode == 0 else "Reset completed with warnings",
+                "output": result.stdout,
+                "error": result.stderr
+            }
+            
+        except subprocess.TimeoutExpired:
+            return {"success": False, "message": "Reset timed out"}
+        except Exception as e:
+            return {"success": False, "message": str(e)}
+            
+    except Exception as e:
+        logger.error(f"Error resetting scenario: {e}")
+        return {
+            "success": False,
+            "message": f"Reset error: {str(e)}"
         }
 
 @app.websocket("/ws/terminal/{scenario_id}")

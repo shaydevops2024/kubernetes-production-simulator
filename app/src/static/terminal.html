@@ -97,6 +97,15 @@
             background: #2ea043;
         }
 
+        .btn-restart {
+            background: #d97706;
+            color: white;
+        }
+
+        .btn-restart:hover {
+            background: #ea580c;
+        }
+
         .btn-back {
             background: #0e639c;
             color: white;
@@ -161,8 +170,9 @@
             margin-bottom: 0.5rem;
             border-radius: 4px;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.2s;
             border-left: 3px solid transparent;
+            position: relative;
         }
 
         .command-item:hover {
@@ -170,16 +180,48 @@
             border-left-color: #0e639c;
         }
 
-        .command-item-text {
-            color: #e0e0e0;
-            font-size: 0.85rem;
+        .command-item.executed {
+            background: #2d4a2d;
+            border-left-color: #3fb950;
+        }
+
+        .command-item.executed:hover {
+            background: #355835;
+        }
+
+        .command-item-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
             margin-bottom: 0.25rem;
+        }
+
+        .command-checkmark {
+            color: #3fb950;
+            font-size: 1rem;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .command-item.executed .command-checkmark {
+            opacity: 1;
+        }
+
+        .command-item-text {
+            color: #ffffff;
+            font-size: 0.85rem;
+            font-weight: 600;
             word-break: break-all;
+            flex: 1;
         }
 
         .command-item-desc {
-            color: #b0b0b0;
+            color: #808080;
             font-size: 0.75rem;
+            font-style: italic;
+            margin-left: 1.5rem;
+            line-height: 1.4;
         }
 
         .terminal-container {
@@ -334,6 +376,7 @@
         <div class="header-actions">
             <button class="btn btn-cancel" id="cancel-btn" onclick="cancelCommand()">⏹ Cancel (Ctrl+C)</button>
             <button class="btn btn-secondary" onclick="clearTerminal()">Clear</button>
+            <button class="btn btn-restart" onclick="resetScenario()">🔄 Restart Scenario</button>
             <button class="btn btn-validate" onclick="validateScenario()">✓ Validate</button>
             <button class="btn btn-back" onclick="window.location.href='/static/scenarios.html'">← Back</button>
         </div>
@@ -384,6 +427,7 @@
         let currentScenario = null;
         let currentAbortController = null;
         let isCommandRunning = false;
+        let executedCommands = new Set();
 
         async function loadScenario() {
             if (!scenarioId) {
@@ -403,9 +447,21 @@
                 addLine('Welcome to K8s Interactive Terminal', 'success');
                 addLine(`Scenario: ${scenario.name}`, 'success');
                 addLine('');
+                
+                // Auto-reset scenario on page load (F5 behavior)
+                addLine('Resetting scenario...', 'warning');
+                const resetResult = await silentResetScenario();
+                if (resetResult.success) {
+                    addLine('✓ Scenario reset complete', 'success');
+                } else {
+                    addLine('⚠ Scenario reset not available (no cleanup script)', 'warning');
+                }
+                addLine('');
+                
                 addLine('Tip: Click commands on the left or type ANY command!', 'warning');
-                addLine('     Use Up/Down arrows for command history', 'warning');
+                addLine('     Executed commands will show a green checkmark ✓', 'warning');
                 addLine('     Press Ctrl+C or click Cancel to stop running commands', 'warning');
+                addLine('     Click "🔄 Restart Scenario" to reset at any time', 'warning');
                 addLine('     Click "✓ Validate" when done to check your work', 'warning');
                 addLine('');
                 
@@ -424,11 +480,22 @@
             }
 
             commandsList.innerHTML = commands.map((cmd, index) => `
-                <div class="command-item" onclick="executeCommand('${escapeQuotes(cmd.command)}')">
-                    <div class="command-item-text">${escapeHtml(cmd.command)}</div>
+                <div class="command-item" id="cmd-${index}" onclick="executeCommandFromSidebar('${escapeQuotes(cmd.command)}', ${index})">
+                    <div class="command-item-header">
+                        <span class="command-checkmark">✓</span>
+                        <div class="command-item-text">${escapeHtml(cmd.command)}</div>
+                    </div>
                     ${cmd.description ? `<div class="command-item-desc">${escapeHtml(cmd.description)}</div>` : ''}
                 </div>
             `).join('');
+        }
+
+        function markCommandExecuted(index) {
+            const cmdElement = document.getElementById(`cmd-${index}`);
+            if (cmdElement) {
+                cmdElement.classList.add('executed');
+                executedCommands.add(index);
+            }
         }
 
         function addLine(text, type = 'normal') {
@@ -447,6 +514,11 @@
             
             output.appendChild(line);
             scrollToBottom();
+        }
+
+        async function executeCommandFromSidebar(cmd, index) {
+            await executeCommand(cmd);
+            markCommandExecuted(index);
         }
 
         async function executeCommand(cmd) {
@@ -558,6 +630,83 @@
             }
         }
 
+        async function silentResetScenario() {
+            if (!scenarioId) {
+                return { success: false, message: "No scenario" };
+            }
+
+            try {
+                const response = await fetch(`/api/scenarios/${scenarioId}/reset`, {
+                    method: 'POST'
+                });
+
+                if (!response.ok) {
+                    return { success: false, message: `HTTP ${response.status}` };
+                }
+
+                const result = await response.json();
+                return result;
+                
+            } catch (error) {
+                return { success: false, message: error.message };
+            }
+        }
+
+        async function resetScenario() {
+            if (!scenarioId) {
+                addLine('Error: No scenario to reset', 'error');
+                return;
+            }
+
+            addLine('');
+            addLine('========================================', 'warning');
+            addLine('RESTARTING SCENARIO...', 'warning');
+            addLine('========================================', 'warning');
+            addLine('');
+
+            const loadingLine = document.createElement('div');
+            loadingLine.className = 'terminal-line loading-indicator';
+            loadingLine.textContent = 'Resetting scenario...';
+            output.appendChild(loadingLine);
+            scrollToBottom();
+
+            try {
+                const response = await fetch(`/api/scenarios/${scenarioId}/reset`, {
+                    method: 'POST'
+                });
+
+                loadingLine.remove();
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    addLine('✓ SCENARIO RESET COMPLETE!', 'success');
+                    addLine('');
+                    addLine(result.message || 'Scenario has been reset to initial state', 'success');
+                    addLine('You can now start the scenario from the beginning', 'success');
+                    
+                    // Clear executed checkmarks
+                    executedCommands.clear();
+                    displayCommands(currentCommands);
+                } else {
+                    addLine('⚠ RESET COMPLETED WITH WARNINGS', 'warning');
+                    addLine('');
+                    addLine(result.message || 'Reset may not be available for this scenario', 'warning');
+                }
+                
+                addLine('');
+                
+            } catch (error) {
+                loadingLine.remove();
+                addLine(`Reset error: ${error.message}`, 'error');
+                addLine('');
+            }
+        }
+
         async function validateScenario() {
             if (!scenarioId) {
                 addLine('Error: No scenario to validate', 'error');
@@ -602,6 +751,10 @@
                             addLine(`${icon} ${check.name}`, type);
                         });
                     }
+                    
+                    // Suggest manual restart
+                    addLine('');
+                    addLine('💡 Click "🔄 Restart Scenario" to try again or F5 to reload', 'warning');
                 } else {
                     addLine('✗ VALIDATION FAILED', 'error');
                     addLine('');
