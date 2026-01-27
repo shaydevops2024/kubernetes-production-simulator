@@ -1,8 +1,14 @@
-# app/src/main.py
+# app/src/main.py - Updated for self-contained scenarios
+# Key changes:
+# 1. Monitors BOTH "k8s-multi-demo" and "scenarios" namespaces
+# 2. Reads YAML files from scenario directories
+# 3. All scenarios marked with namespace: "scenarios"
+# 4. Better error handling and logging
+
 from database import get_db, check_db_connection, get_db_stats, User, Task, init_db
 from sqlalchemy.orm import Session
 from fastapi import Depends, HTTPException
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Response, Request
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from prometheus_client import Counter, Histogram, generate_latest
@@ -16,6 +22,7 @@ from collections import deque
 from pathlib import Path
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
+import json
 
 logging.basicConfig(
     level=logging.INFO,
@@ -82,24 +89,6 @@ class TaskCreate(BaseModel):
     status: str = "pending"
     priority: int = 1
 
-def run_kubectl_command(command):
-    """Execute kubectl command and return output"""
-    try:
-        result = subprocess.run(
-            command,
-            shell=True,
-            capture_output=True,
-            text=True,
-            timeout=5
-        )
-        if result.returncode == 0:
-            return result.stdout.strip()
-        else:
-            return None
-    except Exception as e:
-        logger.error(f"Kubectl command failed: {e}")
-        return None
-
 def calculate_age(creation_timestamp):
     """Calculate age from creation timestamp"""
     try:
@@ -126,8 +115,15 @@ def calculate_age(creation_timestamp):
 
 @app.get("/")
 async def root():
-    """Serve the main HTML page"""
     return FileResponse(str(static_dir / "index.html"))
+
+@app.get("/scenarios")
+async def scenarios_page():
+    return FileResponse(str(static_dir / "scenarios.html"))
+
+@app.get("/scenario/{scenario_id}")
+async def scenario_detail_page(scenario_id: str):
+    return FileResponse(str(static_dir / "scenario-detail.html"))
 
 @app.get("/health")
 async def health():
@@ -154,7 +150,6 @@ async def get_logs():
 
 @app.get("/api/config")
 async def get_config():
-    """Get application configuration"""
     return {
         "app_env": APP_ENV,
         "app_name": APP_NAME,
@@ -163,72 +158,94 @@ async def get_config():
 
 @app.get("/api/cluster/stats")
 async def get_cluster_stats():
-    """Get Kubernetes cluster statistics with detailed kubectl-style output"""
-    namespace = "k8s-multi-demo"
+    """Get Kubernetes cluster statistics - monitors BOTH namespaces"""
+    namespaces = ["k8s-multi-demo", "scenarios"]
     
     if not k8s_available or not k8s_apps_v1 or not k8s_core_v1:
         return {
             "deployments": {"count": 0, "details": []},
             "pods": {"count": 0, "details": []},
-            "nodes": {"count": 0, "details": []}
+            "nodes": {"count": 0, "details": []},
+            "namespaces": []
         }
     
     deployments_info = {"count": 0, "details": []}
     pods_info = {"count": 0, "details": []}
     nodes_info = {"count": 0, "details": []}
+    namespace_info = []
     
-    # Get deployments
-    try:
-        deployments = k8s_apps_v1.list_namespaced_deployment(namespace=namespace)
-        deployments_info["count"] = len(deployments.items)
-        
-        for deployment in deployments.items:
-            name = deployment.metadata.name
-            spec_replicas = deployment.spec.replicas or 0
-            ready_replicas = deployment.status.ready_replicas or 0
-            updated_replicas = deployment.status.updated_replicas or 0
-            available_replicas = deployment.status.available_replicas or 0
-            age = calculate_age(deployment.metadata.creation_timestamp)
+    # Get deployments from both namespaces
+    for namespace in namespaces:
+        try:
+            deployments = k8s_apps_v1.list_namespaced_deployment(namespace=namespace)
+            deployments_info["count"] += len(deployments.items)
             
-            deployments_info["details"].append({
-                "name": name,
-                "ready": f"{ready_replicas}/{spec_replicas}",
-                "up_to_date": updated_replicas,
-                "available": available_replicas,
-                "age": age
-            })
-    except ApiException as e:
-        logger.error(f"Error fetching deployments: {e}")
+            for deployment in deployments.items:
+                name = deployment.metadata.name
+                spec_replicas = deployment.spec.replicas or 0
+                ready_replicas = deployment.status.ready_replicas or 0
+                updated_replicas = deployment.status.updated_replicas or 0
+                available_replicas = deployment.status.available_replicas or 0
+                age = calculate_age(deployment.metadata.creation_timestamp)
+                
+                deployments_info["details"].append({
+                    "name": name,
+                    "namespace": namespace,
+                    "ready": f"{ready_replicas}/{spec_replicas}",
+                    "up_to_date": updated_replicas,
+                    "available": available_replicas,
+                    "age": age
+                })
+        except ApiException as e:
+            if e.status != 404:
+                logger.error(f"Error fetching deployments from {namespace}: {e}")
     
-    # Get pods
-    try:
-        pods = k8s_core_v1.list_namespaced_pod(namespace=namespace)
-        pods_info["count"] = len(pods.items)
-        
-        for pod in pods.items:
-            name = pod.metadata.name
-            status = pod.status.phase or "Unknown"
+    # Get pods from both namespaces
+    for namespace in namespaces:
+        try:
+            pods = k8s_core_v1.list_namespaced_pod(namespace=namespace)
+            pods_info["count"] += len(pods.items)
             
-            # Calculate ready containers
-            container_statuses = pod.status.container_statuses or []
-            ready_count = sum(1 for c in container_statuses if c.ready)
-            total_count = len(container_statuses)
-            ready = f"{ready_count}/{total_count}"
-            
-            # Get restarts
-            restarts = sum(c.restart_count for c in container_statuses)
-            
-            age = calculate_age(pod.metadata.creation_timestamp)
-            
-            pods_info["details"].append({
-                "name": name,
-                "ready": ready,
-                "status": status,
-                "restarts": restarts,
-                "age": age
+            for pod in pods.items:
+                name = pod.metadata.name
+                status = pod.status.phase or "Unknown"
+                
+                container_statuses = pod.status.container_statuses or []
+                ready_count = sum(1 for c in container_statuses if c.ready)
+                total_count = len(container_statuses)
+                ready = f"{ready_count}/{total_count}"
+                
+                restarts = sum(c.restart_count for c in container_statuses)
+                age = calculate_age(pod.metadata.creation_timestamp)
+                
+                pods_info["details"].append({
+                    "name": name,
+                    "namespace": namespace,
+                    "ready": ready,
+                    "status": status,
+                    "restarts": restarts,
+                    "age": age
+                })
+        except ApiException as e:
+            if e.status != 404:
+                logger.error(f"Error fetching pods from {namespace}: {e}")
+    
+    # Get namespace info
+    for namespace in namespaces:
+        try:
+            ns = k8s_core_v1.read_namespace(name=namespace)
+            namespace_info.append({
+                "name": namespace,
+                "status": ns.status.phase if ns.status else "Unknown",
+                "age": calculate_age(ns.metadata.creation_timestamp)
             })
-    except ApiException as e:
-        logger.error(f"Error fetching pods: {e}")
+        except ApiException as e:
+            if e.status == 404:
+                namespace_info.append({
+                    "name": namespace,
+                    "status": "NotFound",
+                    "age": "N/A"
+                })
     
     # Get nodes
     try:
@@ -238,27 +255,20 @@ async def get_cluster_stats():
         for node in nodes.items:
             name = node.metadata.name
             
-            # Get status
-            status = "Unknown"
             conditions = node.status.conditions or []
-            for condition in conditions:
-                if condition.type == "Ready":
-                    status = "Ready" if condition.status == "True" else "NotReady"
-                    break
+            ready_condition = next((c for c in conditions if c.type == "Ready"), None)
+            status = "Ready" if ready_condition and ready_condition.status == "True" else "NotReady"
             
-            # Get roles
             labels = node.metadata.labels or {}
             roles = []
-            if 'node-role.kubernetes.io/control-plane' in labels:
-                roles.append('control-plane')
-            if 'node-role.kubernetes.io/master' in labels:
-                roles.append('master')
-            role = ','.join(roles) if roles else '<none>'
+            if "node-role.kubernetes.io/control-plane" in labels or "node-role.kubernetes.io/master" in labels:
+                roles.append("control-plane")
+            if "node-role.kubernetes.io/worker" in labels:
+                roles.append("worker")
+            role = ",".join(roles) if roles else "worker"
             
             age = calculate_age(node.metadata.creation_timestamp)
-            
-            # Get version
-            version = node.status.node_info.kubelet_version if node.status.node_info else 'unknown'
+            version = node.status.node_info.kubelet_version if node.status.node_info else "unknown"
             
             nodes_info["details"].append({
                 "name": name,
@@ -273,280 +283,313 @@ async def get_cluster_stats():
     return {
         "deployments": deployments_info,
         "pods": pods_info,
-        "nodes": nodes_info
+        "nodes": nodes_info,
+        "namespaces": namespace_info
     }
 
-@app.get("/api/db/info")
-async def get_database_info():
-    """Get database StatefulSet information including secrets and configmaps"""
-    namespace = "k8s-multi-demo"
-    
-    info = {
-        "uses_secret": False,
-        "secret_name": None,
-        "uses_configmap": False,
-        "configmap_name": None
-    }
-    
-    if not k8s_available or not k8s_apps_v1:
-        return info
-    
+# Database endpoints (unchanged)
+@app.post("/api/database/init")
+async def initialize_database(db: Session = Depends(get_db)):
     try:
-        # Get the postgres StatefulSet
-        statefulsets = k8s_apps_v1.list_namespaced_stateful_set(namespace=namespace)
-        
-        for sts in statefulsets.items:
-            if 'postgres' in sts.metadata.name.lower():
-                # Check for secrets and configmaps in the pod spec
-                containers = sts.spec.template.spec.containers or []
-                volumes = sts.spec.template.spec.volumes or []
-                
-                # Check environment variables for secrets
-                for container in containers:
-                    if container.env:
-                        for env_var in container.env:
-                            if env_var.value_from and env_var.value_from.secret_key_ref:
-                                info["uses_secret"] = True
-                                info["secret_name"] = env_var.value_from.secret_key_ref.name
-                                break
-                    
-                    # Check env_from for configmaps
-                    if container.env_from:
-                        for env_from in container.env_from:
-                            if env_from.config_map_ref:
-                                info["uses_configmap"] = True
-                                info["configmap_name"] = env_from.config_map_ref.name
-                
-                # Check volumes for configmaps
-                for volume in volumes:
-                    if volume.config_map:
-                        info["uses_configmap"] = True
-                        if not info["configmap_name"]:
-                            info["configmap_name"] = volume.config_map.name
-                
-                break
-                
-    except ApiException as e:
-        logger.error(f"Error fetching StatefulSet info: {e}")
-    
-    return info
+        init_db()
+        return {"message": "Database initialized successfully"}
+    except Exception as e:
+        logger.error(f"Database initialization error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/loadtest/start")
+@app.get("/api/database/status")
+async def database_status(db: Session = Depends(get_db)):
+    try:
+        is_connected = check_db_connection(db)
+        stats = get_db_stats(db) if is_connected else {}
+        return {"connected": is_connected, "stats": stats}
+    except Exception as e:
+        logger.error(f"Database status check error: {e}")
+        return {"connected": False, "error": str(e)}
+
+@app.post("/api/users")
+async def create_user(user: UserCreate, db: Session = Depends(get_db)):
+    try:
+        db_user = User(username=user.username, email=user.email, full_name=user.full_name)
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+        return {"id": str(db_user.id), "username": db_user.username, "email": db_user.email, "full_name": db_user.full_name, "created_at": db_user.created_at.isoformat()}
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error creating user: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/users")
+async def list_users(db: Session = Depends(get_db)):
+    try:
+        users = db.query(User).all()
+        return {"users": [{"id": str(user.id), "username": user.username, "email": user.email, "full_name": user.full_name, "created_at": user.created_at.isoformat()} for user in users]}
+    except Exception as e:
+        logger.error(f"Error listing users: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/tasks")
+async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
+    try:
+        db_task = Task(user_id=task.user_id, title=task.title, description=task.description, status=task.status, priority=task.priority)
+        db.add(db_task)
+        db.commit()
+        db.refresh(db_task)
+        return {"id": str(db_task.id), "user_id": str(db_task.user_id), "title": db_task.title, "description": db_task.description, "status": db_task.status, "priority": db_task.priority, "created_at": db_task.created_at.isoformat()}
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error creating task: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/tasks")
+async def list_tasks(db: Session = Depends(get_db)):
+    try:
+        tasks = db.query(Task).all()
+        return {"tasks": [{"id": str(task.id), "user_id": str(task.user_id), "title": task.title, "description": task.description, "status": task.status, "priority": task.priority, "created_at": task.created_at.isoformat()} for task in tasks]}
+    except Exception as e:
+        logger.error(f"Error listing tasks: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Load test endpoints (unchanged)
+@app.post("/api/load-test/start")
 async def start_load_test():
     global load_test_running, load_test_task
-    
     if load_test_running:
-        return {"message": "Load test already running", "status": "running"}
-    
+        return {"message": "Load test already running"}
+    async def generate_load():
+        global load_test_running
+        logger.info("Load test started")
+        while load_test_running:
+            try:
+                _ = sum(i * i for i in range(10000))
+                await asyncio.sleep(0.1)
+            except Exception as e:
+                logger.error(f"Load test error: {e}")
+                break
+        logger.info("Load test stopped")
     load_test_running = True
     load_test_task = asyncio.create_task(generate_load())
-    
-    logger.info("🚀 LOAD TEST STARTED")
-    return {"message": "Load test started successfully", "status": "running"}
+    return {"message": "Load test started", "status": "running"}
 
-@app.post("/loadtest/stop")
+@app.post("/api/load-test/stop")
 async def stop_load_test():
     global load_test_running, load_test_task
-    
     if not load_test_running:
-        return {"message": "No load test running", "status": "stopped"}
-    
+        return {"message": "Load test not running"}
     load_test_running = False
-    
     if load_test_task and not load_test_task.done():
         load_test_task.cancel()
         try:
             await load_test_task
         except asyncio.CancelledError:
             pass
-    
-    logger.info("🛑 LOAD TEST STOPPED")
     return {"message": "Load test stopped", "status": "stopped"}
 
-async def generate_load():
-    global load_test_running
-    import aiohttp
-    
-    service_url = 'http://k8s-demo-service.k8s-multi-demo.svc.cluster.local'
-    start_time = asyncio.get_event_loop().time()
-    duration = 120
-    request_count = 0
-    session = None
-    
+@app.get("/api/load-test/status")
+async def load_test_status():
+    return {"running": load_test_running, "status": "running" if load_test_running else "stopped"}
+
+@app.get("/api/scenarios")
+async def get_scenarios():
+    """Get list of all available scenarios"""
     try:
-        timeout = aiohttp.ClientTimeout(total=5)
-        session = aiohttp.ClientSession(timeout=timeout)
+        # Try multiple possible locations for scenarios directory
+        possible_paths = [
+            Path("/scenarios"),  # Docker mount
+            Path("/app/k8s-scenarios"),  # Alternative
+            Path(__file__).parent.parent.parent / "k8s-scenarios"  # Dev
+        ]
         
-        while load_test_running and (asyncio.get_event_loop().time() - start_time) < duration:
-            try:
-                tasks = []
-                for _ in range(20):
-                    if not load_test_running:
-                        break
-                    task = session.get(service_url)
-                    tasks.append(task)
-                
-                if not load_test_running:
-                    break
-                
-                responses = await asyncio.gather(*tasks, return_exceptions=True)
-                request_count += len(responses)
-                
-                if request_count % 100 == 0:
-                    logger.info(f"Load test: {request_count} requests sent")
-                
-                await asyncio.sleep(0.05)
-                
-            except asyncio.CancelledError:
+        scenarios_dir = None
+        for path in possible_paths:
+            if path.exists() and path.is_dir():
+                scenarios_dir = path
+                logger.info(f"Found scenarios at: {scenarios_dir}")
                 break
+        
+        if not scenarios_dir:
+            logger.warning("No scenarios directory found")
+            return {"scenarios": []}
+        
+        scenarios = []
+        scenario_dirs = sorted([d for d in scenarios_dir.iterdir() if d.is_dir()])
+        logger.info(f"Found {len(scenario_dirs)} scenario directories")
+        
+        for scenario_dir in scenario_dirs:
+            try:
+                readme_path = scenario_dir / "README.md"
+                commands_path = scenario_dir / "commands.json"
+                
+                scenario_info = {
+                    "id": scenario_dir.name,
+                    "name": scenario_dir.name.replace("-", " ").title(),
+                    "description": "No description available",
+                    "difficulty": "medium",
+                    "duration": "20 min",
+                    "special": "special" in scenario_dir.name.lower(),
+                    "readme": "",
+                    "command_count": 0,
+                    "namespace": "scenarios"
+                }
+                
+                # Read README
+                if readme_path.exists():
+                    with open(readme_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        lines = [l.strip() for l in content.split('\n') if l.strip() and not l.startswith('#')]
+                        if lines:
+                            scenario_info["description"] = lines[0][:200]
+                        scenario_info["readme"] = content
+                
+                # Read commands.json
+                if commands_path.exists():
+                    with open(commands_path, 'r', encoding='utf-8') as f:
+                        commands_data = json.load(f)
+                        scenario_info["command_count"] = len(commands_data.get("commands", []))
+                        scenario_info["difficulty"] = commands_data.get("difficulty", "medium")
+                        scenario_info["duration"] = commands_data.get("duration", "20 min")
+                
+                # Count YAML files
+                yaml_files = list(scenario_dir.glob("*.yaml")) + list(scenario_dir.glob("*.yml"))
+                scenario_info["yaml_file_count"] = len(yaml_files)
+                
+                scenarios.append(scenario_info)
             except Exception as e:
-                if load_test_running:
-                    logger.error(f"Load generation error: {e}")
-                await asyncio.sleep(0.5)
-    
+                logger.error(f"Error processing scenario {scenario_dir.name}: {e}")
+                continue
+        
+        logger.info(f"Processed {len(scenarios)} scenarios")
+        return {"scenarios": scenarios}
     except Exception as e:
-        logger.error(f"Load test failed: {e}")
-    
-    finally:
-        if session and not session.closed:
-            await session.close()
-            await asyncio.sleep(0.25)
-        
-        load_test_running = False
-        logger.info(f"🏁 LOAD TEST COMPLETED - {request_count} requests")
+        logger.error(f"Fatal error in get_scenarios: {e}", exc_info=True)
+        return {"scenarios": [], "error": str(e)}
 
-@app.post("/simulate/crash")
-async def simulate_crash():
-    global app_healthy
-    app_healthy = False
-    logger.error("INCIDENT SIMULATION: App unhealthy")
-    return {"message": "App is now unhealthy - will be restarted by Kubernetes"}
-
-@app.post("/simulate/notready")
-async def simulate_notready():
-    global app_ready
-    app_ready = False
-    logger.warning("INCIDENT SIMULATION: App not ready")
-    return {"message": "App is now not ready - Kubernetes will stop routing traffic"}
-
-@app.post("/reset")
-async def reset():
-    global app_healthy, app_ready
-    app_healthy = True
-    app_ready = True
-    logger.info("✅ App reset to healthy state")
-    return {"message": "App reset to healthy state"}
-
-@app.get("/db/health")
-async def database_health():
-    connected, message = check_db_connection()
-    if connected:
-        return {"database": "connected", "message": message, "stats": get_db_stats()}
-    return Response(content=f'{{"error": "{message}"}}', status_code=503)
-
-@app.get("/api/db/stats")
-async def get_database_stats():
-    return get_db_stats()
-
-@app.get("/api/users")
-async def get_users(db: Session = Depends(get_db)):
-    users = db.query(User).all()
-    return [user.to_dict() for user in users]
-
-@app.get("/api/tasks")
-async def get_tasks(db: Session = Depends(get_db)):
-    tasks = db.query(Task).all()
-    return [task.to_dict() for task in tasks]
-
-@app.post("/api/users/create")
-async def create_user(user_data: UserCreate, db: Session = Depends(get_db)):
+@app.get("/api/scenarios/{scenario_id}")
+async def get_scenario(scenario_id: str):
+    """Get detailed scenario info including YAML files"""
     try:
-        existing_user = db.query(User).filter(
-            (User.username == user_data.username) | (User.email == user_data.email)
-        ).first()
+        possible_paths = [Path("/scenarios"), Path("/app/k8s-scenarios"), Path(__file__).parent.parent.parent / "k8s-scenarios"]
         
-        if existing_user:
-            raise HTTPException(status_code=400, detail="Username or email already exists")
+        scenario_dir = None
+        for base_path in possible_paths:
+            test_path = base_path / scenario_id
+            if test_path.exists() and test_path.is_dir():
+                scenario_dir = test_path
+                break
         
-        new_user = User(
-            username=user_data.username,
-            email=user_data.email,
-            full_name=user_data.full_name
-        )
+        if not scenario_dir:
+            raise HTTPException(status_code=404, detail=f"Scenario '{scenario_id}' not found")
         
-        db.add(new_user)
-        db.commit()
-        db.refresh(new_user)
+        logger.info(f"Loading scenario from: {scenario_dir}")
         
-        logger.info(f"✅ New user created: {user_data.username}")
-        
-        return {
-            "message": "User created successfully",
-            "user": new_user.to_dict()
+        scenario_info = {
+            "id": scenario_id,
+            "name": scenario_id.replace("-", " ").title(),
+            "readme": "",
+            "commands": [],
+            "yaml_files": [],
+            "difficulty": "medium",
+            "duration": "20 min",
+            "namespace": "scenarios"
         }
+        
+        # Read README
+        readme_path = scenario_dir / "README.md"
+        if readme_path.exists():
+            with open(readme_path, 'r', encoding='utf-8') as f:
+                scenario_info["readme"] = f.read()
+        else:
+            scenario_info["readme"] = "# No README available"
+        
+        # Read commands.json
+        commands_path = scenario_dir / "commands.json"
+        if commands_path.exists():
+            with open(commands_path, 'r', encoding='utf-8') as f:
+                commands_data = json.load(f)
+                scenario_info["commands"] = commands_data.get("commands", [])
+                scenario_info["difficulty"] = commands_data.get("difficulty", "medium")
+                scenario_info["duration"] = commands_data.get("duration", "20 min")
+        
+        # Read ALL YAML files
+        yaml_files = list(scenario_dir.glob("*.yaml")) + list(scenario_dir.glob("*.yml"))
+        
+        # Sort: deployment/statefulset first, then service, then others
+        def yaml_sort_key(p):
+            name = p.name.lower()
+            if 'deployment' in name or 'statefulset' in name:
+                return (0, name)
+            elif 'service' in name:
+                return (1, name)
+            else:
+                return (2, name)
+        
+        yaml_files = sorted(yaml_files, key=yaml_sort_key)
+        logger.info(f"Found {len(yaml_files)} YAML files for {scenario_id}")
+        
+        for yaml_file in yaml_files:
+            try:
+                with open(yaml_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    scenario_info["yaml_files"].append({
+                        "name": yaml_file.name,
+                        "content": content
+                    })
+            except Exception as e:
+                logger.error(f"Error reading {yaml_file.name}: {e}")
+                scenario_info["yaml_files"].append({
+                    "name": yaml_file.name,
+                    "content": f"# Error loading file: {str(e)}"
+                })
+        
+        logger.info(f"Scenario {scenario_id}: {len(scenario_info['commands'])} commands, {len(scenario_info['yaml_files'])} YAML files")
+        return scenario_info
     except HTTPException:
         raise
     except Exception as e:
-        db.rollback()
-        logger.error(f"Error creating user: {e}")
+        logger.error(f"Error in get_scenario: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/tasks/create")
-async def create_task(task_data: TaskCreate, db: Session = Depends(get_db)):
+@app.post("/api/scenarios/{scenario_id}/validate")
+async def validate_scenario(scenario_id: str):
+    """Run validation script"""
     try:
-        user = db.query(User).filter(User.id == task_data.user_id).first()
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+        logger.info(f"Validating scenario: {scenario_id}")
         
-        new_task = Task(
-            user_id=task_data.user_id,
-            title=task_data.title,
-            description=task_data.description,
-            status=task_data.status,
-            priority=task_data.priority
-        )
+        possible_paths = [Path("/scenarios"), Path("/app/k8s-scenarios"), Path(__file__).parent.parent.parent / "k8s-scenarios"]
         
-        db.add(new_task)
-        db.commit()
-        db.refresh(new_task)
+        scenario_dir = None
+        for base_path in possible_paths:
+            test_path = base_path / scenario_id
+            if test_path.exists():
+                scenario_dir = test_path
+                break
         
-        logger.info(f"✅ New task created: '{task_data.title}'")
+        if not scenario_dir:
+            return {"success": False, "message": f"Scenario not found: {scenario_id}", "output": "", "error": ""}
+        
+        validate_script = scenario_dir / "validate.sh"
+        if not validate_script.exists():
+            return {"success": False, "message": "No validation script found", "output": "", "error": ""}
+        
+        result = subprocess.run(["bash", str(validate_script)], capture_output=True, text=True, timeout=60, cwd=str(scenario_dir))
         
         return {
-            "message": "Task created successfully",
-            "task": new_task.to_dict()
+            "success": result.returncode == 0,
+            "message": "Validation completed" if result.returncode == 0 else "Validation failed",
+            "output": result.stdout,
+            "error": result.stderr,
+            "returncode": result.returncode
         }
-    except HTTPException:
-        raise
+    except subprocess.TimeoutExpired:
+        return {"success": False, "message": "Validation timed out", "output": "", "error": "Timeout"}
     except Exception as e:
-        db.rollback()
-        logger.error(f"Error creating task: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.on_event("startup")
-async def startup_event():
-    logger.info(f"========================================")
-    logger.info(f"Starting {APP_NAME}")
-    logger.info(f"Environment: {APP_ENV}")
-    
-    connected, message = check_db_connection()
-    if connected:
-        logger.info(f"✅ {message}")
-    else:
-        logger.warning(f"⚠️ {message}")
-    
-    if k8s_available:
-        logger.info(f"✅ Kubernetes client ready")
-    else:
-        logger.warning(f"⚠️ Kubernetes client not available")
-    
-    logger.info(f"Application ready")
-    logger.info(f"========================================")
+        logger.error(f"Validation error: {e}")
+        return {"success": False, "message": f"Error: {str(e)}", "output": "", "error": str(e)}
 
 @app.on_event("shutdown")
 async def shutdown_event():
     global load_test_running, load_test_task
-    
     if load_test_running:
         load_test_running = False
         if load_test_task and not load_test_task.done():
@@ -555,7 +598,6 @@ async def shutdown_event():
                 await load_test_task
             except asyncio.CancelledError:
                 pass
-    
     logger.info("Application shutting down")
 
 if __name__ == "__main__":

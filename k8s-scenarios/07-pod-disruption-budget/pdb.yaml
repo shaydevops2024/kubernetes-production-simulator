@@ -1,0 +1,11 @@
+# k8s-scenarios/07-pod-disruption-budget/pdb.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pdb-demo-budget
+  namespace: scenarios
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: pdb-demo

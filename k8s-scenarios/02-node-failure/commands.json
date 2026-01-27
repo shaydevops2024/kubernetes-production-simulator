@@ -1,0 +1,88 @@
+{
+  "scenario_id": "02-node-failure",
+  "difficulty": "medium",
+  "duration": "20 min",
+  "commands": [
+    {
+      "name": "Step 1: Ensure Scenarios Namespace",
+      "command": "kubectl create namespace scenarios --dry-run=client -o yaml | kubectl apply -f -",
+      "description": "Create scenarios namespace if it doesn't exist",
+      "explanation": "Uses dry-run with apply for idempotency. Safe to run multiple times - creates namespace only if needed.",
+      "what_it_does": "Creates 'scenarios' namespace or confirms it already exists.",
+      "next_step": "Namespace ready. Deploy application across nodes."
+    },
+    {
+      "name": "Step 2: Deploy Application",
+      "command": "kubectl apply -f deployment.yaml -n scenarios",
+      "description": "Deploy nginx with 3 replicas",
+      "explanation": "Creates deployment with 3 replicas that Kubernetes will distribute across available nodes. This demonstrates pod rescheduling when nodes fail.",
+      "what_it_does": "Creates 'node-failure-demo' deployment and 'node-failure-service' with 3 nginx pods.",
+      "next_step": "Wait for pods to be Running, then check their node distribution."
+    },
+    {
+      "name": "Step 3: View Pod Distribution",
+      "command": "kubectl get pods -n scenarios -l app=node-failure-demo -o wide",
+      "description": "See which nodes are running the pods",
+      "explanation": "The NODE column shows where each pod is running. In a multi-node cluster, pods spread across nodes for high availability. Note the node names - we'll simulate failure of one.",
+      "what_it_does": "Lists pods with their assigned nodes, IPs, and status.",
+      "next_step": "Note which nodes have pods. Pick a worker node to drain."
+    },
+    {
+      "name": "Step 4: List All Nodes",
+      "command": "kubectl get nodes",
+      "description": "List all cluster nodes and their status",
+      "explanation": "Shows all nodes with their roles and status. All should be 'Ready'. Choose a worker node (not control-plane) that has demo pods running on it.",
+      "what_it_does": "Displays cluster nodes with roles, status, age, and Kubernetes version.",
+      "next_step": "Pick a worker node from the list to simulate failure."
+    },
+    {
+      "name": "Step 5: Cordon Node",
+      "command": "kubectl cordon <NODE_NAME>",
+      "description": "Mark node as unschedulable (replace <NODE_NAME> with actual node)",
+      "explanation": "Cordoning marks the node as unschedulable, preventing new pods from being placed there. Existing pods continue running. This is step 1 of graceful node maintenance. Example: kubectl cordon kind-worker",
+      "what_it_does": "Sets SchedulingDisabled status on the specified node.",
+      "next_step": "Node cordoned. Existing pods still run. Now drain it."
+    },
+    {
+      "name": "Step 6: Drain Node",
+      "command": "kubectl drain <NODE_NAME> --ignore-daemonsets --delete-emptydir-data",
+      "description": "Evict all pods from the node (replace <NODE_NAME>)",
+      "explanation": "Draining safely evicts all pods (except DaemonSets) from the node. Kubernetes reschedules them on other healthy nodes. This simulates node failure - watch pods move to other nodes. Example: kubectl drain kind-worker --ignore-daemonsets --delete-emptydir-data",
+      "what_it_does": "Gracefully terminates pods on the node and reschedules them elsewhere.",
+      "next_step": "Pods are being evicted and rescheduled. Watch them migrate."
+    },
+    {
+      "name": "Step 7: Watch Pod Rescheduling",
+      "command": "kubectl get pods -n scenarios -l app=node-failure-demo -o wide -w",
+      "description": "Monitor pods moving to healthy nodes (Ctrl+C to stop)",
+      "explanation": "You'll see pods on the drained node transition: Running → Terminating → (new pod) Pending → ContainerCreating → Running on a different node. This demonstrates Kubernetes self-healing - maintaining desired state despite node loss.",
+      "what_it_does": "Streams live updates showing pod status changes and node reassignments.",
+      "next_step": "Pods should reschedule successfully. Verify all replicas are running."
+    },
+    {
+      "name": "Step 8: Verify Replica Count",
+      "command": "kubectl get deployment node-failure-demo -n scenarios",
+      "description": "Confirm all replicas are running after node failure",
+      "explanation": "READY should show 3/3. Despite losing a node, Kubernetes maintained the desired replica count by moving pods to healthy nodes. The application continues serving traffic.",
+      "what_it_does": "Shows deployment status with current vs desired replicas.",
+      "next_step": "All replicas restored. Now restore the node."
+    },
+    {
+      "name": "Step 9: Uncordon Node",
+      "command": "kubectl uncordon <NODE_NAME>",
+      "description": "Mark node as schedulable again (replace <NODE_NAME>)",
+      "explanation": "Uncordoning removes the scheduling restriction, making the node available for new pods. Existing pods don't automatically rebalance, but new pods can be scheduled here. Example: kubectl uncordon kind-worker",
+      "what_it_does": "Removes SchedulingDisabled status from the node.",
+      "next_step": "Node is back in service. Scenario demonstrates successful failure handling!"
+    },
+    {
+      "name": "Cleanup: Delete Application",
+      "command": "kubectl delete -f deployment.yaml -n scenarios",
+      "description": "Remove all scenario resources",
+      "explanation": "Deletes the deployment, service, and all pods created during this scenario.",
+      "what_it_does": "Removes node-failure-demo deployment and service from scenarios namespace.",
+      "next_step": "Cleanup complete! Run validation: ./validate.sh",
+      "cleanup": true
+    }
+  ]
+}

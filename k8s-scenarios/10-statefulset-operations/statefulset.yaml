@@ -1,0 +1,33 @@
+# k8s-scenarios/10-statefulset-operations/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sts-demo-app
+  namespace: scenarios
+spec:
+  serviceName: sts-demo-headless
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sts-demo
+  template:
+    metadata:
+      labels:
+        app: sts-demo
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.21-alpine
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: data
+          mountPath: /data
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 1Gi

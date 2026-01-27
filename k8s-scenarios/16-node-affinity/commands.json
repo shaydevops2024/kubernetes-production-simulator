@@ -1,0 +1,105 @@
+{
+  "scenario_id": "16-node-affinity",
+  "difficulty": "medium",
+  "duration": "20 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Namespace",
+      "command": "kubectl create namespace scenarios --dry-run=client -o yaml | kubectl apply -f -",
+      "description": "Create scenarios namespace",
+      "explanation": "Creates namespace for node affinity testing.",
+      "what_it_does": "Creates 'scenarios' namespace if needed.",
+      "next_step": "Label nodes for affinity rules."
+    },
+    {
+      "name": "Step 2: List Nodes",
+      "command": "kubectl get nodes",
+      "description": "View all cluster nodes",
+      "explanation": "Shows available nodes. Pick one or more worker nodes to label for affinity testing.",
+      "what_it_does": "Lists all nodes with roles and status.",
+      "next_step": "Label a node for affinity testing."
+    },
+    {
+      "name": "Step 3: Label Node",
+      "command": "kubectl label nodes <NODE_NAME> disktype=ssd",
+      "description": "Add disktype=ssd label to a node (replace <NODE_NAME>)",
+      "explanation": "Adds custom label to node. Node affinity rules use labels to select nodes. Example: kubectl label nodes kind-worker disktype=ssd",
+      "what_it_does": "Adds disktype=ssd label to specified node.",
+      "next_step": "Deploy with affinity rules."
+    },
+    {
+      "name": "Step 4: Deploy with Node Affinity",
+      "command": "kubectl apply -f deployment.yaml -n scenarios",
+      "description": "Deploy pods with requiredDuringScheduling affinity for disktype=ssd",
+      "explanation": "Creates deployment with node affinity rule requiring disktype=ssd. Pods will ONLY schedule on nodes with this label. If no matching nodes, pods stay Pending.",
+      "what_it_does": "Creates affinity-demo deployment with node affinity rules.",
+      "next_step": "Check pod placement."
+    },
+    {
+      "name": "Step 5: Verify Pod Placement",
+      "command": "kubectl get pods -n scenarios -l app=affinity-demo -o wide",
+      "description": "See which nodes pods were scheduled on",
+      "explanation": "NODE column should show the node you labeled with disktype=ssd. All pods should be on that node (or nodes with that label).",
+      "what_it_does": "Lists pods with their assigned nodes.",
+      "next_step": "Describe pod to see affinity rules."
+    },
+    {
+      "name": "Step 6: Describe Pod Affinity",
+      "command": "kubectl describe pod -n scenarios -l app=affinity-demo | grep -A 10 'Node-Selectors\\|Affinity'",
+      "description": "View affinity configuration in pod spec",
+      "explanation": "Shows the node affinity rules from pod spec. You'll see requiredDuringSchedulingIgnoredDuringExecution with matchExpressions for disktype=ssd.",
+      "what_it_does": "Displays node affinity configuration from pod.",
+      "next_step": "Test what happens without matching label."
+    },
+    {
+      "name": "Step 7: Remove Node Label",
+      "command": "kubectl label nodes <NODE_NAME> disktype-",
+      "description": "Remove disktype label from node (replace <NODE_NAME>)",
+      "explanation": "Removes the label (note the minus sign). Existing pods continue running (IgnoredDuringExecution), but new pods won't schedule. Example: kubectl label nodes kind-worker disktype-",
+      "what_it_does": "Removes disktype label from specified node.",
+      "next_step": "Scale up to see scheduling behavior."
+    },
+    {
+      "name": "Step 8: Scale Up Deployment",
+      "command": "kubectl scale deployment affinity-demo --replicas=4 -n scenarios",
+      "description": "Increase replicas to see new pods can't schedule",
+      "explanation": "New pods will stay Pending because no nodes match disktype=ssd anymore. Existing pods keep running (IgnoredDuringExecution means affinity only checked at scheduling time).",
+      "what_it_does": "Scales deployment to 4 replicas.",
+      "next_step": "Check pod status."
+    },
+    {
+      "name": "Step 9: View Pending Pods",
+      "command": "kubectl get pods -n scenarios -l app=affinity-demo",
+      "description": "See new pods stuck in Pending state",
+      "explanation": "Should see original pods Running, new pods Pending. Describe a Pending pod to see 'No nodes match pod affinity' event.",
+      "what_it_does": "Shows pod status including Pending pods.",
+      "next_step": "Re-label node to fix."
+    },
+    {
+      "name": "Step 10: Re-label Node",
+      "command": "kubectl label nodes <NODE_NAME> disktype=ssd",
+      "description": "Add label back to allow scheduling (replace <NODE_NAME>)",
+      "explanation": "Pending pods immediately schedule once a matching node appears. Example: kubectl label nodes kind-worker disktype=ssd",
+      "what_it_does": "Restores disktype=ssd label, allowing pod scheduling.",
+      "next_step": "Scenario complete! Clean up."
+    },
+    {
+      "name": "Cleanup: Delete Deployment",
+      "command": "kubectl delete -f deployment.yaml -n scenarios",
+      "description": "Remove deployment",
+      "explanation": "Deletes deployment and all pods.",
+      "what_it_does": "Removes affinity-demo deployment.",
+      "next_step": "Remove node label.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup: Remove Node Label",
+      "command": "kubectl label nodes <NODE_NAME> disktype- || true",
+      "description": "Clean up node label (replace <NODE_NAME>)",
+      "explanation": "Removes the test label from node. Example: kubectl label nodes kind-worker disktype-",
+      "what_it_does": "Removes disktype label from node.",
+      "next_step": "Cleanup complete! Run validate.sh to confirm.",
+      "cleanup": true
+    }
+  ]
+}

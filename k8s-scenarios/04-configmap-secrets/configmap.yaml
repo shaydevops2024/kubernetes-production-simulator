@@ -1,0 +1,16 @@
+# k8s-scenarios/04-configmap-secrets/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: scenarios
+data:
+  app.color: "blue"
+  app.mode: "production"
+  log.level: "info"
+  config.json: |
+    {
+      "environment": "production",
+      "debug": false,
+      "max_connections": 100
+    }

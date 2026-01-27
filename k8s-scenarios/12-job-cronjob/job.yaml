@@ -1,0 +1,20 @@
+# k8s-scenarios/12-job-cronjob/job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: job-demo
+  namespace: scenarios
+spec:
+  template:
+    metadata:
+      labels:
+        app: job-demo
+    spec:
+      containers:
+      - name: busybox
+        image: busybox:1.34
+        command: ["sh", "-c", "echo 'Processing batch job...' && sleep 10 && echo 'Job completed!'"]
+      restartPolicy: Never
+  backoffLimit: 4
+  completions: 1
+  parallelism: 1

@@ -1,0 +1,87 @@
+{
+  "difficulty": "medium",
+  "duration": "20 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Namespace",
+      "command": "kubectl create namespace scenarios --dry-run=client -o yaml | kubectl apply -f -",
+      "description": "Create scenarios namespace",
+      "explanation": "Creates namespace for probe testing.",
+      "what_it_does": "Creates 'scenarios' namespace if needed.",
+      "next_step": "Deploy application with health probes configured."
+    },
+    {
+      "name": "Step 2: Deploy Application with Probes",
+      "command": "kubectl apply -f deployment.yaml -n scenarios",
+      "description": "Deploy app with liveness and readiness probes",
+      "explanation": "Creates deployment with both probe types configured. Liveness probe checks /healthz every 3s after 3s delay. Readiness probe checks /healthz every 5s after 5s delay. This deployment uses k8s.gcr.io/liveness image which simulates probe failures.",
+      "what_it_does": "Creates deployment 'probes-demo' and service with 2 replicas.",
+      "next_step": "Check pods are running with probes active."
+    },
+    {
+      "name": "Step 3: Verify Pods Running",
+      "command": "kubectl get pods -n scenarios -l app=probes-demo",
+      "description": "Check pod status",
+      "explanation": "Should see 2 pods in Running state. Both probes must pass for pods to be Running and Ready.",
+      "what_it_does": "Lists probes-demo pods.",
+      "next_step": "View probe configuration."
+    },
+    {
+      "name": "Step 4: Describe Pod Probes",
+      "command": "kubectl describe pod -n scenarios -l app=probes-demo | grep -A 5 'Liveness\\|Readiness'",
+      "description": "View configured probes",
+      "explanation": "Shows liveness and readiness probe configurations including paths, delays, periods, and thresholds.",
+      "what_it_does": "Displays probe configurations from pod spec.",
+      "next_step": "Check probe events."
+    },
+    {
+      "name": "Step 5: Watch Probe Events",
+      "command": "kubectl get events -n scenarios --field-selector involvedObject.kind=Pod --sort-by='.lastTimestamp' | tail -20",
+      "description": "See recent pod events including probe results",
+      "explanation": "Look for 'Liveness probe failed' or 'Readiness probe failed' events. Initially all should be passing.",
+      "what_it_does": "Lists recent pod events sorted by time.",
+      "next_step": "Simulate liveness probe failure."
+    },
+    {
+      "name": "Step 6: Simulate Liveness Failure",
+      "command": "kubectl exec -n scenarios deployment/probes-demo -- rm /tmp/healthy",
+      "description": "Remove health file to fail liveness probe",
+      "explanation": "The liveness probe checks for /tmp/healthy file. Removing it causes the probe to fail. After 3 failures (failureThreshold: 3), Kubernetes restarts the container.",
+      "what_it_does": "Triggers liveness probe failure by removing health indicator.",
+      "next_step": "Watch pod restart due to liveness failure."
+    },
+    {
+      "name": "Step 7: Watch Pod Restart",
+      "command": "kubectl get pods -n scenarios -l app=probes-demo --watch",
+      "description": "Monitor pod restart from liveness failure",
+      "explanation": "You'll see RESTARTS count increment and pod briefly show NotReady. Liveness failure triggers container restart (not pod deletion). Press Ctrl+C after seeing restart.",
+      "what_it_does": "Streams live pod status showing restart.",
+      "next_step": "Verify restart count increased."
+    },
+    {
+      "name": "Step 8: Check Restart Count",
+      "command": "kubectl get pods -n scenarios -l app=probes-demo",
+      "description": "Verify RESTARTS column increased",
+      "explanation": "RESTARTS column shows how many times containers have been restarted. Should be 1 or more after liveness failure. This proves liveness probe auto-recovery.",
+      "what_it_does": "Displays pod restart counts.",
+      "next_step": "Test readiness probe separately."
+    },
+    {
+      "name": "Step 9: Check Service Endpoints",
+      "command": "kubectl get endpoints probes-service -n scenarios",
+      "description": "View service endpoint list",
+      "explanation": "Shows which pod IPs are included in the service. Only Ready pods are listed. If a pod fails readiness, it's removed from here (but pod stays running).",
+      "what_it_does": "Lists pod IPs receiving traffic from service.",
+      "next_step": "Scenario complete! Probes protect service availability."
+    },
+    {
+      "name": "Cleanup: Delete Resources",
+      "command": "kubectl delete -f deployment.yaml -n scenarios",
+      "description": "Remove deployment and service",
+      "explanation": "Deletes all resources created in this scenario.",
+      "what_it_does": "Removes deployment and service.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

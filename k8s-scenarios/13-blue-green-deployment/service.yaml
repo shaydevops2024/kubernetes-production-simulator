@@ -1,0 +1,14 @@
+# k8s-scenarios/13-blue-green-deployment/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: bluegreen-service
+  namespace: scenarios
+spec:
+  selector:
+    app: bluegreen
+    version: blue  # Initially points to blue
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80

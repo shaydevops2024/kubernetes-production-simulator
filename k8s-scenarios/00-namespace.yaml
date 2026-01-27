@@ -1,0 +1,9 @@
+# Create this first in all scenarios
+# k8s-scenarios/00-namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: scenarios
+  labels:
+    purpose: kubernetes-learning
+    managed-by: k8s-simulator

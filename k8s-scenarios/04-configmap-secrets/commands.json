@@ -1,0 +1,80 @@
+{
+  "scenario_id": "04-configmap-secrets",
+  "difficulty": "easy",
+  "duration": "15 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Namespace",
+      "command": "kubectl create namespace scenarios --dry-run=client -o yaml | kubectl apply -f -",
+      "description": "Create scenarios namespace",
+      "explanation": "Creates the dedicated namespace for all scenario resources.",
+      "what_it_does": "Creates 'scenarios' namespace if it doesn't exist.",
+      "next_step": "Deploy application with ConfigMap and Secret."
+    },
+    {
+      "name": "Step 2: Deploy All Resources",
+      "command": "kubectl apply -f deployment.yaml -n scenarios",
+      "description": "Deploy ConfigMap, Secret, and application together",
+      "explanation": "This YAML contains three resources: ConfigMap (app-config) with non-sensitive data, Secret (app-secret) with sensitive data, and Deployment that uses both via environment variables.",
+      "what_it_does": "Creates ConfigMap, Secret, and 2-replica deployment 'configmap-demo'.",
+      "next_step": "Verify all resources were created successfully."
+    },
+    {
+      "name": "Step 3: Check ConfigMap",
+      "command": "kubectl get configmap app-config -n scenarios -o yaml",
+      "description": "View ConfigMap contents",
+      "explanation": "ConfigMaps store non-sensitive configuration as key-value pairs. This one contains app.color=blue, app.mode=production, etc. Data is stored in plain text.",
+      "what_it_does": "Displays full ConfigMap YAML showing all configuration data.",
+      "next_step": "Now check the Secret."
+    },
+    {
+      "name": "Step 4: Check Secret",
+      "command": "kubectl get secret app-secret -n scenarios -o jsonpath='{.data}' | jq",
+      "description": "View Secret keys (values are base64 encoded)",
+      "explanation": "Secrets store sensitive data base64-encoded (not encrypted). Shows keys like 'database-user' and 'database-password'. To decode: echo '<value>' | base64 -d",
+      "what_it_does": "Displays Secret data keys with base64-encoded values.",
+      "next_step": "Verify pods are using the configuration."
+    },
+    {
+      "name": "Step 5: Verify Environment Variables",
+      "command": "kubectl exec -n scenarios deployment/configmap-demo -- env | grep -E 'APP_COLOR|DB_USER'",
+      "description": "Check environment variables injected from ConfigMap and Secret",
+      "explanation": "APP_COLOR comes from ConfigMap (should be 'blue'), DB_USER comes from Secret (should be 'admin'). This proves the configuration is injected into containers.",
+      "what_it_does": "Lists specific environment variables inside a running pod.",
+      "next_step": "Test updating ConfigMap to see the update process."
+    },
+    {
+      "name": "Step 6: Update ConfigMap",
+      "command": "kubectl patch configmap app-config -n scenarios --type merge -p '{\"data\":{\"app.color\":\"green\"}}'",
+      "description": "Change app color from blue to green",
+      "explanation": "Updates ConfigMap in-place. IMPORTANT: Existing pods don't automatically see changes when using env vars. New pods or restarted pods will get the updated value. For immediate updates, use volume mounts instead.",
+      "what_it_does": "Modifies the app.color value in ConfigMap from blue to green.",
+      "next_step": "Restart pods to pick up the ConfigMap change."
+    },
+    {
+      "name": "Step 7: Restart Deployment",
+      "command": "kubectl rollout restart deployment configmap-demo -n scenarios",
+      "description": "Restart pods to load updated ConfigMap",
+      "explanation": "Performs a rolling restart, replacing pods one at a time. New pods will read the updated ConfigMap and have APP_COLOR=green. This is the only way to refresh env vars from ConfigMaps.",
+      "what_it_does": "Triggers controlled restart of all pods in the deployment.",
+      "next_step": "Wait for rollout to complete, then verify the change."
+    },
+    {
+      "name": "Step 8: Verify Updated Value",
+      "command": "kubectl exec -n scenarios deployment/configmap-demo -- env | grep APP_COLOR",
+      "description": "Confirm APP_COLOR is now green",
+      "explanation": "Should display APP_COLOR=green, proving the pod picked up the updated ConfigMap after restart.",
+      "what_it_does": "Shows the current APP_COLOR environment variable value.",
+      "next_step": "Scenario complete! You've learned ConfigMap and Secret basics."
+    },
+    {
+      "name": "Cleanup: Delete All Resources",
+      "command": "kubectl delete -f deployment.yaml -n scenarios",
+      "description": "Remove ConfigMap, Secret, and Deployment",
+      "explanation": "Deletes all three resources created in this scenario in one command.",
+      "what_it_does": "Removes app-config ConfigMap, app-secret Secret, and configmap-demo Deployment.",
+      "next_step": "Cleanup complete! Run validation: ./validate.sh",
+      "cleanup": true
+    }
+  ]
+}

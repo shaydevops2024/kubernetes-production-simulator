@@ -1,0 +1,14 @@
+# k8s-scenarios/05-rolling-updates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: rolling-demo-service
+  namespace: scenarios
+spec:
+  type: ClusterIP
+  selector:
+    app: rolling-demo
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80

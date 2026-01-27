@@ -1,0 +1,26 @@
+# k8s-scenarios/06-network-policies/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: netpol-demo-app
+  namespace: scenarios
+  labels:
+    app: netpol-demo
+    scenario: "06"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: netpol-demo
+      role: backend
+  template:
+    metadata:
+      labels:
+        app: netpol-demo
+        role: backend
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.21-alpine
+        ports:
+        - containerPort: 80

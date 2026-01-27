@@ -1,0 +1,253 @@
+# Deployment with Node Selector (simplest form)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-with-node-selector
+  namespace: k8s-multi-demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: node-selector-demo
+  template:
+    metadata:
+      labels:
+        app: node-selector-demo
+    spec:
+      nodeSelector:
+        workload: frontend
+      containers:
+      - name: nginx
+        image: nginx:latest
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+---
+# Deployment with Node Affinity (preferred)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-with-affinity-preferred
+  namespace: k8s-multi-demo
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: affinity-demo-preferred
+  template:
+    metadata:
+      labels:
+        app: affinity-demo-preferred
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: disktype
+                operator: In
+                values:
+                - ssd
+          - weight: 50
+            preference:
+              matchExpressions:
+              - key: zone
+                operator: In
+                values:
+                - us-east-1a
+      containers:
+      - name: app
+        image: nginx:latest
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+---
+# Deployment with Node Affinity (required)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-with-affinity-required
+  namespace: k8s-multi-demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: affinity-demo-required
+  template:
+    metadata:
+      labels:
+        app: affinity-demo-required
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                - k8s-demo-control-plane
+      containers:
+      - name: app
+        image: nginx:latest
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+---
+# Pod with Anti-Affinity (spread across nodes)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-with-anti-affinity
+  namespace: k8s-multi-demo
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: anti-affinity-demo
+  template:
+    metadata:
+      labels:
+        app: anti-affinity-demo
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - anti-affinity-demo
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - name: app
+        image: nginx:latest
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+---
+# Pod with Pod Affinity (schedule near other pods)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cache-with-affinity
+  namespace: k8s-multi-demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cache
+  template:
+    metadata:
+      labels:
+        app: cache
+    spec:
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - k8s-demo-app
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - name: redis
+        image: redis:latest
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+---
+# Pod with Tolerations (can run on tainted nodes)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-with-tolerations
+  namespace: k8s-multi-demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: tolerations-demo
+  template:
+    metadata:
+      labels:
+        app: tolerations-demo
+    spec:
+      tolerations:
+      - key: "workload"
+        operator: "Equal"
+        value: "special"
+        effect: "NoSchedule"
+      - key: "node-role.kubernetes.io/control-plane"
+        operator: "Exists"
+        effect: "NoSchedule"
+      containers:
+      - name: app
+        image: nginx:latest
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+---
+# Complex example: Affinity + Anti-Affinity + Tolerations
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-complex-scheduling
+  namespace: k8s-multi-demo
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: complex-demo
+  template:
+    metadata:
+      labels:
+        app: complex-demo
+        tier: backend
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: zone
+                operator: In
+                values:
+                - zone-a
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - complex-demo
+              topologyKey: kubernetes.io/hostname
+      tolerations:
+      - key: "dedicated"
+        operator: "Equal"
+        value: "backend"
+        effect: "NoSchedule"
+      containers:
+      - name: app
+        image: nginx:latest
+        resources:
+          requests:
+            cpu: 200m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
