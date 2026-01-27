@@ -2,7 +2,7 @@
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: pdb-demo-budget
+  name: pdb-demo
   namespace: scenarios
 spec:
   minAvailable: 2

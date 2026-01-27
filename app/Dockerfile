@@ -47,8 +47,7 @@ COPY k8s-scenarios/ /scenarios/
 RUN useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /app && \
     chown -R appuser:appuser /scenarios && \
-    chmod -R 755 /scenarios && \
-    chmod +x /scenarios/*/validate.sh
+    chmod -R 755 /scenarios
 
 # Switch to non-root user
 USER appuser

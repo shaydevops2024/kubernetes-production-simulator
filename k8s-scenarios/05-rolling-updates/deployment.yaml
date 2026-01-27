@@ -2,7 +2,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rolling-demo-app
+  name: rolling-demo
   namespace: scenarios
   labels:
     app: rolling-demo

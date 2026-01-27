@@ -21,7 +21,7 @@
     },
     {
       "name": "Step 3: Deploy Application",
-      "command": "kubectl apply -f deployment.yaml -n scenarios",
+      "command": "kubectl apply -f k8s-scenarios/03-vpa-config/deployment.yaml -n scenarios",
       "description": "Deploy application with initial resource requests",
       "explanation": "Deploys application with intentionally low resource requests (100m CPU, 50Mi memory) to demonstrate VPA recommendations. The app has higher limits (500m CPU, 500Mi memory) allowing it to use more resources.",
       "what_it_does": "Creates vpa-demo-app deployment and VPA resource in scenarios namespace.",
@@ -77,11 +77,11 @@
     },
     {
       "name": "Cleanup: Delete Resources",
-      "command": "kubectl delete -f deployment.yaml -n scenarios",
+      "command": "kubectl delete -f k8s-scenarios/03-vpa-config/deployment.yaml -n scenarios",
       "description": "Remove VPA demo resources",
       "explanation": "Deletes the deployment, VPA resource, and all pods.",
       "what_it_does": "Removes vpa-demo-app deployment and vpa-demo VPA from scenarios namespace.",
-      "next_step": "Cleanup complete! Run validation: ./validate.sh",
+      "next_step": "Cleanup complete! Cleanup complete!",
       "cleanup": true
     }
   ]

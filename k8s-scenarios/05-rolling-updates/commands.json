@@ -13,9 +13,9 @@
     },
     {
       "name": "Step 2: Deploy v1",
-      "command": "kubectl apply -f deployment.yaml -n scenarios",
-      "description": "Deploy nginx:1.20-alpine (version 1)",
-      "explanation": "Creates deployment with 3 replicas running nginx:1.20-alpine. Uses RollingUpdate strategy with maxSurge:1 (can create 1 extra pod) and maxUnavailable:1 (at most 1 unavailable during update).",
+      "command": "kubectl apply -f k8s-scenarios/05-rolling-updates/deployment.yaml -f k8s-scenarios/05-rolling-updates/service.yaml -n scenarios",
+      "description": "Deploy nginx deployment and service with nginx:1.20-alpine (version 1)",
+      "explanation": "Creates deployment with 3 replicas and service running nginx:1.20-alpine. Uses RollingUpdate strategy with maxSurge:1 (can create 1 extra pod) and maxUnavailable:1 (at most 1 unavailable during update).",
       "what_it_does": "Creates 'rolling-demo' deployment and 'rolling-service' with nginx:1.20.",
       "next_step": "Verify v1 is running before updating."
     },
@@ -77,11 +77,11 @@
     },
     {
       "name": "Cleanup: Delete Resources",
-      "command": "kubectl delete -f deployment.yaml -n scenarios",
+      "command": "kubectl delete -f k8s-scenarios/05-rolling-updates/deployment.yaml -f k8s-scenarios/05-rolling-updates/service.yaml -n scenarios",
       "description": "Remove deployment and service",
       "explanation": "Deletes all resources created in this scenario.",
       "what_it_does": "Removes rolling-demo deployment and rolling-service.",
-      "next_step": "Cleanup complete! Run validation: ./validate.sh",
+      "next_step": "Cleanup complete! Cleanup complete!",
       "cleanup": true
     }
   ]

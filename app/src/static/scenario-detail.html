@@ -184,30 +184,6 @@
             font-weight: 800;
         }
 
-        .validate-btn {
-            padding: 12px 24px;
-            background: #10b981;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 15px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
-        }
-
-        .validate-btn:hover {
-            background: #059669;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4);
-        }
-
-        .validate-btn:disabled {
-            background: #9ca3af;
-            cursor: not-allowed;
-            transform: none;
-        }
 
         .command-card {
             background: white;
@@ -436,37 +412,6 @@
             line-height: 1.6;
         }
 
-        .validation-result {
-            margin-top: 20px;
-            padding: 20px;
-            border-radius: 12px;
-            display: none;
-        }
-
-        .validation-result.success {
-            background: #d1fae5;
-            border: 2px solid #10b981;
-            display: block;
-        }
-
-        .validation-result.failure {
-            background: #fee2e2;
-            border: 2px solid #ef4444;
-            display: block;
-        }
-
-        .validation-output {
-            background: #1f2937;
-            color: #f3f4f6;
-            padding: 15px;
-            border-radius: 8px;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            margin-top: 10px;
-            max-height: 300px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-        }
 
         .loading {
             text-align: center;
@@ -558,12 +503,8 @@
                     <div class="commands-panel">
                         <div class="panel-header">
                             <h2>🚀 Commands to Execute</h2>
-                            <button class="validate-btn" onclick="validateScenario()">
-                                ✓ Validate Scenario
-                            </button>
                         </div>
 
-                        <div id="validation-result" class="validation-result"></div>
                         <div id="commands-list"></div>
 
                         ${scenario.yaml_files && scenario.yaml_files.length > 0 ? `
@@ -770,43 +711,6 @@
                 showNotification('Failed to copy - please try again', 'error');
             }
         });
-
-        async function validateScenario() {
-            const btn = document.querySelector('.validate-btn');
-            const resultDiv = document.getElementById('validation-result');
-            
-            btn.disabled = true;
-            btn.textContent = 'Validating...';
-            
-            try {
-                const response = await fetch(`/api/scenarios/${scenarioId}/validate`, {
-                    method: 'POST'
-                });
-                const data = await response.json();
-                
-                resultDiv.className = `validation-result ${data.success ? 'success' : 'failure'}`;
-                resultDiv.innerHTML = `
-                    <h3>${data.success ? '✅ Validation Passed!' : '❌ Validation Failed'}</h3>
-                    <p>${data.message}</p>
-                    ${data.output ? `<div class="validation-output">${escapeHtml(data.output)}</div>` : ''}
-                `;
-                
-                showNotification(
-                    data.success ? 'Scenario validated successfully!' : 'Validation failed - check the output',
-                    data.success ? 'success' : 'error'
-                );
-            } catch (error) {
-                resultDiv.className = 'validation-result failure';
-                resultDiv.innerHTML = `
-                    <h3>❌ Validation Error</h3>
-                    <p>${error.message}</p>
-                `;
-                showNotification('Validation error occurred', 'error');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = '✓ Validate Scenario';
-            }
-        }
 
         function escapeHtml(text) {
             const div = document.createElement('div');

@@ -13,7 +13,7 @@
     },
     {
       "name": "Step 2: Deploy DaemonSet",
-      "command": "kubectl apply -f daemonset.yaml -n scenarios",
+      "command": "kubectl apply -f k8s-scenarios/11-daemonset-deployment/daemonset.yaml -n scenarios",
       "description": "Deploy Fluentd DaemonSet",
       "explanation": "Creates DaemonSet that schedules exactly one pod on every node in the cluster. DaemonSets are ideal for node-level services like logging agents, monitoring exporters, or storage daemons.",
       "what_it_does": "Creates fluentd-ds DaemonSet which deploys one pod per node.",
@@ -21,7 +21,7 @@
     },
     {
       "name": "Step 3: List DaemonSet Pods",
-      "command": "kubectl get pods -n scenarios -l app=fluentd -o wide",
+      "command": "kubectl get pods -n scenarios -l app=daemonset-demo -o wide",
       "description": "View pods distributed across all nodes",
       "explanation": "Should see one pod per node in your cluster. The NODE column shows each pod is on a different node. This is DaemonSet's guarantee: exactly one pod per node.",
       "what_it_does": "Lists all fluentd pods with their node assignments.",
@@ -29,7 +29,7 @@
     },
     {
       "name": "Step 4: Check DaemonSet Status",
-      "command": "kubectl get daemonset fluentd-ds -n scenarios",
+      "command": "kubectl get daemonset daemonset-demo -n scenarios",
       "description": "View DaemonSet pod counts",
       "explanation": "DESIRED shows target node count, CURRENT shows pods created, READY shows pods passing readiness, AVAILABLE shows pods ready to serve. All should match your node count.",
       "what_it_does": "Displays DaemonSet with current vs desired pod count.",
@@ -37,7 +37,7 @@
     },
     {
       "name": "Step 5: Describe DaemonSet",
-      "command": "kubectl describe daemonset fluentd-ds -n scenarios",
+      "command": "kubectl describe daemonset daemonset-demo -n scenarios",
       "description": "View detailed DaemonSet configuration",
       "explanation": "Shows pod template, update strategy (RollingUpdate), selectors, and events. DaemonSets use RollingUpdate by default - updating one pod at a time when image changes.",
       "what_it_does": "Displays full DaemonSet spec and status.",
@@ -53,7 +53,7 @@
     },
     {
       "name": "Step 7: Check DaemonSet Events",
-      "command": "kubectl get events -n scenarios --field-selector involvedObject.name=fluentd-ds --sort-by='.lastTimestamp'",
+      "command": "kubectl get events -n scenarios --field-selector involvedObject.name=daemonset-demo --sort-by='.lastTimestamp'",
       "description": "See DaemonSet scheduling events",
       "explanation": "Shows pod creation events for each node. You'll see 'SuccessfulCreate' events for each pod scheduled.",
       "what_it_does": "Lists events related to DaemonSet pod scheduling.",
@@ -61,11 +61,11 @@
     },
     {
       "name": "Cleanup: Delete DaemonSet",
-      "command": "kubectl delete -f daemonset.yaml -n scenarios",
+      "command": "kubectl delete -f k8s-scenarios/11-daemonset-deployment/daemonset.yaml -n scenarios",
       "description": "Remove DaemonSet and all pods",
       "explanation": "Deletes the DaemonSet, which automatically removes all pods from all nodes.",
       "what_it_does": "Removes fluentd-ds DaemonSet and all its pods.",
-      "next_step": "Cleanup complete! Run validate.sh to confirm.",
+      "next_step": "Cleanup complete! Cleanup complete!",
       "cleanup": true
     }
   ]

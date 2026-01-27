@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rolling-demo
+  name: rolling-demo-updatev2
   namespace: k8s-multi-demo
   labels:
     app: rolling-demo

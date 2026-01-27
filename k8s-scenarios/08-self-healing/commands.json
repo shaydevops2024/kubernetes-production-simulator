@@ -13,9 +13,9 @@
     },
     {
       "name": "Step 2: Deploy Application",
-      "command": "kubectl apply -f deployment.yaml -n scenarios",
-      "description": "Deploy nginx with 3 replicas",
-      "explanation": "Creates deployment with 3 replicas. The ReplicaSet controller continuously monitors pod count and recreates pods if deleted, demonstrating Kubernetes self-healing capability.",
+      "command": "kubectl apply -f k8s-scenarios/08-self-healing/deployment.yaml -f k8s-scenarios/08-self-healing/service.yaml -n scenarios",
+      "description": "Deploy nginx deployment and service with 3 replicas",
+      "explanation": "Creates deployment with 3 replicas and service. The ReplicaSet controller continuously monitors pod count and recreates pods if deleted, demonstrating Kubernetes self-healing capability.",
       "what_it_does": "Creates selfheal-demo deployment, selfheal-service, with 3 nginx pods.",
       "next_step": "Verify 3 pods are running."
     },
@@ -69,11 +69,11 @@
     },
     {
       "name": "Cleanup: Delete Resources",
-      "command": "kubectl delete -f deployment.yaml -n scenarios",
+      "command": "kubectl delete -f k8s-scenarios/08-self-healing/deployment.yaml -f k8s-scenarios/08-self-healing/service.yaml -n scenarios",
       "description": "Remove deployment and service",
       "explanation": "Deletes deployment, service, and all pods.",
       "what_it_does": "Removes selfheal-demo deployment and service.",
-      "next_step": "Cleanup complete! Run validate.sh to confirm.",
+      "next_step": "Cleanup complete! Cleanup complete!",
       "cleanup": true
     }
   ]

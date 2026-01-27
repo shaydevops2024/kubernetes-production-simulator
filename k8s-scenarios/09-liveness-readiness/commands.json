@@ -12,10 +12,10 @@
     },
     {
       "name": "Step 2: Deploy Application with Probes",
-      "command": "kubectl apply -f deployment.yaml -n scenarios",
-      "description": "Deploy app with liveness and readiness probes",
-      "explanation": "Creates deployment with both probe types configured. Liveness probe checks /healthz every 3s after 3s delay. Readiness probe checks /healthz every 5s after 5s delay. This deployment uses k8s.gcr.io/liveness image which simulates probe failures.",
-      "what_it_does": "Creates deployment 'probes-demo' and service with 2 replicas.",
+      "command": "kubectl apply -f k8s-scenarios/09-liveness-readiness/deployment.yaml -f k8s-scenarios/09-liveness-readiness/service.yaml -n scenarios",
+      "description": "Deploy deployment and service with liveness and readiness probes",
+      "explanation": "Creates deployment and service with both probe types configured. Liveness probe checks /healthz every 3s after 3s delay. Readiness probe checks /healthz every 5s after 5s delay. This deployment uses k8s.gcr.io/liveness image which simulates probe failures.",
+      "what_it_does": "Creates deployment 'probes-demo-app' and service 'probes-demo-service' with 2 replicas.",
       "next_step": "Check pods are running with probes active."
     },
     {
@@ -43,19 +43,19 @@
       "next_step": "Simulate liveness probe failure."
     },
     {
-      "name": "Step 6: Simulate Liveness Failure",
-      "command": "kubectl exec -n scenarios deployment/probes-demo -- rm /tmp/healthy",
-      "description": "Remove health file to fail liveness probe",
-      "explanation": "The liveness probe checks for /tmp/healthy file. Removing it causes the probe to fail. After 3 failures (failureThreshold: 3), Kubernetes restarts the container.",
-      "what_it_does": "Triggers liveness probe failure by removing health indicator.",
-      "next_step": "Watch pod restart due to liveness failure."
+      "name": "Step 6: Wait for Automatic Failure",
+      "command": "sleep 15 && kubectl get pods -n scenarios -l app=probes-demo",
+      "description": "Wait for liveness image to automatically fail",
+      "explanation": "The k8s.gcr.io/liveness image automatically starts returning HTTP 500 after 10 seconds. After 3 probe failures (failureThreshold: 3), Kubernetes will restart the containers. This sleep gives it time to fail and restart.",
+      "what_it_does": "Waits 15 seconds then checks pod status.",
+      "next_step": "Watch for restarts."
     },
     {
       "name": "Step 7: Watch Pod Restart",
       "command": "kubectl get pods -n scenarios -l app=probes-demo --watch",
-      "description": "Monitor pod restart from liveness failure",
-      "explanation": "You'll see RESTARTS count increment and pod briefly show NotReady. Liveness failure triggers container restart (not pod deletion). Press Ctrl+C after seeing restart.",
-      "what_it_does": "Streams live pod status showing restart.",
+      "description": "Monitor pod restarts from liveness failures",
+      "explanation": "The containers will restart every ~40 seconds as they repeatedly fail health checks. You'll see RESTARTS count increment. Liveness failure triggers container restart (not pod deletion). Press Ctrl+C to stop watching.",
+      "what_it_does": "Streams live pod status showing restarts.",
       "next_step": "Verify restart count increased."
     },
     {
@@ -68,7 +68,7 @@
     },
     {
       "name": "Step 9: Check Service Endpoints",
-      "command": "kubectl get endpoints probes-service -n scenarios",
+      "command": "kubectl get endpoints probes-demo-service -n scenarios",
       "description": "View service endpoint list",
       "explanation": "Shows which pod IPs are included in the service. Only Ready pods are listed. If a pod fails readiness, it's removed from here (but pod stays running).",
       "what_it_does": "Lists pod IPs receiving traffic from service.",
@@ -76,7 +76,7 @@
     },
     {
       "name": "Cleanup: Delete Resources",
-      "command": "kubectl delete -f deployment.yaml -n scenarios",
+      "command": "kubectl delete -f k8s-scenarios/09-liveness-readiness/deployment.yaml -f k8s-scenarios/09-liveness-readiness/service.yaml -n scenarios",
       "description": "Remove deployment and service",
       "explanation": "Deletes all resources created in this scenario.",
       "what_it_does": "Removes deployment and service.",

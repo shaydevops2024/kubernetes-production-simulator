@@ -13,15 +13,15 @@
     },
     {
       "name": "Step 2: Deploy HA Application",
-      "command": "kubectl apply -f deployment.yaml -n scenarios",
-      "description": "Deploy app with anti-affinity, PDB, and HPA",
-      "explanation": "Creates deployment with pod anti-affinity (spreads across nodes), PodDisruptionBudget (protects during disruptions), and HPA (scales based on CPU). This combination provides comprehensive high availability.",
-      "what_it_does": "Creates ha-app deployment, ha-pdb PDB, and ha-hpa HPA resources.",
+      "command": "kubectl apply -f k8s-scenarios/17-high-availability-special/deployment.yaml -f k8s-scenarios/17-high-availability-special/service.yaml -f k8s-scenarios/17-high-availability-special/pdb.yaml -f k8s-scenarios/17-high-availability-special/hpa.yaml -n scenarios",
+      "description": "Deploy app with anti-affinity, PDB, HPA, and service",
+      "explanation": "Creates deployment with pod anti-affinity (spreads across nodes), service, PodDisruptionBudget (protects during disruptions), and HPA (scales based on CPU). This combination provides comprehensive high availability.",
+      "what_it_does": "Creates ha-demo-app deployment, ha-demo-service, ha-demo-pdb PDB, and ha-demo-hpa HPA resources.",
       "next_step": "Verify pods distributed across nodes."
     },
     {
       "name": "Step 3: Check Pod Distribution",
-      "command": "kubectl get pods -n scenarios -l app=ha-app -o wide",
+      "command": "kubectl get pods -n scenarios -l app=ha-demo -o wide",
       "description": "View pods spread across different nodes",
       "explanation": "Anti-affinity ensures pods spread across nodes. Each pod should be on a different node for maximum availability. If multiple pods on same node, anti-affinity is 'preferred' not 'required'.",
       "what_it_does": "Lists pods with their node assignments.",
@@ -29,7 +29,7 @@
     },
     {
       "name": "Step 4: Check PDB Status",
-      "command": "kubectl get pdb ha-pdb -n scenarios",
+      "command": "kubectl get pdb ha-demo-pdb -n scenarios",
       "description": "View PodDisruptionBudget protecting minAvailable: 2",
       "explanation": "ALLOWED DISRUPTIONS shows how many pods can be safely disrupted. With 3 pods and minAvailable=2, only 1 disruption allowed at a time.",
       "what_it_does": "Displays PDB with current protection status.",
@@ -37,7 +37,7 @@
     },
     {
       "name": "Step 5: Check HPA Status",
-      "command": "kubectl get hpa ha-hpa -n scenarios",
+      "command": "kubectl get hpa ha-demo-hpa -n scenarios",
       "description": "View HPA configured for 3-10 replicas at 50% CPU",
       "explanation": "Shows current CPU utilization and replica count. HPA will scale between 3-10 replicas based on CPU load.",
       "what_it_does": "Displays HPA with metrics and replica range.",
@@ -45,7 +45,7 @@
     },
     {
       "name": "Step 6: Generate Load",
-      "command": "kubectl run load-gen --rm -i --tty --image=busybox --restart=Never -n scenarios -- /bin/sh -c \"while true; do wget -q -O- http://ha-app; done\"",
+      "command": "kubectl run load-gen --rm -i --tty --image=busybox --restart=Never -n scenarios -- /bin/sh -c \"while true; do wget -q -O- http://ha-demo-service; done\"",
       "description": "Generate CPU load to trigger HPA scaling (Ctrl+C after 2-3 minutes)",
       "explanation": "Creates load to drive CPU above 50%. HPA will detect this and scale up pods (respecting anti-affinity and PDB). Run for 2-3 minutes then press Ctrl+C.",
       "what_it_does": "Generates continuous load to trigger auto-scaling.",
@@ -53,7 +53,7 @@
     },
     {
       "name": "Step 7: Watch Scaling",
-      "command": "kubectl get hpa ha-hpa -n scenarios -w",
+      "command": "kubectl get hpa ha-demo-hpa -n scenarios -w",
       "description": "Monitor HPA scaling in real-time (Ctrl+C after scaling)",
       "explanation": "Watch TARGETS climb above 50% and REPLICAS increase. New pods will spread across nodes (anti-affinity) up to max 10. Press Ctrl+C after seeing scaling.",
       "what_it_does": "Streams live HPA status showing scaling.",
@@ -61,7 +61,7 @@
     },
     {
       "name": "Step 8: Verify Scaled Distribution",
-      "command": "kubectl get pods -n scenarios -l app=ha-app -o wide",
+      "command": "kubectl get pods -n scenarios -l app=ha-demo -o wide",
       "description": "Confirm scaled pods spread across nodes",
       "explanation": "After scaling, pods should still be distributed across different nodes due to anti-affinity. This maintains availability even with more replicas.",
       "what_it_does": "Shows pod distribution after scaling.",
@@ -77,7 +77,7 @@
     },
     {
       "name": "Step 10: View PDB During Drain",
-      "command": "kubectl describe pdb ha-pdb -n scenarios",
+      "command": "kubectl describe pdb ha-demo-pdb -n scenarios",
       "description": "See PDB status during drain attempt",
       "explanation": "Events section may show 'DisruptionBlocked' if PDB prevented eviction. CurrentHealthy shows how many pods remain available.",
       "what_it_does": "Displays PDB details including protection events.",
@@ -102,11 +102,11 @@
     },
     {
       "name": "Cleanup: Delete All HA Resources",
-      "command": "kubectl delete -f deployment.yaml -n scenarios",
-      "description": "Remove deployment, PDB, and HPA",
+      "command": "kubectl delete -f k8s-scenarios/17-high-availability-special/deployment.yaml -f k8s-scenarios/17-high-availability-special/service.yaml -f k8s-scenarios/17-high-availability-special/pdb.yaml -f k8s-scenarios/17-high-availability-special/hpa.yaml -n scenarios",
+      "description": "Remove deployment, service, PDB, and HPA",
       "explanation": "Deletes all HA resources created in this scenario.",
-      "what_it_does": "Removes ha-app deployment, ha-pdb PDB, and ha-hpa HPA.",
-      "next_step": "Cleanup complete! Run validate.sh to confirm.",
+      "what_it_does": "Removes ha-demo-app deployment, ha-demo-service, ha-demo-pdb PDB, and ha-demo-hpa HPA.",
+      "next_step": "Cleanup complete! Cleanup complete!",
       "cleanup": true
     }
   ]

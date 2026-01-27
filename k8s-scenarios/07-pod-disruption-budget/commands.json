@@ -13,10 +13,10 @@
     },
     {
       "name": "Step 2: Deploy Application with PDB",
-      "command": "kubectl apply -f deployment.yaml -n scenarios",
+      "command": "kubectl apply -f k8s-scenarios/07-pod-disruption-budget/deployment.yaml -f k8s-scenarios/07-pod-disruption-budget/pdb.yaml -n scenarios",
       "description": "Deploy 3-replica app with PDB requiring minAvailable: 2",
       "explanation": "Creates deployment with 3 replicas and a PodDisruptionBudget ensuring at least 2 pods stay available during voluntary disruptions (like drain, eviction). PDB protects against unsafe operations that would violate availability.",
-      "what_it_does": "Creates pdb-demo deployment (3 replicas) and pdb-demo PodDisruptionBudget (minAvailable: 2).",
+      "what_it_does": "Creates pdb-demo-app deployment (3 replicas) and pdb-demo PodDisruptionBudget (minAvailable: 2).",
       "next_step": "Verify pods and PDB are running."
     },
     {
@@ -61,7 +61,7 @@
     },
     {
       "name": "Step 8: Scale Up to Bypass PDB",
-      "command": "kubectl scale deployment pdb-demo --replicas=5 -n scenarios",
+      "command": "kubectl scale deployment pdb-demo-app --replicas=5 -n scenarios",
       "description": "Increase replicas to 5",
       "explanation": "With 5 pods and minAvailable=2, up to 3 pods can be disrupted. This allows drain operations while maintaining the minimum. Demonstrates how PDB adapts to replica count.",
       "what_it_does": "Scales deployment from 3 to 5 replicas.",
@@ -86,11 +86,11 @@
     },
     {
       "name": "Cleanup: Delete Resources",
-      "command": "kubectl delete -f deployment.yaml -n scenarios",
+      "command": "kubectl delete -f k8s-scenarios/07-pod-disruption-budget/deployment.yaml -f k8s-scenarios/07-pod-disruption-budget/pdb.yaml -n scenarios",
       "description": "Remove deployment and PDB",
       "explanation": "Deletes both deployment and PodDisruptionBudget.",
-      "what_it_does": "Removes pdb-demo deployment and PDB.",
-      "next_step": "Cleanup complete! Run validation: ./validate.sh",
+      "what_it_does": "Removes pdb-demo-app deployment and pdb-demo PDB.",
+      "next_step": "Cleanup complete! Cleanup complete!",
       "cleanup": true
     }
   ]

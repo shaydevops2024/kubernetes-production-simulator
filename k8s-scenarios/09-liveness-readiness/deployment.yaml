@@ -20,6 +20,8 @@ spec:
       containers:
       - name: app
         image: k8s.gcr.io/liveness
+        args:
+        - /server
         ports:
         - containerPort: 8080
         livenessProbe:

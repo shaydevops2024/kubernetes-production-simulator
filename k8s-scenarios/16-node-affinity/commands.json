@@ -29,7 +29,7 @@
     },
     {
       "name": "Step 4: Deploy with Node Affinity",
-      "command": "kubectl apply -f deployment.yaml -n scenarios",
+      "command": "kubectl apply -f k8s-scenarios/16-node-affinity/deployment.yaml -n scenarios",
       "description": "Deploy pods with requiredDuringScheduling affinity for disktype=ssd",
       "explanation": "Creates deployment with node affinity rule requiring disktype=ssd. Pods will ONLY schedule on nodes with this label. If no matching nodes, pods stay Pending.",
       "what_it_does": "Creates affinity-demo deployment with node affinity rules.",
@@ -85,7 +85,7 @@
     },
     {
       "name": "Cleanup: Delete Deployment",
-      "command": "kubectl delete -f deployment.yaml -n scenarios",
+      "command": "kubectl delete -f k8s-scenarios/16-node-affinity/deployment.yaml -n scenarios",
       "description": "Remove deployment",
       "explanation": "Deletes deployment and all pods.",
       "what_it_does": "Removes affinity-demo deployment.",
@@ -98,7 +98,7 @@
       "description": "Clean up node label (replace <NODE_NAME>)",
       "explanation": "Removes the test label from node. Example: kubectl label nodes kind-worker disktype-",
       "what_it_does": "Removes disktype label from node.",
-      "next_step": "Cleanup complete! Run validate.sh to confirm.",
+      "next_step": "Cleanup complete! Cleanup complete!",
       "cleanup": true
     }
   ]

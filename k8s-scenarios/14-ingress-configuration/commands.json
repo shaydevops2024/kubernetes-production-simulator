@@ -13,10 +13,10 @@
     },
     {
       "name": "Step 2: Deploy Application",
-      "command": "kubectl apply -f deployment.yaml -n scenarios",
-      "description": "Deploy app with Service and Ingress",
+      "command": "kubectl apply -f k8s-scenarios/14-ingress-configuration/deployment.yaml -f k8s-scenarios/14-ingress-configuration/service.yaml -f k8s-scenarios/14-ingress-configuration/ingress.yaml -n scenarios",
+      "description": "Deploy deployment, service, and Ingress",
       "explanation": "Creates deployment (2 replicas), ClusterIP service, and Ingress resource. Ingress provides HTTP routing, allowing multiple services to share one external IP/hostname.",
-      "what_it_does": "Creates ingress-demo deployment, service, and Ingress with routing rules.",
+      "what_it_does": "Creates ingress-demo-app deployment, ingress-demo-service, and ingress-demo Ingress with routing rules.",
       "next_step": "Verify resources created."
     },
     {
@@ -86,11 +86,11 @@
     },
     {
       "name": "Cleanup: Delete Resources",
-      "command": "kubectl delete -f deployment.yaml -n scenarios",
+      "command": "kubectl delete -f k8s-scenarios/14-ingress-configuration/deployment.yaml -f k8s-scenarios/14-ingress-configuration/service.yaml -f k8s-scenarios/14-ingress-configuration/ingress.yaml -n scenarios",
       "description": "Remove deployment, service, and Ingress",
       "explanation": "Deletes all resources created in this scenario.",
-      "what_it_does": "Removes ingress-demo deployment, service, and Ingress.",
-      "next_step": "Cleanup complete! Run validate.sh to confirm.",
+      "what_it_does": "Removes ingress-demo-app deployment, ingress-demo-service, and ingress-demo Ingress.",
+      "next_step": "Cleanup complete! Cleanup complete!",
       "cleanup": true
     }
   ]

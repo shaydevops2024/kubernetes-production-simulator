@@ -90,7 +90,7 @@
       "description": "Remove deployment and service",
       "explanation": "This deletes the deployment, service, and all pods created during the scenario.",
       "what_it_does": "Removes hpa-demo-app deployment, hpa-demo-service, and all associated pods.",
-      "next_step": "All resources cleaned! Run validation: ./validate.sh",
+      "next_step": "Cleanup complete!",
       "cleanup": true
     }
   ]

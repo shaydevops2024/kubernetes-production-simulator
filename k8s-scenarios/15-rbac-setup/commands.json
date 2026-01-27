@@ -13,7 +13,7 @@
     },
     {
       "name": "Step 2: Create RBAC Resources",
-      "command": "kubectl apply -f rbac.yaml -n scenarios",
+      "command": "kubectl apply -f k8s-scenarios/15-rbac-setup/rbac.yaml -n scenarios",
       "description": "Create ServiceAccount, Role, RoleBinding, and test pod",
       "explanation": "Creates: ServiceAccount (demo-sa) for pod identity, Role (demo-role) with specific permissions, RoleBinding (demo-binding) connecting SA to Role, and test deployment using the SA.",
       "what_it_does": "Creates ServiceAccount, Role, RoleBinding, and rbac-test-pod deployment.",
@@ -85,11 +85,11 @@
     },
     {
       "name": "Cleanup: Delete RBAC Resources",
-      "command": "kubectl delete -f rbac.yaml -n scenarios",
+      "command": "kubectl delete -f k8s-scenarios/15-rbac-setup/rbac.yaml -n scenarios",
       "description": "Remove all RBAC resources and test pod",
       "explanation": "Deletes ServiceAccount, Role, RoleBinding, and deployment.",
       "what_it_does": "Removes all RBAC resources created in this scenario.",
-      "next_step": "Cleanup complete! Run validate.sh to confirm.",
+      "next_step": "Cleanup complete! Cleanup complete!",
       "cleanup": true
     }
   ]

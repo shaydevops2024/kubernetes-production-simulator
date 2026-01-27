@@ -13,9 +13,9 @@
     },
     {
       "name": "Step 2: Deploy Application",
-      "command": "kubectl apply -f deployment.yaml -n scenarios",
-      "description": "Deploy nginx with 3 replicas",
-      "explanation": "Creates deployment with 3 replicas that Kubernetes will distribute across available nodes. This demonstrates pod rescheduling when nodes fail.",
+      "command": "kubectl apply -f k8s-scenarios/02-node-failure/deployment.yaml -f k8s-scenarios/02-node-failure/service.yaml -n scenarios",
+      "description": "Deploy nginx deployment and service with 3 replicas",
+      "explanation": "Creates deployment with 3 replicas and service that Kubernetes will distribute across available nodes. This demonstrates pod rescheduling when nodes fail.",
       "what_it_does": "Creates 'node-failure-demo' deployment and 'node-failure-service' with 3 nginx pods.",
       "next_step": "Wait for pods to be Running, then check their node distribution."
     },
@@ -77,11 +77,11 @@
     },
     {
       "name": "Cleanup: Delete Application",
-      "command": "kubectl delete -f deployment.yaml -n scenarios",
+      "command": "kubectl delete -f k8s-scenarios/02-node-failure/deployment.yaml -f k8s-scenarios/02-node-failure/service.yaml -n scenarios",
       "description": "Remove all scenario resources",
       "explanation": "Deletes the deployment, service, and all pods created during this scenario.",
       "what_it_does": "Removes node-failure-demo deployment and service from scenarios namespace.",
-      "next_step": "Cleanup complete! Run validation: ./validate.sh",
+      "next_step": "Cleanup complete! Cleanup complete!",
       "cleanup": true
     }
   ]
