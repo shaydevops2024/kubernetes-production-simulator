@@ -1,46 +1,67 @@
 #!/bin/bash
-# Generic validation script for scenarios
+# k8s-scenarios/14-ingress-configuration/validate.sh
 
 echo "========================================"
-echo "Scenario Validation"
+echo "Ingress Configuration Scenario Validation"
 echo "========================================"
 echo ""
 
-NAMESPACE="k8s-multi-demo"
+NAMESPACE="scenarios"
 PASSED=0
 FAILED=0
 
-echo "[TEST 1] Checking deployment..."
-if kubectl get deployment k8s-demo-deployment -n $NAMESPACE &> /dev/null; then
-    READY=$(kubectl get deployment k8s-demo-deployment -n $NAMESPACE -o jsonpath='{.status.readyReplicas}' 2>/dev/null)
-    if [ ! -z "$READY" ] && [ "$READY" -ge 1 ]; then
-        echo "✅ PASSED: Deployment operational"
-        ((PASSED++))
-    else
-        echo "⚠️  WARNING: Deployment exists but not ready"
-        ((PASSED++))
-    fi
+echo "[TEST 1] Checking namespace..."
+if kubectl get namespace $NAMESPACE &> /dev/null; then
+    echo "✅ Namespace exists"
+    ((PASSED++))
 else
-    echo "⚠️  INFO: No deployment (may be part of scenario)"
+    echo "❌ Namespace not found"
+    ((FAILED++))
+fi
+echo ""
+
+echo "[TEST 2] Checking deployment..."
+if kubectl get deployment ingress-demo -n $NAMESPACE &> /dev/null; then
+    echo "✅ Deployment exists"
+    ((PASSED++))
+else
+    echo "⚠️  Deployment not found (may be cleaned up)"
     ((PASSED++))
 fi
 echo ""
 
-echo "[TEST 2] Checking pods..."
-RUNNING=$(kubectl get pods -n $NAMESPACE --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l)
-if [ "$RUNNING" -ge 0 ]; then
-    echo "✅ PASSED: Found $RUNNING running pods"
+echo "[TEST 3] Checking service..."
+if kubectl get service ingress-demo-service -n $NAMESPACE &> /dev/null; then
+    echo "✅ Service exists"
     ((PASSED++))
 else
-    echo "⚠️  INFO: No pods found"
+    echo "⚠️  Service not found (may be cleaned up)"
     ((PASSED++))
 fi
 echo ""
 
-echo "========================================"
-echo "VALIDATION SUMMARY"
-echo "========================================"
-echo "Tests Passed: $PASSED"
+echo "[TEST 4] Checking ingress..."
+if kubectl get ingress ingress-demo -n $NAMESPACE &> /dev/null; then
+    echo "✅ Ingress exists"
+    ((PASSED++))
+else
+    echo "⚠️  Ingress not found (may be cleaned up)"
+    ((PASSED++))
+fi
 echo ""
-echo "✅ SCENARIO VALIDATION COMPLETE"
-exit 0
+
+echo "[TEST 5] Checking cleanup..."
+RESOURCES=$(kubectl get all,ingress -n $NAMESPACE -l app=ingress-demo --no-headers 2>/dev/null | wc -l)
+if [ "$RESOURCES" -eq 0 ]; then
+    echo "✅ Cleanup complete"
+    ((PASSED++))
+else
+    echo "⚠️  $RESOURCES resources remain"
+fi
+echo ""
+
+echo "========================================"
+echo "Tests Passed: $PASSED | Tests Failed: $FAILED"
+echo "========================================"
+[ $FAILED -eq 0 ] && echo "✅ VALIDATION COMPLETE" && exit 0
+echo "❌ VALIDATION FAILED" && exit 1

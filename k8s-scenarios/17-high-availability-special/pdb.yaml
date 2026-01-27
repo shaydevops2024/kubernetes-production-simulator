@@ -1,21 +1,11 @@
+# k8s-scenarios/17-high-availability-special/pdb.yaml
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: k8s-demo-pdb
-  namespace: k8s-multi-demo
+  name: ha-demo-pdb
+  namespace: scenarios
 spec:
   minAvailable: 2
   selector:
     matchLabels:
-      app: k8s-demo-app
----
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  name: k8s-demo-pdb-percentage
-  namespace: k8s-multi-demo
-spec:
-  minAvailable: 50%
-  selector:
-    matchLabels:
-      app: k8s-demo-app
+      app: ha-demo

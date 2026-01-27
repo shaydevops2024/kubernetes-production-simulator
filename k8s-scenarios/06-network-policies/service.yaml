@@ -1,0 +1,13 @@
+# k8s-scenarios/06-network-policies/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: netpol-demo-service
+  namespace: scenarios
+spec:
+  selector:
+    app: netpol-demo
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80

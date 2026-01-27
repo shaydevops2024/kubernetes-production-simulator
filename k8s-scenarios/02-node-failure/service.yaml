@@ -1,0 +1,16 @@
+# k8s-scenarios/02-node-failure/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: node-failure-service
+  namespace: scenarios
+  labels:
+    app: node-failure-demo
+spec:
+  type: ClusterIP
+  selector:
+    app: node-failure-demo
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80

@@ -1,55 +1,42 @@
+# k8s-scenarios/09-liveness-readiness/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: app-with-probes
-  namespace: k8s-multi-demo
+  name: probes-demo-app
+  namespace: scenarios
+  labels:
+    app: probes-demo
+    scenario: "09"
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     matchLabels:
-      app: probe-demo
+      app: probes-demo
   template:
     metadata:
       labels:
-        app: probe-demo
+        app: probes-demo
     spec:
       containers:
       - name: app
-        image: nginx:latest
+        image: k8s.gcr.io/liveness
         ports:
-        - containerPort: 80
-          name: http
+        - containerPort: 8080
         livenessProbe:
           httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 10
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 3
           periodSeconds: 10
-          timeoutSeconds: 5
-          successThreshold: 1
           failureThreshold: 3
         readinessProbe:
           httpGet:
-            path: /
-            port: 80
+            path: /healthz
+            port: 8080
           initialDelaySeconds: 5
           periodSeconds: 5
-          timeoutSeconds: 3
-          successThreshold: 1
           failureThreshold: 3
-        startupProbe:
-          httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 0
-          periodSeconds: 5
-          timeoutSeconds: 3
-          successThreshold: 1
-          failureThreshold: 30
         resources:
           requests:
             cpu: 100m
-            memory: 128Mi
-          limits:
-            cpu: 200m
-            memory: 256Mi
+            memory: 64Mi

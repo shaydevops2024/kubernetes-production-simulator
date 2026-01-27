@@ -1,22 +1,22 @@
+# k8s-scenarios/03-vpa-config/vpa.yaml
 apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
 metadata:
-  name: k8s-demo-vpa
-  namespace: k8s-multi-demo
+  name: vpa-demo-autoscaler
+  namespace: scenarios
 spec:
   targetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: k8s-demo-deployment
+    name: vpa-demo-app
   updatePolicy:
-    updateMode: "Auto"
+    updateMode: "Off"  # Recommendation only, doesn't auto-update
   resourcePolicy:
     containerPolicies:
-    - containerName: k8s-demo-app
+    - containerName: application
       minAllowed:
-        cpu: 100m
-        memory: 128Mi
+        cpu: 50m
+        memory: 50Mi
       maxAllowed:
-        cpu: 1000m
+        cpu: 1
         memory: 1Gi
-      controlledResources: ["cpu", "memory"]

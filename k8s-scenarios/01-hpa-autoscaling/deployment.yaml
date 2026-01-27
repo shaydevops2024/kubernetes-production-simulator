@@ -1,0 +1,31 @@
+# k8s-scenarios/01-hpa-autoscaling/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hpa-demo-app
+  namespace: scenarios
+  labels:
+    app: hpa-demo
+    scenario: "01"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hpa-demo
+  template:
+    metadata:
+      labels:
+        app: hpa-demo
+    spec:
+      containers:
+      - name: php-apache
+        image: k8s.gcr.io/hpa-example
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 200m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi

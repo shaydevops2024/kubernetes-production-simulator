@@ -1,0 +1,28 @@
+# k8s-scenarios/08-self-healing/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: selfheal-demo-app
+  namespace: scenarios
+  labels:
+    app: selfheal-demo
+    scenario: "08"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: selfheal-demo
+  template:
+    metadata:
+      labels:
+        app: selfheal-demo
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.21-alpine
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 100m
+            memory: 64Mi

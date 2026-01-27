@@ -1,79 +1,96 @@
 {
+  "scenario_id": "07-pod-disruption-budget",
   "difficulty": "medium",
-  "duration": "15 min",
+  "duration": "20 min",
   "commands": [
     {
-      "name": "Step 1: Create Pod Disruption Budget",
-      "command": "kubectl apply -f pdb.yaml -n k8s-multi-demo",
-      "description": "Apply a PDB to ensure minimum pod availability during disruptions",
-      "explanation": "Pod Disruption Budgets (PDB) protect availability during voluntary disruptions like node drains or cluster upgrades. A PDB specifies either minAvailable (minimum pods that must stay running) or maxUnavailable (maximum that can be down). PDBs only affect voluntary disruptions, not node failures or pod crashes.",
-      "what_it_does": "Creates a PDB resource that tells Kubernetes: 'Always keep at least N pods of this deployment running, even during maintenance.'",
-      "next_step": "PDB is created. It will now prevent drain/eviction operations from taking down too many pods at once."
+      "name": "Step 1: Create Namespace",
+      "command": "kubectl create namespace scenarios --dry-run=client -o yaml | kubectl apply -f -",
+      "description": "Create scenarios namespace",
+      "explanation": "Creates namespace for PDB demonstration.",
+      "what_it_does": "Creates 'scenarios' namespace if needed.",
+      "next_step": "Deploy application with PDB protection."
     },
     {
-      "name": "Step 2: View PDB Status",
-      "command": "kubectl get pdb -n k8s-multi-demo",
-      "description": "Check the PDB and see how many disruptions are currently allowed",
-      "explanation": "The ALLOWED DISRUPTIONS column shows how many pods can be safely disrupted right now while maintaining the min/max constraints. If it's 0, no pods can be drained. If it's 2, up to 2 can be disrupted simultaneously.",
-      "what_it_does": "Displays PDB name, minimum available pods, current pod count, and how many disruptions are currently permitted.",
-      "next_step": "Note the ALLOWED DISRUPTIONS number. This changes dynamically based on how many pods are running vs. the PDB requirement."
+      "name": "Step 2: Deploy Application with PDB",
+      "command": "kubectl apply -f deployment.yaml -n scenarios",
+      "description": "Deploy 3-replica app with PDB requiring minAvailable: 2",
+      "explanation": "Creates deployment with 3 replicas and a PodDisruptionBudget ensuring at least 2 pods stay available during voluntary disruptions (like drain, eviction). PDB protects against unsafe operations that would violate availability.",
+      "what_it_does": "Creates pdb-demo deployment (3 replicas) and pdb-demo PodDisruptionBudget (minAvailable: 2).",
+      "next_step": "Verify pods and PDB are running."
     },
     {
-      "name": "Step 3: Describe PDB Details",
-      "command": "kubectl describe pdb -n k8s-multi-demo",
-      "description": "Get detailed PDB information including selector and status",
-      "explanation": "Describe shows which pods the PDB protects (via label selector), the min/max settings, current status, and any disruption events. This is essential for troubleshooting why a drain might be blocked.",
-      "what_it_does": "Shows complete PDB configuration, current vs. desired pod counts, and status messages about disruption budget.",
-      "next_step": "Check 'Status: DisruptionsAllowed' field - this tells you if voluntary disruptions are currently possible."
+      "name": "Step 3: Check Pods",
+      "command": "kubectl get pods -n scenarios -l app=pdb-demo -o wide",
+      "description": "Verify 3 pods running across nodes",
+      "explanation": "Should see 3 Running pods. Note which nodes they're on - we'll try to drain one. The NODE column shows distribution.",
+      "what_it_does": "Lists pods with their node assignments.",
+      "next_step": "Check PDB status."
     },
     {
-      "name": "Step 4: Test PDB by Attempting to Drain Node",
-      "command": "kubectl drain k8s-demo-worker --ignore-daemonsets --delete-emptydir-data --timeout=10s 2>&1 || true",
-      "description": "Try draining a node - PDB should slow down or prevent the drain",
-      "explanation": "When you drain a node with a PDB active, kubectl respects the PDB constraints. If draining would violate the PDB (e.g., reduce pods below minAvailable), the drain blocks until it's safe. '--timeout=10s' limits how long we wait. The '|| true' prevents script failure if drain times out.",
-      "what_it_does": "Attempts node drain. If PDB allows, evictions proceed slowly. If PDB blocks, you'll see 'Cannot evict pod... would violate PDB'.",
-      "next_step": "You may see errors like 'eviction would violate PDB'. This is GOOD - it means PDB is protecting availability."
+      "name": "Step 4: Check PDB Status",
+      "command": "kubectl get pdb pdb-demo -n scenarios",
+      "description": "View PDB current status",
+      "explanation": "ALLOWED DISRUPTIONS shows how many pods can be safely disrupted. With 3 pods and minAvailable=2, allowed disruptions is 1. CURRENT shows healthy pods (should be 3).",
+      "what_it_does": "Displays PDB with disruption budget and current pod count.",
+      "next_step": "Try draining a node to test PDB protection."
     },
     {
-      "name": "Step 5: Check PDB Events",
-      "command": "kubectl get events --sort-by='.lastTimestamp' -n k8s-multi-demo | grep -i disrupt",
-      "description": "View events related to disruptions and PDB enforcement",
-      "explanation": "When PDBs block drains or evictions, Kubernetes generates events explaining why. These events help troubleshoot situations where maintenance operations are blocked.",
-      "what_it_does": "Filters recent events for disruption-related messages, showing when and why PDBs prevented pod evictions.",
-      "next_step": "Look for messages mentioning 'PodDisruptionBudget' or 'eviction'. They explain PDB enforcement actions."
+      "name": "Step 5: List Nodes",
+      "command": "kubectl get nodes",
+      "description": "Identify a node to drain",
+      "explanation": "Pick a worker node (not control-plane) to simulate maintenance. Check which node has pdb-demo pods from Step 3.",
+      "what_it_does": "Lists all cluster nodes.",
+      "next_step": "Attempt to drain a node with 2+ pods (PDB may block it)."
     },
     {
-      "name": "Step 6: Un-drain Node (if drained)",
-      "command": "kubectl uncordon k8s-demo-worker",
-      "description": "Re-enable scheduling on the node",
-      "explanation": "If the drain succeeded, uncordon restores the node. If drain was blocked by PDB, the node might still be cordoned (unschedulable). Uncordoning ensures the node can receive new pods.",
-      "what_it_does": "Removes scheduling restrictions from the node, making it available for new pod placements.",
-      "next_step": "Node is now schedulable again. Pods won't automatically move back, but new pods can be scheduled here."
+      "name": "Step 6: Attempt Node Drain",
+      "command": "kubectl drain <NODE_NAME> --ignore-daemonsets --delete-emptydir-data --timeout=30s",
+      "description": "Try to drain node (may be blocked by PDB)",
+      "explanation": "If draining this node would leave fewer than 2 pods available, PDB blocks the eviction. If the node has only 1 pod, drain succeeds (2 remain elsewhere). This demonstrates PDB protection. Replace <NODE_NAME> with actual node. May see 'Cannot evict pod as it would violate the pod's disruption budget.'",
+      "what_it_does": "Attempts to evict pods from specified node.",
+      "next_step": "Observe PDB protection in action."
     },
     {
-      "name": "Step 7: Scale Deployment to Test PDB Limits",
-      "command": "kubectl scale deployment k8s-demo-deployment --replicas=1 -n k8s-multi-demo",
-      "description": "Scale down to 1 replica to see how PDB behaves with minimum pods",
-      "explanation": "Scaling is voluntary but user-initiated. If a PDB requires minAvailable=2, scaling to 1 will violate it. However, kubectl scale overrides PDB (PDBs only affect evictions/drains, not direct scaling). This tests PDB boundaries.",
-      "what_it_does": "Reduces deployment to 1 replica. PDB won't prevent this, but it will prevent further disruptions since we're now at the minimum.",
-      "next_step": "Check 'kubectl get pdb' - ALLOWED DISRUPTIONS should now be 0 since we're at or below the minimum."
+      "name": "Step 7: Check PDB Events",
+      "command": "kubectl describe pdb pdb-demo -n scenarios",
+      "description": "View PDB details and events",
+      "explanation": "Shows minAvailable, current status, and any disruption events. Events section may show eviction attempts that were blocked by the PDB.",
+      "what_it_does": "Displays full PDB details including protection events.",
+      "next_step": "Scale up to allow more disruptions."
     },
     {
-      "name": "Cleanup: Delete PDB",
-      "command": "kubectl delete pdb --all -n k8s-multi-demo",
-      "description": "Remove the PDB to restore normal disruption behavior",
-      "explanation": "Deleting PDBs removes availability protection. After deletion, drains and evictions can proceed without PDB constraints.",
-      "what_it_does": "Deletes all Pod Disruption Budget resources in the namespace.",
-      "next_step": "PDB removed. Drains will now proceed at normal speed without availability checks.",
-      "cleanup": true
+      "name": "Step 8: Scale Up to Bypass PDB",
+      "command": "kubectl scale deployment pdb-demo --replicas=5 -n scenarios",
+      "description": "Increase replicas to 5",
+      "explanation": "With 5 pods and minAvailable=2, up to 3 pods can be disrupted. This allows drain operations while maintaining the minimum. Demonstrates how PDB adapts to replica count.",
+      "what_it_does": "Scales deployment from 3 to 5 replicas.",
+      "next_step": "Check updated PDB disruption budget."
     },
     {
-      "name": "Cleanup: Restore Deployment Replicas",
-      "command": "kubectl scale deployment k8s-demo-deployment --replicas=2 -n k8s-multi-demo",
-      "description": "Scale deployment back to 2 replicas",
-      "explanation": "Restores the deployment to its normal replica count after testing.",
-      "what_it_does": "Sets the deployment back to 2 replicas.",
-      "next_step": "Deployment restored to normal state. Cleanup complete!",
+      "name": "Step 9: Verify Increased Budget",
+      "command": "kubectl get pdb pdb-demo -n scenarios",
+      "description": "View updated PDB with more allowed disruptions",
+      "explanation": "ALLOWED DISRUPTIONS should now be 3 (5 current - 2 minAvailable). With more replicas, cluster operations become safer.",
+      "what_it_does": "Shows PDB status with increased disruption capacity.",
+      "next_step": "If you cordoned a node, uncordon it now."
+    },
+    {
+      "name": "Step 10: Uncordon Node (if needed)",
+      "command": "kubectl uncordon <NODE_NAME>",
+      "description": "Remove scheduling restriction from node",
+      "explanation": "If you successfully cordoned/drained a node, uncordon it to restore normal operations. Replace <NODE_NAME> with the node you drained.",
+      "what_it_does": "Makes node schedulable again.",
+      "next_step": "Scenario complete! PDB protects availability.",
+      "cleanup": false
+    },
+    {
+      "name": "Cleanup: Delete Resources",
+      "command": "kubectl delete -f deployment.yaml -n scenarios",
+      "description": "Remove deployment and PDB",
+      "explanation": "Deletes both deployment and PodDisruptionBudget.",
+      "what_it_does": "Removes pdb-demo deployment and PDB.",
+      "next_step": "Cleanup complete! Run validation: ./validate.sh",
       "cleanup": true
     }
   ]

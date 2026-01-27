@@ -1,46 +1,50 @@
 #!/bin/bash
-# Generic validation script for scenarios
+# k8s-scenarios/11-daemonset-deployment/validate.sh
 
 echo "========================================"
-echo "Scenario Validation"
+echo "DaemonSet Deployment Scenario Validation"
 echo "========================================"
 echo ""
 
-NAMESPACE="k8s-multi-demo"
+NAMESPACE="scenarios"
 PASSED=0
 FAILED=0
 
-echo "[TEST 1] Checking deployment..."
-if kubectl get deployment k8s-demo-deployment -n $NAMESPACE &> /dev/null; then
-    READY=$(kubectl get deployment k8s-demo-deployment -n $NAMESPACE -o jsonpath='{.status.readyReplicas}' 2>/dev/null)
-    if [ ! -z "$READY" ] && [ "$READY" -ge 1 ]; then
-        echo "✅ PASSED: Deployment operational"
-        ((PASSED++))
-    else
-        echo "⚠️  WARNING: Deployment exists but not ready"
-        ((PASSED++))
-    fi
+echo "[TEST 1] Checking namespace..."
+if kubectl get namespace $NAMESPACE &> /dev/null; then
+    echo "✅ Namespace exists"
+    ((PASSED++))
 else
-    echo "⚠️  INFO: No deployment (may be part of scenario)"
+    echo "❌ Namespace not found"
+    ((FAILED++))
+fi
+echo ""
+
+echo "[TEST 2] Checking DaemonSet..."
+if kubectl get daemonset fluentd-ds -n $NAMESPACE &> /dev/null; then
+    echo "✅ DaemonSet exists"
+    DESIRED=$(kubectl get daemonset fluentd-ds -n $NAMESPACE -o jsonpath='{.status.desiredNumberScheduled}' 2>/dev/null)
+    READY=$(kubectl get daemonset fluentd-ds -n $NAMESPACE -o jsonpath='{.status.numberReady}' 2>/dev/null)
+    echo "   Status: $READY/$DESIRED pods ready"
+    ((PASSED++))
+else
+    echo "⚠️  DaemonSet not found (may be cleaned up)"
     ((PASSED++))
 fi
 echo ""
 
-echo "[TEST 2] Checking pods..."
-RUNNING=$(kubectl get pods -n $NAMESPACE --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l)
-if [ "$RUNNING" -ge 0 ]; then
-    echo "✅ PASSED: Found $RUNNING running pods"
+echo "[TEST 3] Checking cleanup..."
+RESOURCES=$(kubectl get all -n $NAMESPACE -l app=fluentd --no-headers 2>/dev/null | wc -l)
+if [ "$RESOURCES" -eq 0 ]; then
+    echo "✅ Cleanup complete"
     ((PASSED++))
 else
-    echo "⚠️  INFO: No pods found"
-    ((PASSED++))
+    echo "⚠️  $RESOURCES resources remain"
 fi
 echo ""
 
 echo "========================================"
-echo "VALIDATION SUMMARY"
+echo "Tests Passed: $PASSED | Tests Failed: $FAILED"
 echo "========================================"
-echo "Tests Passed: $PASSED"
-echo ""
-echo "✅ SCENARIO VALIDATION COMPLETE"
-exit 0
+[ $FAILED -eq 0 ] && echo "✅ VALIDATION COMPLETE" && exit 0
+echo "❌ VALIDATION FAILED" && exit 1

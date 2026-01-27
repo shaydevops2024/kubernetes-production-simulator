@@ -3,92 +3,84 @@
   "duration": "20 min",
   "commands": [
     {
-      "name": "Step 1: Check Current Deployment",
-      "command": "kubectl get deployment k8s-demo-deployment -n k8s-multi-demo",
-      "description": "View the current deployment before adding health probes",
-      "explanation": "Before adding liveness and readiness probes, we check the baseline deployment. Health probes are critical for production - they tell Kubernetes when pods are ready to serve traffic and when they need to be restarted.",
-      "what_it_does": "Displays deployment status including replica count, age, and current state.",
-      "next_step": "Note the current pod count. We'll add probes to make the deployment more resilient."
+      "name": "Step 1: Create Namespace",
+      "command": "kubectl create namespace scenarios --dry-run=client -o yaml | kubectl apply -f -",
+      "description": "Create scenarios namespace",
+      "explanation": "Creates namespace for probe testing.",
+      "what_it_does": "Creates 'scenarios' namespace if needed.",
+      "next_step": "Deploy application with health probes configured."
     },
     {
-      "name": "Step 2: View Current Pod Status",
-      "command": "kubectl get pods -n k8s-multi-demo",
-      "description": "List all pods to see their current health status",
-      "explanation": "Without health probes, Kubernetes only knows if the container process is running. It can't detect if the application inside is actually healthy or able to serve traffic. This can lead to routing traffic to broken pods.",
-      "what_it_does": "Shows pod names, ready status, restart count, and age. READY column shows container readiness.",
-      "next_step": "All pods should show 1/1 READY. But are they actually healthy? We can't tell without probes."
+      "name": "Step 2: Deploy Application with Probes",
+      "command": "kubectl apply -f deployment.yaml -n scenarios",
+      "description": "Deploy app with liveness and readiness probes",
+      "explanation": "Creates deployment with both probe types configured. Liveness probe checks /healthz every 3s after 3s delay. Readiness probe checks /healthz every 5s after 5s delay. This deployment uses k8s.gcr.io/liveness image which simulates probe failures.",
+      "what_it_does": "Creates deployment 'probes-demo' and service with 2 replicas.",
+      "next_step": "Check pods are running with probes active."
     },
     {
-      "name": "Step 3: Deploy with Basic Probes",
-      "command": "kubectl apply -f deployment.yaml -n k8s-multi-demo",
-      "description": "Apply deployment with liveness and readiness probes configured",
-      "explanation": "This deployment includes HTTP-based health probes. Liveness probe checks if the pod needs restarting (responds to /health). Readiness probe checks if the pod can receive traffic (/ready). These are different endpoints because a pod might be alive but not ready to serve requests.",
-      "what_it_does": "Updates the deployment with health probe configuration. Kubernetes will start checking /health and /ready endpoints every few seconds.",
-      "next_step": "Deployment updated. Kubernetes will now actively monitor pod health using the configured probes."
+      "name": "Step 3: Verify Pods Running",
+      "command": "kubectl get pods -n scenarios -l app=probes-demo",
+      "description": "Check pod status",
+      "explanation": "Should see 2 pods in Running state. Both probes must pass for pods to be Running and Ready.",
+      "what_it_does": "Lists probes-demo pods.",
+      "next_step": "View probe configuration."
     },
     {
-      "name": "Step 4: Monitor Pod Readiness",
-      "command": "kubectl get pods -n k8s-multi-demo -w",
-      "description": "Watch pods transition through readiness states (Press Ctrl+C to stop)",
-      "explanation": "After adding probes, new pods must pass readiness checks before receiving traffic. Watch shows the transition: ContainerCreating → Running (0/1) → Running (1/1). The READY column changes when readiness probe succeeds.",
-      "what_it_does": "Streams real-time pod status updates. You'll see READY go from 0/1 to 1/1 only after readiness probe passes.",
-      "next_step": "Wait until all pods show 1/1 READY, then press Ctrl+C. This means probes are passing."
+      "name": "Step 4: Describe Pod Probes",
+      "command": "kubectl describe pod -n scenarios -l app=probes-demo | grep -A 5 'Liveness\\|Readiness'",
+      "description": "View configured probes",
+      "explanation": "Shows liveness and readiness probe configurations including paths, delays, periods, and thresholds.",
+      "what_it_does": "Displays probe configurations from pod spec.",
+      "next_step": "Check probe events."
     },
     {
-      "name": "Step 5: Check Probe Configuration",
-      "command": "kubectl describe pod -n k8s-multi-demo -l app=k8s-demo | grep -A 5 'Liveness\\|Readiness'",
-      "description": "View the actual probe configuration on running pods",
-      "explanation": "The describe command shows exactly how probes are configured: what endpoint they hit, how often (periodSeconds), when they start checking (initialDelaySeconds), and failure thresholds. Understanding these settings is crucial for tuning production deployments.",
-      "what_it_does": "Displays probe configuration including HTTP path, port, delay, timeout, period, success/failure thresholds.",
-      "next_step": "Review the probe settings. Typical values: initialDelay 10s, period 10s, timeout 1s, failureThreshold 3."
+      "name": "Step 5: Watch Probe Events",
+      "command": "kubectl get events -n scenarios --field-selector involvedObject.kind=Pod --sort-by='.lastTimestamp' | tail -20",
+      "description": "See recent pod events including probe results",
+      "explanation": "Look for 'Liveness probe failed' or 'Readiness probe failed' events. Initially all should be passing.",
+      "what_it_does": "Lists recent pod events sorted by time.",
+      "next_step": "Simulate liveness probe failure."
     },
     {
-      "name": "Step 6: Simulate Unhealthy Pod",
-      "command": "kubectl exec -n k8s-multi-demo $(kubectl get pods -n k8s-multi-demo -o name | head -1) -- curl -X POST http://localhost:8000/health/fail",
-      "description": "Make a pod's health endpoint fail to trigger liveness probe restart",
-      "explanation": "This simulates application failure by making the /health endpoint return 500 errors. The liveness probe will fail 3 times (failureThreshold), then Kubernetes will restart the container. This demonstrates self-healing in action.",
-      "what_it_does": "Sends POST to /health/fail endpoint, causing the pod to report unhealthy. Liveness probe will detect this and restart the container.",
-      "next_step": "Wait 30-60 seconds. The pod will fail liveness checks and restart automatically."
+      "name": "Step 6: Simulate Liveness Failure",
+      "command": "kubectl exec -n scenarios deployment/probes-demo -- rm /tmp/healthy",
+      "description": "Remove health file to fail liveness probe",
+      "explanation": "The liveness probe checks for /tmp/healthy file. Removing it causes the probe to fail. After 3 failures (failureThreshold: 3), Kubernetes restarts the container.",
+      "what_it_does": "Triggers liveness probe failure by removing health indicator.",
+      "next_step": "Watch pod restart due to liveness failure."
     },
     {
       "name": "Step 7: Watch Pod Restart",
-      "command": "kubectl get pods -n k8s-multi-demo",
-      "description": "Check that the unhealthy pod was automatically restarted",
-      "explanation": "After liveness probe failures, Kubernetes restarts the container (not the whole pod). Look at the RESTARTS column - it should have increased for the pod we made unhealthy. This is automatic recovery without manual intervention.",
-      "what_it_does": "Shows current pod status. One pod will have RESTARTS > 0, proving liveness probe triggered a restart.",
-      "next_step": "Find the pod with increased RESTARTS count. This pod was automatically healed by the liveness probe."
+      "command": "kubectl get pods -n scenarios -l app=probes-demo --watch",
+      "description": "Monitor pod restart from liveness failure",
+      "explanation": "You'll see RESTARTS count increment and pod briefly show NotReady. Liveness failure triggers container restart (not pod deletion). Press Ctrl+C after seeing restart.",
+      "what_it_does": "Streams live pod status showing restart.",
+      "next_step": "Verify restart count increased."
     },
     {
-      "name": "Step 8: Check Pod Events for Probe Failures",
-      "command": "kubectl describe pod -n k8s-multi-demo $(kubectl get pods -n k8s-multi-demo -o name | head -1) | grep -A 10 Events",
-      "description": "View events showing probe failures and container restart",
-      "explanation": "Kubernetes generates events for probe failures and restarts. Events show 'Liveness probe failed: HTTP probe failed' messages before 'Container was killed and restarted'. This event log is essential for diagnosing why pods restart in production.",
-      "what_it_does": "Displays recent events for the pod including probe failure messages and restart reasons.",
-      "next_step": "Look for 'Liveness probe failed' and 'Killing container' events. These prove the probe system worked."
+      "name": "Step 8: Check Restart Count",
+      "command": "kubectl get pods -n scenarios -l app=probes-demo",
+      "description": "Verify RESTARTS column increased",
+      "explanation": "RESTARTS column shows how many times containers have been restarted. Should be 1 or more after liveness failure. This proves liveness probe auto-recovery.",
+      "what_it_does": "Displays pod restart counts.",
+      "next_step": "Test readiness probe separately."
     },
     {
-      "name": "Step 9: Test Readiness Probe",
-      "command": "kubectl exec -n k8s-multi-demo $(kubectl get pods -n k8s-multi-demo -o name | head -1) -- curl -X POST http://localhost:8000/ready/fail",
-      "description": "Make a pod unready to see it removed from service endpoints",
-      "explanation": "Unlike liveness (which restarts), readiness just removes the pod from service endpoints. The pod keeps running but stops receiving traffic. This is useful for graceful shutdowns or when the app is temporarily overloaded.",
-      "what_it_does": "Makes /ready endpoint fail. Readiness probe will fail and Kubernetes will remove this pod from the service's endpoint list.",
-      "next_step": "The pod will show 0/1 READY but won't restart. It's alive but not serving traffic."
+      "name": "Step 9: Check Service Endpoints",
+      "command": "kubectl get endpoints probes-service -n scenarios",
+      "description": "View service endpoint list",
+      "explanation": "Shows which pod IPs are included in the service. Only Ready pods are listed. If a pod fails readiness, it's removed from here (but pod stays running).",
+      "what_it_does": "Lists pod IPs receiving traffic from service.",
+      "next_step": "Scenario complete! Probes protect service availability."
     },
     {
-      "name": "Step 10: Verify Pod Removed from Service",
-      "command": "kubectl get endpoints k8s-demo-service -n k8s-multi-demo",
-      "description": "Check that the unready pod is removed from service endpoints",
-      "explanation": "Services route traffic only to pods with passing readiness probes. When we failed the readiness probe, Kubernetes removed that pod's IP from the endpoint list. Traffic now goes only to healthy pods. This prevents users from hitting broken backends.",
-      "what_it_does": "Shows IP addresses of pods currently receiving traffic from the service. The unready pod's IP should be missing.",
-      "next_step": "Compare IPs with 'kubectl get pods -o wide'. The pod with 0/1 READY won't be in the endpoint list."
-    },
-    {
-      "name": "Cleanup: Remove Deployment",
-      "command": "kubectl delete deployment k8s-demo-deployment -n k8s-multi-demo",
-      "description": "Delete the deployment with probes (optional cleanup)",
-      "explanation": "Removes the test deployment. In practice, you'd keep the deployment but this shows how to clean up test resources.",
-      "what_it_does": "Deletes the deployment and all its pods.",
-      "next_step": "Deployment deleted. Run the original deployment YAML to restore it without probes if needed.",
+      "name": "Cleanup: Delete Resources",
+      "command": "kubectl delete -f deployment.yaml -n scenarios",
+      "description": "Remove deployment and service",
+      "explanation": "Deletes all resources created in this scenario.",
+      "what_it_does": "Removes deployment and service.",
+      "next_step": "Cleanup complete!",
       "cleanup": true
     }
   ]

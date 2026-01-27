@@ -1,191 +1,29 @@
+# k8s-scenarios/13-blue-green-deployment/deployment-blue.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: app-blue
-  namespace: k8s-multi-demo
+  name: bluegreen-blue
+  namespace: scenarios
   labels:
-    app: bluegreen-demo
+    app: bluegreen
     version: blue
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: bluegreen-demo
+      app: bluegreen
       version: blue
   template:
     metadata:
       labels:
-        app: bluegreen-demo
+        app: bluegreen
         version: blue
     spec:
       containers:
       - name: app
-        image: nginx:1.21
+        image: nginx:1.20-alpine
         ports:
         - containerPort: 80
         env:
         - name: VERSION
-          value: "BLUE-v1.0"
-        - name: BACKGROUND_COLOR
           value: "blue"
-        resources:
-          requests:
-            cpu: 100m
-            memory: 128Mi
-          limits:
-            cpu: 200m
-            memory: 256Mi
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 10
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 5
-          periodSeconds: 5
----
-# k8s-scenarios/13-blue-green-deployment/deployment-green.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: app-green
-  namespace: k8s-multi-demo
-  labels:
-    app: bluegreen-demo
-    version: green
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: bluegreen-demo
-      version: green
-  template:
-    metadata:
-      labels:
-        app: bluegreen-demo
-        version: green
-    spec:
-      containers:
-      - name: app
-        image: nginx:1.22
-        ports:
-        - containerPort: 80
-        env:
-        - name: VERSION
-          value: "GREEN-v2.0"
-        - name: BACKGROUND_COLOR
-          value: "green"
-        resources:
-          requests:
-            cpu: 100m
-            memory: 128Mi
-          limits:
-            cpu: 200m
-            memory: 256Mi
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 10
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 5
-          periodSeconds: 5
----
-# k8s-scenarios/13-blue-green-deployment/service.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: bluegreen-service
-  namespace: k8s-multi-demo
-  labels:
-    app: bluegreen-demo
-spec:
-  selector:
-    app: bluegreen-demo
-    version: blue  # Initially route to blue
-  ports:
-  - protocol: TCP
-    port: 80
-    targetPort: 80
-  type: ClusterIP
----
-# k8s-scenarios/13-blue-green-deployment/service-blue.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: bluegreen-service-blue
-  namespace: k8s-multi-demo
-spec:
-  selector:
-    app: bluegreen-demo
-    version: blue
-  ports:
-  - protocol: TCP
-    port: 80
-    targetPort: 80
-  type: ClusterIP
----
-# k8s-scenarios/13-blue-green-deployment/service-green.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: bluegreen-service-green
-  namespace: k8s-multi-demo
-spec:
-  selector:
-    app: bluegreen-demo
-    version: green
-  ports:
-  - protocol: TCP
-    port: 80
-    targetPort: 80
-  type: ClusterIP
----
-# k8s-scenarios/13-blue-green-deployment/ingress.yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: bluegreen-ingress
-  namespace: k8s-multi-demo
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-spec:
-  rules:
-  - host: bluegreen.local
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: bluegreen-service
-            port:
-              number: 80
-  - host: blue.local
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: bluegreen-service-blue
-            port:
-              number: 80
-  - host: green.local
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: bluegreen-service-green
-            port:
-              number: 80

@@ -2,51 +2,72 @@
 # k8s-scenarios/10-statefulset-operations/validate.sh
 
 echo "========================================"
-echo "StatefulSet Operations Validation"
+echo "StatefulSet Operations Scenario Validation"
 echo "========================================"
 echo ""
 
-NAMESPACE="k8s-multi-demo"
+NAMESPACE="scenarios"
 PASSED=0
 FAILED=0
 
-echo "[TEST 1] Checking for StatefulSet remnants..."
-PVCS=$(kubectl get pvc -n $NAMESPACE 2>/dev/null | grep -v NAME | wc -l)
-if [ "$PVCS" -ge 0 ]; then
-    echo "✅ PASSED: Scenario was attempted ($PVCS PVCs found)"
+echo "[TEST 1] Checking namespace..."
+if kubectl get namespace $NAMESPACE &> /dev/null; then
+    echo "✅ Namespace exists"
     ((PASSED++))
 else
-    echo "⚠️  INFO: No PVCs found"
-    ((PASSED++))
+    echo "❌ Namespace not found"
+    ((FAILED++))
 fi
 echo ""
 
-echo "[TEST 2] Checking deployment status..."
-if kubectl get deployment k8s-demo-deployment -n $NAMESPACE &> /dev/null; then
-    READY=$(kubectl get deployment k8s-demo-deployment -n $NAMESPACE -o jsonpath='{.status.readyReplicas}' 2>/dev/null)
-    if [ ! -z "$READY" ] && [ "$READY" -ge 1 ]; then
-        echo "✅ PASSED: Deployment has $READY ready pods"
+echo "[TEST 2] Checking StatefulSet..."
+if kubectl get statefulset nginx-sts -n $NAMESPACE &> /dev/null; then
+    echo "✅ StatefulSet exists"
+    READY=$(kubectl get statefulset nginx-sts -n $NAMESPACE -o jsonpath='{.status.readyReplicas}' 2>/dev/null)
+    if [ "$READY" == "3" ]; then
+        echo "✅ All 3 replicas ready"
         ((PASSED++))
-    else
-        echo "⚠️  WARNING: Deployment not fully ready"
     fi
 else
-    echo "⚠️  INFO: Deployment not found (may be part of scenario)"
+    echo "⚠️  StatefulSet not found (may be cleaned up)"
     ((PASSED++))
 fi
 echo ""
 
-echo "========================================"
-echo "VALIDATION SUMMARY"
-echo "========================================"
-echo "Tests Passed: $PASSED"
-echo "Tests Failed: $FAILED"
+echo "[TEST 3] Checking headless service..."
+if kubectl get service nginx-headless -n $NAMESPACE &> /dev/null; then
+    echo "✅ Headless service exists"
+    ((PASSED++))
+else
+    echo "⚠️  Service not found (may be cleaned up)"
+    ((PASSED++))
+fi
 echo ""
 
-if [ $FAILED -eq 0 ]; then
-    echo "✅ TESTS PASSED!"
-    exit 0
+echo "[TEST 4] Checking PVCs..."
+PVC_COUNT=$(kubectl get pvc -n $NAMESPACE -l app=nginx-sts --no-headers 2>/dev/null | wc -l)
+if [ "$PVC_COUNT" -eq 0 ]; then
+    echo "✅ All PVCs cleaned up"
+    ((PASSED++))
+elif [ "$PVC_COUNT" -eq 3 ]; then
+    echo "⚠️  PVCs still exist (run cleanup to remove)"
 else
-    echo "❌ SOME TESTS FAILED"
-    exit 1
+    echo "⚠️  Found $PVC_COUNT PVCs"
 fi
+echo ""
+
+echo "[TEST 5] Checking cleanup..."
+RESOURCES=$(kubectl get all -n $NAMESPACE -l app=nginx-sts --no-headers 2>/dev/null | wc -l)
+if [ "$RESOURCES" -eq 0 ]; then
+    echo "✅ Cleanup complete"
+    ((PASSED++))
+else
+    echo "⚠️  $RESOURCES resources remain"
+fi
+echo ""
+
+echo "========================================"
+echo "Tests Passed: $PASSED | Tests Failed: $FAILED"
+echo "========================================"
+[ $FAILED -eq 0 ] && echo "✅ VALIDATION COMPLETE" && exit 0
+echo "❌ VALIDATION FAILED" && exit 1

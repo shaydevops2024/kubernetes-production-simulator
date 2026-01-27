@@ -1,0 +1,13 @@
+# k8s-scenarios/14-ingress-configuration/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingress-demo-service
+  namespace: scenarios
+spec:
+  selector:
+    app: ingress-demo
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80

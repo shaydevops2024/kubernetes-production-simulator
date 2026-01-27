@@ -1,87 +1,112 @@
 {
+  "scenario_id": "17-high-availability-special",
   "difficulty": "hard",
   "duration": "45 min",
   "commands": [
     {
-      "name": "Phase 1.1: Create PDB",
-      "command": "kubectl apply -f pdb.yaml -n k8s-multi-demo",
-      "description": "Create Pod Disruption Budget with minAvailable=2",
-      "explanation": "This multi-phase scenario combines PDB, HPA, node draining, and pod deletion to test true high availability. PDB ensures at least 2 pods always run during voluntary disruptions. Combined with HPA, this creates a resilient system that maintains availability during scaling, draining, and failures.",
-      "what_it_does": "Creates PDB requiring minimum 2 available pods at all times.",
-      "next_step": "PDB active. Now we'll stress-test availability with multiple concurrent disruptions."
+      "name": "Step 1: Create Namespace",
+      "command": "kubectl create namespace scenarios --dry-run=client -o yaml | kubectl apply -f -",
+      "description": "Create scenarios namespace",
+      "explanation": "Creates namespace for comprehensive HA testing.",
+      "what_it_does": "Creates 'scenarios' namespace if needed.",
+      "next_step": "Deploy HA application with multiple protections."
     },
     {
-      "name": "Phase 1.2: Verify PDB",
-      "command": "kubectl get pdb -n k8s-multi-demo",
-      "description": "Check PDB status and allowed disruptions",
-      "explanation": "Verify PDB is active. ALLOWED DISRUPTIONS shows how many pods can be disrupted now while maintaining minAvailable. If you have 3 pods and minAvailable=2, ALLOWED DISRUPTIONS=1.",
-      "what_it_does": "Displays PDB with current disruption allowance.",
-      "next_step": "Note ALLOWED DISRUPTIONS. This changes as pods are deleted/created."
+      "name": "Step 2: Deploy HA Application",
+      "command": "kubectl apply -f deployment.yaml -n scenarios",
+      "description": "Deploy app with anti-affinity, PDB, and HPA",
+      "explanation": "Creates deployment with pod anti-affinity (spreads across nodes), PodDisruptionBudget (protects during disruptions), and HPA (scales based on CPU). This combination provides comprehensive high availability.",
+      "what_it_does": "Creates ha-app deployment, ha-pdb PDB, and ha-hpa HPA resources.",
+      "next_step": "Verify pods distributed across nodes."
     },
     {
-      "name": "Phase 2.1: Delete Random Pod",
-      "command": "kubectl delete pod -n k8s-multi-demo $(kubectl get pods -n k8s-multi-demo -o name | head -1)",
-      "description": "Delete a pod to test self-healing with PDB",
-      "explanation": "Delete a pod while PDB is active. The deployment immediately recreates it. PDB doesn't prevent this deletion (it's not a drain/eviction). But it ensures that during recreation, you maintain minAvailable pods.",
-      "what_it_does": "Deletes one pod. Deployment recreates it immediately.",
-      "next_step": "Pod deleted and being recreated. PDB ensures minimum availability during recreation."
+      "name": "Step 3: Check Pod Distribution",
+      "command": "kubectl get pods -n scenarios -l app=ha-app -o wide",
+      "description": "View pods spread across different nodes",
+      "explanation": "Anti-affinity ensures pods spread across nodes. Each pod should be on a different node for maximum availability. If multiple pods on same node, anti-affinity is 'preferred' not 'required'.",
+      "what_it_does": "Lists pods with their node assignments.",
+      "next_step": "Verify PDB is protecting availability."
     },
     {
-      "name": "Phase 2.2: Monitor PDB Status",
-      "command": "kubectl describe pdb -n k8s-multi-demo",
-      "description": "Check disruptions allowed and current status",
-      "explanation": "During pod recreation, ALLOWED DISRUPTIONS drops to 0 temporarily (while one pod is down and being recreated). When the new pod is Ready, ALLOWED DISRUPTIONS returns to 1. This shows PDB dynamically protecting availability.",
-      "what_it_does": "Shows detailed PDB status including current vs. desired availability.",
-      "next_step": "DisruptionsAllowed field shows current state. May be 0 during recreation."
+      "name": "Step 4: Check PDB Status",
+      "command": "kubectl get pdb ha-pdb -n scenarios",
+      "description": "View PodDisruptionBudget protecting minAvailable: 2",
+      "explanation": "ALLOWED DISRUPTIONS shows how many pods can be safely disrupted. With 3 pods and minAvailable=2, only 1 disruption allowed at a time.",
+      "what_it_does": "Displays PDB with current protection status.",
+      "next_step": "Check HPA configuration."
     },
     {
-      "name": "Phase 2.3: Cordon Node",
-      "command": "kubectl cordon k8s-demo-worker",
-      "description": "Prepare node for draining",
-      "explanation": "Cordoning is step 1 of graceful node maintenance. It prevents new pods from scheduling on the node but doesn't affect running pods. Always cordon before draining.",
-      "what_it_does": "Marks node unschedulable. Existing pods unaffected.",
-      "next_step": "Node cordoned. Ready to drain, but PDB will control the eviction rate."
+      "name": "Step 5: Check HPA Status",
+      "command": "kubectl get hpa ha-hpa -n scenarios",
+      "description": "View HPA configured for 3-10 replicas at 50% CPU",
+      "explanation": "Shows current CPU utilization and replica count. HPA will scale between 3-10 replicas based on CPU load.",
+      "what_it_does": "Displays HPA with metrics and replica range.",
+      "next_step": "Generate load to test auto-scaling."
     },
     {
-      "name": "Phase 2.4: Drain with PDB Protection",
-      "command": "kubectl drain k8s-demo-worker --ignore-daemonsets --delete-emptydir-data --timeout=60s",
-      "description": "Try to drain - PDB controls eviction rate",
-      "explanation": "This is the real test: draining while PDB is active. PDB prevents draining from taking down more pods than allowed. If draining would violate minAvailable, it blocks until safe. You might see 'Cannot evict pod... would violate PDB' messages. This is PDB protecting availability!",
-      "what_it_does": "Attempts to drain node. PDB may slow or block it to maintain availability.",
-      "next_step": "Drain may be slow or blocked by PDB. This proves availability protection works."
+      "name": "Step 6: Generate Load",
+      "command": "kubectl run load-gen --rm -i --tty --image=busybox --restart=Never -n scenarios -- /bin/sh -c \"while true; do wget -q -O- http://ha-app; done\"",
+      "description": "Generate CPU load to trigger HPA scaling (Ctrl+C after 2-3 minutes)",
+      "explanation": "Creates load to drive CPU above 50%. HPA will detect this and scale up pods (respecting anti-affinity and PDB). Run for 2-3 minutes then press Ctrl+C.",
+      "what_it_does": "Generates continuous load to trigger auto-scaling.",
+      "next_step": "Watch HPA scale up (in another terminal)."
     },
     {
-      "name": "Phase 2.5: Check PDB Events",
-      "command": "kubectl get events --sort-by='.lastTimestamp' -n k8s-multi-demo | grep -i 'disruption\\|evict'",
-      "description": "See PDB enforcement in action",
-      "explanation": "Events show when PDB blocked evictions. Messages like 'Cannot evict pod... too few available' prove PDB is actively protecting availability.",
-      "what_it_does": "Filters events for PDB-related messages.",
-      "next_step": "Events show PDB enforcement - proof of availability protection."
+      "name": "Step 7: Watch Scaling",
+      "command": "kubectl get hpa ha-hpa -n scenarios -w",
+      "description": "Monitor HPA scaling in real-time (Ctrl+C after scaling)",
+      "explanation": "Watch TARGETS climb above 50% and REPLICAS increase. New pods will spread across nodes (anti-affinity) up to max 10. Press Ctrl+C after seeing scaling.",
+      "what_it_does": "Streams live HPA status showing scaling.",
+      "next_step": "Verify scaled pods still distributed."
     },
     {
-      "name": "Phase 3.1: Uncordon Node",
-      "command": "kubectl uncordon k8s-demo-worker",
-      "description": "Restore node to normal",
-      "explanation": "Complete maintenance by uncordoning. Node can receive new pods again.",
-      "what_it_does": "Removes scheduling restrictions from node.",
-      "next_step": "Node operational again.",
+      "name": "Step 8: Verify Scaled Distribution",
+      "command": "kubectl get pods -n scenarios -l app=ha-app -o wide",
+      "description": "Confirm scaled pods spread across nodes",
+      "explanation": "After scaling, pods should still be distributed across different nodes due to anti-affinity. This maintains availability even with more replicas.",
+      "what_it_does": "Shows pod distribution after scaling.",
+      "next_step": "Test PDB protection during drain."
+    },
+    {
+      "name": "Step 9: Attempt Node Drain",
+      "command": "kubectl drain <NODE_NAME> --ignore-daemonsets --delete-emptydir-data --timeout=30s",
+      "description": "Try to drain node with pods (replace <NODE_NAME>)",
+      "explanation": "PDB should block drain if it would violate minAvailable. With enough replicas spread across nodes, drain may succeed. This tests PDB protection under load. Example: kubectl drain kind-worker --ignore-daemonsets --delete-emptydir-data --timeout=30s",
+      "what_it_does": "Tests PDB protection by attempting node drain.",
+      "next_step": "Observe PDB+HPA working together."
+    },
+    {
+      "name": "Step 10: View PDB During Drain",
+      "command": "kubectl describe pdb ha-pdb -n scenarios",
+      "description": "See PDB status during drain attempt",
+      "explanation": "Events section may show 'DisruptionBlocked' if PDB prevented eviction. CurrentHealthy shows how many pods remain available.",
+      "what_it_does": "Displays PDB details including protection events.",
+      "next_step": "Stop load and watch scale down."
+    },
+    {
+      "name": "Step 11: Stop Load and Scale Down",
+      "command": "# Stop load generator from Step 6 with Ctrl+C, then watch HPA",
+      "description": "Stop load and observe gradual scale-down",
+      "explanation": "After stopping load, CPU drops and HPA gradually scales down (takes 5+ minutes). PDB still protects during scale-down, ensuring safe replica reduction.",
+      "what_it_does": "Demonstrates coordinated scale-down with PDB protection.",
+      "next_step": "Uncordon any drained nodes."
+    },
+    {
+      "name": "Step 12: Uncordon Node",
+      "command": "kubectl uncordon <NODE_NAME>",
+      "description": "Restore node if cordoned (replace <NODE_NAME>)",
+      "explanation": "If you successfully drained a node, uncordon it. Example: kubectl uncordon kind-worker",
+      "what_it_does": "Makes node schedulable again.",
+      "next_step": "HA scenario complete! All protections tested.",
       "cleanup": false
     },
     {
-      "name": "Phase 3.2: Verify All Pods Running",
-      "command": "kubectl get pods -n k8s-multi-demo",
-      "description": "Check all pods healthy",
-      "explanation": "After all disruptions (deletion, drain), verify all pods are Running and Ready. This proves the system maintained availability throughout the chaos.",
-      "what_it_does": "Lists pods, should all be Running/Ready.",
-      "next_step": "All pods healthy. High availability test complete!"
-    },
-    {
-      "name": "Cleanup: Delete PDB",
-      "command": "kubectl delete pdb --all -n k8s-multi-demo",
-      "description": "Remove Pod Disruption Budget",
-      "explanation": "Clean up PDB after testing.",
-      "what_it_does": "Deletes all PDBs in namespace.",
-      "next_step": "PDB removed. HA test scenario complete!",
+      "name": "Cleanup: Delete All HA Resources",
+      "command": "kubectl delete -f deployment.yaml -n scenarios",
+      "description": "Remove deployment, PDB, and HPA",
+      "explanation": "Deletes all HA resources created in this scenario.",
+      "what_it_does": "Removes ha-app deployment, ha-pdb PDB, and ha-hpa HPA.",
+      "next_step": "Cleanup complete! Run validate.sh to confirm.",
       "cleanup": true
     }
   ]

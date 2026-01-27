@@ -1,0 +1,13 @@
+# k8s-scenarios/08-self-healing/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: selfheal-demo-service
+  namespace: scenarios
+spec:
+  selector:
+    app: selfheal-demo
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80

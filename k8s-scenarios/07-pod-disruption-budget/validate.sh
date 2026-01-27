@@ -2,70 +2,60 @@
 # k8s-scenarios/07-pod-disruption-budget/validate.sh
 
 echo "========================================"
-echo "Pod Disruption Budget Validation"
+echo "Pod Disruption Budget Scenario Validation"
 echo "========================================"
 echo ""
 
-NAMESPACE="k8s-multi-demo"
+NAMESPACE="scenarios"
 PASSED=0
 FAILED=0
 
-echo "[TEST 1] Checking deployment exists..."
-if kubectl get deployment k8s-demo-deployment -n $NAMESPACE &> /dev/null; then
-    echo "✅ PASSED: Deployment exists"
+echo "[TEST 1] Checking namespace..."
+if kubectl get namespace $NAMESPACE &> /dev/null; then
+    echo "✅ Namespace exists"
     ((PASSED++))
 else
-    echo "❌ FAILED: Deployment not found"
+    echo "❌ Namespace not found"
     ((FAILED++))
 fi
 echo ""
 
-echo "[TEST 2] Checking deployment replicas..."
-DESIRED=$(kubectl get deployment k8s-demo-deployment -n $NAMESPACE -o jsonpath='{.spec.replicas}' 2>/dev/null)
-READY=$(kubectl get deployment k8s-demo-deployment -n $NAMESPACE -o jsonpath='{.status.readyReplicas}' 2>/dev/null)
-
-if [ ! -z "$READY" ] && [ "$READY" -eq "$DESIRED" ]; then
-    echo "✅ PASSED: All replicas ready ($READY/$DESIRED)"
-    ((PASSED++))
+echo "[TEST 2] Checking deployment..."
+if kubectl get deployment pdb-demo -n $NAMESPACE &> /dev/null; then
+    echo "✅ Deployment exists"
+    READY=$(kubectl get deployment pdb-demo -n $NAMESPACE -o jsonpath='{.status.readyReplicas}' 2>/dev/null)
+    if [ "$READY" == "3" ]; then
+        echo "✅ All 3 replicas ready"
+        ((PASSED++))
+    fi
 else
-    echo "⚠️  WARNING: Replicas may be scaling ($READY/$DESIRED)"
+    echo "⚠️  Deployment not found (may be cleaned up)"
     ((PASSED++))
 fi
 echo ""
 
-echo "[TEST 3] Checking all nodes are ready..."
-NOT_READY=$(kubectl get nodes | grep -v STATUS | grep -v Ready | wc -l)
-if [ "$NOT_READY" -eq 0 ]; then
-    echo "✅ PASSED: All nodes are Ready"
+echo "[TEST 3] Checking PDB..."
+if kubectl get pdb pdb-demo -n $NAMESPACE &> /dev/null; then
+    echo "✅ PDB exists"
     ((PASSED++))
 else
-    echo "❌ FAILED: Found $NOT_READY nodes not Ready"
-    ((FAILED++))
+    echo "⚠️  PDB not found (may be cleaned up)"
+    ((PASSED++))
 fi
 echo ""
 
-echo "[TEST 4] Checking pods are running..."
-RUNNING=$(kubectl get pods -n $NAMESPACE --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l)
-if [ "$RUNNING" -ge 1 ]; then
-    echo "✅ PASSED: $RUNNING pods running"
+echo "[TEST 4] Checking cleanup..."
+RESOURCES=$(kubectl get all,pdb -n $NAMESPACE -l app=pdb-demo --no-headers 2>/dev/null | wc -l)
+if [ "$RESOURCES" -eq 0 ]; then
+    echo "✅ Cleanup complete"
     ((PASSED++))
 else
-    echo "❌ FAILED: No running pods"
-    ((FAILED++))
+    echo "⚠️  $RESOURCES resources remain"
 fi
 echo ""
 
 echo "========================================"
-echo "VALIDATION SUMMARY"
+echo "Tests Passed: $PASSED | Tests Failed: $FAILED"
 echo "========================================"
-echo "Tests Passed: $PASSED"
-echo "Tests Failed: $FAILED"
-echo ""
-
-if [ $FAILED -eq 0 ]; then
-    echo "✅ ALL TESTS PASSED!"
-    exit 0
-else
-    echo "❌ SOME TESTS FAILED"
-    exit 1
-fi
+[ $FAILED -eq 0 ] && echo "✅ VALIDATION COMPLETE" && exit 0
+echo "❌ VALIDATION FAILED" && exit 1

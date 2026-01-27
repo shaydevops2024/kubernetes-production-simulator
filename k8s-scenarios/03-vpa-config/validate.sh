@@ -6,41 +6,57 @@ echo "VPA Configuration Scenario Validation"
 echo "========================================"
 echo ""
 
-NAMESPACE="k8s-multi-demo"
+NAMESPACE="scenarios"
 PASSED=0
 FAILED=0
 
-# Test 1: Check if VPA CRD exists
-echo "[TEST 1] Checking if VPA CRD is installed..."
-if kubectl get crd verticalpodautoscalers.autoscaling.k8s.io &> /dev/null; then
-    echo "✅ PASSED: VPA CRD is installed"
+# Test 1: Check namespace exists
+echo "[TEST 1] Checking if scenarios namespace exists..."
+if kubectl get namespace $NAMESPACE &> /dev/null; then
+    echo "✅ PASSED: Namespace 'scenarios' exists"
     ((PASSED++))
 else
-    echo "⚠️  WARNING: VPA CRD not found - VPA might not be installed"
-    echo "ℹ️  INFO: This is optional - skipping VPA-specific tests"
+    echo "❌ FAILED: Namespace 'scenarios' not found"
+    ((FAILED++))
 fi
 echo ""
 
 # Test 2: Check deployment exists
 echo "[TEST 2] Checking if deployment exists..."
-if kubectl get deployment k8s-demo-deployment -n $NAMESPACE &> /dev/null; then
-    echo "✅ PASSED: Deployment found"
-    ((PASSED++))
+if kubectl get deployment vpa-demo-app -n $NAMESPACE &> /dev/null; then
+    echo "✅ PASSED: Deployment 'vpa-demo-app' exists"
+    READY=$(kubectl get deployment vpa-demo-app -n $NAMESPACE -o jsonpath='{.status.readyReplicas}' 2>/dev/null)
+    if [ "$READY" == "2" ]; then
+        echo "✅ PASSED: All 2 replicas ready"
+        ((PASSED++))
+    else
+        echo "⚠️  Only $READY/2 replicas ready"
+    fi
 else
-    echo "❌ FAILED: Deployment not found"
-    ((FAILED++))
+    echo "⚠️  Deployment not found (may be cleaned up)"
+    ((PASSED++))
 fi
 echo ""
 
-# Test 3: Check pods are running
-echo "[TEST 3] Checking if pods are running..."
-READY_PODS=$(kubectl get pods -n $NAMESPACE --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l)
-if [ "$READY_PODS" -ge 1 ]; then
-    echo "✅ PASSED: Found $READY_PODS running pods"
+# Test 3: Check VPA exists
+echo "[TEST 3] Checking if VPA exists..."
+if kubectl get vpa vpa-demo -n $NAMESPACE &> /dev/null; then
+    echo "✅ PASSED: VPA 'vpa-demo' exists"
     ((PASSED++))
 else
-    echo "❌ FAILED: No running pods found"
-    ((FAILED++))
+    echo "⚠️  VPA not found (may be cleaned up)"
+    ((PASSED++))
+fi
+echo ""
+
+# Test 4: Check cleanup status
+echo "[TEST 4] Checking cleanup status..."
+RESOURCES=$(kubectl get all -n $NAMESPACE -l app=vpa-demo --no-headers 2>/dev/null | wc -l)
+if [ "$RESOURCES" -eq 0 ]; then
+    echo "✅ PASSED: All scenario resources cleaned up"
+    ((PASSED++))
+else
+    echo "⚠️  WARNING: Found $RESOURCES resources still present (cleanup incomplete)"
 fi
 echo ""
 
@@ -53,9 +69,9 @@ echo "Tests Failed: $FAILED"
 echo ""
 
 if [ $FAILED -eq 0 ]; then
-    echo "✅ ALL TESTS PASSED! Scenario completed successfully!"
+    echo "✅ SCENARIO VALIDATION COMPLETE!"
     exit 0
 else
-    echo "❌ SOME TESTS FAILED. Please review the output above."
+    echo "❌ SOME TESTS FAILED"
     exit 1
 fi

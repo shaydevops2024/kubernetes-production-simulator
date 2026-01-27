@@ -1,0 +1,14 @@
+# k8s-scenarios/10-statefulset-operations/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: sts-demo-headless
+  namespace: scenarios
+spec:
+  clusterIP: None  # Headless service
+  selector:
+    app: sts-demo
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80

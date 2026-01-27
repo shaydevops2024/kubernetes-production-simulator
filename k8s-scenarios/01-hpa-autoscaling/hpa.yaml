@@ -1,13 +1,14 @@
+# k8s-scenarios/01-hpa-autoscaling/hpa.yaml
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: k8s-demo-hpa
-  namespace: k8s-multi-demo
+  name: hpa-demo
+  namespace: scenarios
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: k8s-demo-deployment
+    name: hpa-demo-app
   minReplicas: 2
   maxReplicas: 10
   metrics:
@@ -17,20 +18,3 @@ spec:
       target:
         type: Utilization
         averageUtilization: 50
-  behavior:
-    scaleDown:
-      stabilizationWindowSeconds: 60
-      policies:
-      - type: Percent
-        value: 50
-        periodSeconds: 15
-    scaleUp:
-      stabilizationWindowSeconds: 0
-      policies:
-      - type: Percent
-        value: 100
-        periodSeconds: 15
-      - type: Pods
-        value: 2
-        periodSeconds: 15
-      selectPolicy: Max

@@ -1,87 +1,161 @@
 {
+  "scenario_id": "18-statefulset-recovery-special",
   "difficulty": "hard",
   "duration": "40 min",
   "commands": [
     {
-      "name": "Phase 1.1: Deploy StatefulSet",
-      "command": "kubectl apply -f postgres-statefulset.yaml -n k8s-multi-demo",
-      "description": "Create a StatefulSet simulating a database cluster",
-      "explanation": "This advanced scenario tests StatefulSet resilience through pod deletion, PVC retention, and recovery. StatefulSets are critical for stateful apps like databases. We'll simulate failures and verify data persistence and identity preservation.",
-      "what_it_does": "Creates a 3-replica StatefulSet with PersistentVolumes.",
-      "next_step": "StatefulSet deploying. Watch ordered pod creation."
+      "name": "Step 1: Create Namespace",
+      "command": "kubectl create namespace scenarios --dry-run=client -o yaml | kubectl apply -f -",
+      "description": "Create scenarios namespace",
+      "explanation": "Creates namespace for StatefulSet persistence testing.",
+      "what_it_does": "Creates 'scenarios' namespace if needed.",
+      "next_step": "Deploy StatefulSet with persistent storage."
     },
     {
-      "name": "Phase 1.2: Verify Ordered Creation",
-      "command": "kubectl get pods -n k8s-multi-demo -l app=postgres-demo -w",
-      "description": "Watch sequential pod creation (Ctrl+C to stop)",
-      "explanation": "StatefulSets create pods sequentially: postgres-0, then postgres-1 after postgres-0 is Ready, then postgres-2. This ensures proper initialization order for clustered apps.",
-      "what_it_does": "Streams pod status showing ordered creation.",
-      "next_step": "Wait for all 3 pods Running/Ready, then Ctrl+C."
+      "name": "Step 2: Deploy StatefulSet",
+      "command": "kubectl apply -f statefulset.yaml -n scenarios",
+      "description": "Deploy PostgreSQL StatefulSet with 3 replicas",
+      "explanation": "Creates headless service and StatefulSet. Each pod gets: stable name (postgres-sts-0/1/2), stable network identity (DNS), and persistent volume claim. Perfect for databases requiring stable identity.",
+      "what_it_does": "Creates postgres-headless service and postgres-sts StatefulSet with 3 replicas.",
+      "next_step": "Watch ordered pod creation."
     },
     {
-      "name": "Phase 1.3: Write Data to Pod",
-      "command": "kubectl exec postgres-1 -n k8s-multi-demo -- sh -c 'echo \"test-data-$(date +%s)\" > /data/test-file.txt && cat /data/test-file.txt'",
-      "description": "Write test data to pod's persistent volume",
-      "explanation": "Write data to postgres-1's volume. We'll delete the pod and verify the data persists when it recreates (proving PVC persistence).",
-      "what_it_does": "Writes timestamped test data to /data in postgres-1's volume.",
-      "next_step": "Data written. Note the content - we'll verify it survives pod deletion."
+      "name": "Step 3: Watch Ordered Creation",
+      "command": "kubectl get pods -n scenarios -l app=postgres-sts -w",
+      "description": "Monitor sequential pod startup (Ctrl+C when all Running)",
+      "explanation": "Pods create in order: postgres-sts-0 must be Running before postgres-sts-1 starts. This ordered startup is critical for stateful apps like databases. Press Ctrl+C when all 3 Running.",
+      "what_it_does": "Streams pod creation showing ordered behavior.",
+      "next_step": "Verify PVCs were created."
     },
     {
-      "name": "Phase 2.1: Delete Middle Pod",
-      "command": "kubectl delete pod postgres-1 -n k8s-multi-demo",
-      "description": "Delete pod to test recreation with same identity",
-      "explanation": "Delete postgres-1. StatefulSet recreates it with SAME name and reattaches SAME PVC. The data we wrote survives.",
-      "what_it_does": "Deletes postgres-1. StatefulSet controller immediately recreates it.",
-      "next_step": "Pod deleted. Watch it recreate with same name and storage."
+      "name": "Step 4: List PVCs",
+      "command": "kubectl get pvc -n scenarios",
+      "description": "View PersistentVolumeClaims for each pod",
+      "explanation": "Should see 3 PVCs: data-postgres-sts-0, data-postgres-sts-1, data-postgres-sts-2. Each pod has its own PVC which persists even if pod is deleted.",
+      "what_it_does": "Lists all PVCs with their status and capacity.",
+      "next_step": "Write test data to prove persistence."
     },
     {
-      "name": "Phase 2.2: Verify Data Survived",
-      "command": "kubectl exec postgres-1 -n k8s-multi-demo -- cat /data/test-file.txt",
-      "description": "Confirm data persisted after pod recreation",
-      "explanation": "The new postgres-1 pod reattached to the same PVC, so our test file still exists. This proves StatefulSet's persistent identity and storage.",
-      "what_it_does": "Reads the test file we created earlier from the recreated pod.",
-      "next_step": "File contents match what we wrote earlier. Data survived pod deletion!"
+      "name": "Step 5: Write Data to Pod-0",
+      "command": "kubectl exec postgres-sts-0 -n scenarios -- psql -U postgres -c \"CREATE TABLE test_data (id SERIAL PRIMARY KEY, message TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);\"",
+      "description": "Create test table in PostgreSQL",
+      "explanation": "Creates a table in postgres-sts-0's database. This data is written to the PVC, not the pod filesystem.",
+      "what_it_does": "Creates database table in persistent storage.",
+      "next_step": "Insert test data."
     },
     {
-      "name": "Phase 2.3: Delete All Pods",
-      "command": "kubectl delete pods -l app=postgres-demo -n k8s-multi-demo --force --grace-period=0",
-      "description": "Simulate catastrophic failure - delete all pods",
-      "explanation": "Delete ALL StatefulSet pods simultaneously (disaster scenario). StatefulSet recreates them in order with same names and PVCs. This tests maximum resilience.",
-      "what_it_does": "Force-deletes all 3 pods instantly.",
-      "next_step": "All pods being recreated. StatefulSet maintains ordered recreation."
+      "name": "Step 6: Insert Test Data",
+      "command": "kubectl exec postgres-sts-0 -n scenarios -- psql -U postgres -c \"INSERT INTO test_data (message) VALUES ('Data before pod deletion'), ('Testing persistence'), ('Should survive pod restart');\"",
+      "description": "Insert 3 rows of test data",
+      "explanation": "Inserts data into the table. This data lives in the PVC and must survive pod deletion to prove persistence works.",
+      "what_it_does": "Writes test data to database.",
+      "next_step": "Verify data was written."
     },
     {
-      "name": "Phase 2.4: Monitor Recovery",
-      "command": "kubectl get pods -n k8s-multi-demo -l app=postgres-demo",
-      "description": "Watch all pods recover with same identities",
-      "explanation": "After mass deletion, pods recreate in order: postgres-0 first, then postgres-1, then postgres-2. Each reattaches to its original PVC. Run this several times to watch recovery.",
-      "what_it_does": "Shows current pod status during recovery.",
-      "next_step": "All pods will be Running again with same names and data intact."
+      "name": "Step 7: Verify Data Exists",
+      "command": "kubectl exec postgres-sts-0 -n scenarios -- psql -U postgres -c \"SELECT * FROM test_data;\"",
+      "description": "Query data to confirm it was written",
+      "explanation": "Should show 3 rows. Note the data before deleting the pod - it must be identical after pod recreation.",
+      "what_it_does": "Queries database to show test data.",
+      "next_step": "Delete pod to test persistence."
     },
     {
-      "name": "Phase 3.1: Verify All Data Intact",
-      "command": "kubectl exec postgres-1 -n k8s-multi-demo -- cat /data/test-file.txt",
-      "description": "Final check - data survived mass pod deletion",
-      "explanation": "Even after deleting all pods, the data persists because PVCs were never deleted. This demonstrates StatefulSet's core value for stateful applications.",
-      "what_it_does": "Reads test file from recovered pod.",
-      "next_step": "Data still there! StatefulSet successfully maintained state through chaos."
+      "name": "Step 8: Delete Pod-0",
+      "command": "kubectl delete pod postgres-sts-0 -n scenarios",
+      "description": "Delete pod to test data persistence",
+      "explanation": "StatefulSet immediately recreates postgres-sts-0 (same name) and reattaches the same PVC (data-postgres-sts-0). If persistence works, data survives.",
+      "what_it_does": "Triggers pod deletion and automatic recreation.",
+      "next_step": "Wait for pod recreation."
+    },
+    {
+      "name": "Step 9: Wait for Recreation",
+      "command": "kubectl wait --for=condition=Ready pod/postgres-sts-0 -n scenarios --timeout=120s",
+      "description": "Wait for new postgres-sts-0 to be Ready",
+      "explanation": "Waits up to 2 minutes for pod to recreate and be Ready. Same name, same PVC, fresh pod.",
+      "what_it_does": "Blocks until pod is Ready or timeout.",
+      "next_step": "Verify data survived deletion."
+    },
+    {
+      "name": "Step 10: Verify Data Survived",
+      "command": "kubectl exec postgres-sts-0 -n scenarios -- psql -U postgres -c \"SELECT * FROM test_data;\"",
+      "description": "Query data from recreated pod",
+      "explanation": "Should show the same 3 rows! Data survived pod deletion because it's stored in the PVC, not the pod. This proves StatefulSet persistence.",
+      "what_it_does": "Verifies data persisted through pod deletion.",
+      "next_step": "Test mass deletion."
+    },
+    {
+      "name": "Step 11: Delete All Pods",
+      "command": "kubectl delete pods -l app=postgres-sts -n scenarios",
+      "description": "Delete all 3 pods simultaneously",
+      "explanation": "Extreme test: delete all StatefulSet pods at once. StatefulSet recreates them in order (0, 1, 2) with same PVCs. All data should survive.",
+      "what_it_does": "Deletes all StatefulSet pods.",
+      "next_step": "Watch ordered recreation."
+    },
+    {
+      "name": "Step 12: Watch Mass Recreation",
+      "command": "kubectl get pods -n scenarios -l app=postgres-sts -w",
+      "description": "Monitor all pods recreating in order (Ctrl+C when all Running)",
+      "explanation": "Pods recreate sequentially: postgres-sts-0 first, then 1, then 2. Each reattaches its original PVC. Press Ctrl+C when all Running.",
+      "what_it_does": "Streams pod recreation showing ordered recovery.",
+      "next_step": "Verify data still intact."
+    },
+    {
+      "name": "Step 13: Final Data Verification",
+      "command": "kubectl exec postgres-sts-0 -n scenarios -- psql -U postgres -c \"SELECT * FROM test_data;\"",
+      "description": "Confirm data survived mass pod deletion",
+      "explanation": "Should still show 3 original rows. Data survived complete StatefulSet restart! This is the power of persistent storage with stable identity.",
+      "what_it_does": "Final verification of data persistence.",
+      "next_step": "Test scale down/up persistence."
+    },
+    {
+      "name": "Step 14: Scale Down",
+      "command": "kubectl scale statefulset postgres-sts --replicas=1 -n scenarios",
+      "description": "Scale down to 1 replica",
+      "explanation": "Scales down to postgres-sts-0 only. Pods 1 and 2 deleted but their PVCs remain! This is by design - data preserved for scale-up.",
+      "what_it_does": "Reduces StatefulSet to 1 replica.",
+      "next_step": "Verify PVCs remain."
+    },
+    {
+      "name": "Step 15: Verify PVCs Remain",
+      "command": "kubectl get pvc -n scenarios",
+      "description": "Confirm all 3 PVCs still exist",
+      "explanation": "Should still see data-postgres-sts-0, data-postgres-sts-1, data-postgres-sts-2. PVCs are NOT deleted during scale-down - data is preserved.",
+      "what_it_does": "Shows PVCs persisted through scale-down.",
+      "next_step": "Scale back up."
+    },
+    {
+      "name": "Step 16: Scale Back Up",
+      "command": "kubectl scale statefulset postgres-sts --replicas=3 -n scenarios",
+      "description": "Scale back up to 3 replicas",
+      "explanation": "Pods postgres-sts-1 and postgres-sts-2 recreate and reattach their original PVCs. Any data written to them before scale-down is still there!",
+      "what_it_does": "Restores StatefulSet to 3 replicas.",
+      "next_step": "Scenario complete! Persistence proven under chaos."
     },
     {
       "name": "Cleanup: Delete StatefulSet",
-      "command": "kubectl delete statefulset postgres-demo -n k8s-multi-demo",
-      "description": "Remove StatefulSet",
-      "explanation": "Deletes StatefulSet and pods (in reverse order). PVCs remain!",
-      "what_it_does": "Deletes StatefulSet. Pods terminate in reverse: postgres-2, postgres-1, postgres-0.",
-      "next_step": "StatefulSet deleted. Check PVCs - they're still there!",
+      "command": "kubectl delete statefulset postgres-sts -n scenarios",
+      "description": "Remove StatefulSet (PVCs remain!)",
+      "explanation": "Deletes StatefulSet and pods. PVCs are NOT automatically deleted - must delete manually to free storage.",
+      "what_it_does": "Removes StatefulSet, keeping PVCs.",
+      "next_step": "Delete PVCs to free storage.",
       "cleanup": true
     },
     {
       "name": "Cleanup: Delete PVCs",
-      "command": "kubectl delete pvc -l app=postgres-demo -n k8s-multi-demo",
-      "description": "Remove all PersistentVolumeClaims",
-      "explanation": "StatefulSet PVCs must be manually deleted. This frees storage.",
-      "what_it_does": "Deletes all PVCs created by the StatefulSet.",
-      "next_step": "PVCs deleted. Storage freed. Scenario complete!",
+      "command": "kubectl delete pvc -l app=postgres-sts -n scenarios",
+      "description": "Delete PVCs to free storage (DATA WILL BE LOST)",
+      "explanation": "Deletes all StatefulSet PVCs. This frees storage but permanently deletes data. In production, back up first!",
+      "what_it_does": "Removes all PVCs, deleting stored data.",
+      "next_step": "Delete service.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup: Delete Service",
+      "command": "kubectl delete service postgres-headless -n scenarios",
+      "description": "Remove headless service",
+      "explanation": "Deletes the headless service used for StatefulSet DNS.",
+      "what_it_does": "Removes postgres-headless service.",
+      "next_step": "Cleanup complete! Run validate.sh to confirm.",
       "cleanup": true
     }
   ]

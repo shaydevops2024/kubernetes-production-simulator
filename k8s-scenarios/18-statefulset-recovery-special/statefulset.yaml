@@ -1,0 +1,38 @@
+# k8s-scenarios/18-statefulset-recovery-special/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: recovery-demo-db
+  namespace: scenarios
+spec:
+  serviceName: recovery-demo-headless
+  replicas: 3
+  selector:
+    matchLabels:
+      app: recovery-demo
+  template:
+    metadata:
+      labels:
+        app: recovery-demo
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:13-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_PASSWORD
+          value: "demo-password"
+        - name: PGDATA
+          value: "/data/pgdata"
+        volumeMounts:
+        - name: data
+          mountPath: /data
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 1Gi

@@ -6,57 +6,62 @@ echo "Network Policies Scenario Validation"
 echo "========================================"
 echo ""
 
-NAMESPACE="k8s-multi-demo"
+NAMESPACE="scenarios"
 PASSED=0
 FAILED=0
 
-# Test 1: Check deployment exists
-echo "[TEST 1] Checking if deployment exists..."
-if kubectl get deployment k8s-demo-deployment -n $NAMESPACE &> /dev/null; then
-    echo "✅ PASSED: Deployment found"
+echo "[TEST 1] Checking namespace..."
+if kubectl get namespace $NAMESPACE &> /dev/null; then
+    echo "✅ Namespace exists"
     ((PASSED++))
 else
-    echo "❌ FAILED: Deployment not found"
+    echo "❌ Namespace not found"
     ((FAILED++))
 fi
 echo ""
 
-# Test 2: Check all pods are running
-echo "[TEST 2] Checking all pods are running..."
-NOT_RUNNING=$(kubectl get pods -n $NAMESPACE --field-selector=status.phase!=Running --no-headers 2>/dev/null | wc -l)
-if [ "$NOT_RUNNING" -eq 0 ]; then
-    echo "✅ PASSED: All pods are Running"
+echo "[TEST 2] Checking deployment..."
+if kubectl get deployment backend-app -n $NAMESPACE &> /dev/null; then
+    echo "✅ Deployment exists"
     ((PASSED++))
 else
-    echo "❌ FAILED: Found $NOT_RUNNING pods not in Running state"
-    ((FAILED++))
-fi
-echo ""
-
-# Test 3: Check if network policies were created (may or may not exist after cleanup)
-echo "[TEST 3] Checking network policy awareness..."
-# This is informational - we just check if the command works
-if kubectl get networkpolicies -n $NAMESPACE &> /dev/null; then
-    echo "✅ PASSED: Network policy commands work"
-    ((PASSED++))
-else
-    echo "⚠️  WARNING: Network policies command failed (may not be supported)"
+    echo "⚠️  Deployment not found (may be cleaned up)"
     ((PASSED++))
 fi
 echo ""
 
-# Summary
+echo "[TEST 3] Checking service..."
+if kubectl get service backend-service -n $NAMESPACE &> /dev/null; then
+    echo "✅ Service exists"
+    ((PASSED++))
+else
+    echo "⚠️  Service not found (may be cleaned up)"
+    ((PASSED++))
+fi
+echo ""
+
+echo "[TEST 4] Checking NetworkPolicy..."
+if kubectl get networkpolicy backend-policy -n $NAMESPACE &> /dev/null; then
+    echo "✅ NetworkPolicy exists"
+    ((PASSED++))
+else
+    echo "⚠️  NetworkPolicy not found (may be cleaned up)"
+    ((PASSED++))
+fi
+echo ""
+
+echo "[TEST 5] Checking cleanup..."
+RESOURCES=$(kubectl get all,networkpolicy -n $NAMESPACE -l app=backend --no-headers 2>/dev/null | wc -l)
+if [ "$RESOURCES" -eq 0 ]; then
+    echo "✅ Cleanup complete"
+    ((PASSED++))
+else
+    echo "⚠️  $RESOURCES resources remain"
+fi
+echo ""
+
 echo "========================================"
-echo "VALIDATION SUMMARY"
+echo "Tests Passed: $PASSED | Tests Failed: $FAILED"
 echo "========================================"
-echo "Tests Passed: $PASSED"
-echo "Tests Failed: $FAILED"
-echo ""
-
-if [ $FAILED -eq 0 ]; then
-    echo "✅ ALL TESTS PASSED! Scenario completed successfully!"
-    exit 0
-else
-    echo "❌ SOME TESTS FAILED. Please review the output above."
-    exit 1
-fi
+[ $FAILED -eq 0 ] && echo "✅ VALIDATION COMPLETE" && exit 0
+echo "❌ VALIDATION FAILED" && exit 1

@@ -1,0 +1,23 @@
+# k8s-scenarios/15-rbac-setup/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rbac-demo-app
+  namespace: scenarios
+  labels:
+    app: rbac-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rbac-demo
+  template:
+    metadata:
+      labels:
+        app: rbac-demo
+    spec:
+      serviceAccountName: rbac-demo-sa
+      containers:
+      - name: kubectl
+        image: bitnami/kubectl:latest
+        command: ["sleep", "3600"]

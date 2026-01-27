@@ -1,153 +1,20 @@
+# k8s-scenarios/12-job-cronjob/job.yaml
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: data-processing-job
-  namespace: k8s-multi-demo
+  name: job-demo
+  namespace: scenarios
 spec:
-  completions: 3
-  parallelism: 2
+  template:
+    metadata:
+      labels:
+        app: job-demo
+    spec:
+      containers:
+      - name: busybox
+        image: busybox:1.34
+        command: ["sh", "-c", "echo 'Processing batch job...' && sleep 10 && echo 'Job completed!'"]
+      restartPolicy: Never
   backoffLimit: 4
-  template:
-    metadata:
-      labels:
-        app: data-processor
-    spec:
-      restartPolicy: OnFailure
-      containers:
-      - name: processor
-        image: busybox
-        command: ['sh', '-c', 'echo "Processing data batch..."; sleep 30; echo "Batch complete"']
-        resources:
-          requests:
-            cpu: 100m
-            memory: 128Mi
-          limits:
-            cpu: 200m
-            memory: 256Mi
----
-# Simple one-time job
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: database-migration
-  namespace: k8s-multi-demo
-spec:
-  template:
-    metadata:
-      labels:
-        app: db-migration
-    spec:
-      restartPolicy: Never
-      containers:
-      - name: migrate
-        image: postgres:14
-        command: ['sh', '-c', 'echo "Running database migration..."; sleep 10; echo "Migration complete"']
-        env:
-        - name: PGHOST
-          value: "postgres-service"
-        - name: PGUSER
-          value: "postgres"
----
-# CronJob - Backup job running every hour
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: database-backup
-  namespace: k8s-multi-demo
-spec:
-  schedule: "0 * * * *"  # Every hour
-  successfulJobsHistoryLimit: 3
-  failedJobsHistoryLimit: 1
-  concurrencyPolicy: Forbid
-  jobTemplate:
-    spec:
-      template:
-        metadata:
-          labels:
-            app: backup
-        spec:
-          restartPolicy: OnFailure
-          containers:
-          - name: backup
-            image: postgres:14
-            command:
-            - sh
-            - -c
-            - |
-              echo "Starting backup at $(date)"
-              echo "Backing up database..."
-              sleep 10
-              echo "Backup completed successfully"
-            env:
-            - name: BACKUP_TIME
-              value: "$(date +%Y%m%d-%H%M%S)"
----
-# CronJob - Cleanup old logs every day at midnight
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: log-cleanup
-  namespace: k8s-multi-demo
-spec:
-  schedule: "0 0 * * *"  # Daily at midnight
-  successfulJobsHistoryLimit: 1
-  failedJobsHistoryLimit: 1
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          restartPolicy: OnFailure
-          containers:
-          - name: cleanup
-            image: busybox
-            command:
-            - sh
-            - -c
-            - |
-              echo "Cleaning up logs older than 7 days"
-              find /var/log -type f -mtime +7 -delete
-              echo "Cleanup complete"
----
-# CronJob - Report generation every 5 minutes
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: metrics-report
-  namespace: k8s-multi-demo
-spec:
-  schedule: "*/5 * * * *"  # Every 5 minutes
-  concurrencyPolicy: Replace
-  successfulJobsHistoryLimit: 2
-  failedJobsHistoryLimit: 1
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          restartPolicy: OnFailure
-          containers:
-          - name: reporter
-            image: busybox
-            command: ['sh', '-c', 'date; echo "Generating metrics report"; sleep 5; echo "Report generated"']
-            resources:
-              requests:
-                cpu: 50m
-                memory: 64Mi
-              limits:
-                cpu: 100m
-                memory: 128Mi
----
-# Job with TTL after completion
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: temp-processing-job
-  namespace: k8s-multi-demo
-spec:
-  ttlSecondsAfterFinished: 300  # Auto-delete after 5 minutes
-  template:
-    spec:
-      restartPolicy: Never
-      containers:
-      - name: processor
-        image: busybox
-        command: ['sh', '-c', 'echo "Temporary job running"; sleep 10; echo "Done"']
+  completions: 1
+  parallelism: 1
