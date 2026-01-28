@@ -1,0 +1,147 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-with-probes
+  namespace: k8s-multi-demo
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: probe-demo
+  template:
+    metadata:
+      labels:
+        app: probe-demo
+    spec:
+      containers:
+      - name: app
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+          name: http
+        
+        # Liveness Probe - Checks if container is alive
+        # If fails, Kubernetes will restart the container
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+            httpHeaders:
+            - name: Custom-Header
+              value: Awesome
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        
+        # Readiness Probe - Checks if container is ready to serve traffic
+        # If fails, pod is removed from service endpoints
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        
+        # Startup Probe - Checks if application has started
+        # Protects slow starting containers
+        startupProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 0
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 30
+        
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+---
+# Example with TCP probe
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-with-tcp-probes
+  namespace: k8s-multi-demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: tcp-probe-demo
+  template:
+    metadata:
+      labels:
+        app: tcp-probe-demo
+    spec:
+      containers:
+      - name: app
+        image: postgres:14
+        ports:
+        - containerPort: 5432
+        
+        livenessProbe:
+          tcpSocket:
+            port: 5432
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          tcpSocket:
+            port: 5432
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        
+        env:
+        - name: POSTGRES_PASSWORD
+          value: "testpassword"
+---
+# Example with Exec probe
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-with-exec-probes
+  namespace: k8s-multi-demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: exec-probe-demo
+  template:
+    metadata:
+      labels:
+        app: exec-probe-demo
+    spec:
+      containers:
+      - name: app
+        image: busybox
+        command: ['sh', '-c', 'sleep 3600']
+        
+        livenessProbe:
+          exec:
+            command:
+            - cat
+            - /tmp/healthy
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        
+        readinessProbe:
+          exec:
+            command:
+            - cat
+            - /tmp/ready
+          initialDelaySeconds: 5
+          periodSeconds: 5

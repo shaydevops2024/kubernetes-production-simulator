@@ -1,0 +1,28 @@
+# k8s-scenarios/07-pod-disruption-budget/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pdb-demo-app
+  namespace: scenarios
+  labels:
+    app: pdb-demo
+    scenario: "07"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: pdb-demo
+  template:
+    metadata:
+      labels:
+        app: pdb-demo
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.21-alpine
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 100m
+            memory: 64Mi

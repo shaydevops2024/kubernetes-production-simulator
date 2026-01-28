@@ -1,0 +1,14 @@
+# k8s-scenarios/18-statefulset-recovery-special/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: recovery-demo-headless
+  namespace: scenarios
+spec:
+  clusterIP: None  # Headless service
+  selector:
+    app: recovery-demo
+  ports:
+  - protocol: TCP
+    port: 5432
+    targetPort: 5432

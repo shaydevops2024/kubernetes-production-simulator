@@ -1,0 +1,21 @@
+# k8s-scenarios/06-network-policies/network-policy.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: netpol-demo-policy
+  namespace: scenarios
+spec:
+  podSelector:
+    matchLabels:
+      app: netpol-demo
+      role: backend
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          role: frontend
+    ports:
+    - protocol: TCP
+      port: 80

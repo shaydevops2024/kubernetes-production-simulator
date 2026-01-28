@@ -52,7 +52,7 @@ echo ""
 
 # Step 5: Wait for PostgreSQL to be ready
 echo -e "${BLUE}▶ Waiting for PostgreSQL to be ready...${NC}"
-kubectl wait --for=condition=ready pod -l app=postgres -n $NAMESPACE --timeout=120s
+kubectl wait --for=condition=ready pod -l app=postgres -n $NAMESPACE --timeout=600s
 echo -e "${GREEN}✅ PostgreSQL is ready${NC}"
 echo ""
 
@@ -82,7 +82,7 @@ echo ""
 
 # Step 8: Wait for application rollout
 echo -e "${BLUE}▶ Waiting for application rollout...${NC}"
-kubectl rollout status deployment/k8s-demo-app -n $NAMESPACE --timeout=120s
+kubectl rollout status deployment/k8s-demo-app -n $NAMESPACE --timeout=600s
 echo -e "${GREEN}✅ Application updated${NC}"
 echo ""
 

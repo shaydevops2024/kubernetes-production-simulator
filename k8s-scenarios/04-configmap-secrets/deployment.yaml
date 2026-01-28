@@ -1,0 +1,47 @@
+# k8s-scenarios/04-configmap-secrets/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: configmap-demo-app
+  namespace: scenarios
+  labels:
+    app: configmap-demo
+    scenario: "04"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: configmap-demo
+  template:
+    metadata:
+      labels:
+        app: configmap-demo
+    spec:
+      containers:
+      - name: app
+        image: nginx:1.21-alpine
+        ports:
+        - containerPort: 80
+        env:
+        - name: APP_COLOR
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: app.color
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: password
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/config
+      volumes:
+      - name: config-volume
+        configMap:
+          name: app-config

@@ -1,0 +1,35 @@
+# k8s-scenarios/11-daemonset-deployment/daemonset.yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: daemonset-demo
+  namespace: scenarios
+  labels:
+    app: daemonset-demo
+    scenario: "11"
+spec:
+  selector:
+    matchLabels:
+      app: daemonset-demo
+  template:
+    metadata:
+      labels:
+        app: daemonset-demo
+    spec:
+      containers:
+      - name: fluentd
+        image: fluentd:v1.14-1
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log

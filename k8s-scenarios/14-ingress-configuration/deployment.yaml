@@ -1,0 +1,24 @@
+# k8s-scenarios/14-ingress-configuration/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingress-demo-app
+  namespace: scenarios
+  labels:
+    app: ingress-demo
+    scenario: "14"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ingress-demo
+  template:
+    metadata:
+      labels:
+        app: ingress-demo
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.21-alpine
+        ports:
+        - containerPort: 80

@@ -1,0 +1,29 @@
+# k8s-scenarios/13-blue-green-deployment/deployment-green.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bluegreen-green
+  namespace: scenarios
+  labels:
+    app: bluegreen
+    version: green
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: bluegreen
+      version: green
+  template:
+    metadata:
+      labels:
+        app: bluegreen
+        version: green
+    spec:
+      containers:
+      - name: app
+        image: nginx:1.21-alpine
+        ports:
+        - containerPort: 80
+        env:
+        - name: VERSION
+          value: "green"

@@ -1,0 +1,16 @@
+# k8s-scenarios/01-hpa-autoscaling/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: hpa-demo-service
+  namespace: scenarios
+  labels:
+    app: hpa-demo
+spec:
+  type: ClusterIP
+  selector:
+    app: hpa-demo
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80

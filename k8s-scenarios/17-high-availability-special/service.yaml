@@ -1,0 +1,13 @@
+# k8s-scenarios/17-high-availability-special/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ha-demo-service
+  namespace: scenarios
+spec:
+  selector:
+    app: ha-demo
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80

@@ -1,0 +1,13 @@
+# k8s-scenarios/09-liveness-readiness/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: probes-demo-service
+  namespace: scenarios
+spec:
+  selector:
+    app: probes-demo
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 8080

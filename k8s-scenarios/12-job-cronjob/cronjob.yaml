@@ -1,0 +1,22 @@
+# k8s-scenarios/12-job-cronjob/cronjob.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cronjob-demo
+  namespace: scenarios
+spec:
+  schedule: "*/5 * * * *"  # Every 5 minutes
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: cronjob-demo
+        spec:
+          containers:
+          - name: busybox
+            image: busybox:1.34
+            command: ["sh", "-c", "date && echo 'Scheduled task executed'"]
+          restartPolicy: OnFailure
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1

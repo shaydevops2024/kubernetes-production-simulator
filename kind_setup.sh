@@ -58,21 +58,23 @@ print_info() {
 clear
 print_header "KUBERNETES PRODUCTION DEMO - COMPLETE DEPLOYMENT"
 echo -e "${GREEN}This script will:${NC}"
-echo "  1. Delete the existing KIND cluster named k8s-demo (if it exists)"
-echo "  2. Create a fresh kind cluster"
+echo "  1. Delete the existing KIND cluster (if it exists)"
+echo "  2. Create a fresh 3-node kind cluster"
 echo "  3. Install NGINX Ingress Controller"
-echo "  4. Build and load Docker image"
-echo "  5. Deploy the application"
+echo "  4. Build Docker image with 18 scenarios built-in"
+echo "  5. Deploy the application with PostgreSQL database"
 echo "  6. Setup metrics-server and HPA"
 echo "  7. Run comprehensive tests"
 echo "  8. Display access information"
+echo ""
+echo -e "${YELLOW}⏱️  Estimated time: 10-15 minutes${NC}"
 echo ""
 read -p "Press Enter to continue or Ctrl+C to cancel..."
 
 # ============================================
 # STEP 1: CHECK PREREQUISITES
 # ============================================
-print_header "STEP 1/10: CHECKING PREREQUISITES"
+print_header "STEP 1/12: CHECKING PREREQUISITES"
 
 print_step "Checking Docker..."
 if command -v docker &> /dev/null; then
@@ -101,12 +103,27 @@ else
     exit 1
 fi
 
+print_step "Checking project structure..."
+if [ ! -d "k8s-scenarios" ]; then
+    print_error "k8s-scenarios directory not found!"
+    echo "Current directory: $(pwd)"
+    echo "Please run this script from the project root."
+    exit 1
+fi
+
+SCENARIO_COUNT=$(ls -1 k8s-scenarios 2>/dev/null | wc -l)
+if [ "$SCENARIO_COUNT" -eq 18 ]; then
+    print_success "Found 18 scenarios ready to build into image"
+else
+    print_warning "Found $SCENARIO_COUNT scenarios (expected 18)"
+fi
+
 print_success "All prerequisites satisfied!"
 
 # ============================================
 # STEP 2: CLEANUP OLD RESOURCES
 # ============================================
-print_header "STEP 2/10: CLEANING UP OLD RESOURCES"
+print_header "STEP 2/12: CLEANING UP OLD RESOURCES"
 
 print_step "Stopping any port-forwards..."
 pkill -f "port-forward" 2>/dev/null || true
@@ -114,7 +131,7 @@ print_success "Port-forwards stopped"
 
 print_step "Checking for existing kind clusters..."
 EXISTING_CLUSTERS=$(kind get clusters 2>/dev/null || echo "")
-if echo "$EXISTING_CLUSTERS" | grep -q "${CLUSTER_NAME}"; then
+if echo "$EXISTING_CLUSTERS" | grep -q "^${CLUSTER_NAME}$"; then
     print_warning "Found existing cluster '${CLUSTER_NAME}', deleting..."
     kind delete cluster --name ${CLUSTER_NAME}
     print_success "Old cluster deleted"
@@ -127,7 +144,7 @@ print_success "Cleanup complete!"
 # ============================================
 # STEP 3: CREATE KIND CLUSTER
 # ============================================
-print_header "STEP 3/10: CREATING KIND CLUSTER"
+print_header "STEP 3/12: CREATING KIND CLUSTER"
 
 print_step "Creating cluster configuration..."
 cat > /tmp/kind-config.yaml <<EOF
@@ -151,10 +168,12 @@ nodes:
   - containerPort: ${NODEPORT}
     hostPort: ${NODEPORT}
     protocol: TCP
+- role: worker
+- role: worker
 EOF
 print_success "Configuration created"
 
-print_step "Creating kind cluster '${CLUSTER_NAME}'..."
+print_step "Creating kind cluster '${CLUSTER_NAME}' (3 nodes: 1 control-plane + 2 workers)..."
 kind create cluster --name ${CLUSTER_NAME} --config /tmp/kind-config.yaml
 
 print_step "Waiting for cluster to be ready..."
@@ -162,12 +181,13 @@ kubectl wait --for=condition=ready node --all --timeout=600s
 
 print_step "Verifying cluster..."
 kubectl cluster-info
+kubectl get nodes
 print_success "Cluster created and ready!"
 
 # ============================================
 # STEP 4: INSTALL NGINX INGRESS CONTROLLER
 # ============================================
-print_header "STEP 4/10: INSTALLING NGINX INGRESS CONTROLLER"
+print_header "STEP 4/12: INSTALLING NGINX INGRESS CONTROLLER"
 
 print_step "Applying ingress-nginx manifests..."
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
@@ -185,38 +205,32 @@ print_step "Verifying ingress controller..."
 INGRESS_PODS=$(kubectl get pods -n ingress-nginx -l app.kubernetes.io/component=controller --no-headers | wc -l)
 print_success "Ingress controller ready! ($INGRESS_PODS pod running)"
 
-# Add to /etc/hosts
+# ============================================
+# STEP 5: BUILD DOCKER IMAGE WITH SCENARIOS
+# ============================================
+print_header "STEP 5/12: BUILDING APPLICATION IMAGE WITH SCENARIOS"
+
+print_step "Building Docker image with 18 scenarios baked in..."
 echo ""
-echo "Configuring /etc/hosts..."
-if ! grep -q "k8s-multi-demo.internal" /etc/hosts; then
-    echo "127.0.0.1 k8s-multi-demo.internal" | sudo tee -a /etc/hosts
-    echo "✅ Added to /etc/hosts"
-else
-    echo "✅ Already in /etc/hosts"
-fi
+echo "Build context: $(pwd)"
+echo "Dockerfile: app/Dockerfile"
+echo "Including: k8s-scenarios/ (18 scenarios)"
+echo ""
 
-
-
-
-# ============================================
-# STEP 5: BUILD DOCKER IMAGE
-# ============================================
-print_header "STEP 5/10: BUILDING APPLICATION IMAGE"
-
-print_step "Building Docker image '${APP_IMAGE}'..."
-docker build -t ${APP_IMAGE} ./app --no-cache
+# CRITICAL: Build from project root with -f flag so we can access both app/ and k8s-scenarios/
+docker build -f app/Dockerfile -t ${APP_IMAGE} . --no-cache
 
 print_step "Loading image into kind cluster..."
 kind load docker-image ${APP_IMAGE} --name ${CLUSTER_NAME}
 
 print_step "Verifying image in cluster..."
 docker exec ${CLUSTER_NAME}-control-plane crictl images | grep k8s-demo-app || print_warning "Image loaded (verification skipped)"
-print_success "Application image built and loaded!"
+print_success "Application image built with scenarios and loaded!"
 
 # ============================================
 # STEP 6: DEPLOY APPLICATION
 # ============================================
-print_header "STEP 6/10: DEPLOYING APPLICATION"
+print_header "STEP 6/12: DEPLOYING APPLICATION"
 
 print_step "Creating namespace '${NAMESPACE}'..."
 kubectl apply -f k8s/base/namespace.yaml
@@ -250,47 +264,47 @@ print_step "Applying Ingress configuration..."
 kubectl apply -f k8s/ingress/ingress.yaml
 print_success "Ingress created"
 
-chmod a+x ./deploy-database.sh
-./deploy-database.sh
+# Deploy database if script exists
+if [ -f "./deploy-database.sh" ]; then
+    chmod a+x ./deploy-database.sh
+    ./deploy-database.sh
+fi
 
-print_step "Waiting for application pods to be ready. This can take a few minutes.."
+print_step "Waiting for application pods to be ready (this can take a few minutes)..."
 kubectl wait --for=condition=ready pod -l app=k8s-demo-app -n ${NAMESPACE} --timeout=600s
 
-POD_COUNT=$(kubectl get pods -n ${NAMESPACE} --no-headers | grep Running | wc -l)
+POD_COUNT=$(kubectl get pods -n ${NAMESPACE} --no-headers | grep k8s-demo-app | grep Running | wc -l)
 print_success "Application deployed! ($POD_COUNT pods running)"
 
 # ============================================
-# STEP 6.5: DEPLOY POSTGRESQL DATABASE
+# STEP 7: VERIFY SCENARIOS IN PODS
 # ============================================
-print_header "STEP 6.5/10: DEPLOYING POSTGRESQL DATABASE"
+print_header "STEP 7/12: VERIFYING SCENARIOS IN PODS"
 
-print_step "Applying PostgreSQL ConfigMap..."
-kubectl apply -f k8s/database/postgres-configmap.yaml
-print_success "PostgreSQL ConfigMap applied"
+print_step "Checking scenarios in pods (baked into the image)..."
+POD_NAMES=($(kubectl get pods -n ${NAMESPACE} -l app=k8s-demo-app -o jsonpath='{.items[*].metadata.name}'))
+FIRST_POD="${POD_NAMES[0]}"
 
-print_step "Applying PostgreSQL Secret..."
-kubectl apply -f k8s/database/postgres-secret.yaml
-print_success "PostgreSQL Secret applied"
-
-print_step "Creating PostgreSQL Service..."
-kubectl apply -f k8s/database/postgres-service.yaml
-print_success "PostgreSQL Service created"
-
-print_step "Deploying PostgreSQL StatefulSet..."
-kubectl apply -f k8s/database/postgres-statefulset.yaml
-print_success "PostgreSQL StatefulSet created"
-
-
-
-print_step "Waiting for PostgreSQL StatefulSet to be ready (this may take a few minutes)..."
-kubectl rollout status statefulset/postgres -n ${NAMESPACE} --timeout=600s
-
-print_success "PostgreSQL database deployed and ready!"
+if [ -n "$FIRST_POD" ]; then
+    SCENARIO_COUNT=$(kubectl exec -n ${NAMESPACE} ${FIRST_POD} -- ls /scenarios 2>/dev/null | wc -l)
+    
+    if [ "$SCENARIO_COUNT" -eq 18 ]; then
+        print_success "Verified: ${SCENARIO_COUNT} scenarios present in pods!"
+        print_info "Scenarios are baked into the Docker image - no copying needed!"
+    else
+        print_warning "Found ${SCENARIO_COUNT} scenarios (expected 18)"
+        echo ""
+        echo "Listing scenarios in pod:"
+        kubectl exec -n ${NAMESPACE} ${FIRST_POD} -- ls -1 /scenarios 2>/dev/null || echo "Cannot list /scenarios"
+    fi
+else
+    print_warning "Cannot verify scenarios - no pod found"
+fi
 
 # ============================================
-# STEP 7: INSTALL METRICS SERVER
+# STEP 8: INSTALL METRICS SERVER
 # ============================================
-print_header "STEP 7/10: INSTALLING METRICS SERVER"
+print_header "STEP 8/12: INSTALLING METRICS SERVER"
 
 print_step "Applying metrics-server manifests..."
 kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
@@ -305,9 +319,9 @@ kubectl rollout status deployment/metrics-server -n kube-system --timeout=600s
 print_success "Metrics-server installed and ready!"
 
 # ============================================
-# STEP 8: CONFIGURE HPA
+# STEP 9: CONFIGURE HPA
 # ============================================
-print_header "STEP 8/10: CONFIGURING HORIZONTAL POD AUTOSCALER"
+print_header "STEP 9/12: CONFIGURING HORIZONTAL POD AUTOSCALER"
 
 print_step "Applying HPA configuration..."
 kubectl apply -f k8s/hpa/hpa.yaml
@@ -324,9 +338,9 @@ kubectl get hpa -n ${NAMESPACE}
 print_success "HPA configured and active!"
 
 # ============================================
-# STEP 9: COMPREHENSIVE TESTING
+# STEP 10: COMPREHENSIVE TESTING
 # ============================================
-print_header "STEP 9/10: RUNNING COMPREHENSIVE TESTS"
+print_header "STEP 10/12: RUNNING COMPREHENSIVE TESTS"
 
 print_step "Test 1: Checking pod health..."
 HEALTHY_PODS=$(kubectl get pods -n ${NAMESPACE} -o jsonpath='{.items[*].status.conditions[?(@.type=="Ready")].status}' | grep -o "True" | wc -l)
@@ -341,39 +355,47 @@ print_step "Test 2: Checking PostgreSQL pods..."
 POSTGRES_PODS=$(kubectl get pods -n ${NAMESPACE} -l app=postgres --no-headers | wc -l)
 [ "$POSTGRES_PODS" -ge 1 ] && print_success "PostgreSQL pod running" || print_warning "PostgreSQL pod not ready yet"
 
-print_step "Test 3: Checking PostgreSQL StatefulSet..."
-kubectl get statefulset postgres -n ${NAMESPACE} && print_success "PostgreSQL StatefulSet present"
-
-print_step "Test 4: Checking services..."
+print_step "Test 3: Checking services..."
 SERVICES=$(kubectl get svc -n ${NAMESPACE} --no-headers | wc -l)
 print_success "$SERVICES services configured"
 
-print_step "Test 5: Checking ingress..."
-INGRESS_HOSTS=$(kubectl get ingress -n ${NAMESPACE} -o jsonpath='{.items[0].spec.rules[0].host}')
+print_step "Test 4: Checking ingress..."
+INGRESS_HOSTS=$(kubectl get ingress -n ${NAMESPACE} -o jsonpath='{.items[0].spec.rules[0].host}' 2>/dev/null || echo "none")
 print_success "Ingress configured for: $INGRESS_HOSTS"
 
-print_step "Test 6: Testing NodePort connectivity..."
+print_step "Test 5: Testing NodePort connectivity..."
 sleep 3
-if curl -s -o /dev/null -w "%{http_code}" http://localhost:${NODEPORT}/health | grep -q "200"; then
+if curl -s -o /dev/null -w "%{http_code}" http://localhost:${NODEPORT}/health 2>/dev/null | grep -q "200"; then
     print_success "NodePort accessible at http://localhost:${NODEPORT}"
 else
-    print_warning "NodePort connectivity test inconclusive"
+    print_warning "NodePort connectivity test inconclusive (app may still be starting)"
 fi
 
-print_step "Test 7: Checking HPA status..."
-HPA_STATUS=$(kubectl get hpa -n ${NAMESPACE} -o jsonpath='{.items[0].status.currentReplicas}')
-HPA_TARGET=$(kubectl get hpa -n ${NAMESPACE} -o jsonpath='{.items[0].spec.minReplicas}')
+print_step "Test 6: Checking HPA status..."
+HPA_STATUS=$(kubectl get hpa -n ${NAMESPACE} -o jsonpath='{.items[0].status.currentReplicas}' 2>/dev/null || echo "0")
+HPA_TARGET=$(kubectl get hpa -n ${NAMESPACE} -o jsonpath='{.items[0].spec.minReplicas}' 2>/dev/null || echo "0")
 print_success "HPA active: $HPA_STATUS/$HPA_TARGET replicas"
 
-print_step "Test 8: Checking metrics-server..."
-kubectl top nodes &>/dev/null && print_success "Metrics-server working" || print_warning "Metrics not available yet"
+print_step "Test 7: Checking metrics-server..."
+kubectl top nodes &>/dev/null && print_success "Metrics-server working" || print_warning "Metrics not available yet (this is normal)"
+
+print_step "Test 8: Verifying scenarios API..."
+sleep 2
+SCENARIO_API_COUNT=$(curl -s http://localhost:${NODEPORT}/api/scenarios 2>/dev/null | grep -o '"id":' | wc -l || echo "0")
+if [ "$SCENARIO_API_COUNT" -eq 18 ]; then
+    print_success "Scenarios API returning ${SCENARIO_API_COUNT} scenarios ✨"
+elif [ "$SCENARIO_API_COUNT" -eq 0 ]; then
+    print_warning "Scenarios API returned 0 scenarios - app may still be initializing"
+else
+    print_warning "Scenarios API returned ${SCENARIO_API_COUNT} scenarios (expected 18)"
+fi
 
 print_success "All tests completed!"
 
 # ============================================
-# STEP 9.5: CONFIGURE HOSTS FILE FOR INGRESS
+# STEP 11: CONFIGURE HOSTS FILE
 # ============================================
-print_header "STEP 9.5/10: CONFIGURING HOSTS FILE"
+print_header "STEP 11/12: CONFIGURING HOSTS FILE"
 
 print_step "Checking /etc/hosts for ingress hostname..."
 HOSTS_ENTRY="127.0.0.1 k8s-multi-demo.internal"
@@ -395,50 +417,54 @@ else
     fi
 fi
 
-
 # ============================================
-# STEP 10: DISPLAY RESULTS
+# STEP 12: DISPLAY RESULTS
 # ============================================
-print_header "STEP 10/10: DEPLOYMENT SUMMARY"
+print_header "STEP 12/12: DEPLOYMENT SUMMARY"
 
 kubectl get all -n ${NAMESPACE}
 
 echo ""
-echo -e "${GREEN}Your Kubernetes production demo is now running!${NC}"
-
-
-echo ""
-echo "=============================================="
-echo "🔧 DNS / Hosts Configuration"
-echo "=============================================="
+echo -e "${GREEN}========================================${NC}"
+echo -e "${GREEN}✅ DEPLOYMENT COMPLETE!${NC}"
+echo -e "${GREEN}========================================${NC}"
 echo ""
 
-if grep -qi microsoft /proc/version 2>/dev/null; then
-    echo "🪟 Detected WSL environment"
-    echo ""
-    echo -e "${GREEN}Your application is available at:
-      - NodePort: http://localhost:${NODEPORT}
-      - Ingress:  http://k8s-multi-demo.internal${NC}"
-    echo ""
-    echo "To access 'http://k8s-multi-demo.internal' from Windows, you must add the following entry"
-    echo "to your Windows hosts file (ADMIN rights required):"
-    echo "  '127.0.0.1  k8s-multi-demo.internal' "
-    echo ""
-    echo "📌 Run this in *PowerShell as Administrator*:"
-    echo ""
-    echo " '  Add-Content C:\Windows\System32\drivers\etc\hosts "127.0.0.1 k8s-multi-demo.internal" ' "
-    echo ""
-    echo "After that, open your browser and go to:"
-    echo "  http://k8s-multi-demo.internal"
-else
-    echo -e "${GREEN}Access it at:
-      - NodePort: http://localhost:${NODEPORT}
-      - Ingress:  http://k8s-multi-demo.internal (requires /etc/hosts entry)${NC}" 
+echo -e "${CYAN}📍 Access Points:${NC}"
+echo "  Dashboard:  http://localhost:${NODEPORT}"
+echo "  Scenarios:  http://localhost:${NODEPORT}/static/scenarios.html"
+if [ "$INGRESS_HOSTS" != "none" ]; then
+    echo "  Ingress:    http://k8s-multi-demo.internal"
 fi
-
 echo ""
-echo "=============================================="
-echo -e "${GREEN}✅ Setup completed successfully${NC}"
-echo "=============================================="
 
+echo -e "${CYAN}📚 Kubernetes Scenarios:${NC}"
+echo "  ✅ 18 Interactive Scenarios Built Into Image"
+echo "  ℹ️  Scenarios are baked into the Docker image - always available!"
+echo ""
 
+echo -e "${CYAN}🎯 Quick Commands:${NC}"
+echo "  # View all pods:"
+echo "  kubectl get pods -n ${NAMESPACE}"
+echo ""
+echo "  # View scenarios in pod:"
+if [ -n "$FIRST_POD" ]; then
+    echo "  kubectl exec -n ${NAMESPACE} ${FIRST_POD} -- ls /scenarios/"
+fi
+echo ""
+echo "  # View logs:"
+echo "  kubectl logs -n ${NAMESPACE} -l app=k8s-demo-app -f"
+echo ""
+echo "  # Test API:"
+echo "  curl http://localhost:${NODEPORT}/api/scenarios | jq '.scenarios | length'"
+echo ""
+
+echo -e "${GREEN}========================================${NC}"
+echo -e "${GREEN}🎉 Ready to use!${NC}"
+echo -e "${GREEN}========================================${NC}"
+echo ""
+echo -e "${YELLOW}Open your browser and start learning Kubernetes:${NC}"
+echo -e "${CYAN}  http://localhost:${NODEPORT}/static/scenarios.html${NC}"
+echo ""
+echo -e "${GREEN}Enjoy exploring 18 hands-on Kubernetes scenarios!${NC}"
+echo ""
