@@ -12,6 +12,7 @@ CLUSTER_NAME="k8s-demo"
 NAMESPACE="k8s-multi-demo"
 APP_IMAGE="k8s-demo-app:latest"
 NODEPORT="30080"
+ARGOCD_NODEPORT="30800" 
 
 # Colors for output
 RED='\033[0;31m'
@@ -147,7 +148,7 @@ print_success "Cleanup complete!"
 print_header "STEP 3/12: CREATING KIND CLUSTER"
 
 print_step "Creating cluster configuration..."
-cat > /tmp/kind-config.yaml <<EOF
+cat > /tmp/kind-config.yaml <<EOF     #line 151
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
@@ -168,8 +169,12 @@ nodes:
   - containerPort: ${NODEPORT}
     hostPort: ${NODEPORT}
     protocol: TCP
+  - containerPort: ${ARGOCD_NODEPORT}
+    hostPort: ${ARGOCD_NODEPORT}
+    protocol: TCP
 - role: worker
 - role: worker
+
 EOF
 print_success "Configuration created"
 
@@ -292,7 +297,7 @@ if [ -n "$FIRST_POD" ]; then
         print_success "Verified: ${SCENARIO_COUNT} scenarios present in pods!"
         print_info "Scenarios are baked into the Docker image - no copying needed!"
     else
-        print_warning "Found ${SCENARIO_COUNT} scenarios (expected 18)"
+        print_warning "Found ${SCENARIO_COUNT} scenarios (expected 19)"
         echo ""
         echo "Listing scenarios in pod:"
         kubectl exec -n ${NAMESPACE} ${FIRST_POD} -- ls -1 /scenarios 2>/dev/null || echo "Cannot list /scenarios"
