@@ -83,6 +83,26 @@ function openPlayKubernetes() {
     window.open('/static/scenarios.html', '_blank');
 }
 
+// Open ArgoCD with automatic fallback
+function openArgoCD() {
+    // Ask backend which ArgoCD URL to use
+    fetch('/api/argocd/url')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.url) {
+                window.open(data.url, '_blank');
+            } else {
+                // Default fallback
+                window.open('http://localhost:30800', '_blank');
+            }
+        })
+        .catch(function(error) {
+            console.log('Error getting ArgoCD URL, using localhost:', error);
+            // On error, default to localhost
+            window.open('http://localhost:30800', '_blank');
+        });
+}
+
 // Load app configuration
 function loadConfig() {
     fetch('/api/config')
@@ -558,7 +578,6 @@ function refreshDatabaseData(skipUserDropdown) {
             document.getElementById('active-users-count').textContent = stats.active_users_count || 0;
             document.getElementById('tasks-count').textContent = stats.tasks_count || 0;
             document.getElementById('pending-tasks-count').textContent = stats.pending_tasks_count || 0;
-            document.getElementById('metrics-count').textContent = stats.metrics_count || 0;
             
             var badge = document.getElementById('db-status-badge');
             if (stats.connected) {
@@ -573,17 +592,17 @@ function refreshDatabaseData(skipUserDropdown) {
     
     fetch('/api/users')
         .then(function(r) { return r.json(); })
-        .then(function(users) {
-            updateUsersTable(users);
+        .then(function(data) {
+            updateUsersTable(data.users || []);
             if (!skipUserDropdown) {
-                updateUserDropdown(users);
+                updateUserDropdown(data.users || []);
             }
         })
         .catch(function(e) { console.error('Users error:', e); });
-    
+
     fetch('/api/tasks')
         .then(function(r) { return r.json(); })
-        .then(function(tasks) { updateTasksTable(tasks); })
+        .then(function(data) { updateTasksTable(data.tasks || []); })
         .catch(function(e) { console.error('Tasks error:', e); });
     
     // Fetch database configuration info
@@ -724,7 +743,7 @@ document.getElementById('create-user-form').addEventListener('submit', function(
         full_name: document.getElementById('user-fullname').value
     };
     
-    fetch('/api/users/create', {
+    fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -738,9 +757,9 @@ document.getElementById('create-user-form').addEventListener('submit', function(
         msg.textContent = '✅ User "' + data.username + '" created successfully!';
         msg.classList.add('show');
         setTimeout(function() { msg.classList.remove('show'); }, 5000);
-        
+
         document.getElementById('create-user-form').reset();
-        showCLICommandsForUser(result.user);
+        showCLICommandsForUser(result);
         refreshDatabaseData();
         
         setTimeout(function() {
@@ -764,7 +783,7 @@ document.getElementById('create-task-form').addEventListener('submit', function(
         priority: parseInt(document.getElementById('task-priority').value)
     };
     
-    fetch('/api/tasks/create', {
+    fetch('/api/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -778,11 +797,11 @@ document.getElementById('create-task-form').addEventListener('submit', function(
         msg.textContent = '✅ Task "' + data.title + '" created successfully!';
         msg.classList.add('show');
         setTimeout(function() { msg.classList.remove('show'); }, 5000);
-        
+
         document.getElementById('create-task-form').reset();
         document.getElementById('task-user-id').value = data.user_id;
-        
-        showCLICommandsForTask(result.task);
+
+        showCLICommandsForTask(result);
         refreshDatabaseData(true);
         
         setTimeout(function() {
@@ -855,10 +874,15 @@ function startLoadTest() {
         statusBadge.textContent = '⚡ Running';
     }
     
-    fetch('/loadtest/start', { method: 'POST' })
+    fetch('/api/load-test/start', { method: 'POST' })
         .then(function(r) { return r.json(); })
-        .then(function(d) { 
+        .then(function(d) {
             showModal('Load Test Started', 'Load test is now running. Pods should start scaling up within 1-2 minutes.<br><br>Monitor with: <code>kubectl get pods -n k8s-multi-demo -w</code>');
+        })
+        .catch(function(e) {
+            showModal('Error', 'Failed to start load test: ' + e.message);
+            if (startBtn) startBtn.disabled = false;
+            if (stopBtn) stopBtn.disabled = true;
         });
 }
 
@@ -874,7 +898,7 @@ function stopLoadTest() {
         statusBadge.textContent = 'Not Running';
     }
     
-    fetch('/loadtest/stop', { method: 'POST' })
+    fetch('/api/load-test/stop', { method: 'POST' })
         .then(function(r) { return r.json(); })
         .then(function(d) {
             showModal('Load Test Stopped', 'Load test has been stopped. Pods will scale back down to the minimum after a few minutes.');
@@ -883,12 +907,15 @@ function stopLoadTest() {
 
 // Logs functions
 function refreshLogs() {
-    fetch('/logs')
-        .then(function(r) { return r.json(); })
+    fetch('/api/logs')
+        .then(function(r) {
+            if (!r.ok) throw new Error('Failed to fetch logs');
+            return r.json();
+        })
         .then(function(data) {
             var viewer = document.getElementById('log-viewer');
             if (!viewer) return;
-            
+
             if (data.logs && data.logs.length > 0) {
                 var html = '';
                 for (var i = 0; i < data.logs.length; i++) {
@@ -900,7 +927,14 @@ function refreshLogs() {
                 viewer.innerHTML = html;
                 viewer.scrollTop = viewer.scrollHeight;
             } else {
-                viewer.innerHTML = '<div>No logs available</div>';
+                viewer.innerHTML = '<div class="info-message">No logs available yet. Logs will appear here as the application runs.</div>';
+            }
+        })
+        .catch(function(e) {
+            console.error('Error fetching logs:', e);
+            var viewer = document.getElementById('log-viewer');
+            if (viewer) {
+                viewer.innerHTML = '<div class="error-message">Failed to load logs: ' + escapeHtml(e.message) + '</div>';
             }
         });
 }

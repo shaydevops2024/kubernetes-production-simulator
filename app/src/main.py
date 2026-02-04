@@ -139,12 +139,34 @@ async def ready():
         return {"status": "ready"}
     return Response(content='{"status": "not ready"}', status_code=503)
 
+@app.post("/simulate/crash")
+async def simulate_crash():
+    global app_healthy
+    app_healthy = False
+    logger.warning("🔴 Simulated pod crash - health check will fail")
+    return {"status": "unhealthy", "message": "Pod health set to unhealthy"}
+
+@app.post("/simulate/notready")
+async def simulate_not_ready():
+    global app_ready
+    app_ready = False
+    logger.warning("⏸️ Simulated pod not ready - readiness check will fail")
+    return {"status": "not_ready", "message": "Pod readiness set to not ready"}
+
+@app.post("/reset")
+async def reset_health():
+    global app_healthy, app_ready
+    app_healthy = True
+    app_ready = True
+    logger.info("✅ Reset pod health and readiness to normal")
+    return {"status": "healthy", "message": "Pod health and readiness reset to healthy"}
+
 @app.get("/metrics")
 async def metrics():
     REQUEST_COUNT.labels(method='GET', endpoint='/metrics').inc()
     return Response(content=generate_latest(), media_type="text/plain")
 
-@app.get("/logs")
+@app.get("/api/logs")
 async def get_logs():
     return {"logs": list(log_buffer)}
 
@@ -155,6 +177,26 @@ async def get_config():
         "app_name": APP_NAME,
         "secret_configured": SECRET_TOKEN != "no-secret-configured"
     }
+
+@app.get("/api/argocd/url")
+async def get_argocd_url():
+    """Get the appropriate ArgoCD URL based on availability"""
+    import socket
+
+    # Try to check if the ingress hostname resolves
+    try:
+        socket.gethostbyname('k8s-multi-demo.argocd')
+        # If hostname resolves, try the ingress URL
+        primary_url = 'http://k8s-multi-demo.argocd'
+        return {"url": primary_url, "type": "ingress"}
+    except socket.gaierror:
+        # If hostname doesn't resolve, use NodePort on localhost
+        fallback_url = 'http://localhost:30800'
+        return {"url": fallback_url, "type": "nodeport"}
+    except Exception as e:
+        logger.error(f"Error determining ArgoCD URL: {e}")
+        # Default to NodePort
+        return {"url": "http://localhost:30800", "type": "nodeport"}
 
 @app.get("/api/cluster/stats")
 async def get_cluster_stats():
@@ -287,7 +329,7 @@ async def get_cluster_stats():
         "namespaces": namespace_info
     }
 
-# Database endpoints (unchanged)
+# Database endpoints
 @app.post("/api/database/init")
 async def initialize_database(db: Session = Depends(get_db)):
     try:
@@ -298,14 +340,70 @@ async def initialize_database(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/database/status")
-async def database_status(db: Session = Depends(get_db)):
+async def database_status():
     try:
-        is_connected = check_db_connection(db)
-        stats = get_db_stats(db) if is_connected else {}
-        return {"connected": is_connected, "stats": stats}
+        is_connected, message = check_db_connection()
+        stats = get_db_stats() if is_connected else {}
+        return {"connected": is_connected, "message": message, "stats": stats}
     except Exception as e:
         logger.error(f"Database status check error: {e}")
         return {"connected": False, "error": str(e)}
+
+@app.get("/api/db/stats")
+async def get_database_stats():
+    """Get database statistics for the Stateful-DB tab"""
+    try:
+        stats = get_db_stats()
+        return stats
+    except Exception as e:
+        logger.error(f"Error getting database stats: {e}")
+        return {"connected": False, "error": str(e)}
+
+@app.get("/api/db/info")
+async def get_database_info():
+    """Get database StatefulSet, Secret, and ConfigMap information"""
+    try:
+        if not k8s_available or not k8s_apps_v1 or not k8s_core_v1:
+            return {
+                "uses_secret": False,
+                "uses_configmap": False,
+                "error": "Kubernetes API not available"
+            }
+
+        namespace = "k8s-multi-demo"
+        info = {
+            "uses_secret": False,
+            "secret_name": None,
+            "uses_configmap": False,
+            "configmap_name": None
+        }
+
+        # Check if Secret exists
+        try:
+            secret = k8s_core_v1.read_namespaced_secret(name="postgres-secret", namespace=namespace)
+            info["uses_secret"] = True
+            info["secret_name"] = secret.metadata.name
+        except ApiException as e:
+            if e.status != 404:
+                logger.error(f"Error fetching Secret: {e}")
+
+        # Check if ConfigMap exists
+        try:
+            configmap = k8s_core_v1.read_namespaced_config_map(name="postgres-config", namespace=namespace)
+            info["uses_configmap"] = True
+            info["configmap_name"] = configmap.metadata.name
+        except ApiException as e:
+            if e.status != 404:
+                logger.error(f"Error fetching ConfigMap: {e}")
+
+        return info
+    except Exception as e:
+        logger.error(f"Error in get_database_info: {e}")
+        return {
+            "uses_secret": False,
+            "uses_configmap": False,
+            "error": str(e)
+        }
 
 @app.post("/api/users")
 async def create_user(user: UserCreate, db: Session = Depends(get_db)):
@@ -314,17 +412,24 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
-        return {"id": str(db_user.id), "username": db_user.username, "email": db_user.email, "full_name": db_user.full_name, "created_at": db_user.created_at.isoformat()}
+        return db_user.to_dict()
     except Exception as e:
         db.rollback()
-        logger.error(f"Error creating user: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        error_msg = str(e)
+        # Check for specific database errors and provide user-friendly messages
+        if "duplicate key" in error_msg.lower() and "username" in error_msg.lower():
+            raise HTTPException(status_code=400, detail=f"Username '{user.username}' already exists. Please choose a different username.")
+        elif "duplicate key" in error_msg.lower() and "email" in error_msg.lower():
+            raise HTTPException(status_code=400, detail=f"Email '{user.email}' already exists. Please use a different email.")
+        else:
+            logger.error(f"Error creating user: {e}")
+            raise HTTPException(status_code=500, detail="Failed to create user. Please try again.")
 
 @app.get("/api/users")
 async def list_users(db: Session = Depends(get_db)):
     try:
         users = db.query(User).all()
-        return {"users": [{"id": str(user.id), "username": user.username, "email": user.email, "full_name": user.full_name, "created_at": user.created_at.isoformat()} for user in users]}
+        return {"users": [user.to_dict() for user in users]}
     except Exception as e:
         logger.error(f"Error listing users: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -336,17 +441,21 @@ async def create_task(task: TaskCreate, db: Session = Depends(get_db)):
         db.add(db_task)
         db.commit()
         db.refresh(db_task)
-        return {"id": str(db_task.id), "user_id": str(db_task.user_id), "title": db_task.title, "description": db_task.description, "status": db_task.status, "priority": db_task.priority, "created_at": db_task.created_at.isoformat()}
+        return db_task.to_dict()
     except Exception as e:
         db.rollback()
+        error_msg = str(e)
         logger.error(f"Error creating task: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        if "foreign key" in error_msg.lower():
+            raise HTTPException(status_code=400, detail="Invalid user ID. Please select a valid user.")
+        else:
+            raise HTTPException(status_code=500, detail="Failed to create task. Please try again.")
 
 @app.get("/api/tasks")
 async def list_tasks(db: Session = Depends(get_db)):
     try:
         tasks = db.query(Task).all()
-        return {"tasks": [{"id": str(task.id), "user_id": str(task.user_id), "title": task.title, "description": task.description, "status": task.status, "priority": task.priority, "created_at": task.created_at.isoformat()} for task in tasks]}
+        return {"tasks": [task.to_dict() for task in tasks]}
     except Exception as e:
         logger.error(f"Error listing tasks: {e}")
         raise HTTPException(status_code=500, detail=str(e))
