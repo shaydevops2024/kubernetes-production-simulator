@@ -1,0 +1,64 @@
+{
+  "scenario_id": "01-basic-app-deploy",
+  "difficulty": "easy",
+  "duration": "10 min",
+  "commands": [
+    {
+      "name": "Step 1: Review the Application CR",
+      "command": "cat argocd-scenarios/01-basic-app-deploy/application.yaml",
+      "description": "Review the ArgoCD Application manifest before applying it",
+      "explanation": "The Application CR tells ArgoCD what to deploy (source), where to deploy it (destination), and how to sync. This one points to the manifests/ directory in the Git repo.",
+      "what_it_does": "Displays the ArgoCD Application custom resource definition.",
+      "next_step": "Apply the Application CR to register it with ArgoCD."
+    },
+    {
+      "name": "Step 2: Apply the Application CR",
+      "command": "kubectl apply -f argocd-scenarios/01-basic-app-deploy/application.yaml",
+      "description": "Create the ArgoCD Application in the argocd namespace",
+      "explanation": "This registers the application with ArgoCD. ArgoCD will detect the new Application but won't deploy anything yet since we have no auto-sync enabled. The app will show as 'OutOfSync'.",
+      "what_it_does": "Creates the ArgoCD Application resource in the argocd namespace.",
+      "next_step": "Check the application status in ArgoCD."
+    },
+    {
+      "name": "Step 3: Check Application Status",
+      "command": "kubectl get applications -n argocd",
+      "description": "List all ArgoCD applications and their sync status",
+      "explanation": "You should see 'sc01-basic-app' with SYNC STATUS 'OutOfSync' and HEALTH STATUS blank. This means ArgoCD knows about the app but hasn't deployed it yet.",
+      "what_it_does": "Lists all ArgoCD Application resources showing sync and health status.",
+      "next_step": "Open ArgoCD UI to see the visual representation, then sync the app."
+    },
+    {
+      "name": "Step 4: Open ArgoCD UI",
+      "command": "echo '>>> Open ArgoCD UI at http://localhost:30800 <<<\n>>> Click on sc01-basic-app to see its resources <<<\n>>> Click SYNC button to deploy the application <<<'",
+      "description": "Open ArgoCD UI and manually sync the application",
+      "explanation": "In the ArgoCD UI, you'll see the application card showing 'OutOfSync'. Click on it to see the resource tree. Click the SYNC button at the top, then SYNCHRONIZE to deploy. Watch as ArgoCD creates the namespace, deployment, and service.",
+      "what_it_does": "Guides you to interact with the ArgoCD web interface.",
+      "next_step": "After syncing in the UI, verify the resources were created."
+    },
+    {
+      "name": "Step 5: Verify Sync via CLI",
+      "command": "kubectl get application sc01-basic-app -n argocd -o jsonpath='{.status.sync.status}'",
+      "description": "Check that the application is now synced",
+      "explanation": "After syncing, the status should show 'Synced'. This means ArgoCD has successfully deployed all manifests from the Git repo to the cluster.",
+      "what_it_does": "Shows the current sync status of the ArgoCD application.",
+      "next_step": "Verify the actual Kubernetes resources were created."
+    },
+    {
+      "name": "Step 6: Check Deployed Resources",
+      "command": "kubectl get all -n argocd-sc-01",
+      "description": "View all resources created by ArgoCD in the scenario namespace",
+      "explanation": "You should see the deployment, replicaset, pods, and service that ArgoCD created. All resources are managed by ArgoCD - any manual changes will be detected as drift.",
+      "what_it_does": "Lists all Kubernetes resources in the argocd-sc-01 namespace.",
+      "next_step": "Scenario complete! Clean up when ready."
+    },
+    {
+      "name": "Cleanup: Delete Application",
+      "command": "kubectl delete application sc01-basic-app -n argocd && kubectl delete namespace argocd-sc-01 --ignore-not-found",
+      "description": "Remove the ArgoCD application and its namespace",
+      "explanation": "Deleting the Application CR removes it from ArgoCD. We also delete the namespace to clean up all deployed resources.",
+      "what_it_does": "Removes the ArgoCD application and all resources in argocd-sc-01.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

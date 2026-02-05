@@ -38,29 +38,17 @@
                     <span class="nav-icon">🎮</span>
                     <span class="nav-text">Play Kubernetes</span>
                 </div>
-                <div class="nav-item" onclick="switchTab('database')">
-                    <span class="nav-icon">🗄️</span>
-                    <span class="nav-text">StatefulSet-DB</span>
-                </div>
-                <div class="nav-item" onclick="switchTab('loadtest')">
-                    <span class="nav-icon">⚡</span>
-                    <span class="nav-text">HPA- Load Test</span>
-                </div>
-                <div class="nav-item" onclick="openArgoCD()">
-                    <span class="nav-icon">🚀</span>
-                    <span class="nav-text">ArgoCD</span>
-                </div>
-                <div class="nav-item" onclick="switchTab('logs')">
-                    <span class="nav-icon">📝</span>
-                    <span class="nav-text">Logs</span>
+                <div class="nav-item" onclick="openPlayArgoCD()">
+                    <span class="nav-icon">🎯</span>
+                    <span class="nav-text">Play ArgoCD</span>
                 </div>
             </nav>
             <div class="sidebar-footer">
                 <div class="developer-info">
                     Developed by<br>
                     <strong>Shay Guedj</strong><br>
-                    <button class="btn-profile" onclick="showDeveloperProfile()">Click Me</button>
                     DevOps Engineer
+                    <button class="btn-profile" onclick="showDeveloperProfile()">Click Me</button>
                 </div>
             </div>
         </div>
@@ -112,42 +100,111 @@
                         </div>
                     </div>
                     
+                    <!-- Application Info - Full Width -->
                     <div class="status-card">
                         <h3>Application Info</h3>
-                        <div class="status-item">
-                            <span class="label">Environment</span>
-                            <span class="value" id="app-env">Loading...</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="label">Application</span>
-                            <span class="value" id="app-name">Loading...</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="label">Health Status</span>
-                            <span class="badge badge-success" id="health-badge">✓ Healthy</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="label">Readiness</span>
-                            <span class="badge badge-success" id="ready-badge">✓ Ready</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="label">Secret Configured</span>
-                            <span class="badge" id="secret-badge">Loading...</span>
+                        <div class="status-list">
+                            <div class="status-row">
+                                <span class="status-label">Environment</span>
+                                <span class="status-value" id="app-env">Loading...</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="status-label">Application</span>
+                                <span class="status-value" id="app-name">Loading...</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="status-label">Health Status</span>
+                                <span class="badge badge-success" id="health-badge">✓ Healthy</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="status-label">Readiness</span>
+                                <span class="badge badge-success" id="ready-badge">✓ Ready</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="status-label">Secret Configured</span>
+                                <span class="badge" id="secret-badge">Loading...</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="status-label">ConfigMap Configured</span>
+                                <span class="badge" id="configmap-badge">Loading...</span>
+                            </div>
                         </div>
                     </div>
-                    
-                    <h3 class="section-title">Actions to test basic k8s behavior</h3>
-                    
-                    <!-- Action Buttons with Spacing -->
-                    <div class="button-grid">
-                        <button class="btn btn-danger" onclick="makeUnhealthy()">💔 Make Unhealthy</button>
-                        <button class="btn btn-warning" onclick="simulateNotReady()">⏸️ Not Ready</button>
-                        <button class="btn btn-primary" onclick="resetApp()">🔄 Reset App</button>
-                        <div style="width: 100%;"></div>
-                        <button class="btn btn-secondary" onclick="showMonitoringCommands()">📊 Basic CLI Info Commands</button>
+
+                    <!-- Deployment Tools - Full Width -->
+                    <div class="status-card">
+                        <h3>Deployment Tools</h3>
+                        <div class="deployment-tools-row">
+                            <!-- Helm Section -->
+                            <div class="tool-section">
+                                <div class="tool-section-header">
+                                    <span class="tool-icon">⎈</span>
+                                    <span class="tool-name">Helm</span>
+                                </div>
+                                <div class="status-list tool-status-list">
+                                    <div class="status-row">
+                                        <span class="status-label">Installed</span>
+                                        <span id="helm-installed" class="badge badge-grey">-</span>
+                                    </div>
+                                    <div class="status-row">
+                                        <span class="status-label">Version</span>
+                                        <span class="status-value" id="helm-version">-</span>
+                                    </div>
+                                    <div class="status-row">
+                                        <span class="status-label">Releases</span>
+                                        <span class="status-value" id="helm-releases">-</span>
+                                    </div>
+                                </div>
+                                <div id="helm-releases-list" class="tool-list" style="display: none;"></div>
+                                <button class="btn btn-soft" onclick="showHelmCommands()">CLI Commands</button>
+                            </div>
+
+                            <!-- ArgoCD Section -->
+                            <div class="tool-section">
+                                <div class="tool-section-header">
+                                    <span class="tool-icon">🔄</span>
+                                    <span class="tool-name">ArgoCD</span>
+                                </div>
+                                <div class="status-list tool-status-list">
+                                    <div class="status-row">
+                                        <span class="status-label">Installed</span>
+                                        <span id="argocd-installed" class="badge badge-grey">-</span>
+                                    </div>
+                                    <div class="status-row">
+                                        <span class="status-label">Version</span>
+                                        <span class="status-value" id="argocd-version">-</span>
+                                    </div>
+                                    <div class="status-row">
+                                        <span class="status-label">Apps</span>
+                                        <span class="status-value" id="argocd-app-count">-</span>
+                                    </div>
+                                </div>
+                                <div id="argocd-apps-list" class="tool-list" style="display: none;"></div>
+                                <button class="btn btn-primary" onclick="openArgoCD()">Open ArgoCD</button>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <!-- CLI Commands Section (appears below grid) -->
+
+                    <!-- Collapsible Testing Actions -->
+                    <div class="collapsible-section">
+                        <div class="collapsible-header" onclick="toggleTestingActions()">
+                            <span class="collapsible-title">Testing Actions</span>
+                            <span class="collapsible-toggle" id="testing-toggle">▶</span>
+                        </div>
+                        <div class="collapsible-content" id="testing-actions-content">
+                            <div class="testing-actions-grid">
+                                <button class="btn btn-soft" onclick="makeUnhealthy()">💔 Make Unhealthy</button>
+                                <button class="btn btn-soft" onclick="simulateNotReady()">⏸️ Not Ready</button>
+                                <button class="btn btn-soft" onclick="resetApp()">🔄 Reset App</button>
+                                <button class="btn btn-soft" onclick="switchTab('loadtest')">⚡ HPA Load Test</button>
+                                <button class="btn btn-soft" onclick="switchTab('database')">🗄️ Test Stateful DB</button>
+                                <button class="btn btn-soft" onclick="switchTab('logs')">📝 Logs</button>
+                                <button class="btn btn-soft" onclick="showMonitoringCommands()">📊 Basic CLI Info</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CLI Commands Section (appears below) -->
                     <div id="cli-commands-container" class="cli-commands-container" style="display: none;">
                         <div class="cli-commands">
                             <h4 id="cli-commands-title">CLI Commands</h4>

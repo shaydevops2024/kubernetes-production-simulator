@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kubernetes Scenario - Learn by Doing</title>
+    <title>ArgoCD Scenario - Learn by Doing</title>
     <link rel="stylesheet" href="/static/style.css">
     <style>
         * {
@@ -14,7 +14,7 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #f97316 0%, #dc2626 100%);
             min-height: 100vh;
             padding: 20px;
         }
@@ -24,18 +24,24 @@
             margin: 0 auto;
         }
 
+        .top-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
         .back-button {
             display: inline-flex;
             align-items: center;
             gap: 8px;
             padding: 10px 20px;
             background: white;
-            color: #667eea;
+            color: #ea580c;
             border: none;
             border-radius: 8px;
             text-decoration: none;
             font-weight: 600;
-            margin-bottom: 20px;
             cursor: pointer;
             transition: all 0.2s;
         }
@@ -43,6 +49,26 @@
         .back-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .argocd-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: #1f2937;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .argocd-link:hover {
+            background: #374151;
+            transform: translateY(-2px);
         }
 
         .wizard-card {
@@ -99,9 +125,9 @@
             color: #065f46;
         }
 
-        .badge-yaml {
-            background: #fef3c7;
-            color: #92400e;
+        .badge-argocd {
+            background: #ffedd5;
+            color: #c2410c;
         }
 
         .scenario-title {
@@ -137,7 +163,7 @@
         }
 
         .step-text span {
-            color: #667eea;
+            color: #ea580c;
             font-size: 18px;
         }
 
@@ -162,9 +188,9 @@
         }
 
         .nav-btn:hover:not(:disabled) {
-            border-color: #667eea;
-            color: #667eea;
-            background: #f0f4ff;
+            border-color: #ea580c;
+            color: #ea580c;
+            background: #fff7ed;
         }
 
         .nav-btn:disabled {
@@ -181,7 +207,7 @@
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #667eea, #764ba2);
+            background: linear-gradient(90deg, #f97316, #dc2626);
             border-radius: 3px;
             transition: width 0.3s ease;
         }
@@ -207,12 +233,12 @@
         }
 
         .dot.completed {
-            background: #667eea;
+            background: #ea580c;
         }
 
         .dot.current {
-            background: #667eea;
-            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.3);
+            background: #ea580c;
+            box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.3);
         }
 
         /* Main Content */
@@ -231,7 +257,7 @@
         .step-number {
             width: 50px;
             height: 50px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, #f97316, #dc2626);
             border-radius: 15px;
             display: flex;
             align-items: center;
@@ -281,7 +307,7 @@
 
         .copy-btn {
             padding: 8px 16px;
-            background: #667eea;
+            background: #ea580c;
             color: white;
             border: none;
             border-radius: 6px;
@@ -295,7 +321,7 @@
         }
 
         .copy-btn:hover {
-            background: #5a6fd6;
+            background: #c2410c;
             transform: translateY(-1px);
         }
 
@@ -332,8 +358,8 @@
         }
 
         .info-card.what {
-            background: #f0f9ff;
-            border-color: #0ea5e9;
+            background: #fff7ed;
+            border-color: #f97316;
         }
 
         .info-card.expect {
@@ -361,7 +387,7 @@
             gap: 8px;
         }
 
-        .info-card.what h4 { color: #0369a1; }
+        .info-card.what h4 { color: #c2410c; }
         .info-card.expect h4 { color: #15803d; }
         .info-card.why h4 { color: #1e40af; }
         .info-card.next h4 { color: #b45309; }
@@ -384,6 +410,11 @@
             margin-bottom: 25px;
         }
 
+        .tip-box.argocd {
+            background: #fff7ed;
+            border-color: #f97316;
+        }
+
         .tip-icon {
             font-size: 20px;
             flex-shrink: 0;
@@ -398,11 +429,36 @@
             font-size: 13px;
         }
 
+        .tip-box.argocd .tip-content strong {
+            color: #c2410c;
+        }
+
         .tip-content p {
             color: #713f12;
             font-size: 14px;
             margin-top: 4px;
             line-height: 1.5;
+        }
+
+        .tip-box.argocd .tip-content p {
+            color: #9a3412;
+        }
+
+        .tip-btn {
+            padding: 8px 16px;
+            background: #f97316;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .tip-btn:hover {
+            background: #ea580c;
         }
 
         /* Cleanup Badge */
@@ -448,8 +504,8 @@
         }
 
         .btn-secondary:hover {
-            border-color: #667eea;
-            color: #667eea;
+            border-color: #ea580c;
+            color: #ea580c;
         }
 
         .btn-secondary:disabled {
@@ -458,67 +514,19 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, #f97316, #dc2626);
             border: none;
             color: white;
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 4px 15px rgba(234, 88, 12, 0.4);
         }
 
         .step-counter {
             color: #94a3b8;
             font-size: 14px;
-        }
-
-        /* YAML Section */
-        .yaml-section {
-            margin-top: 30px;
-            padding-top: 25px;
-            border-top: 2px dashed #e2e8f0;
-        }
-
-        .yaml-section h3 {
-            font-size: 18px;
-            color: #1e293b;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .yaml-box {
-            background: #1e293b;
-            border-radius: 12px;
-            overflow: hidden;
-        }
-
-        .yaml-header {
-            background: #334155;
-            padding: 12px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .yaml-filename {
-            color: #e2e8f0;
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        .yaml-content {
-            padding: 20px;
-            color: #e2e8f0;
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            font-size: 13px;
-            line-height: 1.6;
-            white-space: pre;
-            overflow-x: auto;
-            max-height: 400px;
-            overflow-y: auto;
         }
 
         /* Loading State */
@@ -603,10 +611,16 @@
 </head>
 <body>
     <div class="container">
-        <a href="/static/scenarios.html" class="back-button">
-            <span>←</span>
-            <span>Back to Scenarios</span>
-        </a>
+        <div class="top-buttons">
+            <a href="/static/argocd-scenarios.html" class="back-button">
+                <span>←</span>
+                <span>Back to ArgoCD Scenarios</span>
+            </a>
+            <a href="#" class="argocd-link" onclick="openArgoCD(); return false;">
+                <span>▶</span>
+                <span>Open ArgoCD UI</span>
+            </a>
+        </div>
 
         <div id="scenario-content" class="loading">
             <div class="spinner"></div>
@@ -615,21 +629,37 @@
     </div>
 
     <script>
-        const scenarioId = window.location.pathname.split('/').pop();
-        let currentStep = 1;
-        let totalSteps = 0;
-        let scenarioData = null;
-        let allCommands = [];
+        var scenarioId = window.location.pathname.split('/').pop();
+        var currentStep = 1;
+        var totalSteps = 0;
+        var scenarioData = null;
+        var allCommands = [];
+
+        function openArgoCD() {
+            fetch('/api/argocd/url')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    window.open(data.url || 'http://localhost:30800', '_blank');
+                })
+                .catch(function() {
+                    window.open('http://localhost:30800', '_blank');
+                });
+        }
+
+        function isArgoCDStep(cmd) {
+            var text = ((cmd.command || '') + ' ' + (cmd.description || '') + ' ' + (cmd.explanation || '')).toLowerCase();
+            return text.indexOf('argocd ui') !== -1 || (text.indexOf('argocd') !== -1 && text.indexOf('open') !== -1);
+        }
 
         async function loadScenario() {
             try {
-                const response = await fetch('/api/scenarios/' + scenarioId);
-                const data = await response.json();
+                var response = await fetch('/api/argocd-scenarios/' + scenarioId);
+                var data = await response.json();
                 scenarioData = data;
 
                 // Separate regular commands and cleanup commands
-                const regularCommands = data.commands.filter(function(cmd) { return !cmd.cleanup; });
-                const cleanupCommands = data.commands.filter(function(cmd) { return cmd.cleanup; });
+                var regularCommands = data.commands.filter(function(cmd) { return !cmd.cleanup; });
+                var cleanupCommands = data.commands.filter(function(cmd) { return cmd.cleanup; });
                 allCommands = regularCommands.concat(cleanupCommands);
                 totalSteps = allCommands.length;
 
@@ -648,15 +678,13 @@
             // Header
             html += '<div class="wizard-header">';
             html += '<div class="scenario-badges">';
+            html += '<span class="badge badge-argocd">ArgoCD</span>';
             html += '<span class="badge ' + difficultyClass + '">' + (scenario.difficulty || 'medium').toUpperCase() + '</span>';
-            html += '<span class="badge badge-duration">' + (scenario.duration || '20 min') + '</span>';
+            html += '<span class="badge badge-duration">' + (scenario.duration || '15 min') + '</span>';
             html += '<span class="badge badge-commands">' + allCommands.length + ' Commands</span>';
-            if (scenario.yaml_files && scenario.yaml_files.length > 0) {
-                html += '<span class="badge badge-yaml">' + scenario.yaml_files.length + ' YAML Files</span>';
-            }
             html += '</div>';
             html += '<h1 class="scenario-title">' + escapeHtml(scenario.name) + '</h1>';
-            html += '<p class="scenario-subtitle">' + escapeHtml(scenario.description || 'Hands-on Kubernetes learning scenario') + '</p>';
+            html += '<p class="scenario-subtitle">' + escapeHtml(scenario.description || 'Hands-on ArgoCD learning scenario') + '</p>';
             html += '</div>';
 
             // Progress Section
@@ -710,6 +738,7 @@
         function renderStep(step) {
             var cmd = allCommands[step - 1];
             var contentEl = document.getElementById('wizard-content');
+            var isArgo = isArgoCDStep(cmd);
 
             var html = '<div class="step-header">';
             html += '<div class="step-number">' + step + '</div>';
@@ -718,6 +747,18 @@
                 html += '<span class="cleanup-badge">Cleanup</span>';
             }
             html += '</div>';
+
+            // ArgoCD UI reminder for ArgoCD steps
+            if (isArgo) {
+                html += '<div class="tip-box argocd">';
+                html += '<span class="tip-icon">🎯</span>';
+                html += '<div class="tip-content">';
+                html += '<strong>ArgoCD UI Required</strong>';
+                html += '<p>This step requires you to use the ArgoCD web interface.</p>';
+                html += '</div>';
+                html += '<button class="tip-btn" onclick="openArgoCD()">Open ArgoCD →</button>';
+                html += '</div>';
+            }
 
             // Command Box
             html += '<div class="command-box">';
@@ -785,26 +826,6 @@
                 html += '</div>';
             }
 
-            // YAML files for this step (show on last step)
-            if (step === totalSteps && scenarioData.yaml_files && scenarioData.yaml_files.length > 0) {
-                html += '<div class="yaml-section">';
-                html += '<h3>📄 YAML Configuration Files</h3>';
-
-                scenarioData.yaml_files.forEach(function(file, index) {
-                    html += '<div class="yaml-box" style="margin-bottom: 15px;">';
-                    html += '<div class="yaml-header">';
-                    html += '<span class="yaml-filename">' + escapeHtml(file.name) + '</span>';
-                    html += '<button class="copy-btn" onclick="copyYaml(this, \'' + btoa(unescape(encodeURIComponent(file.content))) + '\')">';
-                    html += '<span>📋</span><span>Copy YAML</span>';
-                    html += '</button>';
-                    html += '</div>';
-                    html += '<div class="yaml-content">' + escapeHtml(file.content) + '</div>';
-                    html += '</div>';
-                });
-
-                html += '</div>';
-            }
-
             contentEl.innerHTML = html;
         }
 
@@ -861,7 +882,7 @@
             if (currentStep === totalSteps) {
                 footerNext.innerHTML = 'Complete ✓';
                 footerNext.onclick = function() {
-                    window.location.href = '/static/scenarios.html';
+                    window.location.href = '/static/argocd-scenarios.html';
                 };
             } else {
                 footerNext.innerHTML = 'Next Step →';
@@ -877,20 +898,6 @@
                 setTimeout(function() {
                     btn.classList.remove('copied');
                     btn.innerHTML = '<span>📋</span><span>Copy Command</span>';
-                }, 2000);
-            }).catch(function(err) {
-                console.error('Copy failed:', err);
-            });
-        }
-
-        function copyYaml(btn, encodedContent) {
-            var content = decodeURIComponent(escape(atob(encodedContent)));
-            navigator.clipboard.writeText(content).then(function() {
-                btn.classList.add('copied');
-                btn.innerHTML = '<span>✓</span><span>Copied!</span>';
-                setTimeout(function() {
-                    btn.classList.remove('copied');
-                    btn.innerHTML = '<span>📋</span><span>Copy YAML</span>';
                 }, 2000);
             }).catch(function(err) {
                 console.error('Copy failed:', err);

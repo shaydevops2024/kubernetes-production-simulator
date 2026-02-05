@@ -76,6 +76,10 @@ logger.addHandler(buffer_handler)
 APP_ENV = os.getenv('APP_ENV', 'development')
 APP_NAME = os.getenv('APP_NAME', 'k8s-demo-app')
 SECRET_TOKEN = os.getenv('SECRET_TOKEN', 'no-secret-configured')
+CONFIGMAP_VALUE = os.getenv('CONFIGMAP_VALUE', 'no-configmap-configured')
+
+# Cached ArgoCD server status (only check cluster state, not CLI)
+_argocd_server_cache = {"server_running": None, "installed": None, "checked": False}
 
 class UserCreate(BaseModel):
     username: str
@@ -124,6 +128,14 @@ async def scenarios_page():
 @app.get("/scenario/{scenario_id}")
 async def scenario_detail_page(scenario_id: str):
     return FileResponse(str(static_dir / "scenario-detail.html"))
+
+@app.get("/argocd-scenarios")
+async def argocd_scenarios_page():
+    return FileResponse(str(static_dir / "argocd-scenarios.html"))
+
+@app.get("/argocd-scenario/{scenario_id}")
+async def argocd_scenario_detail_page(scenario_id: str):
+    return FileResponse(str(static_dir / "argocd-scenario-detail.html"))
 
 @app.get("/health")
 async def health():
@@ -175,7 +187,8 @@ async def get_config():
     return {
         "app_env": APP_ENV,
         "app_name": APP_NAME,
-        "secret_configured": SECRET_TOKEN != "no-secret-configured"
+        "secret_configured": SECRET_TOKEN != "no-secret-configured",
+        "configmap_configured": CONFIGMAP_VALUE != "no-configmap-configured"
     }
 
 @app.get("/api/argocd/url")
@@ -197,6 +210,268 @@ async def get_argocd_url():
         logger.error(f"Error determining ArgoCD URL: {e}")
         # Default to NodePort
         return {"url": "http://localhost:30800", "type": "nodeport"}
+
+@app.get("/api/tools/helm")
+async def get_helm_status():
+    """Get Helm installation status, version, and release count"""
+    result = {
+        "installed": False,
+        "version": None,
+        "release_count": 0,
+        "error": None
+    }
+
+    # Check Helm CLI version
+    try:
+        helm_result = subprocess.run(
+            ["helm", "version", "--short"],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        if helm_result.returncode == 0:
+            result["installed"] = True
+            version_output = helm_result.stdout.strip()
+            # Parse version like "v3.17.1+g980d8ac" to get "v3.17.1"
+            if version_output.startswith("v"):
+                result["version"] = version_output.split("+")[0]
+            else:
+                result["version"] = version_output
+    except FileNotFoundError:
+        result["installed"] = False
+        result["error"] = "Helm CLI not found"
+    except subprocess.TimeoutExpired:
+        result["error"] = "Helm version check timed out"
+    except Exception as e:
+        result["error"] = str(e)
+
+    # Get release count from cluster
+    if k8s_available and k8s_core_v1:
+        try:
+            secrets = k8s_core_v1.list_secret_for_all_namespaces(
+                label_selector="owner=helm"
+            )
+            # Count unique releases (latest revision only)
+            releases_dict = {}
+            for secret in secrets.items:
+                labels = secret.metadata.labels or {}
+                name = labels.get("name", "")
+                namespace = secret.metadata.namespace
+                version = labels.get("version", "1")
+                key = f"{namespace}/{name}"
+                if key not in releases_dict or int(version) > int(releases_dict[key]):
+                    releases_dict[key] = int(version)
+            result["release_count"] = len(releases_dict)
+
+            # If CLI not found but releases exist, consider Helm "available"
+            if not result["installed"] and result["release_count"] > 0:
+                result["installed"] = True
+                if not result["version"]:
+                    result["version"] = "N/A (releases exist)"
+        except Exception as e:
+            logger.debug(f"Error counting Helm releases: {e}")
+
+    return result
+
+@app.get("/api/tools/helm/releases")
+async def get_helm_releases():
+    """Get Helm releases from cluster using Kubernetes API (queries Helm secrets)"""
+    result = {"releases": [], "release_count": 0, "error": None}
+
+    if not k8s_available or not k8s_core_v1:
+        result["error"] = "Kubernetes API not available"
+        return result
+
+    try:
+        # Helm stores release data as secrets with label owner=helm
+        secrets = k8s_core_v1.list_secret_for_all_namespaces(
+            label_selector="owner=helm"
+        )
+
+        # Group by release name to get latest revision
+        releases_dict = {}
+        for secret in secrets.items:
+            labels = secret.metadata.labels or {}
+            name = labels.get("name", "")
+            namespace = secret.metadata.namespace
+            status = labels.get("status", "unknown")
+            version = labels.get("version", "1")
+
+            # Key by name+namespace to handle same release name in different namespaces
+            key = f"{namespace}/{name}"
+
+            # Keep the highest version (latest revision)
+            if key not in releases_dict or int(version) > int(releases_dict[key].get("revision", "0")):
+                releases_dict[key] = {
+                    "name": name,
+                    "namespace": namespace,
+                    "status": status,
+                    "chart": labels.get("chart", ""),
+                    "app_version": "",
+                    "revision": version
+                }
+
+        result["releases"] = list(releases_dict.values())
+        result["release_count"] = len(result["releases"])
+
+    except ApiException as e:
+        if e.status == 403:
+            result["error"] = "No permission to list secrets"
+        else:
+            result["error"] = f"API error: {e.status}"
+        logger.debug(f"Error listing Helm releases: {e}")
+    except Exception as e:
+        result["error"] = str(e)
+        logger.debug(f"Error listing Helm releases: {e}")
+
+    return result
+
+@app.get("/api/tools/argocd")
+async def get_argocd_status():
+    """Get ArgoCD installation status, version, server status, and app count"""
+    global _argocd_server_cache
+
+    result = {
+        "installed": False,
+        "version": None,
+        "server_running": False,
+        "app_count": 0,
+        "error": None
+    }
+
+    # Check ArgoCD CLI version
+    try:
+        argocd_result = subprocess.run(
+            ["argocd", "version", "--client", "--short"],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        if argocd_result.returncode == 0:
+            result["installed"] = True
+            version_output = argocd_result.stdout.strip()
+            # Parse version like "argocd: v3.2.6+65b0293" or just "v3.2.6+65b0293"
+            if ":" in version_output:
+                version_output = version_output.split(":")[1].strip()
+            if version_output.startswith("v"):
+                result["version"] = version_output.split("+")[0]
+            else:
+                result["version"] = version_output
+    except FileNotFoundError:
+        # CLI not installed, check if server is running in cluster
+        pass
+    except subprocess.TimeoutExpired:
+        result["error"] = "ArgoCD version check timed out"
+    except Exception as e:
+        logger.debug(f"ArgoCD CLI check error: {e}")
+
+    if not k8s_available or not k8s_apps_v1:
+        if not result["installed"]:
+            result["error"] = "Kubernetes API not available"
+        return result
+
+    # Check if ArgoCD server is running in cluster
+    try:
+        deployments = k8s_apps_v1.list_namespaced_deployment(namespace="argocd")
+        argocd_deployments = [d for d in deployments.items if "argocd" in d.metadata.name.lower()]
+
+        if argocd_deployments:
+            if not result["installed"]:
+                result["installed"] = True
+            server_dep = next((d for d in argocd_deployments if "server" in d.metadata.name.lower()), None)
+            if server_dep:
+                ready = server_dep.status.ready_replicas or 0
+                desired = server_dep.spec.replicas or 1
+                result["server_running"] = ready >= desired
+                # Get version from image tag if not already set
+                if not result["version"] and server_dep.spec.template.spec.containers:
+                    image = server_dep.spec.template.spec.containers[0].image
+                    if ":" in image:
+                        tag = image.split(":")[-1]
+                        if tag.startswith("v"):
+                            result["version"] = tag.split("+")[0]
+    except ApiException as e:
+        if e.status == 404:
+            pass  # Namespace doesn't exist
+        elif e.status == 403:
+            result["error"] = "No permission to check argocd namespace"
+        else:
+            logger.debug(f"Error checking ArgoCD deployments: {e}")
+    except Exception as e:
+        logger.debug(f"Error checking ArgoCD: {e}")
+
+    # Get app count from ArgoCD Application CRDs
+    try:
+        custom_api = client.CustomObjectsApi()
+        apps = custom_api.list_namespaced_custom_object(
+            group="argoproj.io",
+            version="v1alpha1",
+            namespace="argocd",
+            plural="applications"
+        )
+        result["app_count"] = len(apps.get("items", []))
+    except ApiException as e:
+        if e.status not in [404, 403]:
+            logger.debug(f"Error counting ArgoCD apps: {e}")
+    except Exception as e:
+        logger.debug(f"Error counting ArgoCD apps: {e}")
+
+    # Cache the results
+    _argocd_server_cache["checked"] = True
+    _argocd_server_cache["installed"] = result["installed"]
+    _argocd_server_cache["server_running"] = result["server_running"]
+
+    return result
+
+@app.get("/api/tools/argocd/apps")
+async def get_argocd_apps():
+    """Get ArgoCD applications from cluster using Kubernetes API (queries Application CRDs)"""
+    result = {"applications": [], "app_count": 0, "error": None}
+
+    if not k8s_available:
+        result["error"] = "Kubernetes API not available"
+        return result
+
+    try:
+        # Use CustomObjectsApi to query ArgoCD Application CRDs
+        custom_api = client.CustomObjectsApi()
+        apps = custom_api.list_namespaced_custom_object(
+            group="argoproj.io",
+            version="v1alpha1",
+            namespace="argocd",
+            plural="applications"
+        )
+
+        items = apps.get("items", [])
+        for app in items:
+            metadata = app.get("metadata", {})
+            status = app.get("status", {})
+            health = status.get("health", {})
+            sync = status.get("sync", {})
+
+            result["applications"].append({
+                "name": metadata.get("name", ""),
+                "namespace": metadata.get("namespace", "argocd"),
+                "health": health.get("status", "Unknown"),
+                "sync": sync.get("status", "Unknown"),
+                "revision": sync.get("revision", "")[:7] if sync.get("revision") else ""
+            })
+        result["app_count"] = len(result["applications"])
+
+    except ApiException as e:
+        if e.status == 404:
+            # ArgoCD CRDs not installed or namespace doesn't exist
+            result["error"] = None  # Not an error, just no ArgoCD
+        elif e.status == 403:
+            result["error"] = "No permission to list ArgoCD applications"
+        else:
+            result["error"] = f"API error: {e.status}"
+        logger.debug(f"Error getting ArgoCD applications: {e}")
+    except Exception as e:
+        result["error"] = str(e)
+        logger.debug(f"Error getting ArgoCD applications: {e}")
+
+    return result
 
 @app.get("/api/cluster/stats")
 async def get_cluster_stats():
@@ -695,6 +970,178 @@ async def validate_scenario(scenario_id: str):
     except Exception as e:
         logger.error(f"Validation error: {e}")
         return {"success": False, "message": f"Error: {str(e)}", "output": "", "error": str(e)}
+
+@app.get("/api/argocd-scenarios")
+async def get_argocd_scenarios():
+    """Get list of all available ArgoCD scenarios"""
+    try:
+        possible_paths = [
+            Path("/argocd-scenarios"),
+            Path("/app/argocd-scenarios"),
+            Path(__file__).parent.parent.parent / "argocd-scenarios"
+        ]
+
+        scenarios_dir = None
+        for path in possible_paths:
+            if path.exists() and path.is_dir():
+                scenarios_dir = path
+                logger.info(f"Found ArgoCD scenarios at: {scenarios_dir}")
+                break
+
+        if not scenarios_dir:
+            logger.warning("No ArgoCD scenarios directory found")
+            return {"scenarios": []}
+
+        scenarios = []
+        scenario_dirs = sorted([d for d in scenarios_dir.iterdir() if d.is_dir()])
+        logger.info(f"Found {len(scenario_dirs)} ArgoCD scenario directories")
+
+        for scenario_dir in scenario_dirs:
+            try:
+                readme_path = scenario_dir / "README.md"
+                commands_path = scenario_dir / "commands.json"
+
+                scenario_info = {
+                    "id": scenario_dir.name,
+                    "name": scenario_dir.name.replace("-", " ").title(),
+                    "description": "No description available",
+                    "difficulty": "medium",
+                    "duration": "15 min",
+                    "readme": "",
+                    "command_count": 0,
+                    "namespace": "argocd"
+                }
+
+                if readme_path.exists():
+                    with open(readme_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        lines = [l.strip() for l in content.split('\n') if l.strip() and not l.startswith('#')]
+                        if lines:
+                            scenario_info["description"] = lines[0][:200]
+                        scenario_info["readme"] = content
+
+                if commands_path.exists():
+                    with open(commands_path, 'r', encoding='utf-8') as f:
+                        commands_data = json.load(f)
+                        scenario_info["command_count"] = len(commands_data.get("commands", []))
+                        scenario_info["difficulty"] = commands_data.get("difficulty", "medium")
+                        scenario_info["duration"] = commands_data.get("duration", "15 min")
+
+                yaml_files = list(scenario_dir.glob("*.yaml")) + list(scenario_dir.glob("*.yml"))
+                scenario_info["yaml_file_count"] = len(yaml_files)
+
+                scenarios.append(scenario_info)
+            except Exception as e:
+                logger.error(f"Error processing ArgoCD scenario {scenario_dir.name}: {e}")
+                continue
+
+        logger.info(f"Processed {len(scenarios)} ArgoCD scenarios")
+        return {"scenarios": scenarios}
+    except Exception as e:
+        logger.error(f"Fatal error in get_argocd_scenarios: {e}", exc_info=True)
+        return {"scenarios": [], "error": str(e)}
+
+@app.get("/api/argocd-scenarios/{scenario_id}")
+async def get_argocd_scenario(scenario_id: str):
+    """Get detailed ArgoCD scenario info including YAML files"""
+    try:
+        possible_paths = [
+            Path("/argocd-scenarios"),
+            Path("/app/argocd-scenarios"),
+            Path(__file__).parent.parent.parent / "argocd-scenarios"
+        ]
+
+        scenario_dir = None
+        for base_path in possible_paths:
+            test_path = base_path / scenario_id
+            if test_path.exists() and test_path.is_dir():
+                scenario_dir = test_path
+                break
+
+        if not scenario_dir:
+            raise HTTPException(status_code=404, detail=f"ArgoCD scenario '{scenario_id}' not found")
+
+        logger.info(f"Loading ArgoCD scenario from: {scenario_dir}")
+
+        scenario_info = {
+            "id": scenario_id,
+            "name": scenario_id.replace("-", " ").title(),
+            "readme": "",
+            "commands": [],
+            "yaml_files": [],
+            "difficulty": "medium",
+            "duration": "15 min",
+            "namespace": "argocd"
+        }
+
+        readme_path = scenario_dir / "README.md"
+        if readme_path.exists():
+            with open(readme_path, 'r', encoding='utf-8') as f:
+                scenario_info["readme"] = f.read()
+        else:
+            scenario_info["readme"] = "# No README available"
+
+        commands_path = scenario_dir / "commands.json"
+        if commands_path.exists():
+            with open(commands_path, 'r', encoding='utf-8') as f:
+                commands_data = json.load(f)
+                scenario_info["commands"] = commands_data.get("commands", [])
+                scenario_info["difficulty"] = commands_data.get("difficulty", "medium")
+                scenario_info["duration"] = commands_data.get("duration", "15 min")
+
+        # Collect YAML files from scenario dir and subdirectories
+        yaml_files = []
+        for pattern in ["*.yaml", "*.yml"]:
+            yaml_files.extend(scenario_dir.glob(pattern))
+            yaml_files.extend(scenario_dir.glob(f"**/{pattern}"))
+
+        # Deduplicate and sort
+        seen = set()
+        unique_yaml = []
+        for f in yaml_files:
+            if f.resolve() not in seen:
+                seen.add(f.resolve())
+                unique_yaml.append(f)
+
+        def yaml_sort_key(p):
+            name = p.name.lower()
+            if 'application' in name or 'parent' in name:
+                return (0, name)
+            elif 'project' in name:
+                return (1, name)
+            elif 'deployment' in name or 'rollout' in name:
+                return (2, name)
+            elif 'service' in name:
+                return (3, name)
+            else:
+                return (4, name)
+
+        unique_yaml = sorted(unique_yaml, key=yaml_sort_key)
+        logger.info(f"Found {len(unique_yaml)} YAML files for ArgoCD scenario {scenario_id}")
+
+        for yaml_file in unique_yaml:
+            try:
+                rel_path = yaml_file.relative_to(scenario_dir)
+                with open(yaml_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    scenario_info["yaml_files"].append({
+                        "name": str(rel_path),
+                        "content": content
+                    })
+            except Exception as e:
+                logger.error(f"Error reading {yaml_file.name}: {e}")
+                scenario_info["yaml_files"].append({
+                    "name": yaml_file.name,
+                    "content": f"# Error loading file: {str(e)}"
+                })
+
+        logger.info(f"ArgoCD scenario {scenario_id}: {len(scenario_info['commands'])} commands, {len(scenario_info['yaml_files'])} YAML files")
+        return scenario_info
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in get_argocd_scenario: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.on_event("shutdown")
 async def shutdown_event():

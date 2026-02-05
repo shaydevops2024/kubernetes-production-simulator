@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sc12-disaster-recovery
+  namespace: argocd
+  labels:
+    scenario: "12"
+    category: disaster-recovery
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/YOURUSER/YOURREPO.git
+    targetRevision: HEAD
+    path: argocd-scenarios/12-disaster-recovery/manifests
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd-sc-12
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

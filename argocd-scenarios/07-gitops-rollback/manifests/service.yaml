@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: rollback-service
+spec:
+  type: ClusterIP
+  selector:
+    app: rollback-app
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP

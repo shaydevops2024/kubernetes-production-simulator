@@ -15,6 +15,7 @@ window.addEventListener('DOMContentLoaded', function() {
     loadConfig();
     startStatusMonitoring();
     startClusterStatsMonitoring();
+    fetchToolsStatus();
     
     var taskSubmit = document.getElementById('create-task-form').querySelector('button[type="submit"]');
     if (taskSubmit) {
@@ -83,6 +84,11 @@ function openPlayKubernetes() {
     window.open('/static/scenarios.html', '_blank');
 }
 
+// Open Play ArgoCD scenarios page
+function openPlayArgoCD() {
+    window.open('/static/argocd-scenarios.html', '_blank');
+}
+
 // Open ArgoCD with automatic fallback
 function openArgoCD() {
     // Ask backend which ArgoCD URL to use
@@ -110,7 +116,7 @@ function loadConfig() {
         .then(function(config) {
             document.getElementById('app-env').textContent = config.app_env;
             document.getElementById('app-name').textContent = config.app_name;
-            
+
             var badge = document.getElementById('secret-badge');
             if (config.secret_configured) {
                 badge.className = 'badge badge-success';
@@ -119,8 +125,223 @@ function loadConfig() {
                 badge.className = 'badge badge-warning';
                 badge.textContent = '⚠ No';
             }
+
+            var configmapBadge = document.getElementById('configmap-badge');
+            if (config.configmap_configured) {
+                configmapBadge.className = 'badge badge-success';
+                configmapBadge.textContent = '✓ Yes';
+            } else {
+                configmapBadge.className = 'badge badge-warning';
+                configmapBadge.textContent = '⚠ No';
+            }
         })
         .catch(function(e) { console.error('Config error:', e); });
+}
+
+// Fetch deployment tools status (Helm & ArgoCD) - queries real cluster data
+function fetchToolsStatus() {
+    refreshHelmStatus();
+    refreshArgoCDStatus();
+}
+
+// Refresh Helm status (installed, version, release count)
+function refreshHelmStatus() {
+    var installedEl = document.getElementById('helm-installed');
+    var versionEl = document.getElementById('helm-version');
+    var releasesEl = document.getElementById('helm-releases');
+
+    fetch('/api/tools/helm')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (installedEl) {
+                if (data.installed) {
+                    installedEl.className = 'badge badge-success';
+                    installedEl.textContent = '✓ Yes';
+                } else {
+                    installedEl.className = 'badge badge-grey';
+                    installedEl.textContent = '✗ No';
+                }
+            }
+
+            if (versionEl) {
+                versionEl.textContent = data.version || '-';
+            }
+
+            if (releasesEl) {
+                releasesEl.textContent = data.release_count;
+                if (data.release_count > 0) {
+                    releasesEl.style.cursor = 'pointer';
+                    releasesEl.onclick = function() {
+                        refreshHelmReleases();
+                        toggleHelmReleasesList();
+                    };
+                } else {
+                    releasesEl.style.cursor = 'default';
+                    releasesEl.onclick = null;
+                }
+            }
+        })
+        .catch(function(err) {
+            console.error('Helm status error:', err);
+            if (installedEl) {
+                installedEl.className = 'badge badge-grey';
+                installedEl.textContent = 'Error';
+            }
+        });
+}
+
+// Refresh ArgoCD status (installed, version, app count)
+function refreshArgoCDStatus() {
+    var installedEl = document.getElementById('argocd-installed');
+    var versionEl = document.getElementById('argocd-version');
+    var appsEl = document.getElementById('argocd-app-count');
+
+    fetch('/api/tools/argocd')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (installedEl) {
+                if (data.installed) {
+                    installedEl.className = 'badge badge-success';
+                    installedEl.textContent = '✓ Yes';
+                } else {
+                    installedEl.className = 'badge badge-grey';
+                    installedEl.textContent = '✗ No';
+                }
+            }
+
+            if (versionEl) {
+                versionEl.textContent = data.version || '-';
+            }
+
+            if (appsEl) {
+                appsEl.textContent = data.app_count;
+                if (data.app_count > 0) {
+                    appsEl.style.cursor = 'pointer';
+                    appsEl.onclick = function() {
+                        refreshArgoCDApps();
+                        toggleArgoCDAppsList();
+                    };
+                } else {
+                    appsEl.style.cursor = 'default';
+                    appsEl.onclick = null;
+                }
+            }
+        })
+        .catch(function(err) {
+            console.error('ArgoCD status error:', err);
+            if (installedEl) {
+                installedEl.className = 'badge badge-grey';
+                installedEl.textContent = 'Error';
+            }
+        });
+}
+
+// Refresh Helm releases (dynamic)
+function refreshHelmReleases() {
+    var releasesEl = document.getElementById('helm-releases');
+    var listEl = document.getElementById('helm-releases-list');
+
+    if (releasesEl) releasesEl.textContent = '...';
+
+    fetch('/api/tools/helm/releases')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (releasesEl) {
+                if (data.release_count > 0) {
+                    releasesEl.textContent = data.release_count + ' release(s)';
+                    releasesEl.style.cursor = 'pointer';
+                    releasesEl.onclick = function() { toggleHelmReleasesList(); };
+                } else {
+                    releasesEl.textContent = 'None';
+                    releasesEl.style.cursor = 'default';
+                    releasesEl.onclick = null;
+                }
+            }
+
+            // Build the list
+            if (listEl && data.releases && data.releases.length > 0) {
+                var html = '';
+                data.releases.forEach(function(release) {
+                    var statusClass = release.status === 'deployed' ? 'badge-success' : 'badge-warning';
+                    html += '<div class="tool-list-item">';
+                    html += '<span class="name">' + release.name + '</span>';
+                    html += '<span class="details">' + release.namespace + ' - ' + release.chart + '</span>';
+                    html += '<span class="badge ' + statusClass + '">' + release.status + '</span>';
+                    html += '</div>';
+                });
+                listEl.innerHTML = html;
+            } else if (listEl) {
+                listEl.innerHTML = '';
+                listEl.style.display = 'none';
+            }
+        })
+        .catch(function(err) {
+            console.error('Helm releases error:', err);
+            if (releasesEl) releasesEl.textContent = 'Error';
+        });
+}
+
+// Toggle Helm releases list visibility
+function toggleHelmReleasesList() {
+    var listEl = document.getElementById('helm-releases-list');
+    if (listEl && listEl.innerHTML) {
+        listEl.style.display = listEl.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+// Refresh ArgoCD apps (dynamic)
+function refreshArgoCDApps() {
+    var appsEl = document.getElementById('argocd-app-count');
+    var listEl = document.getElementById('argocd-apps-list');
+
+    if (appsEl) appsEl.textContent = '...';
+
+    fetch('/api/tools/argocd/apps')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (appsEl) {
+                if (data.app_count > 0) {
+                    appsEl.textContent = data.app_count + ' app(s)';
+                    appsEl.style.cursor = 'pointer';
+                    appsEl.onclick = function() { toggleArgoCDAppsList(); };
+                } else {
+                    appsEl.textContent = 'None';
+                    appsEl.style.cursor = 'default';
+                    appsEl.onclick = null;
+                }
+            }
+
+            // Build the list
+            if (listEl && data.applications && data.applications.length > 0) {
+                var html = '';
+                data.applications.forEach(function(app) {
+                    var healthClass = app.health === 'Healthy' ? 'badge-success' :
+                                      app.health === 'Progressing' ? 'badge-warning' : 'badge-danger';
+                    var syncClass = app.sync === 'Synced' ? 'badge-success' : 'badge-warning';
+                    html += '<div class="tool-list-item">';
+                    html += '<span class="name">' + app.name + '</span>';
+                    html += '<span class="badge ' + healthClass + '">' + app.health + '</span>';
+                    html += '<span class="badge ' + syncClass + '">' + app.sync + '</span>';
+                    html += '</div>';
+                });
+                listEl.innerHTML = html;
+            } else if (listEl) {
+                listEl.innerHTML = '';
+                listEl.style.display = 'none';
+            }
+        })
+        .catch(function(err) {
+            console.error('ArgoCD apps error:', err);
+            if (appsEl) appsEl.textContent = 'Error';
+        });
+}
+
+// Toggle ArgoCD apps list visibility
+function toggleArgoCDAppsList() {
+    var listEl = document.getElementById('argocd-apps-list');
+    if (listEl && listEl.innerHTML) {
+        listEl.style.display = listEl.style.display === 'none' ? 'block' : 'none';
+    }
 }
 
 // Cluster stats monitoring
@@ -159,6 +380,7 @@ function changeRefreshInterval() {
     dashboardRefreshInterval = setInterval(function() {
         updateClusterStats();
         updateStatusBadges();
+        fetchToolsStatus();
     }, currentRefreshSeconds * 1000);
 }
 
@@ -424,6 +646,7 @@ function switchTab(tabName) {
         initDashboardRefresh();
         startStatusMonitoring();
         startClusterStatsMonitoring();
+        fetchToolsStatus();
     } else if (tabName === 'database') {
         refreshDatabaseData();
         fetchDatabaseInfo();
@@ -521,8 +744,29 @@ function showMonitoringCommands() {
     commands += '<div class="cli-command"><code>kubectl get hpa -n k8s-multi-demo</code><button class="copy-btn" onclick="copyCommand(this)">📋 Copy</button></div>';
     commands += '<div class="cli-command"><code>kubectl describe pod -n k8s-multi-demo -l app=k8s-demo-app</code><button class="copy-btn" onclick="copyCommand(this)">📋 Copy</button></div>';
     commands += '<div class="cli-command"><code>kubectl get events -n k8s-multi-demo --sort-by=.metadata.creationTimestamp</code><button class="copy-btn" onclick="copyCommand(this)">📋 Copy</button></div>';
-    
+
     showCLICommands(commands, '📊 General Monitoring Commands');
+}
+
+// Toggle testing actions collapsible section
+function toggleTestingActions() {
+    var content = document.getElementById('testing-actions-content');
+    var toggle = document.getElementById('testing-toggle');
+
+    if (content && toggle) {
+        content.classList.toggle('expanded');
+        toggle.classList.toggle('expanded');
+    }
+}
+
+// Show Helm CLI commands
+function showHelmCommands() {
+    var commands = '<div class="cli-command"><code>helm list -n k8s-multi-demo</code><button class="copy-btn" onclick="copyCommand(this)">📋 Copy</button></div>';
+    commands += '<div class="cli-command"><code>helm history k8s-demo -n k8s-multi-demo</code><button class="copy-btn" onclick="copyCommand(this)">📋 Copy</button></div>';
+    commands += '<div class="cli-command"><code>helm get values k8s-demo -n k8s-multi-demo</code><button class="copy-btn" onclick="copyCommand(this)">📋 Copy</button></div>';
+    commands += '<div class="cli-command"><code>helm status k8s-demo -n k8s-multi-demo</code><button class="copy-btn" onclick="copyCommand(this)">📋 Copy</button></div>';
+
+    showCLICommands(commands, '⎈ Helm Commands');
 }
 
 // Copy command functionality

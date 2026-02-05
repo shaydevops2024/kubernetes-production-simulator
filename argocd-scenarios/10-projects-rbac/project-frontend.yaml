@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: team-frontend
+  namespace: argocd
+spec:
+  description: Frontend team project - restricted to frontend namespace
+  sourceRepos:
+    - 'https://github.com/shaydevops2024/kubernetes-production-simulator.git'
+  destinations:
+    - namespace: argocd-sc-10-fe
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: ''
+      kind: '*'
+    - group: 'apps'
+      kind: '*'

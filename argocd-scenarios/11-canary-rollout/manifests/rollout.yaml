@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: canary-app
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: canary-app
+  template:
+    metadata:
+      labels:
+        app: canary-app
+    spec:
+      containers:
+        - name: app
+          image: nginx:1.20-alpine
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+  strategy:
+    canary:
+      steps:
+        - setWeight: 25
+        - pause: {}
+        - setWeight: 50
+        - pause: {duration: 30s}
+        - setWeight: 75
+        - pause: {duration: 30s}

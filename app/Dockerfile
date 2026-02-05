@@ -21,15 +21,18 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install runtime dependencies (kubectl for terminal functionality)
+# Install runtime dependencies (curl for healthcheck, wget for downloading CLIs)
 RUN apt-get update && apt-get install -y \
     curl \
+    wget \
     && rm -rf /var/lib/apt/lists/*
 
-# Install kubectl
-RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
-    && chmod +x kubectl \
-    && mv kubectl /usr/local/bin/
+# Install Helm CLI
+RUN curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+# Install ArgoCD CLI
+RUN curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64 \
+    && chmod +x /usr/local/bin/argocd
 
 # Copy Python packages from builder (system-wide installation)
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
@@ -43,11 +46,16 @@ COPY app/src/ /app/src/
 # This happens BEFORE we create the user, so it's done as root
 COPY k8s-scenarios/ /scenarios/
 
+# Copy ArgoCD scenarios into the image
+COPY argocd-scenarios/ /argocd-scenarios/
+
 # Now create non-root user and set ownership
 RUN useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /app && \
     chown -R appuser:appuser /scenarios && \
-    chmod -R 755 /scenarios
+    chmod -R 755 /scenarios && \
+    chown -R appuser:appuser /argocd-scenarios && \
+    chmod -R 755 /argocd-scenarios
 
 # Switch to non-root user
 USER appuser
