@@ -1,0 +1,61 @@
+{
+  "scenario_id": "06-merge-request-pipelines",
+  "difficulty": "medium",
+  "duration": "15 min",
+  "commands": [
+    {
+      "name": "Step 1: Review MR Pipeline Configuration",
+      "command": "cat gitlab-ci-scenarios/06-merge-request-pipelines/.gitlab-ci.yml",
+      "description": "Examine a pipeline with merge request triggers and review app deployment",
+      "explanation": "This pipeline uses 'rules:' to differentiate between branch pipelines and MR pipelines. MR pipelines trigger on merge_request_event and have access to MR-specific variables like $CI_MERGE_REQUEST_IID. The review app creates a unique deployment for each MR, giving reviewers a live preview of the changes.",
+      "what_it_does": "Displays a pipeline with MR-specific jobs, review app deployment, and auto-cleanup.",
+      "next_step": "Understand MR pipeline rules.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 2: MR Pipeline Rules",
+      "command": "echo '=== Merge Request Pipeline Rules ===' && echo '' && echo '# Run ONLY on merge requests:' && echo 'rules:' && echo '  - if: $CI_PIPELINE_SOURCE == \"merge_request_event\"' && echo '' && echo '# Run on MRs AND main branch:' && echo 'rules:' && echo '  - if: $CI_MERGE_REQUEST_IID       # MR pipelines' && echo '  - if: $CI_COMMIT_BRANCH == \"main\"  # Main branch pushes' && echo '' && echo '# Run on MRs, EXCEPT drafts:' && echo 'rules:' && echo '  - if: $CI_MERGE_REQUEST_IID && $CI_MERGE_REQUEST_TITLE !~ /^Draft:/' && echo '' && echo '=== Avoiding Duplicate Pipelines ===' && echo 'Problem: Push to branch triggers BOTH branch + MR pipeline' && echo '' && echo 'Solution - workflow:rules:' && echo 'workflow:' && echo '  rules:' && echo '    - if: $CI_MERGE_REQUEST_IID      # MR exists → MR pipeline' && echo '    - if: $CI_COMMIT_BRANCH == \"main\" # Main → branch pipeline' && echo '    - if: $CI_COMMIT_TAG              # Tag → tag pipeline' && echo '' && echo 'This prevents double pipelines - each push triggers exactly one.'",
+      "description": "Learn the rules syntax for controlling merge request pipelines",
+      "explanation": "The most common pitfall is duplicate pipelines: when you push to a branch with an open MR, both a branch pipeline and MR pipeline can trigger. The workflow:rules block at the top of .gitlab-ci.yml solves this by defining which pipeline type takes priority. Always use workflow:rules in production pipelines.",
+      "what_it_does": "Explains MR pipeline rules syntax and how to prevent duplicate pipelines.",
+      "next_step": "Learn about review app environments.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 3: Review App Deployment",
+      "command": "echo '=== Review Apps - Live Preview per MR ===' && echo '' && echo 'deploy-review:' && echo '  stage: deploy' && echo '  script:' && echo '    - kubectl create namespace review-$CI_MERGE_REQUEST_IID --dry-run=client -o yaml | kubectl apply -f -' && echo '    - helm upgrade --install review-$CI_MERGE_REQUEST_IID ./chart' && echo '        --namespace review-$CI_MERGE_REQUEST_IID' && echo '        --set image.tag=$CI_COMMIT_SHA' && echo '        --set ingress.host=review-$CI_MERGE_REQUEST_IID.dev.example.com' && echo '  environment:' && echo '    name: review/$CI_COMMIT_REF_SLUG    # Dynamic name!' && echo '    url: https://review-$CI_MERGE_REQUEST_IID.dev.example.com' && echo '    on_stop: stop-review                 # Cleanup job' && echo '    auto_stop_in: 1 week                 # Auto-cleanup' && echo '  rules:' && echo '    - if: $CI_MERGE_REQUEST_IID' && echo '' && echo 'Result:' && echo '  MR #42 → namespace review-42' && echo '          → URL: review-42.dev.example.com' && echo '          → Auto-stops after 1 week' && echo '' && echo 'Reviewer clicks the environment URL in the MR to see changes live!'",
+      "description": "Understand how review apps create per-MR live preview environments",
+      "explanation": "Review apps are a game-changer for code review. Instead of checking out the branch locally, reviewers click a URL and see the changes running live. The environment name includes the MR number or branch slug, making each deployment unique. The 'on_stop' job cleans up resources when the MR is merged or closed.",
+      "what_it_does": "Shows how to configure a review app deployment with dynamic environment names and auto-cleanup.",
+      "next_step": "See the environment cleanup pattern.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 4: Environment Stop and Cleanup",
+      "command": "echo '=== Environment Stop Job ===' && echo '' && echo 'stop-review:' && echo '  stage: deploy' && echo '  variables:' && echo '    GIT_STRATEGY: none  # No need to checkout code' && echo '  script:' && echo '    - helm uninstall review-$CI_MERGE_REQUEST_IID' && echo '        --namespace review-$CI_MERGE_REQUEST_IID' && echo '    - kubectl delete namespace review-$CI_MERGE_REQUEST_IID' && echo '        --ignore-not-found' && echo '  environment:' && echo '    name: review/$CI_COMMIT_REF_SLUG' && echo '    action: stop  # This marks it as the stop action' && echo '  rules:' && echo '    - if: $CI_MERGE_REQUEST_IID' && echo '      when: manual  # Can be triggered manually' && echo '' && echo '=== When Does Cleanup Happen? ===' && echo '' && echo '1. Automatic (auto_stop_in: 1 week):' && echo '   → Environment stopped after 1 week of inactivity' && echo '' && echo '2. On MR merge/close:' && echo '   → GitLab triggers the on_stop job automatically' && echo '' && echo '3. Manual:' && echo '   → Click \"Stop\" button in Environments UI' && echo '' && echo 'Always define cleanup to prevent resource leaks!'",
+      "description": "Learn how to clean up review environments automatically",
+      "explanation": "Without proper cleanup, review apps accumulate and waste cluster resources. The stop job uses 'action: stop' to tell GitLab it's the cleanup counterpart. GitLab triggers it automatically when an MR is merged or closed. The 'auto_stop_in' timer acts as a safety net - even abandoned MRs get cleaned up. GIT_STRATEGY: none skips checkout since cleanup doesn't need the code.",
+      "what_it_does": "Shows the environment stop job pattern with three cleanup trigger methods.",
+      "next_step": "Simulate a review app deployment.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 5: Simulate Review App Deployment",
+      "command": "kubectl create namespace gitlab-ci-scenarios --dry-run=client -o yaml | kubectl apply -f - && kubectl apply -f gitlab-ci-scenarios/06-merge-request-pipelines/review-app.yaml && echo '' && echo '=== Simulated: Review app for MR #42 ===' && kubectl get pods -n gitlab-ci-scenarios -l app=review-app --watch --timeout=30",
+      "description": "Deploy a simulated review app to see what MR reviewers would experience",
+      "explanation": "This simulates what happens when a developer opens a merge request. The CI pipeline deploys their branch to a unique namespace with a unique URL. The reviewer can access the app, test the changes, and approve the MR. When the MR is merged, the namespace and all resources are automatically cleaned up.",
+      "what_it_does": "Creates a simulated review app deployment in the cluster.",
+      "next_step": "Review the MR pipeline summary.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 6: MR Pipelines Summary",
+      "command": "echo '============================================' && echo '  Merge Request Pipelines Best Practices' && echo '============================================' && echo '' && echo 'Pipeline rules:' && echo '  ✅ Use workflow:rules to prevent duplicate pipelines' && echo '  ✅ Only run expensive jobs on MRs (not every push)' && echo '  ✅ Skip draft MRs for expensive tests' && echo '' && echo 'Review apps:' && echo '  ✅ Dynamic environment names (review/$CI_COMMIT_REF_SLUG)' && echo '  ✅ Always define on_stop cleanup job' && echo '  ✅ Set auto_stop_in as safety net (1 week)' && echo '  ✅ Use GIT_STRATEGY: none for stop jobs' && echo '  ✅ Link environment URL in MR for easy access' && echo '' && echo 'Resource management:' && echo '  ✅ Set resource limits on review app pods' && echo '  ✅ Use lightweight configs (1 replica, small resources)' && echo '  ✅ Monitor review app namespaces for orphans' && echo '  ✅ Set namespace quotas to prevent resource abuse' && kubectl delete namespace gitlab-ci-scenarios --ignore-not-found 2>/dev/null; echo ''",
+      "description": "Review best practices for MR pipelines and review apps",
+      "explanation": "MR pipelines and review apps dramatically improve code review quality. Reviewers see live changes instead of reading diffs. The key is proper cleanup: always define stop jobs and auto_stop_in to prevent resource leaks. Monitor your cluster for orphaned review namespaces.",
+      "what_it_does": "Prints MR pipeline best practices and cleans up the demo resources.",
+      "next_step": "Scenario complete!",
+      "cleanup": false
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+# values-v1.yaml
+# Version 1 configuration: conservative defaults suitable for initial deployment
+# This represents a stable, known-good configuration.
+
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 100m
+    memory: 128Mi
+
+service:
+  type: ClusterIP
+  port: 80
+
+commonLabels:
+  version: v1
+  environment: learning
+
+# Simple server configuration
+serverBlock: |-
+  server {
+    listen 0.0.0.0:8080;
+    location /version {
+      return 200 "Version 1 - Stable Release\n";
+    }
+    location / {
+      return 200 "Hello from v1!\n";
+    }
+  }

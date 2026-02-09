@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sc04-parent-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/shaydevops2024/kubernetes-production-simulator.git
+    targetRevision: HEAD
+    path: argocd-scenarios/04-app-of-apps/children
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

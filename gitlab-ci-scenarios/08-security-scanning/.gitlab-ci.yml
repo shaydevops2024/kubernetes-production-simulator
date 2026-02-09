@@ -1,0 +1,99 @@
+# .gitlab-ci.yml - Security Scanning Pipeline
+# Comprehensive security scanning: SAST, dependencies, secrets, containers
+
+# Include GitLab security templates
+include:
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Security/Secret-Detection.gitlab-ci.yml
+  - template: Security/Dependency-Scanning.gitlab-ci.yml
+
+stages:
+  - security-pre
+  - build
+  - security-post
+  - deploy
+
+variables:
+  # SAST configuration
+  SAST_EXCLUDED_PATHS: "tests/,docs/,vendor/"
+  # Dependency scanning
+  DS_EXCLUDED_PATHS: "tests/,docs/"
+
+# --- Pre-Build Security ---
+
+# Override secret detection to block pipeline
+secret_detection:
+  stage: security-pre
+  allow_failure: false  # BLOCK on leaked secrets
+
+# Override SAST to block on critical findings
+sast:
+  stage: security-pre
+  allow_failure: false  # BLOCK on code vulnerabilities
+
+# Custom: Check for common misconfigurations
+security-lint:
+  stage: security-pre
+  image: python:3.11-slim
+  script:
+    - echo "Checking for common security issues..."
+    - |
+      # Check for hardcoded IPs/ports
+      grep -rn "0\.0\.0\.0" --include="*.py" --include="*.js" src/ || true
+      # Check for debug mode
+      grep -rn "DEBUG.*=.*True" --include="*.py" src/ && exit 1 || true
+      # Check for TODO security items
+      grep -rn "TODO.*security\|FIXME.*security" --include="*.py" src/ || true
+    - echo "Security lint passed"
+
+# --- Build ---
+build:
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:v1.14.0-debug
+    entrypoint: [""]
+  script:
+    - /kaniko/executor
+        --context $CI_PROJECT_DIR
+        --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+        --cache=true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_MERGE_REQUEST_IID
+
+# --- Post-Build Security ---
+container-scan:
+  stage: security-post
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+  script:
+    - trivy image
+        --severity HIGH,CRITICAL
+        --exit-code 0
+        --ignore-unfixed
+        --format json
+        --output trivy-report.json
+        $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+  artifacts:
+    paths:
+      - trivy-report.json
+    expire_in: 1 week
+  allow_failure: true  # Report only (enable blocking later)
+  needs: [build]
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_MERGE_REQUEST_IID
+
+# --- Deploy (only if security passes) ---
+deploy:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  script:
+    - echo "All security checks passed. Safe to deploy."
+    - kubectl set image deployment/myapp
+        myapp=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA -n staging
+  environment:
+    name: staging
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"

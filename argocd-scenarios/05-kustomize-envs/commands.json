@@ -1,0 +1,64 @@
+{
+  "scenario_id": "05-kustomize-envs",
+  "difficulty": "medium",
+  "duration": "15 min",
+  "commands": [
+    {
+      "name": "Step 1: Review Base Manifests",
+      "command": "cat argocd-scenarios/05-kustomize-envs/base/kustomization.yaml && echo '---' && cat argocd-scenarios/05-kustomize-envs/base/deployment.yaml",
+      "description": "Review the base Kustomize configuration",
+      "explanation": "The base contains the common deployment and service. Overlays customize these for each environment. This is the DRY (Don't Repeat Yourself) principle applied to Kubernetes manifests.",
+      "what_it_does": "Shows the base kustomization.yaml and deployment.yaml.",
+      "next_step": "Review how dev and prod overlays customize the base."
+    },
+    {
+      "name": "Step 2: Compare Dev vs Prod Overlays",
+      "command": "echo '=== DEV ===' && cat argocd-scenarios/05-kustomize-envs/overlays/dev/kustomization.yaml && echo '\n=== PROD ===' && cat argocd-scenarios/05-kustomize-envs/overlays/prod/kustomization.yaml",
+      "description": "Compare how dev and prod overlays differ",
+      "explanation": "Dev has 1 replica with minimal resources. Prod has 3 replicas with higher resource limits. Both use namePrefix and commonLabels to distinguish environments. ArgoCD natively understands Kustomize.",
+      "what_it_does": "Shows the differences between dev and prod Kustomize overlays.",
+      "next_step": "Deploy both environments with ArgoCD."
+    },
+    {
+      "name": "Step 3: Deploy Dev Environment",
+      "command": "kubectl apply -f argocd-scenarios/05-kustomize-envs/application-dev.yaml",
+      "description": "Create the dev environment ArgoCD Application",
+      "explanation": "ArgoCD detects the Kustomize structure automatically. It will run 'kustomize build' on the dev overlay and apply the result to argocd-sc-05-dev namespace.",
+      "what_it_does": "Creates ArgoCD Application for the dev environment.",
+      "next_step": "Deploy the prod environment."
+    },
+    {
+      "name": "Step 4: Deploy Prod Environment",
+      "command": "kubectl apply -f argocd-scenarios/05-kustomize-envs/application-prod.yaml",
+      "description": "Create the prod environment ArgoCD Application",
+      "explanation": "Same source repo, different overlay path. ArgoCD will build the prod Kustomize overlay and deploy to argocd-sc-05-prod namespace with 3 replicas and higher resources.",
+      "what_it_does": "Creates ArgoCD Application for the prod environment.",
+      "next_step": "Open ArgoCD UI to see both environments."
+    },
+    {
+      "name": "Step 5: View Both Apps in ArgoCD",
+      "command": "echo '>>> Open ArgoCD UI at http://localhost:30800 <<<\n>>> You should see sc05-kustomize-dev and sc05-kustomize-prod <<<' && kubectl get applications -n argocd -l 'app.kubernetes.io/instance in (sc05-kustomize-dev, sc05-kustomize-prod)' 2>/dev/null; kubectl get applications sc05-kustomize-dev sc05-kustomize-prod -n argocd 2>/dev/null",
+      "description": "Check both environments in ArgoCD UI",
+      "explanation": "In the ArgoCD UI, you'll see two separate applications - one for dev and one for prod. Each manages its own namespace with different configurations. This is environment promotion via GitOps.",
+      "what_it_does": "Shows both ArgoCD applications and guides you to the UI.",
+      "next_step": "Compare the actual deployments between environments."
+    },
+    {
+      "name": "Step 6: Compare Deployed Resources",
+      "command": "echo '=== DEV (1 replica) ===' && kubectl get pods -n argocd-sc-05-dev 2>/dev/null && echo '\n=== PROD (3 replicas) ===' && kubectl get pods -n argocd-sc-05-prod 2>/dev/null",
+      "description": "Compare pod counts between dev and prod",
+      "explanation": "Dev should have 1 pod, prod should have 3 pods. Same application, different configurations via Kustomize overlays. This pattern scales to dozens of environments.",
+      "what_it_does": "Shows the different replica counts in dev vs prod namespaces.",
+      "next_step": "Scenario complete! Clean up when ready."
+    },
+    {
+      "name": "Cleanup: Delete Both Environments",
+      "command": "kubectl delete application sc05-kustomize-dev sc05-kustomize-prod -n argocd 2>/dev/null; kubectl delete namespace argocd-sc-05-dev argocd-sc-05-prod --ignore-not-found",
+      "description": "Remove both ArgoCD applications and namespaces",
+      "explanation": "Deletes both environment applications and their namespaces.",
+      "what_it_does": "Removes all resources from both environments.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

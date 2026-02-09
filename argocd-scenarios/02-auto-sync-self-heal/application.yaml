@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sc02-auto-sync
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/shaydevops2024/kubernetes-production-simulator.git
+    targetRevision: HEAD
+    path: argocd-scenarios/02-auto-sync-self-heal/manifests
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd-sc-02
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

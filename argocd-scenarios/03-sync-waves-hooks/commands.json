@@ -1,0 +1,64 @@
+{
+  "scenario_id": "03-sync-waves-hooks",
+  "difficulty": "medium",
+  "duration": "15 min",
+  "commands": [
+    {
+      "name": "Step 1: Review Sync Wave Annotations",
+      "command": "echo \"=== ConfigMap (wave -1) ===\" && cat argocd-scenarios/03-sync-waves-hooks/manifests/configmap.yaml && echo \"\\n=== Deployment (wave 0) ===\" && cat argocd-scenarios/03-sync-waves-hooks/manifests/deployment.yaml && echo \"\\n=== Service (wave 1) ===\" && cat argocd-scenarios/03-sync-waves-hooks/manifests/service.yaml",
+      "description": "Review all manifests to see their sync-wave annotations",
+      "explanation": "Each manifest has an argocd.argoproj.io/sync-wave annotation. Resources with lower wave numbers are synced first: ConfigMap (wave -1) -> Deployment (wave 0) -> Service (wave 1). This ensures the ConfigMap exists before the Deployment references it.",
+      "what_it_does": "Displays all manifests highlighting the sync-wave order.",
+      "next_step": "Review the PostSync hook job."
+    },
+    {
+      "name": "Step 2: Review PostSync Hook",
+      "command": "cat argocd-scenarios/03-sync-waves-hooks/manifests/post-sync-job.yaml",
+      "description": "Review the PostSync hook Job manifest",
+      "explanation": "This Job has argocd.argoproj.io/hook: PostSync annotation, meaning it runs AFTER all sync waves complete. The hook-delete-policy: HookSucceeded means the Job is deleted after successful completion. This is useful for running smoke tests or notifications after deployment.",
+      "what_it_does": "Displays the PostSync hook Job definition.",
+      "next_step": "Apply the Application CR to start the ordered deployment."
+    },
+    {
+      "name": "Step 3: Apply the Application CR",
+      "command": "kubectl apply -f argocd-scenarios/03-sync-waves-hooks/application.yaml",
+      "description": "Create the application - watch the ordered sync in ArgoCD UI",
+      "explanation": "ArgoCD will deploy resources in wave order: first the ConfigMap (wave -1), then the Deployment (wave 0), then the Service (wave 1), and finally the PostSync Job. Open the ArgoCD UI to watch this happen visually.",
+      "what_it_does": "Creates the Application and triggers ordered deployment.",
+      "next_step": "Watch the sync waves execute in order."
+    },
+    {
+      "name": "Step 4: Watch Sync Waves in ArgoCD UI",
+      "command": "echo \">>> Open ArgoCD UI at http://localhost:30800 <<<\\n>>> Click on sc03-sync-waves <<<\\n>>> Watch resources appear in wave order <<<\\n>>> ConfigMap first, then Deployment, then Service <<<\" && sleep 5 && kubectl get application sc03-sync-waves -n argocd",
+      "description": "Observe the ordered deployment in ArgoCD UI",
+      "explanation": "In the ArgoCD UI resource tree, you can see the sync progressing through waves. Each wave must complete (resources become healthy) before the next wave begins. This ordering prevents issues like Deployments starting before their ConfigMaps exist.",
+      "what_it_does": "Guides you to observe sync waves visually in the ArgoCD UI.",
+      "next_step": "Verify the PostSync hook job ran."
+    },
+    {
+      "name": "Step 5: Check PostSync Hook Execution",
+      "command": "kubectl get jobs -n argocd-sc-03 2>/dev/null; echo \"---\"; echo \"Note: If no jobs are shown, the PostSync hook already completed and was deleted (HookSucceeded policy).\" && kubectl get events -n argocd-sc-03 --field-selector reason=Completed 2>/dev/null | tail -5",
+      "description": "Verify the PostSync hook job ran and completed",
+      "explanation": "The PostSync Job runs after all sync waves complete. Because we set hook-delete-policy: HookSucceeded, the Job is automatically deleted after success. You may see it briefly, or it may already be cleaned up. The events can confirm it ran.",
+      "what_it_does": "Checks for the PostSync hook Job and related events.",
+      "next_step": "Verify all resources are deployed in the correct order."
+    },
+    {
+      "name": "Step 6: Verify All Resources",
+      "command": "echo \"=== ConfigMap (deployed first - wave -1) ===\" && kubectl get configmap app-config -n argocd-sc-03 -o yaml 2>/dev/null | head -10 && echo \"\\n=== Deployment (deployed second - wave 0) ===\" && kubectl get deployment wave-app -n argocd-sc-03 && echo \"\\n=== Service (deployed third - wave 1) ===\" && kubectl get service wave-service -n argocd-sc-03 && echo \"\\n=== Pods ===\" && kubectl get pods -n argocd-sc-03",
+      "description": "Verify all resources were created in sync wave order",
+      "explanation": "All three resources should be present and healthy. The ConfigMap was created first (wave -1) so the Deployment (wave 0) could reference it. The Service (wave 1) was created last after the Deployment pods were running.",
+      "what_it_does": "Lists all deployed resources to confirm successful ordered deployment.",
+      "next_step": "Scenario complete! Clean up when ready."
+    },
+    {
+      "name": "Cleanup: Delete Application",
+      "command": "kubectl delete application sc03-sync-waves -n argocd && kubectl delete namespace argocd-sc-03 --ignore-not-found",
+      "description": "Remove the ArgoCD application and namespace",
+      "explanation": "Deleting the Application stops ArgoCD management. The namespace deletion removes all deployed resources including the ConfigMap, Deployment, and Service.",
+      "what_it_does": "Removes the application and all resources.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

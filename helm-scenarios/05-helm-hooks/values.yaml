@@ -1,0 +1,40 @@
+# Default values for hooks-demo chart
+
+replicaCount: 2
+
+image:
+  repository: nginx
+  tag: "1.24"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+# Pre-install hook configuration (simulates DB migration)
+preInstall:
+  image:
+    repository: busybox
+    tag: "1.36"
+  # Simulated migration duration in seconds
+  migrationDuration: 5
+  dbHost: "postgres.database.svc.cluster.local"
+  dbName: "appdb"
+
+# Post-install hook configuration (simulates smoke test)
+postInstall:
+  image:
+    repository: busybox
+    tag: "1.36"
+  # Simulated test duration in seconds
+  testDuration: 3
+  # Endpoint to test after deployment
+  testEndpoint: "http://hooks-demo:80"
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi

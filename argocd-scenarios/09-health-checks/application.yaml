@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sc09-health-checks
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/shaydevops2024/kubernetes-production-simulator.git
+    targetRevision: HEAD
+    path: argocd-scenarios/09-health-checks/manifests
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd-sc-09
+  syncPolicy:
+    automated:
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

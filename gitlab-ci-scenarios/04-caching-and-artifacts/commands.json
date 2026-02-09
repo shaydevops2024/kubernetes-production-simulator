@@ -1,0 +1,61 @@
+{
+  "scenario_id": "04-caching-and-artifacts",
+  "difficulty": "medium",
+  "duration": "15 min",
+  "commands": [
+    {
+      "name": "Step 1: Cache vs Artifacts",
+      "command": "echo '=== Cache vs Artifacts ===' && echo '' && echo 'CACHE:' && echo '  Purpose:  Speed up jobs by reusing files from PREVIOUS pipelines' && echo '  Scope:    Shared across pipeline runs (persistent)' && echo '  Example:  node_modules/, .pip-cache/, .m2/repository' && echo '  Stored:   On the GitLab Runner or in S3/GCS' && echo '  Behavior: Best-effort (may not be available)' && echo '' && echo 'ARTIFACTS:' && echo '  Purpose:  Pass files between JOBS in the SAME pipeline' && echo '  Scope:    Only within current pipeline (temporary)' && echo '  Example:  build/, dist/, coverage/, test-report.xml' && echo '  Stored:   On the GitLab server (downloadable)' && echo '  Behavior: Guaranteed (always available to downstream jobs)' && echo '' && echo 'When to use what:' && echo '  - Dependencies (npm, pip, maven) → CACHE' && echo '  - Build outputs needed by other jobs → ARTIFACTS' && echo '  - Test reports for GitLab UI → ARTIFACTS (reports:)' && echo '  - Compiled binaries for deployment → ARTIFACTS'",
+      "description": "Understand the fundamental difference between cache and artifacts in GitLab CI",
+      "explanation": "This is one of the most common confusions in GitLab CI. Cache is for performance optimization - reusing downloaded dependencies across pipeline runs. Artifacts are for correctness - passing build output to the deploy job. Cache is best-effort (a cache miss just means a slower build). Artifacts are guaranteed (a missing artifact fails the job).",
+      "what_it_does": "Prints a comparison table explaining when to use cache vs artifacts.",
+      "next_step": "Learn about cache key strategies.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 2: Review Optimized Pipeline",
+      "command": "cat gitlab-ci-scenarios/04-caching-and-artifacts/.gitlab-ci.yml",
+      "description": "Examine a pipeline optimized with caching, artifacts, and DAG execution",
+      "explanation": "This pipeline demonstrates three optimization techniques: cache for dependencies (node_modules), artifacts for passing build output between stages, and the 'needs' keyword for DAG execution that allows jobs to start without waiting for the entire previous stage to complete.",
+      "what_it_does": "Displays a pipeline configuration with caching, artifacts, and DAG optimization.",
+      "next_step": "Deep-dive into cache key strategies.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 3: Cache Key Strategies",
+      "command": "echo '=== Cache Key Strategies ===' && echo '' && echo '1. Lock file key (RECOMMENDED):' && echo '  cache:' && echo '    key:' && echo '      files:' && echo '        - package-lock.json  # Cache busts when deps change' && echo '    paths:' && echo '      - node_modules/' && echo '  → New cache only when dependencies actually change' && echo '' && echo '2. Branch-based key:' && echo '  cache:' && echo '    key: $CI_COMMIT_REF_SLUG  # Branch name' && echo '    paths:' && echo '      - .cache/' && echo '  → Each branch gets its own cache' && echo '' && echo '3. Combined key:' && echo '  cache:' && echo '    key:' && echo '      prefix: $CI_COMMIT_REF_SLUG' && echo '      files:' && echo '        - Gemfile.lock' && echo '    paths:' && echo '      - vendor/ruby/' && echo '  → Per-branch + per-dependency-version' && echo '' && echo '4. Fallback keys:' && echo '  cache:' && echo '    key: $CI_COMMIT_REF_SLUG' && echo '    fallback_keys:' && echo '      - main  # Fall back to main branch cache' && echo '    paths:' && echo '      - .cache/' && echo '  → Feature branch tries its own cache first, then main'",
+      "description": "Learn different cache key strategies and when to use each one",
+      "explanation": "The cache key determines when the cache is reused vs rebuilt. Lock-file-based keys (package-lock.json, Gemfile.lock) are ideal because they only invalidate when dependencies actually change. Branch-based keys prevent branches from sharing potentially incompatible caches. Fallback keys let feature branches start with the main branch cache instead of an empty cache.",
+      "what_it_does": "Shows four cache key strategies with configuration examples.",
+      "next_step": "Learn about cache policies.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 4: Cache Policies and Optimization",
+      "command": "echo '=== Cache Policies ===' && echo '' && echo 'pull-push (default): Download cache → Run job → Upload cache' && echo '  Good for: Jobs that both consume and produce cache' && echo '' && echo 'pull: Download cache only (never upload)' && echo '  Good for: Jobs that only READ from cache (most test jobs)' && echo '  Saves: Upload time + storage (can save 30-60 seconds per job)' && echo '' && echo 'push: Upload cache only (never download)' && echo '  Good for: Dedicated \"warm cache\" jobs that run on schedule' && echo '' && echo '--- Example: Optimized Pipeline ---' && echo '' && echo 'install-deps:     # Runs once, fills the cache' && echo '  cache:' && echo '    policy: pull-push  # Both read and write' && echo '    key:' && echo '      files: [package-lock.json]' && echo '    paths: [node_modules/]' && echo '  script:' && echo '    - npm ci' && echo '' && echo 'test-unit:         # Runs in parallel, only reads cache' && echo '  cache:' && echo '    policy: pull       # Read-only (faster!)' && echo '    key:' && echo '      files: [package-lock.json]' && echo '    paths: [node_modules/]' && echo '  script:' && echo '    - npm test' && echo '' && echo 'This pattern: 1 job writes cache, N jobs read it.'",
+      "description": "Optimize cache performance with the right policy for each job",
+      "explanation": "The default pull-push policy means every job uploads the cache after running - even if nothing changed. This wastes time and bandwidth. The 'pull' policy skips the upload step, which can save 30-60 seconds per job. The pattern is: one 'install' job writes the cache, all subsequent jobs use 'pull' to read it without re-uploading.",
+      "what_it_does": "Explains cache policies (pull, push, pull-push) with an optimized pipeline example.",
+      "next_step": "Learn about DAG execution with needs.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 5: DAG Execution with needs:",
+      "command": "echo '=== Traditional Stage-Based vs DAG Execution ===' && echo '' && echo 'Traditional (stages):' && echo '  lint ──────────────→ test ──────────────→ build → deploy' && echo '  [yaml] [docker]     [unit] [integration]  [img]   [k8s]' && echo '  ←── 1 min ────────→ ←──── 3 min ────────→ ←2min→ ←1min→' && echo '  Total: 7 minutes (stages wait for EVERY job to finish)' && echo '' && echo 'DAG (needs):' && echo '  [lint-yaml] ────→ [unit-tests] ──→ [build] ──→ [deploy]' && echo '  [lint-docker] ──→ [build] ─────────────↗' && echo '  Total: 4 minutes (jobs start when THEIR deps finish)' && echo '' && echo '.gitlab-ci.yml with needs:' && echo '  unit-tests:' && echo '    stage: test' && echo '    needs: [lint-yaml]   # Starts right after lint-yaml' && echo '    script: npm test' && echo '' && echo '  build:' && echo '    stage: build' && echo '    needs:               # Starts after BOTH finish' && echo '      - lint-docker' && echo '      - unit-tests' && echo '    script: docker build .' && echo '' && echo '\"needs\" creates a DAG: jobs start based on THEIR dependencies,' && echo 'not on the entire previous stage completing.'",
+      "description": "Speed up pipelines by allowing jobs to start as soon as their dependencies finish",
+      "explanation": "The 'needs' keyword transforms your pipeline from stage-based (wait for entire stage) to DAG-based (wait only for specific jobs). This can cut pipeline time by 30-50% because jobs don't wait for unrelated work. For example, building a Docker image doesn't need to wait for all test variants to finish - just the ones it depends on.",
+      "what_it_does": "Compares traditional stage execution with DAG execution, showing the time savings.",
+      "next_step": "Review the optimization summary.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 6: Pipeline Optimization Summary",
+      "command": "echo '============================================' && echo '  Pipeline Performance Optimization Summary' && echo '============================================' && echo '' && echo 'Caching:' && echo '  ✅ Cache dependencies (node_modules, .pip-cache)' && echo '  ✅ Use lock-file-based cache keys' && echo '  ✅ Use policy: pull for read-only jobs' && echo '  ✅ Use fallback_keys for feature branch warm starts' && echo '' && echo 'Artifacts:' && echo '  ✅ Set expire_in to prevent storage bloat' && echo '  ✅ Use dependencies: to limit artifact downloads' && echo '  ✅ Use reports: for test/coverage GitLab integration' && echo '' && echo 'DAG Execution:' && echo '  ✅ Use needs: to create job-level dependencies' && echo '  ✅ Parallelize independent job chains' && echo '  ✅ Combine with stages for organizational clarity' && echo '' && echo 'Quick wins:' && echo '  - Add cache to CI jobs → 2-5x faster dependency install' && echo '  - Use needs: → 30-50% faster pipeline' && echo '  - Set cache policy: pull → Save 30-60s per job' && echo '  - Optimize Dockerfile layer order → 5-10x faster builds'",
+      "description": "Review all pipeline optimization techniques",
+      "explanation": "Slow pipelines directly impact developer productivity and code review speed. These optimizations are additive: caching + DAG + cache policies can turn a 20-minute pipeline into a 5-minute pipeline. The ROI is enormous - faster feedback loops mean developers catch issues sooner and ship faster.",
+      "what_it_does": "Prints a comprehensive pipeline optimization checklist.",
+      "next_step": "Scenario complete!",
+      "cleanup": false
+    }
+  ]
+}

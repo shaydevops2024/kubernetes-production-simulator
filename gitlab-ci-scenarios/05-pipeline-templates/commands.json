@@ -1,0 +1,61 @@
+{
+  "scenario_id": "05-pipeline-templates",
+  "difficulty": "medium",
+  "duration": "15 min",
+  "commands": [
+    {
+      "name": "Step 1: Review Pipeline Templates",
+      "command": "cat gitlab-ci-scenarios/05-pipeline-templates/.gitlab-ci.yml",
+      "description": "Examine a pipeline that uses extends: and include: for reusability",
+      "explanation": "This pipeline demonstrates the DRY (Don't Repeat Yourself) principle. Instead of copying the same job configuration across 50 repositories, you define templates once and extend them. The 'extends' keyword inherits all configuration from a template job, and you only override what's different.",
+      "what_it_does": "Displays a pipeline using extends:, include:, and template patterns.",
+      "next_step": "Understand the extends: keyword in depth.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 2: The extends: Keyword",
+      "command": "echo '=== extends: - Job Inheritance ===' && echo '' && echo '# Define a hidden template (starts with .)' && echo '.deploy-template:' && echo '  image: bitnami/kubectl:latest' && echo '  before_script:' && echo '    - kubectl config use-context $KUBE_CONTEXT' && echo '  script:' && echo '    - kubectl apply -f manifests/ -n $NAMESPACE' && echo '    - kubectl rollout status deployment/$APP -n $NAMESPACE' && echo '  retry: 2' && echo '' && echo '# Extend it for each environment' && echo 'deploy-staging:' && echo '  extends: .deploy-template' && echo '  variables:' && echo '    NAMESPACE: staging' && echo '    KUBE_CONTEXT: staging-cluster' && echo '  environment: staging' && echo '' && echo 'deploy-production:' && echo '  extends: .deploy-template' && echo '  variables:' && echo '    NAMESPACE: production' && echo '    KUBE_CONTEXT: prod-cluster' && echo '  environment: production' && echo '  when: manual  # Override: require manual approval' && echo '' && echo 'Result: Both jobs share image, script, retry.' && echo 'Production adds manual approval. Zero duplication.'",
+      "description": "Learn how extends: creates job inheritance for zero-duplication pipelines",
+      "explanation": "Hidden jobs (prefixed with .) are never executed - they serve only as templates. The extends: keyword performs a deep merge: the child job inherits everything from the parent and can override specific fields. This is the foundation of pipeline standardization: define your deployment pattern once, reuse it everywhere.",
+      "what_it_does": "Shows how to define a template job and extend it for staging and production deployments.",
+      "next_step": "Learn the four include: methods.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 3: The Four Include Methods",
+      "command": "echo '=== include: - Share Templates Across Projects ===' && echo '' && echo '1. include:local - Same repository' && echo '  include:' && echo '    - local: ci/templates/deploy.yml' && echo '  Use: Split large .gitlab-ci.yml into smaller files' && echo '' && echo '2. include:project - Another GitLab project' && echo '  include:' && echo '    - project: platform-team/ci-templates' && echo '      ref: v2.1.0  # Pin to version!' && echo '      file: /templates/docker-build.yml' && echo '  Use: Shared pipeline library (most common in production)' && echo '' && echo '3. include:remote - Any URL' && echo '  include:' && echo '    - remote: https://example.com/ci/template.yml' && echo '  Use: Open-source templates, cross-platform sharing' && echo '' && echo '4. include:template - GitLab built-in templates' && echo '  include:' && echo '    - template: Security/SAST.gitlab-ci.yml' && echo '    - template: Security/Secret-Detection.gitlab-ci.yml' && echo '  Use: GitLab official templates (security, Auto DevOps)' && echo '' && echo 'You can combine ALL four in the same pipeline:' && echo '  include:' && echo '    - local: ci/base.yml' && echo '    - project: team/templates' && echo '      file: /deploy.yml' && echo '    - template: Security/SAST.gitlab-ci.yml'",
+      "description": "Learn the four methods for including external pipeline configuration",
+      "explanation": "include:project is the most important for organizations. The platform team maintains a 'ci-templates' repository with standardized build, test, and deploy templates. All project teams include these templates and extend them. When the platform team updates a template (e.g., adds a security scan), all projects get it automatically on next pipeline run.",
+      "what_it_does": "Explains the four include methods with examples showing when to use each one.",
+      "next_step": "See a real pipeline library pattern.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 4: Pipeline Library Pattern",
+      "command": "cat gitlab-ci-scenarios/05-pipeline-templates/pipeline-library.yml",
+      "description": "Examine a shared pipeline library that multiple projects would include",
+      "explanation": "This is the pattern used by platform teams at scale. The library defines standardized templates for common operations (build, test, deploy, scan). Each template uses sensible defaults that can be overridden. Projects include the library and extend only the templates they need, overriding variables to customize behavior.",
+      "what_it_does": "Displays a reusable pipeline library with templates for Docker builds, Kubernetes deployments, and security scanning.",
+      "next_step": "Learn about YAML anchors for inline reuse.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 5: YAML Anchors and Aliases",
+      "command": "echo '=== YAML Anchors - Inline DRY ===' && echo '' && echo '# Define an anchor with &name' && echo '.common-rules: &common-rules' && echo '  rules:' && echo '    - if: $CI_MERGE_REQUEST_IID' && echo '    - if: $CI_COMMIT_BRANCH == \"main\"' && echo '' && echo '# Use the anchor with *name' && echo 'lint:' && echo '  stage: lint' && echo '  <<: *common-rules  # Merges the rules block here' && echo '  script: npm run lint' && echo '' && echo 'test:' && echo '  stage: test' && echo '  <<: *common-rules  # Same rules, no duplication' && echo '  script: npm test' && echo '' && echo '--- When to use what ---' && echo 'YAML Anchors: Simple key-value reuse within ONE file' && echo '  ✅ Shared rules, variables, retry config' && echo '  ❌ Cannot span multiple files' && echo '' && echo 'extends: More powerful inheritance' && echo '  ✅ Deep merge (overrides specific fields)' && echo '  ✅ Works with include: (cross-file)' && echo '  ✅ Clearer intent (\"this job IS a deploy\")' && echo '' && echo 'Recommendation: Use extends: for job templates,' && echo 'use anchors for small repeated blocks (rules, tags).'",
+      "description": "Learn YAML anchors for inline configuration reuse",
+      "explanation": "YAML anchors (&) and aliases (*) are a YAML-level feature (not GitLab-specific). They let you define a block once and reference it elsewhere. The << merge key inserts the anchor's content. However, extends: is preferred for job templates because it supports deep merging and works across included files.",
+      "what_it_does": "Demonstrates YAML anchors vs extends: with examples showing when to use each.",
+      "next_step": "Review the templates summary.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 6: Templates Best Practices Summary",
+      "command": "echo '============================================' && echo '  Pipeline Templates Best Practices' && echo '============================================' && echo '' && echo 'Organization:' && echo '  ✅ Create a shared ci-templates repository' && echo '  ✅ Version templates with git tags (ref: v2.1.0)' && echo '  ✅ Use extends: for job-level inheritance' && echo '  ✅ Use include:project for cross-repo sharing' && echo '  ✅ Document template inputs (required variables)' && echo '' && echo 'Patterns:' && echo '  ✅ Hidden jobs (.template-name) as base templates' && echo '  ✅ Default variables in templates, override per project' && echo '  ✅ Split large pipelines: ci/build.yml, ci/deploy.yml' && echo '' && echo 'Anti-patterns:' && echo '  ❌ Copy-pasting pipeline config between repos' && echo '  ❌ Using include:remote for internal templates' && echo '  ❌ Unpinned includes (always pin ref: to a version)' && echo '  ❌ Over-abstracting (if template needs 20 variables,' && echo '     it is too complex)' && echo '' && echo 'Scale: One template change → 100+ repos updated instantly'",
+      "description": "Review best practices for pipeline templates at scale",
+      "explanation": "Pipeline templates are how organizations scale CI/CD. Without them, every repo has its own pipeline configuration that drifts over time. With a shared library, the platform team controls quality gates, security scans, and deployment patterns. The key is to pin versions (ref: v2.1.0) so template updates are predictable.",
+      "what_it_does": "Prints a comprehensive pipeline templates best practices checklist.",
+      "next_step": "Scenario complete!",
+      "cleanup": false
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+apiVersion: v2
+name: recovery-demo
+description: A simple chart for demonstrating Helm release failure and recovery
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+maintainers:
+  - name: k8s-simulator

@@ -1,0 +1,64 @@
+{
+  "scenario_id": "04-app-of-apps",
+  "difficulty": "medium",
+  "duration": "20 min",
+  "commands": [
+    {
+      "name": "Step 1: Review the Parent Application",
+      "command": "cat argocd-scenarios/04-app-of-apps/parent-application.yaml",
+      "description": "Review the parent Application CR that manages child applications",
+      "explanation": "The parent Application points to the children/ directory, which contains other Application CRs. When ArgoCD syncs the parent, it creates the child Application resources in the argocd namespace. Each child then independently manages its own resources.",
+      "what_it_does": "Displays the parent Application CR that orchestrates child apps.",
+      "next_step": "Review the child Application definitions."
+    },
+    {
+      "name": "Step 2: Review Child Applications",
+      "command": "echo \"=== Frontend App ===\" && cat argocd-scenarios/04-app-of-apps/children/frontend-app.yaml && echo \"\\n=== Backend App ===\" && cat argocd-scenarios/04-app-of-apps/children/backend-app.yaml",
+      "description": "Review the child Application CRs for frontend and backend",
+      "explanation": "Each child Application is a full ArgoCD Application CR that points to its own manifests directory. The frontend app deploys nginx, and the backend app deploys httpd. Both deploy to the same namespace (argocd-sc-04) but manage independent resources.",
+      "what_it_does": "Displays both child Application CR definitions.",
+      "next_step": "Apply only the parent Application - children will be created automatically."
+    },
+    {
+      "name": "Step 3: Apply ONLY the Parent Application",
+      "command": "kubectl apply -f argocd-scenarios/04-app-of-apps/parent-application.yaml",
+      "description": "Create the parent app - it will auto-create child applications",
+      "explanation": "You only need to apply the parent Application. ArgoCD will sync the parent, discover the child Application CRs in the children/ directory, and create them automatically. Each child then syncs its own manifests. This is the power of App-of-Apps!",
+      "what_it_does": "Creates the parent Application which cascades to create children.",
+      "next_step": "Watch ArgoCD create and sync child applications."
+    },
+    {
+      "name": "Step 4: Watch Child Apps Being Created",
+      "command": "echo \">>> Open ArgoCD UI at http://localhost:30800 <<<\" && echo \">>> You should see 3 apps: sc04-parent-app, sc04-frontend, sc04-backend <<<\" && sleep 10 && kubectl get applications -n argocd -l app.kubernetes.io/instance=sc04-parent-app 2>/dev/null; kubectl get applications -n argocd | grep sc04",
+      "description": "Watch ArgoCD auto-create child applications from the parent",
+      "explanation": "In the ArgoCD UI, you will see three applications appear: the parent app (sc04-parent-app) and two children (sc04-frontend, sc04-backend). The parent app shows the child Application CRs as its managed resources. Each child app shows its own Deployment and Service.",
+      "what_it_does": "Lists all sc04 applications to show the parent-child relationship.",
+      "next_step": "Verify all resources are deployed across all apps."
+    },
+    {
+      "name": "Step 5: Verify All Deployed Resources",
+      "command": "echo \"=== All Applications ===\" && kubectl get applications -n argocd | grep sc04 && echo \"\\n=== Frontend Resources ===\" && kubectl get deployment,service -n argocd-sc-04 -l app=frontend 2>/dev/null && echo \"\\n=== Backend Resources ===\" && kubectl get deployment,service -n argocd-sc-04 -l app=backend 2>/dev/null && echo \"\\n=== All Pods ===\" && kubectl get pods -n argocd-sc-04",
+      "description": "Verify all resources deployed by both child applications",
+      "explanation": "You should see both frontend and backend deployments running with their services. All of these were deployed by applying a single parent Application CR. This pattern scales to hundreds of services - just add more child Application CRs to the children/ directory.",
+      "what_it_does": "Lists all resources deployed by the App-of-Apps pattern.",
+      "next_step": "Understand the power and use cases of this pattern."
+    },
+    {
+      "name": "Step 6: Explore App-of-Apps in ArgoCD UI",
+      "command": "echo \">>> Open ArgoCD UI at http://localhost:30800 <<<\\n>>> Click on sc04-parent-app - see child Application resources <<<\\n>>> Click on sc04-frontend - see its Deployment and Service <<<\\n>>> Click on sc04-backend - see its Deployment and Service <<<\\n\\nThe App-of-Apps pattern enables:\\n- Single entry point for deploying entire platforms\\n- Independent lifecycle management per service\\n- Easy onboarding of new services (just add a child App CR)\\n- Hierarchical organization of applications\"",
+      "description": "Explore the App-of-Apps hierarchy in ArgoCD UI",
+      "explanation": "The ArgoCD UI shows the hierarchy clearly. The parent app manages Application CRs, while each child manages its own Kubernetes resources. This separation allows teams to independently manage their services while platform teams control the overall structure.",
+      "what_it_does": "Guides you through the ArgoCD UI to understand the App-of-Apps hierarchy.",
+      "next_step": "Scenario complete! Clean up when ready."
+    },
+    {
+      "name": "Cleanup: Delete Parent Application (cascades to children)",
+      "command": "kubectl delete application sc04-parent-app -n argocd && sleep 5 && kubectl delete application sc04-frontend sc04-backend -n argocd --ignore-not-found && kubectl delete namespace argocd-sc-04 --ignore-not-found",
+      "description": "Delete the parent app - child apps and resources are also removed",
+      "explanation": "Deleting the parent Application triggers ArgoCD to prune the child Applications (since prune: true is set). The child Applications in turn clean up their resources. We also explicitly delete children and namespace as a safety net.",
+      "what_it_does": "Cascading delete of parent, children, and all deployed resources.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

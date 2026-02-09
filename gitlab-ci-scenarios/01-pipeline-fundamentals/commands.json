@@ -1,0 +1,79 @@
+{
+  "scenario_id": "01-pipeline-fundamentals",
+  "difficulty": "easy",
+  "duration": "10 min",
+  "commands": [
+    {
+      "name": "Step 1: Review Basic Pipeline Structure",
+      "command": "cat gitlab-ci-scenarios/01-pipeline-fundamentals/.gitlab-ci.yml",
+      "description": "Examine a complete multi-stage GitLab CI pipeline configuration",
+      "explanation": "Every GitLab CI pipeline starts with a .gitlab-ci.yml file in the repository root. This file defines stages (the order of execution), jobs (what to do), and scripts (the actual commands). Stages run sequentially, but jobs within the same stage run in parallel.",
+      "what_it_does": "Displays the complete .gitlab-ci.yml showing stages: lint, test, build, and deploy with their respective jobs.",
+      "next_step": "Understand how stages control execution order.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 2: Understand Stages and Execution Order",
+      "command": "echo '=== GitLab CI Stage Execution Model ===' && echo '' && echo 'Stage 1: lint     → [lint-yaml] [lint-dockerfile]  (parallel)' && echo '                     ↓ (must ALL pass)' && echo 'Stage 2: test     → [unit-tests] [integration-tests] (parallel)' && echo '                     ↓ (must ALL pass)' && echo 'Stage 3: build    → [build-image]                     (single job)' && echo '                     ↓ (must pass)' && echo 'Stage 4: deploy   → [deploy-staging]                  (single job)' && echo '' && echo 'Key rules:' && echo '  - Stages run TOP to BOTTOM (sequential)' && echo '  - Jobs WITHIN a stage run in PARALLEL' && echo '  - If ANY job in a stage fails, the pipeline stops' && echo '  - Jobs in later stages only run if ALL previous stages passed'",
+      "description": "Visualize how GitLab CI executes stages and jobs",
+      "explanation": "Understanding the execution model is critical. Stages create gates - if linting fails, tests never run (saving CI minutes). Jobs within a stage run in parallel on separate runners, which speeds up the pipeline. This is why you put independent checks (like linting YAML and Dockerfile) in the same stage.",
+      "what_it_does": "Prints an ASCII diagram showing the stage execution flow and parallelism rules.",
+      "next_step": "Learn about job configuration details.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 3: Examine Job Configuration",
+      "command": "echo '=== Anatomy of a GitLab CI Job ===' && echo '' && echo 'unit-tests:              # Job name (must be unique)' && echo '  stage: test            # Which stage this job belongs to' && echo '  image: python:3.11     # Docker image to run the job in' && echo '  before_script:         # Commands run before main script' && echo '    - pip install -r requirements.txt' && echo '  script:                # Main commands (REQUIRED)' && echo '    - pytest tests/ -v   # If exit code != 0, job fails' && echo '  after_script:          # Always runs (even on failure)' && echo '    - echo \"Tests completed\"' && echo '  artifacts:             # Files to save and pass to next stages' && echo '    paths:' && echo '      - coverage/        # Save coverage reports' && echo '    expire_in: 1 week    # Auto-delete after 1 week' && echo '  rules:                 # When should this job run?' && echo '    - if: $CI_PIPELINE_SOURCE == \"merge_request_event\"' && echo '    - if: $CI_COMMIT_BRANCH == \"main\"' && echo '' && echo 'Required fields: stage, script' && echo 'Everything else is optional but commonly used in production.'",
+      "description": "Break down every field in a GitLab CI job definition",
+      "explanation": "Jobs are the atomic unit of CI/CD. The 'image' field sets the Docker container where the job runs. 'before_script' handles setup (installing deps), 'script' is the main work, and 'after_script' handles cleanup. Artifacts let you pass files (like build output) to the next stage. Rules replace the older 'only/except' syntax for controlling when jobs execute.",
+      "what_it_does": "Prints an annotated breakdown of a GitLab CI job with every common field explained.",
+      "next_step": "See how artifacts flow between stages.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 4: Artifacts Flow Between Stages",
+      "command": "echo '=== Artifact Flow ===' && echo '' && echo 'build-image:' && echo '  stage: build' && echo '  script:' && echo '    - docker build -t myapp:$CI_COMMIT_SHA .' && echo '    - echo $CI_COMMIT_SHA > .build-tag' && echo '  artifacts:' && echo '    paths:' && echo '      - .build-tag         # This file is saved' && echo '' && echo 'deploy-staging:' && echo '  stage: deploy' && echo '  script:' && echo '    - TAG=$(cat .build-tag) # Read artifact from build stage' && echo '    - kubectl set image deployment/myapp myapp=myapp:$TAG' && echo '  dependencies:' && echo '    - build-image           # Only download THIS job artifacts' && echo '' && echo '---' && echo 'Without \"dependencies\", a job downloads ALL artifacts from' && echo 'previous stages. Use \"dependencies\" to be explicit and save time.' && echo '' && echo 'Artifact types: paths (files), reports (test/coverage), dotenv (variables)'",
+      "description": "Understand how data flows between pipeline stages via artifacts",
+      "explanation": "Artifacts are the primary mechanism for passing data between stages. The build stage creates a Docker image and saves the tag. The deploy stage reads that tag to deploy the correct version. The 'dependencies' keyword optimizes this by only downloading specific artifacts instead of everything. In large pipelines with many stages, this saves significant time.",
+      "what_it_does": "Shows a practical example of artifacts passing a build tag from the build stage to the deploy stage.",
+      "next_step": "Simulate what the pipeline would deploy.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 5: Simulate Pipeline Deployment",
+      "command": "kubectl create namespace gitlab-ci-scenarios --dry-run=client -o yaml | kubectl apply -f - && kubectl apply -f gitlab-ci-scenarios/01-pipeline-fundamentals/deployment.yaml && echo '' && echo '=== Simulated: deploy-staging job completed ===' && kubectl get pods -n gitlab-ci-scenarios -l app=pipeline-demo --watch --timeout=30",
+      "description": "Deploy the application that a CI pipeline would create",
+      "explanation": "In a real GitLab CI pipeline, the deploy stage would run 'kubectl apply' or 'helm upgrade' to deploy to Kubernetes. Here we simulate that final step. The deployment uses the same patterns you would see in a production pipeline: labeled resources, namespace isolation, and health checks.",
+      "what_it_does": "Creates a namespace and deploys a sample application, simulating what the deploy stage of the pipeline would do.",
+      "next_step": "Verify the deployment succeeded.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 6: Verify Deployment",
+      "command": "echo '=== Pipeline Deployment Verification ===' && echo '' && kubectl get deployment pipeline-demo -n gitlab-ci-scenarios -o wide && echo '' && kubectl get pods -n gitlab-ci-scenarios -l app=pipeline-demo && echo '' && kubectl get svc -n gitlab-ci-scenarios -l app=pipeline-demo && echo '' && echo '=== In production, this verification runs as a post-deploy job ===' && echo 'Post-deploy checks typically include:' && echo '  - Health endpoint check (curl http://service/health)' && echo '  - Smoke tests (run basic API tests)' && echo '  - Integration tests (test with real dependencies)'",
+      "description": "Verify the deployed application is running correctly",
+      "explanation": "After deployment, production pipelines always include verification. This could be a separate 'smoke-test' job that hits the health endpoint, runs a quick API test, or checks that pods are running. If verification fails, the pipeline can trigger an automatic rollback.",
+      "what_it_does": "Shows the deployment, pods, and service status to verify the simulated CI deployment succeeded.",
+      "next_step": "Review the complete pipeline summary.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 7: Pipeline Summary",
+      "command": "echo '============================================' && echo '  GitLab CI Pipeline Fundamentals Summary' && echo '============================================' && echo '' && echo 'Pipeline structure (.gitlab-ci.yml):' && echo '  stages:        Define execution order' && echo '  jobs:          Define what work to do' && echo '  scripts:       Shell commands to execute' && echo '  artifacts:     Pass files between stages' && echo '  rules:         Control when jobs run' && echo '' && echo 'Execution model:' && echo '  - Stages run sequentially (lint → test → build → deploy)' && echo '  - Jobs within a stage run in parallel' && echo '  - Pipeline stops on first stage failure' && echo '' && echo 'Best practices:' && echo '  1. Fail fast: Put linting/validation first' && echo '  2. Parallelize: Independent checks in same stage' && echo '  3. Use artifacts: Pass build outputs between stages' && echo '  4. Use rules: Control pipeline behavior per branch/trigger' && echo '  5. Set timeouts: Prevent hung jobs from blocking pipelines'",
+      "description": "Review everything learned about GitLab CI pipeline fundamentals",
+      "explanation": "These fundamentals form the foundation of every GitLab CI pipeline. Stages create quality gates, jobs do the actual work, artifacts move data between stages, and rules control execution flow. Every production pipeline - no matter how complex - is built from these building blocks.",
+      "what_it_does": "Prints a comprehensive summary of GitLab CI pipeline fundamentals.",
+      "next_step": "Clean up resources.",
+      "cleanup": false
+    },
+    {
+      "name": "Cleanup: Remove Resources",
+      "command": "kubectl delete namespace gitlab-ci-scenarios --ignore-not-found",
+      "description": "Remove all resources created by this scenario",
+      "explanation": "Deletes the namespace and all resources within it.",
+      "what_it_does": "Removes the gitlab-ci-scenarios namespace and all deployed resources.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+# values.yaml
+# Default values for recovery-demo chart.
+# These values produce a healthy, working deployment.
+
+replicaCount: 2
+
+image:
+  repository: nginx
+  tag: "1.24-alpine"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 32Mi
+  limits:
+    cpu: 100m
+    memory: 128Mi
+
+labels:
+  version: "v1"

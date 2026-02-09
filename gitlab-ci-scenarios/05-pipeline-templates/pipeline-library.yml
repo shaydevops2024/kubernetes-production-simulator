@@ -1,0 +1,74 @@
+# pipeline-library.yml - Shared Pipeline Library
+# This would normally live in a separate GitLab project
+# e.g., platform-team/ci-templates
+
+# ============================================
+# Docker Build Template
+# ============================================
+.docker-build:
+  image:
+    name: gcr.io/kaniko-project/executor:v1.14.0-debug
+    entrypoint: [""]
+  variables:
+    DOCKERFILE: Dockerfile
+    BUILD_CONTEXT: "."
+    KANIKO_CACHE: "true"
+  script:
+    - mkdir -p /kaniko/.docker
+    - >-
+      echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n
+      $CI_REGISTRY_USER:$CI_REGISTRY_PASSWORD | base64)\"}}}"
+      > /kaniko/.docker/config.json
+    - >-
+      /kaniko/executor
+      --context $CI_PROJECT_DIR/$BUILD_CONTEXT
+      --dockerfile $CI_PROJECT_DIR/$DOCKERFILE
+      --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+      --cache=$KANIKO_CACHE
+      --cache-repo=$CI_REGISTRY_IMAGE/cache
+
+# ============================================
+# Kubernetes Deploy Template
+# ============================================
+.k8s-deploy:
+  image: bitnami/kubectl:latest
+  variables:
+    REPLICAS: "2"
+    TIMEOUT: "120s"
+  before_script:
+    - echo "Deploying to $KUBE_NAMESPACE"
+  script:
+    - kubectl set image deployment/$CI_PROJECT_NAME
+        app=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+        -n $KUBE_NAMESPACE
+    - kubectl scale deployment/$CI_PROJECT_NAME
+        --replicas=$REPLICAS -n $KUBE_NAMESPACE
+    - kubectl rollout status deployment/$CI_PROJECT_NAME
+        -n $KUBE_NAMESPACE --timeout=$TIMEOUT
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+
+# ============================================
+# Security Scan Template
+# ============================================
+.security-scan:
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+  variables:
+    SEVERITY: "HIGH,CRITICAL"
+    EXIT_CODE: "0"
+  script:
+    - trivy image
+        --severity $SEVERITY
+        --exit-code $EXIT_CODE
+        --format json
+        --output trivy-report.json
+        $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+  artifacts:
+    paths:
+      - trivy-report.json
+    expire_in: 1 week
+  allow_failure: true

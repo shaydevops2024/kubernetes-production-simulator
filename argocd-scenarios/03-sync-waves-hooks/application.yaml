@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sc03-sync-waves
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/shaydevops2024/kubernetes-production-simulator.git
+    targetRevision: HEAD
+    path: argocd-scenarios/03-sync-waves-hooks/manifests
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd-sc-03
+  syncPolicy:
+    automated:
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,80 @@
+# orchestrator-pipeline.yml - Deployment Orchestrator
+# Lives in: mygroup/deploy-orchestrator
+# Triggered by service repos after successful builds
+
+stages:
+  - validate
+  - deploy-staging
+  - test-staging
+  - approve
+  - deploy-production
+
+variables:
+  # These come from the triggering pipeline
+  # SERVICE_NAME: "api-service"
+  # IMAGE_TAG: "abc123"
+  # IMAGE_REPO: "registry.gitlab.com/mygroup/api-service"
+  # DEPLOY_ENV: "staging"
+
+# Validate inputs from upstream
+validate-trigger:
+  stage: validate
+  script:
+    - echo "Triggered by $TRIGGERED_BY"
+    - echo "Deploying $SERVICE_NAME with image $IMAGE_REPO:$IMAGE_TAG"
+    - |
+      if [ -z "$SERVICE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
+        echo "ERROR: Missing required variables SERVICE_NAME or IMAGE_TAG"
+        exit 1
+      fi
+    - echo "Validation passed"
+
+# Deploy to staging
+deploy-staging:
+  stage: deploy-staging
+  image: alpine/helm:3.14
+  script:
+    - echo "Deploying $SERVICE_NAME to staging"
+    - helm upgrade --install $SERVICE_NAME charts/$SERVICE_NAME
+        --namespace staging
+        --set image.repository=$IMAGE_REPO
+        --set image.tag=$IMAGE_TAG
+        --atomic
+        --timeout 5m
+  environment:
+    name: staging/$SERVICE_NAME
+    url: https://$SERVICE_NAME.staging.example.com
+
+# Smoke test staging
+smoke-test:
+  stage: test-staging
+  image: curlimages/curl:latest
+  script:
+    - echo "Running smoke tests for $SERVICE_NAME on staging"
+    - curl -f https://$SERVICE_NAME.staging.example.com/health
+    - curl -f https://$SERVICE_NAME.staging.example.com/api/status
+
+# Manual approval gate
+approve-production:
+  stage: approve
+  script:
+    - echo "Production deployment approved for $SERVICE_NAME:$IMAGE_TAG"
+  when: manual
+  allow_failure: false
+
+# Deploy to production
+deploy-production:
+  stage: deploy-production
+  image: alpine/helm:3.14
+  script:
+    - echo "Deploying $SERVICE_NAME to production"
+    - helm upgrade --install $SERVICE_NAME charts/$SERVICE_NAME
+        --namespace production
+        --set image.repository=$IMAGE_REPO
+        --set image.tag=$IMAGE_TAG
+        --atomic
+        --timeout 10m
+  environment:
+    name: production/$SERVICE_NAME
+    url: https://$SERVICE_NAME.example.com
+  needs: [approve-production]

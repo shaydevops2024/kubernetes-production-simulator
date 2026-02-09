@@ -1,0 +1,79 @@
+# .gitlab-ci.yml - Docker Build & Registry Pipeline
+# Production-grade Docker build with Kaniko
+
+stages:
+  - lint
+  - build
+  - scan
+  - push
+
+variables:
+  # GitLab Container Registry (auto-set by GitLab)
+  REGISTRY: $CI_REGISTRY_IMAGE
+  # Kaniko cache location
+  CACHE_REPO: $CI_REGISTRY_IMAGE/cache
+
+# Lint the Dockerfile
+lint-dockerfile:
+  stage: lint
+  image: hadolint/hadolint:latest
+  script:
+    - hadolint Dockerfile --failure-threshold warning
+  rules:
+    - if: $CI_MERGE_REQUEST_IID
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# Build with Kaniko (no privileged mode needed)
+build-image:
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:v1.14.0-debug
+    entrypoint: [""]
+  script:
+    - mkdir -p /kaniko/.docker
+    # Authenticate to GitLab Container Registry
+    - >-
+      echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n
+      $CI_REGISTRY_USER:$CI_REGISTRY_PASSWORD | base64)\"}}}"
+      > /kaniko/.docker/config.json
+    # Build and push with commit SHA tag
+    - >-
+      /kaniko/executor
+      --context $CI_PROJECT_DIR
+      --dockerfile $CI_PROJECT_DIR/Dockerfile
+      --destination $REGISTRY:$CI_COMMIT_SHA
+      --destination $REGISTRY:$CI_COMMIT_SHORT_SHA
+      --cache=true
+      --cache-repo=$CACHE_REPO
+      --cache-ttl=168h
+      --snapshot-mode=redo
+      --compressed-caching=false
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_MERGE_REQUEST_IID
+
+# Scan built image for vulnerabilities
+container-scan:
+  stage: scan
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+  script:
+    - trivy image --severity HIGH,CRITICAL --exit-code 1 $REGISTRY:$CI_COMMIT_SHA
+  allow_failure: true  # Don't block pipeline on scan failures initially
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# Tag with semver on tagged releases
+tag-release:
+  stage: push
+  image:
+    name: gcr.io/go-containerregistry/crane:debug
+    entrypoint: [""]
+  script:
+    # Copy the SHA-tagged image to a semver tag (no rebuild needed)
+    - crane auth login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - crane tag $REGISTRY:$CI_COMMIT_SHA $CI_COMMIT_TAG
+    - crane tag $REGISTRY:$CI_COMMIT_SHA latest
+  rules:
+    - if: $CI_COMMIT_TAG  # Only on git tags

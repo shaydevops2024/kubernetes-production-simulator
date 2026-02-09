@@ -1,0 +1,72 @@
+{
+  "scenario_id": "12-disaster-recovery",
+  "difficulty": "hard",
+  "duration": "20 min",
+  "commands": [
+    {
+      "name": "Step 1: Deploy Application with Auto-Sync",
+      "command": "kubectl apply -f argocd-scenarios/12-disaster-recovery/application.yaml && echo 'Deploying with auto-sync and self-heal enabled...' && sleep 15 && kubectl get application sc12-disaster-recovery -n argocd",
+      "description": "Deploy the application with auto-sync and self-healing enabled",
+      "explanation": "This Application has automated sync with selfHeal:true and prune:true. This means ArgoCD will automatically restore any deleted or modified resources to match the Git state. This is the foundation of GitOps disaster recovery.",
+      "what_it_does": "Creates the ArgoCD Application with full auto-sync capabilities.",
+      "next_step": "Verify the application is healthy."
+    },
+    {
+      "name": "Step 2: Verify Application is Healthy",
+      "command": "kubectl get deployment,service,configmap -n argocd-sc-12 && echo '' && kubectl get pods -n argocd-sc-12 && echo '' && kubectl get application sc12-disaster-recovery -n argocd -o jsonpath='Health: {.status.health.status}, Sync: {.status.sync.status}'",
+      "description": "Verify all resources are deployed and healthy",
+      "explanation": "You should see 3 running pods, a service, a configmap, and the application showing Healthy/Synced. This is our baseline 'good state' stored in Git.",
+      "what_it_does": "Lists all deployed resources and application status.",
+      "next_step": "Simulate disaster: delete a critical resource."
+    },
+    {
+      "name": "Step 3: Simulate Disaster - Delete Deployment",
+      "command": "echo '>>> DISASTER: Accidentally deleting the deployment! <<<' && kubectl delete deployment dr-app -n argocd-sc-12 && echo 'Deployment deleted! All pods are gone!' && echo '' && kubectl get pods -n argocd-sc-12",
+      "description": "Simulate accidental deletion of the deployment",
+      "explanation": "Someone accidentally ran 'kubectl delete deployment' in production. All pods are immediately terminated. Without GitOps, this would require finding and re-applying the correct manifests manually.",
+      "what_it_does": "Deletes the deployment, simulating a production incident.",
+      "next_step": "Watch ArgoCD automatically recover!"
+    },
+    {
+      "name": "Step 4: Watch ArgoCD Auto-Recovery",
+      "command": "echo '>>> Watch ArgoCD restore the deployment <<<\n>>> Open ArgoCD UI at http://localhost:30800 to see it in real-time <<<' && echo '' && echo 'Waiting for ArgoCD self-heal (up to 30 seconds)...' && sleep 20 && echo '=== After ArgoCD Recovery ===' && kubectl get deployment -n argocd-sc-12 && echo '' && kubectl get pods -n argocd-sc-12",
+      "description": "Watch ArgoCD automatically restore the deleted deployment",
+      "explanation": "Because selfHeal is enabled, ArgoCD detects the drift (deployment missing from cluster but present in Git) and automatically re-creates it. Within seconds, the deployment and pods are restored. No manual intervention needed!",
+      "what_it_does": "Waits for ArgoCD to detect and fix the drift.",
+      "next_step": "Simulate a bigger disaster: delete the entire namespace."
+    },
+    {
+      "name": "Step 5: Verify Recovery Complete",
+      "command": "kubectl get application sc12-disaster-recovery -n argocd -o jsonpath='Health: {.status.health.status}, Sync: {.status.sync.status}' && echo '' && echo '' && kubectl get all -n argocd-sc-12",
+      "description": "Confirm application is fully recovered",
+      "explanation": "The application should be back to Healthy/Synced. All 3 pods are running again. ArgoCD restored everything from Git automatically. The recovery time depends on the sync interval (default: 3 minutes) or self-heal check.",
+      "what_it_does": "Verifies complete recovery of all resources.",
+      "next_step": "Simulate an even bigger disaster."
+    },
+    {
+      "name": "Step 6: Simulate Disaster - Delete Service and ConfigMap",
+      "command": "echo '>>> DISASTER: Deleting service AND configmap! <<<' && kubectl delete service dr-service -n argocd-sc-12 && kubectl delete configmap dr-content -n argocd-sc-12 && echo 'Service and ConfigMap deleted!' && echo '' && kubectl get svc,cm -n argocd-sc-12",
+      "description": "Delete multiple resources simultaneously",
+      "explanation": "This simulates a more severe incident where multiple resources are deleted. ArgoCD will detect all missing resources and restore them all in a single sync operation.",
+      "what_it_does": "Deletes the service and configmap to simulate multi-resource failure.",
+      "next_step": "Watch ArgoCD restore everything."
+    },
+    {
+      "name": "Step 7: Watch Multi-Resource Recovery",
+      "command": "echo 'Waiting for ArgoCD self-heal...' && sleep 25 && echo '=== Recovered Resources ===' && kubectl get deployment,service,configmap -n argocd-sc-12 -l app=dr-app && echo '' && kubectl get application sc12-disaster-recovery -n argocd -o jsonpath='Health: {.status.health.status}, Sync: {.status.sync.status}'",
+      "description": "Verify ArgoCD restored both the service and configmap",
+      "explanation": "ArgoCD restored both resources in a single sync. This demonstrates that GitOps provides a complete disaster recovery mechanism. As long as your Git repo is intact, your entire infrastructure can be rebuilt.",
+      "what_it_does": "Verifies recovery of all deleted resources.",
+      "next_step": "Scenario complete! Clean up when ready."
+    },
+    {
+      "name": "Cleanup: Delete Application",
+      "command": "kubectl delete application sc12-disaster-recovery -n argocd 2>/dev/null; kubectl delete namespace argocd-sc-12 --ignore-not-found",
+      "description": "Remove all resources from this scenario",
+      "explanation": "Removes the ArgoCD Application and namespace. Since the Application has prune enabled, deleting the Application via ArgoCD UI would also clean up resources.",
+      "what_it_does": "Cleans up all disaster recovery scenario resources.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

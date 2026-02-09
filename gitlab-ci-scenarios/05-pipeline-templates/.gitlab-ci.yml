@@ -1,0 +1,111 @@
+# .gitlab-ci.yml - Pipeline Templates & Includes Example
+# Demonstrates extends:, include:, and template patterns
+
+# Include shared templates
+include:
+  # From a shared pipeline library (another GitLab project)
+  - local: pipeline-library.yml
+  # GitLab built-in security templates
+  # - template: Security/SAST.gitlab-ci.yml
+  # - template: Security/Secret-Detection.gitlab-ci.yml
+
+stages:
+  - lint
+  - test
+  - build
+  - deploy
+
+# --- Hidden Templates (never executed directly) ---
+
+# Base template for all Python jobs
+.python-base:
+  image: python:3.11-slim
+  before_script:
+    - pip install -r requirements.txt
+  cache:
+    key:
+      files:
+        - requirements.txt
+    paths:
+      - .pip-cache/
+    policy: pull
+
+# Base template for deployment jobs
+.deploy-base:
+  image: bitnami/kubectl:latest
+  before_script:
+    - echo "Configuring kubectl for $ENVIRONMENT"
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+
+# --- Actual Jobs (extend templates) ---
+
+lint:
+  extends: .python-base
+  stage: lint
+  script:
+    - pip install flake8
+    - flake8 src/ --max-line-length=120
+
+test-unit:
+  extends: .python-base
+  stage: test
+  script:
+    - pytest tests/unit/ -v --junitxml=report.xml
+  artifacts:
+    reports:
+      junit: report.xml
+    expire_in: 1 week
+
+test-integration:
+  extends: .python-base
+  stage: test
+  services:
+    - postgres:15
+  variables:
+    POSTGRES_DB: test
+    POSTGRES_USER: test
+    POSTGRES_PASSWORD: test
+  script:
+    - pytest tests/integration/ -v
+
+build:
+  extends: .docker-build  # From pipeline-library.yml
+  stage: build
+  variables:
+    DOCKERFILE: Dockerfile
+    BUILD_CONTEXT: "."
+
+deploy-staging:
+  extends: .deploy-base
+  stage: deploy
+  variables:
+    ENVIRONMENT: staging
+    NAMESPACE: staging
+  script:
+    - kubectl apply -f manifests/ -n $NAMESPACE
+    - kubectl rollout status deployment/myapp -n $NAMESPACE --timeout=120s
+  environment:
+    name: staging
+    url: https://staging.example.com
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+deploy-production:
+  extends: .deploy-base
+  stage: deploy
+  variables:
+    ENVIRONMENT: production
+    NAMESPACE: production
+  script:
+    - kubectl apply -f manifests/ -n $NAMESPACE
+    - kubectl rollout status deployment/myapp -n $NAMESPACE --timeout=300s
+  environment:
+    name: production
+    url: https://app.example.com
+  when: manual
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"

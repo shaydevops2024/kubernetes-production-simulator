@@ -1,0 +1,48 @@
+# values-v2.yaml
+# Updated deployment values for the nginx release.
+# Changes from v1:
+#   - replicaCount: 1 -> 3 (scale up for high availability)
+#   - service.type: ClusterIP -> NodePort (expose externally)
+#   - resources.limits.cpu: 100m -> 200m (increased CPU limit)
+#   - resources.limits.memory: 128Mi -> 256Mi (increased memory limit)
+#   - serverBlock: updated version endpoint to v2.0.0
+#   - commonLabels.app-version: v1 -> v2
+
+# Scale up to 3 replicas for high availability
+replicaCount: 3
+
+# Increase resource limits for production-like workload
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+# Switch to NodePort to expose externally
+service:
+  type: NodePort
+  port: 80
+  nodePorts:
+    http: "30090"
+
+# Updated server block with new version
+serverBlock: |-
+  server {
+    listen 0.0.0.0:8080;
+    location /version {
+      return 200 "v2.0.0\n";
+    }
+    location /healthz {
+      return 200 "healthy\n";
+    }
+    location / {
+      return 200 "Hello from diff-demo v2!\n";
+    }
+  }
+
+# Updated labels
+commonLabels:
+  app-version: "v2"
+  scenario: helm-diff

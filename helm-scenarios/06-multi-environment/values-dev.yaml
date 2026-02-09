@@ -1,0 +1,24 @@
+# Development environment overrides
+# Minimal resources, verbose logging, debug enabled
+
+replicaCount: 1
+
+config:
+  environment: "development"
+  logLevel: "debug"
+  debugMode: true
+  featureFlags:
+    enableMetrics: true
+    enableTracing: true
+    enableProfiling: true
+  database:
+    host: "postgres-dev.database.svc.cluster.local"
+    port: 5432
+    name: "appdb_dev"
+    maxConnections: 5
+
+# No resource limits in dev - let developers iterate freely
+resources: {}
+
+antiAffinity:
+  enabled: false

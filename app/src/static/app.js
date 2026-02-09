@@ -15,6 +15,7 @@ window.addEventListener('DOMContentLoaded', function() {
     loadConfig();
     startStatusMonitoring();
     startClusterStatsMonitoring();
+    fetchToolsStatus();
     
     var taskSubmit = document.getElementById('create-task-form').querySelector('button[type="submit"]');
     if (taskSubmit) {
@@ -78,9 +79,31 @@ document.getElementById('modal-overlay').addEventListener('click', function(e) {
     }
 });
 
+// Close sidebar with Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeTestingSidebar();
+    }
+});
+
 // Open Play Kubernetes scenarios page
 function openPlayKubernetes() {
     window.open('/static/scenarios.html', '_blank');
+}
+
+// Open Play ArgoCD scenarios page
+function openPlayArgoCD() {
+    window.open('/static/argocd-scenarios.html', '_blank');
+}
+
+// Open Play Helm scenarios page
+function openPlayHelm() {
+    window.open('/static/helm-scenarios.html', '_blank');
+}
+
+// Open Play GitLab CI scenarios page
+function openPlayGitlabCI() {
+    window.open('/static/gitlab-ci-scenarios.html', '_blank');
 }
 
 // Open ArgoCD with automatic fallback
@@ -93,13 +116,13 @@ function openArgoCD() {
                 window.open(data.url, '_blank');
             } else {
                 // Default fallback
-                window.open('http://localhost:30800', '_blank');
+                window.open('http://k8s-multi-demo.argocd:30800/', '_blank');
             }
         })
         .catch(function(error) {
-            console.log('Error getting ArgoCD URL, using localhost:', error);
-            // On error, default to localhost
-            window.open('http://localhost:30800', '_blank');
+            console.log('Error getting ArgoCD URL, using default:', error);
+            // On error, default to argocd URL
+            window.open('http://k8s-multi-demo.argocd:30800/', '_blank');
         });
 }
 
@@ -110,7 +133,7 @@ function loadConfig() {
         .then(function(config) {
             document.getElementById('app-env').textContent = config.app_env;
             document.getElementById('app-name').textContent = config.app_name;
-            
+
             var badge = document.getElementById('secret-badge');
             if (config.secret_configured) {
                 badge.className = 'badge badge-success';
@@ -119,8 +142,223 @@ function loadConfig() {
                 badge.className = 'badge badge-warning';
                 badge.textContent = '⚠ No';
             }
+
+            var configmapBadge = document.getElementById('configmap-badge');
+            if (config.configmap_configured) {
+                configmapBadge.className = 'badge badge-success';
+                configmapBadge.textContent = '✓ Yes';
+            } else {
+                configmapBadge.className = 'badge badge-warning';
+                configmapBadge.textContent = '⚠ No';
+            }
         })
         .catch(function(e) { console.error('Config error:', e); });
+}
+
+// Fetch deployment tools status (Helm & ArgoCD) - queries real cluster data
+function fetchToolsStatus() {
+    refreshHelmStatus();
+    refreshArgoCDStatus();
+}
+
+// Refresh Helm status (installed, version, release count)
+function refreshHelmStatus() {
+    var installedEl = document.getElementById('helm-installed');
+    var versionEl = document.getElementById('helm-version');
+    var releasesEl = document.getElementById('helm-releases');
+
+    fetch('/api/tools/helm')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (installedEl) {
+                if (data.installed) {
+                    installedEl.className = 'badge badge-success';
+                    installedEl.textContent = '✓ Yes';
+                } else {
+                    installedEl.className = 'badge badge-grey';
+                    installedEl.textContent = '✗ No';
+                }
+            }
+
+            if (versionEl) {
+                versionEl.textContent = data.version || '-';
+            }
+
+            if (releasesEl) {
+                releasesEl.textContent = data.release_count;
+                if (data.release_count > 0) {
+                    releasesEl.style.cursor = 'pointer';
+                    releasesEl.onclick = function() {
+                        refreshHelmReleases();
+                        toggleHelmReleasesList();
+                    };
+                } else {
+                    releasesEl.style.cursor = 'default';
+                    releasesEl.onclick = null;
+                }
+            }
+        })
+        .catch(function(err) {
+            console.error('Helm status error:', err);
+            if (installedEl) {
+                installedEl.className = 'badge badge-grey';
+                installedEl.textContent = 'Error';
+            }
+        });
+}
+
+// Refresh ArgoCD status (installed, version, app count)
+function refreshArgoCDStatus() {
+    var installedEl = document.getElementById('argocd-installed');
+    var versionEl = document.getElementById('argocd-version');
+    var appsEl = document.getElementById('argocd-app-count');
+
+    fetch('/api/tools/argocd')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (installedEl) {
+                if (data.installed) {
+                    installedEl.className = 'badge badge-success';
+                    installedEl.textContent = '✓ Yes';
+                } else {
+                    installedEl.className = 'badge badge-grey';
+                    installedEl.textContent = '✗ No';
+                }
+            }
+
+            if (versionEl) {
+                versionEl.textContent = data.version || '-';
+            }
+
+            if (appsEl) {
+                appsEl.textContent = data.app_count;
+                if (data.app_count > 0) {
+                    appsEl.style.cursor = 'pointer';
+                    appsEl.onclick = function() {
+                        refreshArgoCDApps();
+                        toggleArgoCDAppsList();
+                    };
+                } else {
+                    appsEl.style.cursor = 'default';
+                    appsEl.onclick = null;
+                }
+            }
+        })
+        .catch(function(err) {
+            console.error('ArgoCD status error:', err);
+            if (installedEl) {
+                installedEl.className = 'badge badge-grey';
+                installedEl.textContent = 'Error';
+            }
+        });
+}
+
+// Refresh Helm releases (dynamic)
+function refreshHelmReleases() {
+    var releasesEl = document.getElementById('helm-releases');
+    var listEl = document.getElementById('helm-releases-list');
+
+    if (releasesEl) releasesEl.textContent = '...';
+
+    fetch('/api/tools/helm/releases')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (releasesEl) {
+                if (data.release_count > 0) {
+                    releasesEl.textContent = data.release_count + ' release(s)';
+                    releasesEl.style.cursor = 'pointer';
+                    releasesEl.onclick = function() { toggleHelmReleasesList(); };
+                } else {
+                    releasesEl.textContent = 'None';
+                    releasesEl.style.cursor = 'default';
+                    releasesEl.onclick = null;
+                }
+            }
+
+            // Build the list
+            if (listEl && data.releases && data.releases.length > 0) {
+                var html = '';
+                data.releases.forEach(function(release) {
+                    var statusClass = release.status === 'deployed' ? 'badge-success' : 'badge-warning';
+                    html += '<div class="tool-list-item">';
+                    html += '<span class="name">' + release.name + '</span>';
+                    html += '<span class="details">' + release.namespace + ' - ' + release.chart + '</span>';
+                    html += '<span class="badge ' + statusClass + '">' + release.status + '</span>';
+                    html += '</div>';
+                });
+                listEl.innerHTML = html;
+            } else if (listEl) {
+                listEl.innerHTML = '';
+                listEl.style.display = 'none';
+            }
+        })
+        .catch(function(err) {
+            console.error('Helm releases error:', err);
+            if (releasesEl) releasesEl.textContent = 'Error';
+        });
+}
+
+// Toggle Helm releases list visibility
+function toggleHelmReleasesList() {
+    var listEl = document.getElementById('helm-releases-list');
+    if (listEl && listEl.innerHTML) {
+        listEl.style.display = listEl.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+// Refresh ArgoCD apps (dynamic)
+function refreshArgoCDApps() {
+    var appsEl = document.getElementById('argocd-app-count');
+    var listEl = document.getElementById('argocd-apps-list');
+
+    if (appsEl) appsEl.textContent = '...';
+
+    fetch('/api/tools/argocd/apps')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (appsEl) {
+                if (data.app_count > 0) {
+                    appsEl.textContent = data.app_count + ' app(s)';
+                    appsEl.style.cursor = 'pointer';
+                    appsEl.onclick = function() { toggleArgoCDAppsList(); };
+                } else {
+                    appsEl.textContent = 'None';
+                    appsEl.style.cursor = 'default';
+                    appsEl.onclick = null;
+                }
+            }
+
+            // Build the list
+            if (listEl && data.applications && data.applications.length > 0) {
+                var html = '';
+                data.applications.forEach(function(app) {
+                    var healthClass = app.health === 'Healthy' ? 'badge-success' :
+                                      app.health === 'Progressing' ? 'badge-warning' : 'badge-danger';
+                    var syncClass = app.sync === 'Synced' ? 'badge-success' : 'badge-warning';
+                    html += '<div class="tool-list-item">';
+                    html += '<span class="name">' + app.name + '</span>';
+                    html += '<span class="badge ' + healthClass + '">' + app.health + '</span>';
+                    html += '<span class="badge ' + syncClass + '">' + app.sync + '</span>';
+                    html += '</div>';
+                });
+                listEl.innerHTML = html;
+            } else if (listEl) {
+                listEl.innerHTML = '';
+                listEl.style.display = 'none';
+            }
+        })
+        .catch(function(err) {
+            console.error('ArgoCD apps error:', err);
+            if (appsEl) appsEl.textContent = 'Error';
+        });
+}
+
+// Toggle ArgoCD apps list visibility
+function toggleArgoCDAppsList() {
+    var listEl = document.getElementById('argocd-apps-list');
+    if (listEl && listEl.innerHTML) {
+        listEl.style.display = listEl.style.display === 'none' ? 'block' : 'none';
+    }
 }
 
 // Cluster stats monitoring
@@ -159,6 +397,7 @@ function changeRefreshInterval() {
     dashboardRefreshInterval = setInterval(function() {
         updateClusterStats();
         updateStatusBadges();
+        fetchToolsStatus();
     }, currentRefreshSeconds * 1000);
 }
 
@@ -295,7 +534,7 @@ function showClusterDetails(type) {
 
 // Developer profile popup
 function showDeveloperProfile() {
-    var profileHTML = '<div style="text-align: left; padding: 20px; line-height: 1.8;">';
+    var profileHTML = '<div style="text-align: left; padding: 20px; line-height: 1.8; background: #FFF7ED; border-radius: 8px;">';
     profileHTML += '<h3 style="margin-top: 0; color: #2c3e50;">Author: Shay Guedj</h3>';
     profileHTML += '<p style="margin: 15px 0; color: #555; font-size: 14px;">';
     profileHTML += 'DevOps Engineer with 3+ years of hands-on experience architecting and managing cloud-native infrastructures on AWS. ';
@@ -308,9 +547,9 @@ function showDeveloperProfile() {
     profileHTML += '<button class="btn btn-secondary" onclick="closeModal()" style="padding: 10px 20px;">Close</button>';
     profileHTML += '</div>';
     profileHTML += '</div>';
-    
+
     // Pass true to hide the X button and OK button
-    showModal('Developer Profile', profileHTML, true);
+    showModal('My DevOps Profile', profileHTML, true);
 }
 
 // Status monitoring
@@ -424,6 +663,7 @@ function switchTab(tabName) {
         initDashboardRefresh();
         startStatusMonitoring();
         startClusterStatsMonitoring();
+        fetchToolsStatus();
     } else if (tabName === 'database') {
         refreshDatabaseData();
         fetchDatabaseInfo();
@@ -521,8 +761,42 @@ function showMonitoringCommands() {
     commands += '<div class="cli-command"><code>kubectl get hpa -n k8s-multi-demo</code><button class="copy-btn" onclick="copyCommand(this)">📋 Copy</button></div>';
     commands += '<div class="cli-command"><code>kubectl describe pod -n k8s-multi-demo -l app=k8s-demo-app</code><button class="copy-btn" onclick="copyCommand(this)">📋 Copy</button></div>';
     commands += '<div class="cli-command"><code>kubectl get events -n k8s-multi-demo --sort-by=.metadata.creationTimestamp</code><button class="copy-btn" onclick="copyCommand(this)">📋 Copy</button></div>';
-    
+
     showCLICommands(commands, '📊 General Monitoring Commands');
+}
+
+// Open testing actions sidebar
+function openTestingSidebar() {
+    var sidebar = document.getElementById('testing-sidebar');
+    var overlay = document.getElementById('sidebar-overlay');
+
+    if (sidebar) sidebar.classList.add('active');
+    if (overlay) overlay.classList.add('active');
+
+    // Prevent body scroll when sidebar is open
+    document.body.style.overflow = 'hidden';
+}
+
+// Close testing actions sidebar
+function closeTestingSidebar() {
+    var sidebar = document.getElementById('testing-sidebar');
+    var overlay = document.getElementById('sidebar-overlay');
+
+    if (sidebar) sidebar.classList.remove('active');
+    if (overlay) overlay.classList.remove('active');
+
+    // Restore body scroll
+    document.body.style.overflow = '';
+}
+
+// Show Helm CLI commands
+function showHelmCommands() {
+    var commands = '<div class="cli-command"><code>helm list -n k8s-multi-demo</code><button class="copy-btn" onclick="copyCommand(this)">📋 Copy</button></div>';
+    commands += '<div class="cli-command"><code>helm history k8s-demo -n k8s-multi-demo</code><button class="copy-btn" onclick="copyCommand(this)">📋 Copy</button></div>';
+    commands += '<div class="cli-command"><code>helm get values k8s-demo -n k8s-multi-demo</code><button class="copy-btn" onclick="copyCommand(this)">📋 Copy</button></div>';
+    commands += '<div class="cli-command"><code>helm status k8s-demo -n k8s-multi-demo</code><button class="copy-btn" onclick="copyCommand(this)">📋 Copy</button></div>';
+
+    showCLICommands(commands, '⎈ Helm Commands');
 }
 
 // Copy command functionality
@@ -962,3 +1236,274 @@ function formatDate(dateString) {
         return dateString;
     }
 }
+
+// ==================== GUIDED TOUR ====================
+
+var tourCurrentStep = 0;
+var tourSteps = [
+    {
+        element: '#tour-sidebar-nav',
+        title: 'Navigation Menu',
+        content: 'Use the sidebar to navigate between the Dashboard and interactive learning scenarios. The Dashboard shows your cluster status in real-time.',
+        position: 'right'
+    },
+    {
+        element: '#tour-play-k8s',
+        title: 'Play Kubernetes',
+        content: 'Click here to access hands-on Kubernetes scenarios. Practice deploying apps, scaling pods, managing secrets, and troubleshooting real cluster issues.',
+        position: 'right'
+    },
+    {
+        element: '#tour-play-argocd',
+        title: 'Play ArgoCD',
+        content: 'Explore GitOps workflows with ArgoCD scenarios. Learn to deploy applications using declarative configurations and automated sync.',
+        position: 'right'
+    },
+    {
+        element: '#tour-cluster-stats',
+        title: 'Cluster Overview',
+        content: 'Monitor your Kubernetes cluster at a glance. Click on any stat box to see detailed information about deployments, pods, and nodes.',
+        position: 'bottom'
+    },
+    {
+        element: '#tour-app-info',
+        title: 'Application Status',
+        content: 'Track your application\'s health and readiness status. This shows real-time data from Kubernetes liveness and readiness probes.',
+        position: 'bottom'
+    },
+    {
+        element: '#tour-testing-btn',
+        title: 'Testing Actions',
+        content: 'Simulate real-world scenarios! Make the app unhealthy, trigger pod restarts, test HPA scaling, and observe how Kubernetes self-heals.',
+        position: 'left'
+    },
+    {
+        element: '#tour-deployment-tools',
+        title: 'Deployment Tools',
+        content: 'View Helm releases and ArgoCD applications deployed in your cluster. Access CLI commands and open the ArgoCD UI directly.',
+        position: 'top'
+    },
+    {
+        element: '#tour-developer-info',
+        title: 'About the Developer',
+        content: 'Click "Click Me" to learn more about the developer and access the project\'s GitHub repository. Enjoy exploring!',
+        position: 'right'
+    }
+];
+
+// Check if user has seen the tour
+function checkTourStatus() {
+    var hasSeenTour = localStorage.getItem('devops-simulator-tour-seen');
+    if (!hasSeenTour) {
+        setTimeout(function() {
+            showTourWelcome();
+        }, 1500);
+    }
+}
+
+// Show welcome modal
+function showTourWelcome() {
+    var modal = document.getElementById('tour-welcome-modal');
+    if (modal) {
+        modal.classList.add('active');
+    }
+}
+
+// Hide welcome modal
+function hideTourWelcome() {
+    var modal = document.getElementById('tour-welcome-modal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
+
+// Start the tour
+function startTour() {
+    hideTourWelcome();
+    tourCurrentStep = 0;
+    showTourStep(tourCurrentStep);
+
+    var overlay = document.getElementById('tour-overlay');
+    if (overlay) {
+        overlay.classList.add('active');
+    }
+}
+
+// Skip the tour
+function skipTour() {
+    var dontShow = document.getElementById('tour-dont-show');
+    if (dontShow && dontShow.checked) {
+        localStorage.setItem('devops-simulator-tour-seen', 'true');
+    }
+    hideTourWelcome();
+}
+
+// End the tour
+function endTour() {
+    localStorage.setItem('devops-simulator-tour-seen', 'true');
+
+    var overlay = document.getElementById('tour-overlay');
+    var tooltip = document.getElementById('tour-tooltip');
+
+    if (overlay) overlay.classList.remove('active');
+    if (tooltip) tooltip.classList.remove('active');
+
+    // Remove highlight from current element
+    var highlighted = document.querySelector('.tour-highlight');
+    if (highlighted) {
+        highlighted.classList.remove('tour-highlight');
+    }
+}
+
+// Show a specific tour step
+function showTourStep(stepIndex) {
+    var step = tourSteps[stepIndex];
+    if (!step) return;
+
+    // Remove previous highlight
+    var prevHighlighted = document.querySelector('.tour-highlight');
+    if (prevHighlighted) {
+        prevHighlighted.classList.remove('tour-highlight');
+    }
+
+    // Find and highlight the element
+    var element = document.querySelector(step.element);
+    if (!element) {
+        // Skip to next step if element not found
+        if (stepIndex < tourSteps.length - 1) {
+            nextTourStep();
+        } else {
+            endTour();
+        }
+        return;
+    }
+
+    element.classList.add('tour-highlight');
+
+    // Scroll element into view
+    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    // Update tooltip content
+    var titleEl = document.getElementById('tour-title');
+    var contentEl = document.getElementById('tour-content');
+    var counterEl = document.getElementById('tour-step-counter');
+    var prevBtn = document.getElementById('tour-prev-btn');
+    var nextBtn = document.getElementById('tour-next-btn');
+
+    if (titleEl) titleEl.textContent = step.title;
+    if (contentEl) contentEl.textContent = step.content;
+    if (counterEl) counterEl.textContent = (stepIndex + 1) + '/' + tourSteps.length;
+
+    // Update navigation buttons
+    if (prevBtn) {
+        prevBtn.style.display = stepIndex === 0 ? 'none' : 'inline-block';
+    }
+    if (nextBtn) {
+        nextBtn.textContent = stepIndex === tourSteps.length - 1 ? 'Finish' : 'Next';
+    }
+
+    // Update progress dots
+    updateTourProgress(stepIndex);
+
+    // Position the tooltip
+    setTimeout(function() {
+        positionTooltip(element, step.position);
+    }, 300);
+}
+
+// Position tooltip relative to element
+function positionTooltip(element, position) {
+    var tooltip = document.getElementById('tour-tooltip');
+    if (!tooltip || !element) return;
+
+    var rect = element.getBoundingClientRect();
+    var tooltipRect = tooltip.getBoundingClientRect();
+    var padding = 15;
+
+    // Remove all arrow classes
+    tooltip.classList.remove('arrow-top', 'arrow-bottom', 'arrow-left', 'arrow-right');
+
+    var top, left;
+
+    switch (position) {
+        case 'right':
+            top = rect.top + (rect.height / 2) - (tooltipRect.height / 2);
+            left = rect.right + padding;
+            tooltip.classList.add('arrow-left');
+            break;
+        case 'left':
+            top = rect.top + (rect.height / 2) - (tooltipRect.height / 2);
+            left = rect.left - tooltipRect.width - padding;
+            tooltip.classList.add('arrow-right');
+            break;
+        case 'bottom':
+            top = rect.bottom + padding;
+            left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+            tooltip.classList.add('arrow-top');
+            break;
+        case 'top':
+            top = rect.top - tooltipRect.height - padding;
+            left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+            tooltip.classList.add('arrow-bottom');
+            break;
+        default:
+            top = rect.bottom + padding;
+            left = rect.left;
+            tooltip.classList.add('arrow-top');
+    }
+
+    // Keep tooltip within viewport
+    var viewportWidth = window.innerWidth;
+    var viewportHeight = window.innerHeight;
+
+    if (left < 10) left = 10;
+    if (left + tooltipRect.width > viewportWidth - 10) {
+        left = viewportWidth - tooltipRect.width - 10;
+    }
+    if (top < 10) top = 10;
+    if (top + tooltipRect.height > viewportHeight - 10) {
+        top = viewportHeight - tooltipRect.height - 10;
+    }
+
+    tooltip.style.top = top + 'px';
+    tooltip.style.left = left + 'px';
+    tooltip.classList.add('active');
+}
+
+// Update progress dots
+function updateTourProgress(currentIndex) {
+    var progressContainer = document.getElementById('tour-progress');
+    if (!progressContainer) return;
+
+    var html = '';
+    for (var i = 0; i < tourSteps.length; i++) {
+        var className = 'tour-progress-dot';
+        if (i < currentIndex) className += ' completed';
+        if (i === currentIndex) className += ' active';
+        html += '<div class="' + className + '"></div>';
+    }
+    progressContainer.innerHTML = html;
+}
+
+// Next step
+function nextTourStep() {
+    if (tourCurrentStep < tourSteps.length - 1) {
+        tourCurrentStep++;
+        showTourStep(tourCurrentStep);
+    } else {
+        endTour();
+    }
+}
+
+// Previous step
+function prevTourStep() {
+    if (tourCurrentStep > 0) {
+        tourCurrentStep--;
+        showTourStep(tourCurrentStep);
+    }
+}
+
+// Initialize tour check on page load
+window.addEventListener('DOMContentLoaded', function() {
+    setTimeout(checkTourStatus, 2000);
+});

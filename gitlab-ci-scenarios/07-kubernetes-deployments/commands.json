@@ -1,0 +1,70 @@
+{
+  "scenario_id": "07-kubernetes-deployments",
+  "difficulty": "medium",
+  "duration": "20 min",
+  "commands": [
+    {
+      "name": "Step 1: Review K8s Deployment Pipeline",
+      "command": "cat gitlab-ci-scenarios/07-kubernetes-deployments/.gitlab-ci.yml",
+      "description": "Examine a complete Kubernetes deployment pipeline",
+      "explanation": "This pipeline demonstrates the production pattern for deploying to Kubernetes from GitLab CI. It uses Helm for deployments (idempotent, with rollback), kubeconfig stored as a CI File variable (secure), environment tracking (visible in GitLab UI), and rollout verification (health checks before marking success).",
+      "what_it_does": "Displays a pipeline with secure K8s authentication, Helm deployments, and rollback.",
+      "next_step": "Learn how to securely connect to Kubernetes.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 2: Secure Kubernetes Authentication",
+      "command": "echo '=== Connecting to K8s from GitLab CI ===' && echo '' && echo 'Method 1: KUBECONFIG as File Variable (Recommended)' && echo '  Settings > CI/CD > Variables:' && echo '    Type:        File' && echo '    Key:         KUBECONFIG' && echo '    Value:       (paste kubeconfig content)' && echo '    Protected:   ✅' && echo '    Masked:      ❌ (File vars cannot be masked)' && echo '    Environment: production (scope it!)' && echo '' && echo '  Pipeline automatically has kubectl access:' && echo '    script:' && echo '      - kubectl get nodes  # Works! KUBECONFIG auto-loaded' && echo '' && echo 'Method 2: GitLab Kubernetes Agent (Modern)' && echo '  - Install agent in cluster' && echo '  - Register agent in GitLab project' && echo '  - CI jobs get automatic cluster access' && echo '  - No kubeconfig needed' && echo '' && echo 'Method 3: Service Account Token' && echo '  Variables: KUBE_URL, KUBE_TOKEN, KUBE_CA' && echo '  before_script:' && echo '    - kubectl config set-cluster k8s --server=$KUBE_URL' && echo '    - kubectl config set-credentials ci --token=$KUBE_TOKEN' && echo '    - kubectl config set-context ci --cluster=k8s --user=ci' && echo '    - kubectl config use-context ci' && echo '' && echo '✅ Use Agent for new setups, KUBECONFIG for existing clusters.'",
+      "description": "Learn the three methods for authenticating to Kubernetes from CI",
+      "explanation": "Secure authentication is the most critical part of K8s deployments from CI. The kubeconfig File variable approach is simple and works everywhere. The GitLab Kubernetes Agent is the modern approach - it reverses the connection (agent pulls from GitLab, no inbound cluster access needed). Never hardcode credentials in .gitlab-ci.yml.",
+      "what_it_does": "Explains three methods for connecting to Kubernetes from GitLab CI pipelines.",
+      "next_step": "See Helm deployment patterns.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 3: Helm Deployment Pattern",
+      "command": "echo '=== Production Helm Deployment in CI ===' && echo '' && echo 'deploy:' && echo '  image: alpine/helm:3.14' && echo '  script:' && echo '    - helm upgrade --install $APP_NAME ./chart' && echo '        --namespace $NAMESPACE' && echo '        --values ./chart/values-$ENVIRONMENT.yaml' && echo '        --set image.tag=$CI_COMMIT_SHA' && echo '        --set image.repository=$CI_REGISTRY_IMAGE' && echo '        --atomic          # Auto-rollback on failure' && echo '        --timeout 5m      # Max wait time' && echo '        --wait            # Wait for pods ready' && echo '        --max-history 10  # Limit release history' && echo '' && echo 'Key flags explained:' && echo '  --install    Create release if not exists (idempotent)' && echo '  --atomic     If upgrade fails → auto rollback → exit 1' && echo '  --wait       Wait for all pods to be Ready' && echo '  --timeout    Fail if not ready within 5 minutes' && echo '  --max-history  Prevent etcd bloat from old releases' && echo '' && echo 'This single command handles:' && echo '  ✅ First deployment (install)' && echo '  ✅ Updates (upgrade)' && echo '  ✅ Failure recovery (atomic rollback)' && echo '  ✅ Health verification (wait)' && echo '' && echo 'One command. Zero manual intervention. Production safe.'",
+      "description": "Learn the production Helm deployment command for CI pipelines",
+      "explanation": "helm upgrade --install is the most important CI deployment command. It's idempotent (safe to run repeatedly), handles both initial deployment and updates, and with --atomic, automatically rolls back on failure. This means your pipeline either succeeds (new version deployed and healthy) or the previous version is restored. No broken intermediate states.",
+      "what_it_does": "Shows the production Helm deployment command with all critical flags explained.",
+      "next_step": "Simulate a K8s deployment from CI.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 4: Simulate CI Deployment",
+      "command": "kubectl create namespace gitlab-ci-scenarios --dry-run=client -o yaml | kubectl apply -f - && kubectl apply -f gitlab-ci-scenarios/07-kubernetes-deployments/deployment.yaml && echo '' && echo '=== Simulated: helm upgrade --install --atomic ===' && echo '=== Waiting for deployment rollout ===' && kubectl rollout status deployment/k8s-deploy-demo -n gitlab-ci-scenarios --timeout=60s && echo '' && echo '=== Deployment Successful ===' && kubectl get pods -n gitlab-ci-scenarios -l app=k8s-deploy-demo",
+      "description": "Deploy an application simulating what the CI pipeline would do",
+      "explanation": "In a real pipeline, this kubectl apply would be replaced by helm upgrade --install. The rollout status check is what --wait does under the hood: it waits until all pods are running and ready. If pods fail to start (bad image, crash loop), the rollout status command exits with error, which fails the CI job.",
+      "what_it_does": "Deploys a sample application and waits for successful rollout, simulating a CI deployment.",
+      "next_step": "Learn about rollback strategies.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 5: Rollback Strategies",
+      "command": "echo '=== CI Rollback Strategies ===' && echo '' && echo '1. Automatic (--atomic flag):' && echo '  helm upgrade --atomic → failure → auto rollback' && echo '  ✅ No manual intervention needed' && echo '  ✅ Pipeline fails with clear error' && echo '' && echo '2. Manual Rollback Job:' && echo '  rollback:' && echo '    stage: deploy' && echo '    when: manual' && echo '    script:' && echo '      - helm rollback $APP_NAME 0 -n $NAMESPACE' && echo '      # 0 = previous revision' && echo '    environment:' && echo '      name: production' && echo '      action: stop  # Updates environment state' && echo '' && echo '3. Revert Commit + Auto-Deploy:' && echo '  - git revert HEAD' && echo '  - Push triggers pipeline → deploys previous version' && echo '  ✅ Git history shows the revert' && echo '  ✅ Same pipeline, same process' && echo '' && echo '4. kubectl rollout undo:' && echo '  script:' && echo '    - kubectl rollout undo deployment/$APP -n $NAMESPACE' && echo '  ⚠️  Bypasses Helm tracking (use only in emergencies)' && echo '' && echo 'Recommendation: Use --atomic for auto-rollback.' && echo 'Add a manual rollback job for emergency use.'",
+      "description": "Learn four different rollback strategies for CI deployments",
+      "explanation": "Rollback is not optional - it's a requirement for production deployments. The --atomic flag handles 90% of cases automatically. The manual rollback job is your emergency escape hatch. Git revert is the cleanest approach (the rollback is tracked in git history). kubectl rollout undo is the nuclear option when nothing else works.",
+      "what_it_does": "Explains four rollback strategies from automatic to emergency.",
+      "next_step": "Review K8s deployment summary.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 6: K8s Deployment Summary",
+      "command": "echo '============================================' && echo '  K8s Deployment from GitLab CI Summary' && echo '============================================' && echo '' && echo 'Authentication:' && echo '  ✅ Use GitLab K8s Agent or KUBECONFIG File variable' && echo '  ✅ Scope credentials to environments' && echo '  ✅ Never hardcode tokens in .gitlab-ci.yml' && echo '' && echo 'Deployment:' && echo '  ✅ Use helm upgrade --install --atomic' && echo '  ✅ Tag images with $CI_COMMIT_SHA' && echo '  ✅ Use --wait and --timeout for health checks' && echo '  ✅ Per-environment values files (values-prod.yaml)' && echo '' && echo 'Safety:' && echo '  ✅ --atomic for automatic rollback' && echo '  ✅ Manual gate for production (when: manual)' && echo '  ✅ Manual rollback job as emergency escape' && echo '  ✅ Environment tracking in GitLab UI' && echo '' && echo 'Monitoring:' && echo '  ✅ Track deployments in GitLab Environments' && echo '  ✅ Post-deploy smoke tests' && echo '  ✅ Alert on deployment failures'",
+      "description": "Review the complete K8s deployment checklist",
+      "explanation": "Deploying to Kubernetes from CI requires getting authentication, deployment mechanics, safety nets, and monitoring all right. This checklist covers the essential patterns used by production teams.",
+      "what_it_does": "Prints a comprehensive Kubernetes deployment from CI checklist.",
+      "next_step": "Clean up resources.",
+      "cleanup": false
+    },
+    {
+      "name": "Cleanup: Remove Resources",
+      "command": "kubectl delete namespace gitlab-ci-scenarios --ignore-not-found",
+      "description": "Remove all resources created by this scenario",
+      "explanation": "Deletes the namespace and all resources within it.",
+      "what_it_does": "Removes the gitlab-ci-scenarios namespace and all deployed resources.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

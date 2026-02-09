@@ -1,0 +1,14 @@
+apiVersion: v2
+name: myapp
+description: A sample application with a PostgreSQL database dependency
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+# Chart dependencies are declared here.
+# Run 'helm dependency update' to download them into the charts/ directory.
+dependencies:
+  - name: postgresql
+    version: "~16.4.0"
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled

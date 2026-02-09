@@ -1,0 +1,19 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: post-deploy-verify
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  template:
+    spec:
+      containers:
+        - name: verify
+          image: busybox
+          command:
+            - /bin/sh
+            - -c
+            - echo "Post-sync verification complete! Deployment successful." && sleep 5
+      restartPolicy: Never
+  backoffLimit: 1

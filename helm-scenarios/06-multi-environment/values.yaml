@@ -1,0 +1,41 @@
+# Default values for multi-env-app
+# These serve as the base that environment-specific files override
+
+replicaCount: 1
+
+image:
+  repository: nginx
+  tag: "1.24"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+# Application configuration
+config:
+  environment: "default"
+  logLevel: "info"
+  debugMode: false
+  featureFlags:
+    enableMetrics: true
+    enableTracing: false
+    enableProfiling: false
+  database:
+    host: "localhost"
+    port: 5432
+    name: "appdb"
+    maxConnections: 10
+
+# Resource limits (empty by default - no limits)
+resources: {}
+
+# Pod anti-affinity (disabled by default)
+antiAffinity:
+  enabled: false
+
+# Node selector (empty by default)
+nodeSelector: {}
+
+# Tolerations (empty by default)
+tolerations: []

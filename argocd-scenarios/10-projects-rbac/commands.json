@@ -1,0 +1,64 @@
+{
+  "scenario_id": "10-projects-rbac",
+  "difficulty": "hard",
+  "duration": "20 min",
+  "commands": [
+    {
+      "name": "Step 1: Review Project Definitions",
+      "command": "echo '=== Frontend Project ===' && cat argocd-scenarios/10-projects-rbac/project-frontend.yaml && echo '\n=== Backend Project ===' && cat argocd-scenarios/10-projects-rbac/project-backend.yaml",
+      "description": "Review the two AppProject definitions",
+      "explanation": "Each AppProject restricts which repos can be used (sourceRepos), which namespaces can be deployed to (destinations), and which resource types are allowed. team-frontend can ONLY deploy to argocd-sc-10-fe, team-backend ONLY to argocd-sc-10-be.",
+      "what_it_does": "Shows the RBAC restrictions for each team's project.",
+      "next_step": "Create both projects."
+    },
+    {
+      "name": "Step 2: Create ArgoCD Projects",
+      "command": "kubectl apply -f argocd-scenarios/10-projects-rbac/project-frontend.yaml -f argocd-scenarios/10-projects-rbac/project-backend.yaml",
+      "description": "Create both ArgoCD AppProjects",
+      "explanation": "AppProjects are the RBAC boundary in ArgoCD. Each project defines what applications within it are allowed to do. This is how you enforce multi-tenancy.",
+      "what_it_does": "Creates team-frontend and team-backend projects in ArgoCD.",
+      "next_step": "Deploy applications within their respective projects."
+    },
+    {
+      "name": "Step 3: Deploy Frontend and Backend Apps",
+      "command": "kubectl apply -f argocd-scenarios/10-projects-rbac/app-frontend.yaml -f argocd-scenarios/10-projects-rbac/app-backend.yaml",
+      "description": "Deploy both applications within their projects",
+      "explanation": "Each application is assigned to its team's project. Frontend deploys to argocd-sc-10-fe, backend to argocd-sc-10-be. Both should sync successfully because they respect project boundaries.",
+      "what_it_does": "Creates frontend and backend applications in their respective projects.",
+      "next_step": "Verify both apps deployed to their correct namespaces."
+    },
+    {
+      "name": "Step 4: Verify Project Isolation",
+      "command": "echo '>>> Open ArgoCD UI at http://localhost:30800 <<<\n>>> Notice apps are grouped by project <<<' && sleep 10 && echo '=== Frontend namespace ===' && kubectl get pods -n argocd-sc-10-fe && echo '\n=== Backend namespace ===' && kubectl get pods -n argocd-sc-10-be",
+      "description": "Check that each team's app is in its own namespace",
+      "explanation": "Frontend pods are in argocd-sc-10-fe, backend pods in argocd-sc-10-be. In the ArgoCD UI, you can filter by project. Each team only sees and manages their own applications.",
+      "what_it_does": "Shows project-based namespace isolation.",
+      "next_step": "Test project restrictions by deploying to wrong namespace."
+    },
+    {
+      "name": "Step 5: Test RBAC - Deploy to Wrong Namespace",
+      "command": "kubectl apply -f argocd-scenarios/10-projects-rbac/app-frontend-wrong-ns.yaml && echo '>>> Open ArgoCD UI - sc10-frontend-wrong will show SYNC FAILED <<<' && sleep 10 && kubectl get application sc10-frontend-wrong -n argocd -o jsonpath='Sync: {.status.sync.status}, Health: {.status.health.status}, Conditions: {.status.conditions[0].message}' 2>/dev/null || echo 'App may show sync error'",
+      "description": "Try deploying frontend app to backend's namespace - should fail",
+      "explanation": "The frontend project only allows deployments to argocd-sc-10-fe. Trying to deploy to argocd-sc-10-be violates the project RBAC policy. ArgoCD will reject the sync with a permission error.",
+      "what_it_does": "Demonstrates ArgoCD project RBAC enforcement.",
+      "next_step": "Verify the error in ArgoCD UI."
+    },
+    {
+      "name": "Step 6: Check RBAC Error in ArgoCD UI",
+      "command": "echo '>>> Open ArgoCD UI at http://localhost:30800 <<<\n>>> Click sc10-frontend-wrong <<<\n>>> You should see an error about destination not permitted <<<' && kubectl get application sc10-frontend-wrong -n argocd -o jsonpath='{.status.conditions[*].message}' 2>/dev/null",
+      "description": "View the RBAC violation error in ArgoCD",
+      "explanation": "ArgoCD shows 'application destination {namespace: argocd-sc-10-be} is not permitted in project team-frontend'. This is exactly how multi-tenancy works - teams cannot deploy outside their allowed namespaces.",
+      "what_it_does": "Shows the project RBAC enforcement error.",
+      "next_step": "Scenario complete! Clean up when ready."
+    },
+    {
+      "name": "Cleanup: Delete All Resources",
+      "command": "kubectl delete application sc10-frontend sc10-backend sc10-frontend-wrong -n argocd 2>/dev/null; kubectl delete appproject team-frontend team-backend -n argocd 2>/dev/null; kubectl delete namespace argocd-sc-10-fe argocd-sc-10-be --ignore-not-found",
+      "description": "Remove all applications, projects, and namespaces",
+      "explanation": "Deletes applications first, then projects, then namespaces.",
+      "what_it_does": "Removes all RBAC scenario resources.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

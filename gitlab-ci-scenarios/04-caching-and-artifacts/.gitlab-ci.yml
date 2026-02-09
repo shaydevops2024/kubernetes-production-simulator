@@ -1,0 +1,126 @@
+# .gitlab-ci.yml - Optimized Pipeline with Caching & DAG
+# Demonstrates caching, artifacts, and needs: keyword
+
+stages:
+  - install
+  - lint
+  - test
+  - build
+  - deploy
+
+variables:
+  NPM_CONFIG_CACHE: "$CI_PROJECT_DIR/.npm-cache"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
+
+# --- Install dependencies (fills cache) ---
+install-deps:
+  stage: install
+  image: node:20-alpine
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules/
+      - .npm-cache/
+    policy: pull-push  # Read and write cache
+  script:
+    - npm ci --prefer-offline
+  rules:
+    - if: $CI_MERGE_REQUEST_IID
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# --- Lint (uses cache, read-only) ---
+lint:
+  stage: lint
+  image: node:20-alpine
+  needs: [install-deps]  # DAG: start right after install
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules/
+    policy: pull  # Read-only (faster!)
+  script:
+    - npx eslint src/ --format json --output-file eslint-report.json
+  artifacts:
+    reports:
+      codequality: eslint-report.json
+    expire_in: 1 week
+
+# --- Tests (parallel, use cache read-only) ---
+test-unit:
+  stage: test
+  image: node:20-alpine
+  needs: [install-deps]  # DAG: doesn't wait for lint!
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules/
+    policy: pull
+  script:
+    - npm run test:unit -- --coverage
+  artifacts:
+    paths:
+      - coverage/
+    reports:
+      junit: junit-report.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura.xml
+    expire_in: 1 week
+
+test-integration:
+  stage: test
+  image: node:20-alpine
+  needs: [install-deps]
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules/
+    policy: pull
+  services:
+    - postgres:15
+  variables:
+    POSTGRES_DB: testdb
+    POSTGRES_USER: test
+    POSTGRES_PASSWORD: test
+  script:
+    - npm run test:integration
+  artifacts:
+    reports:
+      junit: integration-report.xml
+
+# --- Build (waits for tests via DAG) ---
+build:
+  stage: build
+  needs:
+    - test-unit
+    - test-integration
+  image:
+    name: gcr.io/kaniko-project/executor:v1.14.0-debug
+    entrypoint: [""]
+  script:
+    - /kaniko/executor
+        --context $CI_PROJECT_DIR
+        --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+        --cache=true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# --- Deploy (waits for build) ---
+deploy:
+  stage: deploy
+  needs: [build]
+  image: bitnami/kubectl:latest
+  script:
+    - kubectl set image deployment/myapp myapp=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA -n staging
+  environment:
+    name: staging
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"

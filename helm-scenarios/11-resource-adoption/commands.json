@@ -1,0 +1,115 @@
+{
+  "scenario_id": "11-resource-adoption",
+  "difficulty": "hard",
+  "duration": "20 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Namespace",
+      "command": "kubectl create namespace helm-scenarios --dry-run=client -o yaml | kubectl apply -f -",
+      "description": "Create the helm-scenarios namespace",
+      "explanation": "Creates the helm-scenarios namespace if it does not already exist. This namespace is shared across all Helm scenarios.",
+      "what_it_does": "Creates 'helm-scenarios' namespace if needed.",
+      "next_step": "Deploy resources manually with kubectl (simulating pre-existing resources).",
+      "cleanup": false
+    },
+    {
+      "name": "Step 2: Deploy Resources Manually",
+      "command": "kubectl apply -f helm-scenarios/11-resource-adoption/existing-deployment.yaml -f helm-scenarios/11-resource-adoption/existing-service.yaml",
+      "description": "Deploy a deployment and service using kubectl (not Helm)",
+      "explanation": "This simulates a common production situation: resources that were deployed manually with 'kubectl apply' before the team adopted Helm. These resources have no Helm annotations or labels -- they are completely unmanaged by Helm.",
+      "what_it_does": "Creates 'adopted-app' deployment (2 replicas) and service via kubectl.",
+      "next_step": "Verify the manually deployed resources exist.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 3: Verify Manual Resources",
+      "command": "kubectl get deployment,service adopted-app -n helm-scenarios -o wide && echo '---' && kubectl get deployment adopted-app -n helm-scenarios -o jsonpath='{.metadata.annotations}' | python3 -m json.tool 2>/dev/null || echo 'No annotations (not Helm-managed)'",
+      "description": "Confirm resources exist and show they have no Helm annotations",
+      "explanation": "The deployment and service exist and are running, but they have no Helm-related annotations. Helm-managed resources have 'meta.helm.sh/release-name' and 'meta.helm.sh/release-namespace' annotations. Without these, Helm does not know about these resources.",
+      "what_it_does": "Shows the existing resources and confirms they lack Helm ownership metadata.",
+      "next_step": "Attempt a Helm install to see it fail without annotations.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 4: Attempt Helm Install (Will Fail)",
+      "command": "helm install adopted-app helm-scenarios/11-resource-adoption/ -n helm-scenarios --timeout 30s 2>&1 || true",
+      "description": "Try to install the chart -- fails because resources already exist",
+      "explanation": "Helm tries to create the deployment and service but finds they already exist in the namespace. Without the proper ownership annotations, Helm refuses to take over -- it returns 'cannot re-use a name that is still in use' or 'rendered manifests contain a resource that already exists'. This is a safety mechanism to prevent Helm from accidentally overwriting resources it does not own.",
+      "what_it_does": "Demonstrates that Helm cannot install over existing unmanaged resources.",
+      "next_step": "Add Helm ownership annotations to the existing resources.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 5: Annotate Deployment for Helm",
+      "command": "kubectl annotate deployment adopted-app -n helm-scenarios meta.helm.sh/release-name=adopted-app meta.helm.sh/release-namespace=helm-scenarios --overwrite && kubectl label deployment adopted-app -n helm-scenarios app.kubernetes.io/managed-by=Helm --overwrite",
+      "description": "Add Helm ownership annotations and labels to the existing deployment",
+      "explanation": "This is the key step for resource adoption. We add two annotations that tell Helm which release owns this resource: 'meta.helm.sh/release-name' (the release name) and 'meta.helm.sh/release-namespace' (the release namespace). We also add the 'app.kubernetes.io/managed-by: Helm' label. These three metadata fields are what Helm checks to determine resource ownership.",
+      "what_it_does": "Tags the deployment with Helm ownership metadata for adoption.",
+      "next_step": "Annotate the service as well.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 6: Annotate Service for Helm",
+      "command": "kubectl annotate service adopted-app -n helm-scenarios meta.helm.sh/release-name=adopted-app meta.helm.sh/release-namespace=helm-scenarios --overwrite && kubectl label service adopted-app -n helm-scenarios app.kubernetes.io/managed-by=Helm --overwrite",
+      "description": "Add Helm ownership annotations and labels to the existing service",
+      "explanation": "Same ownership annotations and labels applied to the service. Every resource that the Helm chart creates must be annotated -- if you miss one, the install will fail for that resource. In a real adoption, you would annotate all resources: deployments, services, configmaps, secrets, ingresses, etc.",
+      "what_it_does": "Tags the service with Helm ownership metadata for adoption.",
+      "next_step": "Verify the annotations were applied correctly.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 7: Verify Annotations",
+      "command": "echo '=== Deployment Annotations ===' && kubectl get deployment adopted-app -n helm-scenarios -o jsonpath='{.metadata.annotations}' | python3 -m json.tool && echo '' && echo '=== Service Annotations ===' && kubectl get service adopted-app -n helm-scenarios -o jsonpath='{.metadata.annotations}' | python3 -m json.tool",
+      "description": "Confirm both resources now have Helm ownership annotations",
+      "explanation": "Both resources should now show 'meta.helm.sh/release-name: adopted-app' and 'meta.helm.sh/release-namespace: helm-scenarios'. This is exactly what Helm writes when it creates resources during a normal install.",
+      "what_it_does": "Displays the Helm ownership annotations on both resources.",
+      "next_step": "Install the Helm chart to adopt the annotated resources.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 8: Install Chart to Adopt Resources",
+      "command": "helm install adopted-app helm-scenarios/11-resource-adoption/ -n helm-scenarios --wait --timeout 90s",
+      "description": "Install the Helm chart -- this time it adopts the existing annotated resources",
+      "explanation": "Now that the resources have Helm ownership annotations matching this release name and namespace, Helm recognizes them as its own and adopts them instead of trying to create new ones. The install succeeds because Helm updates (patches) the existing resources to match the chart templates rather than creating from scratch. No downtime occurs.",
+      "what_it_does": "Helm adopts the existing resources and creates revision 1 of the release.",
+      "next_step": "Verify Helm now manages the resources.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 9: Verify Helm Management",
+      "command": "helm status adopted-app -n helm-scenarios --show-resources && echo '---' && helm get values adopted-app -n helm-scenarios",
+      "description": "Confirm the release is deployed and Helm tracks the resources",
+      "explanation": "The release status shows 'deployed' and lists the deployment and service as managed resources. 'helm get values' shows the values file used. Helm now has full lifecycle control over these resources -- it can upgrade, rollback, and uninstall them.",
+      "what_it_does": "Shows the Helm release status and managed resources after adoption.",
+      "next_step": "Prove Helm controls the resources by performing an upgrade.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 10: Upgrade via Helm",
+      "command": "helm upgrade adopted-app helm-scenarios/11-resource-adoption/ -n helm-scenarios --set replicaCount=3 --set appVersion=v2 --set image.tag=1.25-alpine --wait --timeout 90s",
+      "description": "Upgrade the adopted resources through Helm (scale to 3 replicas, update image)",
+      "explanation": "This proves that Helm has full control. We scale from 2 to 3 replicas, update the image tag to 1.25-alpine, and change the app version label. Helm performs a rolling update just as if it had originally installed these resources. This is the payoff of adoption -- you now get all of Helm's upgrade, rollback, and history features.",
+      "what_it_does": "Upgrades the adopted resources via Helm: 3 replicas, nginx:1.25-alpine.",
+      "next_step": "Verify the upgrade was applied.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 11: Verify Upgrade",
+      "command": "kubectl get pods -n helm-scenarios -l app=adopted-app && echo '---' && kubectl get deployment adopted-app -n helm-scenarios -o jsonpath='Replicas: {.spec.replicas}, Image: {.spec.template.spec.containers[0].image}' && echo '' && echo '---' && helm history adopted-app -n helm-scenarios",
+      "description": "Confirm 3 replicas running with updated image and view Helm history",
+      "explanation": "You should see 3 pods running nginx:1.25-alpine (up from 2 pods with nginx:1.24-alpine). The Helm history shows 2 revisions: the initial adoption (revision 1) and this upgrade (revision 2). The resources are now fully Helm-managed with complete lifecycle support.",
+      "what_it_does": "Confirms the upgrade succeeded and shows the Helm revision history.",
+      "next_step": "Scenario complete! Clean up when ready.",
+      "cleanup": false
+    },
+    {
+      "name": "Cleanup: Remove Release",
+      "command": "helm uninstall adopted-app -n helm-scenarios --wait",
+      "description": "Remove the adopted-app release and all its resources",
+      "explanation": "Uninstalls the Helm release and removes all resources it manages (the deployment and service). Since Helm adopted these resources, it now also handles their deletion. The namespace is left intact for other scenarios.",
+      "what_it_does": "Removes the 'adopted-app' release and all adopted resources.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}
