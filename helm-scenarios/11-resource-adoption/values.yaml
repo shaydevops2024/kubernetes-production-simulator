@@ -1,0 +1,24 @@
+# values.yaml
+# Values that match the existing manually-deployed resources exactly.
+# This ensures the Helm chart produces identical manifests for adoption.
+
+replicaCount: 2
+
+image:
+  repository: nginx
+  tag: "1.24-alpine"
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 32Mi
+  limits:
+    cpu: 100m
+    memory: 128Mi
+
+appVersion: "v1"

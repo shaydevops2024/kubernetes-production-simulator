@@ -1,0 +1,61 @@
+{
+  "scenario_id": "08-security-scanning",
+  "difficulty": "medium",
+  "duration": "15 min",
+  "commands": [
+    {
+      "name": "Step 1: Review Security Pipeline",
+      "command": "cat gitlab-ci-scenarios/08-security-scanning/.gitlab-ci.yml",
+      "description": "Examine a pipeline with comprehensive security scanning stages",
+      "explanation": "This pipeline integrates four types of security scanning: SAST (code analysis), dependency scanning (package CVEs), secret detection (leaked credentials), and container scanning (image vulnerabilities). GitLab provides built-in templates for each, making integration straightforward. Results appear directly in merge request diffs.",
+      "what_it_does": "Displays a complete security scanning pipeline configuration.",
+      "next_step": "Understand each security scan type.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 2: SAST - Static Application Security Testing",
+      "command": "echo '=== SAST - Find Vulnerabilities in Source Code ===' && echo '' && echo 'How it works:' && echo '  - Analyzes source code without executing it' && echo '  - Detects SQL injection, XSS, path traversal, etc.' && echo '  - Supports 14+ languages (Python, JS, Go, Java...)' && echo '  - Results shown inline in MR diffs' && echo '' && echo 'Add to pipeline:' && echo '  include:' && echo '    - template: Security/SAST.gitlab-ci.yml' && echo '' && echo 'That is it! GitLab auto-detects the language and runs' && echo 'the appropriate scanner (Semgrep, Bandit, etc.)' && echo '' && echo 'Customize:' && echo '  variables:' && echo '    SAST_EXCLUDED_PATHS: \"tests/,docs/,vendor/\"' && echo '    SAST_BANDIT_EXCLUDED_PATHS: \"tests\"  # Python-specific' && echo '    SEARCH_MAX_DEPTH: 4  # How deep to scan directories' && echo '' && echo 'Override to fail pipeline on findings:' && echo '  sast:' && echo '    allow_failure: false  # Default is true (report only)' && echo '' && echo 'Common findings:' && echo '  - Hardcoded passwords in code' && echo '  - SQL injection via string concatenation' && echo '  - Insecure deserialization' && echo '  - Path traversal vulnerabilities'",
+      "description": "Learn how SAST analyzes source code for security vulnerabilities",
+      "explanation": "SAST is the first line of defense. It catches vulnerabilities before code even runs. GitLab's SAST includes multiple analyzers (Semgrep for general, Bandit for Python, ESLint security plugin for JS, etc.) and auto-detects which to run based on your project's languages. The key production decision is whether to set allow_failure: false (block merge on findings) or true (report only).",
+      "what_it_does": "Explains SAST configuration, customization options, and common vulnerability types found.",
+      "next_step": "Learn about dependency scanning.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 3: Dependency Scanning",
+      "command": "echo '=== Dependency Scanning - Vulnerable Packages ===' && echo '' && echo 'How it works:' && echo '  - Reads lock files (package-lock.json, Gemfile.lock, etc.)' && echo '  - Checks packages against CVE databases (NVD, GitHub Advisory)' && echo '  - Reports known vulnerabilities with severity and fix versions' && echo '' && echo 'Add to pipeline:' && echo '  include:' && echo '    - template: Security/Dependency-Scanning.gitlab-ci.yml' && echo '' && echo 'Supported package managers:' && echo '  Python:  pip (requirements.txt, Pipfile.lock)' && echo '  Node:    npm (package-lock.json), yarn (yarn.lock)' && echo '  Ruby:    bundler (Gemfile.lock)' && echo '  Go:      go modules (go.sum)' && echo '  Java:    Maven (pom.xml), Gradle (build.gradle)' && echo '' && echo 'Example finding:' && echo '  ┌─────────────────────────────────────────────┐' && echo '  │ HIGH: lodash < 4.17.21                     │' && echo '  │ CVE-2021-23337: Prototype Pollution          │' && echo '  │ Fix: Upgrade lodash to >= 4.17.21           │' && echo '  └─────────────────────────────────────────────┘' && echo '' && echo 'Production pattern: Block MRs that introduce NEW vulnerabilities' && echo 'while allowing existing ones (to avoid blocking all development).'",
+      "description": "Learn how dependency scanning detects vulnerable packages",
+      "explanation": "Dependency scanning is critical because 80%+ of modern application code comes from third-party packages. A single vulnerable dependency (like log4j) can compromise your entire application. GitLab scans lock files (not just declared dependencies) to catch transitive dependency vulnerabilities too.",
+      "what_it_does": "Explains dependency scanning, supported package managers, and how to handle findings.",
+      "next_step": "Learn about secret detection.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 4: Secret Detection",
+      "command": "echo '=== Secret Detection - Stop Credential Leaks ===' && echo '' && echo 'How it works:' && echo '  - Scans code and commit history for secrets' && echo '  - Detects API keys, passwords, tokens, certificates' && echo '  - Uses pattern matching and entropy analysis' && echo '' && echo 'Add to pipeline:' && echo '  include:' && echo '    - template: Security/Secret-Detection.gitlab-ci.yml' && echo '' && echo 'What it detects:' && echo '  ✅ AWS Access Keys (AKIA...)' && echo '  ✅ GitLab Personal Access Tokens (glpat-...)' && echo '  ✅ Private SSH Keys (-----BEGIN RSA PRIVATE KEY-----)' && echo '  ✅ Database connection strings with passwords' && echo '  ✅ Slack webhooks, Stripe API keys, etc.' && echo '  ✅ High-entropy strings that look like secrets' && echo '' && echo 'IMPORTANT: Set allow_failure to false!' && echo '  secret_detection:' && echo '    allow_failure: false  # Block the pipeline!' && echo '' && echo 'If a secret is detected:' && echo '  1. Rotate the secret IMMEDIATELY (it is compromised)' && echo '  2. Remove from code + add to .gitignore' && echo '  3. Store in GitLab CI Variables instead' && echo '  4. Git history still contains it - consider repo cleanup' && echo '' && echo 'Prevention > Detection: Use pre-commit hooks too.'",
+      "description": "Learn how secret detection prevents credential leaks in your codebase",
+      "explanation": "Secret detection is the most critical security scan. A leaked AWS key can result in thousands of dollars in charges within hours. A leaked database password can lead to a data breach. GitLab scans both the current code and the commit diff for secrets. The key insight: if a secret is detected, it's already compromised (it's in git history) and must be rotated immediately.",
+      "what_it_does": "Explains secret detection, what it catches, and the response procedure when secrets are found.",
+      "next_step": "Learn about container image scanning.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 5: Container Image Scanning",
+      "command": "echo '=== Container Image Scanning ===' && echo '' && echo 'How it works:' && echo '  - Scans built Docker images for OS and library vulnerabilities' && echo '  - Runs AFTER the build stage (needs the built image)' && echo '  - Uses Trivy, Grype, or GitLab built-in scanner' && echo '' && echo 'GitLab built-in:' && echo '  include:' && echo '    - template: Security/Container-Scanning.gitlab-ci.yml' && echo '  variables:' && echo '    CS_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA' && echo '' && echo 'Custom with Trivy (more flexible):' && echo '  container-scan:' && echo '    image:' && echo '      name: aquasec/trivy:latest' && echo '      entrypoint: [\"\"]' && echo '    script:' && echo '      - trivy image' && echo '          --severity HIGH,CRITICAL' && echo '          --exit-code 1              # Fail on findings' && echo '          --ignore-unfixed           # Skip unfixable CVEs' && echo '          --format json' && echo '          --output trivy-report.json' && echo '          $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA' && echo '    artifacts:' && echo '      paths: [trivy-report.json]' && echo '' && echo 'Production tip: --ignore-unfixed skips CVEs without patches.' && echo 'No point blocking deployment for something you cannot fix.'",
+      "description": "Learn how to scan Docker images for vulnerabilities",
+      "explanation": "Container scanning catches vulnerabilities in the base image and installed packages. Even if your application code is secure, running on an unpatched base image (e.g., old Alpine with OpenSSL CVE) creates risk. The --ignore-unfixed flag is practical: some CVEs have no patch yet, and blocking on them provides no value.",
+      "what_it_does": "Shows both GitLab built-in and Trivy-based container scanning configurations.",
+      "next_step": "Review the security pipeline summary.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 6: Security Pipeline Summary",
+      "command": "echo '============================================' && echo '  Security Scanning Pipeline Summary' && echo '============================================' && echo '' && echo 'Recommended security stages:' && echo '  1. Secret Detection  (pre-build, fastest)' && echo '  2. SAST              (pre-build, source analysis)' && echo '  3. Dependency Scan   (pre-build, package CVEs)' && echo '  4. Container Scan    (post-build, image CVEs)' && echo '  5. DAST              (post-deploy, runtime testing)' && echo '' && echo 'Pipeline integration:' && echo '  include:' && echo '    - template: Security/Secret-Detection.gitlab-ci.yml' && echo '    - template: Security/SAST.gitlab-ci.yml' && echo '    - template: Security/Dependency-Scanning.gitlab-ci.yml' && echo '    - template: Security/Container-Scanning.gitlab-ci.yml' && echo '' && echo 'Blocking strategy:' && echo '  ✅ Secret detection:    allow_failure: false (ALWAYS block)' && echo '  ✅ SAST (critical):     allow_failure: false' && echo '  ⚠️  Dependency scan:    allow_failure: true (report first)' && echo '  ⚠️  Container scan:     allow_failure: true (report first)' && echo '' && echo 'Start with reporting mode, then gradually enforce blocking.' && echo 'Turning on all blocks at once will halt all development.'",
+      "description": "Review the complete security scanning strategy",
+      "explanation": "Security scanning should be introduced gradually. Start with all scanners in report-only mode (allow_failure: true). Review findings, fix false positives, and establish baselines. Then gradually enable blocking: secret detection first (highest impact), then SAST, then dependency scanning. This prevents overwhelming developers with findings they cannot fix immediately.",
+      "what_it_does": "Prints the complete security pipeline strategy with recommended enforcement order.",
+      "next_step": "Scenario complete!",
+      "cleanup": false
+    }
+  ]
+}

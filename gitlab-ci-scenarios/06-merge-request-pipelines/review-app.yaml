@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: review-app
+  namespace: gitlab-ci-scenarios
+  labels:
+    app: review-app
+    scenario: "06-merge-request-pipelines"
+    merge-request: "42"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: review-app
+  template:
+    metadata:
+      labels:
+        app: review-app
+        merge-request: "42"
+    spec:
+      containers:
+        - name: app
+          image: nginx:1.25-alpine
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 50m
+              memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: review-app
+  namespace: gitlab-ci-scenarios
+  labels:
+    app: review-app
+spec:
+  selector:
+    app: review-app
+  ports:
+    - port: 80
+      targetPort: 80

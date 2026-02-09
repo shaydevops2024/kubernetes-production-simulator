@@ -1,0 +1,29 @@
+# Staging environment overrides
+# Moderate resources, warn-level logging, mirrors prod structure
+
+replicaCount: 2
+
+config:
+  environment: "staging"
+  logLevel: "warn"
+  debugMode: false
+  featureFlags:
+    enableMetrics: true
+    enableTracing: true
+    enableProfiling: false
+  database:
+    host: "postgres-staging.database.svc.cluster.local"
+    port: 5432
+    name: "appdb_staging"
+    maxConnections: 20
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+antiAffinity:
+  enabled: false

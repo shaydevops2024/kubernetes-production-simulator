@@ -634,6 +634,14 @@
                 totalSteps = allCommands.length;
 
                 renderScenario(data);
+
+                // Auto-scroll to bottom after 2 seconds
+                setTimeout(function() {
+                    window.scrollTo({
+                        top: document.body.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                }, 2000);
             } catch (error) {
                 document.getElementById('scenario-content').innerHTML =
                     '<div class="error-message"><h3>Error Loading Scenario</h3><p>' + error.message + '</p></div>';
@@ -869,32 +877,77 @@
             }
         }
 
+        function fallbackCopy(text, onSuccess, onError) {
+            var textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                var successful = document.execCommand('copy');
+                if (successful) {
+                    onSuccess();
+                } else {
+                    onError('execCommand returned false');
+                }
+            } catch (err) {
+                onError(err);
+            }
+            document.body.removeChild(textarea);
+        }
+
         function copyCommand(btn, encodedCommand) {
             var command = atob(encodedCommand);
-            navigator.clipboard.writeText(command).then(function() {
+
+            function showSuccess() {
                 btn.classList.add('copied');
                 btn.innerHTML = '<span>✓</span><span>Copied!</span>';
                 setTimeout(function() {
                     btn.classList.remove('copied');
                     btn.innerHTML = '<span>📋</span><span>Copy Command</span>';
                 }, 2000);
-            }).catch(function(err) {
+            }
+
+            function showError(err) {
                 console.error('Copy failed:', err);
-            });
+                alert('Failed to copy. Please copy manually: ' + command);
+            }
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(command).then(showSuccess).catch(function(err) {
+                    fallbackCopy(command, showSuccess, showError);
+                });
+            } else {
+                fallbackCopy(command, showSuccess, showError);
+            }
         }
 
         function copyYaml(btn, encodedContent) {
             var content = decodeURIComponent(escape(atob(encodedContent)));
-            navigator.clipboard.writeText(content).then(function() {
+
+            function showSuccess() {
                 btn.classList.add('copied');
                 btn.innerHTML = '<span>✓</span><span>Copied!</span>';
                 setTimeout(function() {
                     btn.classList.remove('copied');
                     btn.innerHTML = '<span>📋</span><span>Copy YAML</span>';
                 }, 2000);
-            }).catch(function(err) {
+            }
+
+            function showError(err) {
                 console.error('Copy failed:', err);
-            });
+                alert('Failed to copy YAML. Please copy manually.');
+            }
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(content).then(showSuccess).catch(function(err) {
+                    fallbackCopy(content, showSuccess, showError);
+                });
+            } else {
+                fallbackCopy(content, showSuccess, showError);
+            }
         }
 
         function escapeHtml(text) {

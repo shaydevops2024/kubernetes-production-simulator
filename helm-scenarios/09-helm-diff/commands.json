@@ -1,0 +1,97 @@
+{
+  "scenario_id": "09-helm-diff",
+  "difficulty": "medium",
+  "duration": "15 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Namespace",
+      "command": "kubectl create namespace helm-scenarios --dry-run=client -o yaml | kubectl apply -f -",
+      "description": "Create the helm-scenarios namespace",
+      "explanation": "Creates the helm-scenarios namespace if it does not already exist. The dry-run pattern ensures idempotency -- running this multiple times is safe.",
+      "what_it_does": "Creates 'helm-scenarios' namespace if needed.",
+      "next_step": "Install the helm-diff plugin.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 2: Install Helm Diff Plugin",
+      "command": "helm plugin install https://github.com/databus23/helm-diff 2>/dev/null || helm plugin list | grep diff",
+      "description": "Install the helm-diff plugin (or confirm it is already installed)",
+      "explanation": "The helm-diff plugin adds a 'helm diff' subcommand that compares a running release against a proposed upgrade. It renders the new chart locally and diffs against the deployed manifests. If already installed, this command simply shows it in the plugin list.",
+      "what_it_does": "Installs the helm-diff plugin or confirms it exists.",
+      "next_step": "Add the Bitnami repo and install the initial release.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 3: Add Bitnami Repo",
+      "command": "helm repo add bitnami https://charts.bitnami.com/bitnami 2>/dev/null; helm repo update",
+      "description": "Add the Bitnami Helm repository and update the local cache",
+      "explanation": "Bitnami maintains a large collection of production-ready Helm charts. We add their repository and update the local index so Helm can find the nginx chart.",
+      "what_it_does": "Registers the Bitnami chart repository and refreshes chart metadata.",
+      "next_step": "Install the nginx chart with v1 values.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 4: Install Release with v1 Values",
+      "command": "helm install diff-demo bitnami/nginx -f helm-scenarios/09-helm-diff/values-v1.yaml -n helm-scenarios --wait --timeout 120s",
+      "description": "Install nginx with initial v1 configuration (1 replica, ClusterIP, base resources)",
+      "explanation": "Installs the Bitnami nginx chart as release 'diff-demo' using values-v1.yaml. This creates a single replica with ClusterIP service and conservative resource limits. The --wait flag ensures the deployment is fully ready before proceeding.",
+      "what_it_does": "Deploys nginx chart as 'diff-demo' release with v1 configuration.",
+      "next_step": "Verify the release is running.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 5: Verify Release Status",
+      "command": "helm status diff-demo -n helm-scenarios --show-resources",
+      "description": "Check the status of the installed release and its resources",
+      "explanation": "Shows the current status (should be 'deployed'), the revision number (1), and all Kubernetes resources managed by this release. You should see 1 pod, 1 service, 1 deployment, and 1 replicaset.",
+      "what_it_does": "Displays release status and all managed Kubernetes resources.",
+      "next_step": "Preview what would change if we upgrade to v2.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 6: Preview Changes with Helm Diff",
+      "command": "helm diff upgrade diff-demo bitnami/nginx -f helm-scenarios/09-helm-diff/values-v2.yaml -n helm-scenarios",
+      "description": "Preview what will change when upgrading from v1 to v2 (without applying anything)",
+      "explanation": "This is the key step! 'helm diff upgrade' renders the chart with values-v2.yaml and compares it against the currently deployed release. Nothing is changed on the cluster. You will see a colorized diff showing: replicas changing from 1 to 3, service type from ClusterIP to NodePort, increased resource limits, updated server block, and changed labels. Review each change carefully before proceeding.",
+      "what_it_does": "Shows a detailed diff of all resource changes without applying them.",
+      "next_step": "Review the diff output, then apply the upgrade.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 7: Apply the Upgrade",
+      "command": "helm upgrade diff-demo bitnami/nginx -f helm-scenarios/09-helm-diff/values-v2.yaml -n helm-scenarios --wait --timeout 120s",
+      "description": "Apply the upgrade to v2 configuration now that we have reviewed the diff",
+      "explanation": "After reviewing the diff and confirming the changes are correct, we apply the actual upgrade. Helm performs a rolling update to transition from v1 to v2 configuration. The --wait flag ensures all 3 new replicas are ready before the command returns.",
+      "what_it_does": "Upgrades the 'diff-demo' release to v2 configuration (3 replicas, NodePort, increased resources).",
+      "next_step": "Run diff again to confirm the cluster matches the desired state.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 8: Confirm No Drift",
+      "command": "helm diff upgrade diff-demo bitnami/nginx -f helm-scenarios/09-helm-diff/values-v2.yaml -n helm-scenarios",
+      "description": "Run helm diff again to verify no drift between desired and actual state",
+      "explanation": "Running 'helm diff upgrade' with the same values file against the now-upgraded release should produce no output (or minimal output). No diff means the cluster state matches exactly what the chart would produce -- zero configuration drift. This is a powerful validation technique for production environments.",
+      "what_it_does": "Verifies the deployed release matches the desired v2 configuration with no drift.",
+      "next_step": "Verify the upgraded resources are running.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 9: Verify Upgraded Resources",
+      "command": "kubectl get pods,svc -n helm-scenarios -l app.kubernetes.io/instance=diff-demo -o wide",
+      "description": "Confirm 3 replicas are running and service is NodePort",
+      "explanation": "You should see 3 pods running (scaled up from 1) and the service type changed to NodePort with port 30090. This confirms the upgrade was applied successfully as previewed by the diff.",
+      "what_it_does": "Lists pods and services for the diff-demo release to confirm v2 state.",
+      "next_step": "Scenario complete! Clean up when ready.",
+      "cleanup": false
+    },
+    {
+      "name": "Cleanup: Remove Release",
+      "command": "helm uninstall diff-demo -n helm-scenarios",
+      "description": "Remove the diff-demo release and all its resources",
+      "explanation": "Uninstalls the Helm release and deletes all Kubernetes resources it created (deployment, service, configmaps, etc). The namespace is left intact for other scenarios.",
+      "what_it_does": "Removes the 'diff-demo' release and all associated resources.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

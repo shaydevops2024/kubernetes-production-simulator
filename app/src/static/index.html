@@ -7,6 +7,55 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+    <!-- Tour Overlay -->
+    <div id="tour-overlay" class="tour-overlay"></div>
+
+    <!-- Tour Tooltip -->
+    <div id="tour-tooltip" class="tour-tooltip">
+        <div class="tour-tooltip-header">
+            <h4 id="tour-title">Welcome</h4>
+            <span class="tour-step-counter" id="tour-step-counter">1/6</span>
+        </div>
+        <div class="tour-tooltip-content">
+            <p id="tour-content">Tour content here</p>
+        </div>
+        <div class="tour-progress" id="tour-progress"></div>
+        <div class="tour-tooltip-footer">
+            <button class="tour-skip-btn" onclick="endTour()">Skip Tour</button>
+            <div class="tour-nav-buttons">
+                <button class="btn btn-secondary" id="tour-prev-btn" onclick="prevTourStep()">Back</button>
+                <button class="btn btn-primary" id="tour-next-btn" onclick="nextTourStep()">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tour Welcome Modal -->
+    <div id="tour-welcome-modal" class="tour-welcome-modal">
+        <div class="tour-welcome-content">
+            <div class="tour-welcome-header">
+                <h2>Welcome to DevOps Simulator!</h2>
+                <p>Your Kubernetes Learning Platform</p>
+            </div>
+            <div class="tour-welcome-body">
+                <p>This interactive platform helps you learn Kubernetes, Helm, and ArgoCD through hands-on scenarios and real-time cluster monitoring.</p>
+                <div class="tour-welcome-actions">
+                    <button class="btn btn-primary" onclick="startTour()">Take a Quick Tour</button>
+                    <button class="btn btn-secondary" onclick="skipTour()">Skip for Now</button>
+                </div>
+                <label class="tour-welcome-checkbox">
+                    <input type="checkbox" id="tour-dont-show">
+                    Don't show this again
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Button - Start Tour -->
+    <button class="tour-help-btn" onclick="showTourWelcome()" title="Take a guided tour">
+        ?
+        <span class="tooltip-text">Take a Tour</span>
+    </button>
+
     <!-- Modal Overlay -->
     <div id="modal-overlay" class="modal-overlay">
         <div class="modal-content">
@@ -23,27 +72,71 @@
         </div>
     </div>
 
+    <!-- Testing Actions Sidebar Overlay -->
+    <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeTestingSidebar()"></div>
+
+    <!-- Testing Actions Right Sidebar -->
+    <div id="testing-sidebar" class="right-sidebar">
+        <div class="right-sidebar-header">
+            <h3>Testing Actions</h3>
+            <button class="right-sidebar-close" onclick="closeTestingSidebar()">&times;</button>
+        </div>
+        <div class="right-sidebar-content">
+            <div class="testing-actions-list">
+                <button class="btn btn-soft" onclick="makeUnhealthy(); closeTestingSidebar();">
+                    <span class="action-icon">💔</span> Make Unhealthy
+                </button>
+                <button class="btn btn-soft" onclick="simulateNotReady(); closeTestingSidebar();">
+                    <span class="action-icon">⏸️</span> Not Ready
+                </button>
+                <button class="btn btn-soft" onclick="resetApp(); closeTestingSidebar();">
+                    <span class="action-icon">🔄</span> Reset App
+                </button>
+                <button class="btn btn-soft" onclick="closeTestingSidebar(); switchTab('loadtest');">
+                    <span class="action-icon">⚡</span> HPA Load Test
+                </button>
+                <button class="btn btn-soft" onclick="closeTestingSidebar(); switchTab('database');">
+                    <span class="action-icon">🗄️</span> Test Stateful DB
+                </button>
+                <button class="btn btn-soft" onclick="closeTestingSidebar(); switchTab('logs');">
+                    <span class="action-icon">📝</span> Logs
+                </button>
+                <button class="btn btn-soft" onclick="showMonitoringCommands(); closeTestingSidebar();">
+                    <span class="action-icon">📊</span> Basic CLI Info
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="app-container">
         <!-- Left Sidebar -->
         <div class="sidebar">
             <div class="sidebar-header">
                 <h1>DevOps<br>Simulator</h1>
             </div>
-            <nav class="sidebar-nav">
+            <nav class="sidebar-nav" id="tour-sidebar-nav">
                 <div class="nav-item active" onclick="switchTab('dashboard')">
                     <span class="nav-icon">📊</span>
                     <span class="nav-text">Dashboard</span>
                 </div>
-                <div class="nav-item" onclick="openPlayKubernetes()">
+                <div class="nav-item" id="tour-play-k8s" onclick="openPlayKubernetes()">
                     <span class="nav-icon">🎮</span>
                     <span class="nav-text">Play Kubernetes</span>
                 </div>
-                <div class="nav-item" onclick="openPlayArgoCD()">
-                    <span class="nav-icon">🎯</span>
+                <div class="nav-item" id="tour-play-argocd" onclick="openPlayArgoCD()">
+                    <span class="nav-icon">🐙</span>
                     <span class="nav-text">Play ArgoCD</span>
                 </div>
+                <div class="nav-item" id="tour-play-helm" onclick="openPlayHelm()">
+                    <span class="nav-icon" style="color: #326CE5;">⎈</span>
+                    <span class="nav-text">Play Helm</span>
+                </div>
+                <div class="nav-item" id="tour-play-gitlab-ci" onclick="openPlayGitlabCI()">
+                    <span class="nav-icon" style="color: #E24329;">🦊</span>
+                    <span class="nav-text">Play GitLab CI</span>
+                </div>
             </nav>
-            <div class="sidebar-footer">
+            <div class="sidebar-footer" id="tour-developer-info">
                 <div class="developer-info">
                     Developed by<br>
                     <strong>Shay Guedj</strong><br>
@@ -75,7 +168,7 @@
                     </div>
                     
                     <!-- Cluster Stats Grid (Updated with two-column layout for Deployments) -->
-                    <div class="cluster-stats-grid">
+                    <div class="cluster-stats-grid" id="tour-cluster-stats">
                         <div class="cluster-stat-box" onclick="showClusterDetails('deployments')">
                             <div class="deployment-stats-container">
                                 <div class="deployment-stat-column">
@@ -101,8 +194,13 @@
                     </div>
                     
                     <!-- Application Info - Full Width -->
-                    <div class="status-card">
-                        <h3>Application Info</h3>
+                    <div class="status-card" id="tour-app-info">
+                        <div class="status-card-header">
+                            <h3>Application Info</h3>
+                            <button class="btn-testing-actions" id="tour-testing-btn" onclick="openTestingSidebar()">
+                                🧪 Testing Actions
+                            </button>
+                        </div>
                         <div class="status-list">
                             <div class="status-row">
                                 <span class="status-label">Environment</span>
@@ -132,7 +230,7 @@
                     </div>
 
                     <!-- Deployment Tools - Full Width -->
-                    <div class="status-card">
+                    <div class="status-card" id="tour-deployment-tools">
                         <h3>Deployment Tools</h3>
                         <div class="deployment-tools-row">
                             <!-- Helm Section -->
@@ -181,25 +279,6 @@
                                 </div>
                                 <div id="argocd-apps-list" class="tool-list" style="display: none;"></div>
                                 <button class="btn btn-primary" onclick="openArgoCD()">Open ArgoCD</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Collapsible Testing Actions -->
-                    <div class="collapsible-section">
-                        <div class="collapsible-header" onclick="toggleTestingActions()">
-                            <span class="collapsible-title">Testing Actions</span>
-                            <span class="collapsible-toggle" id="testing-toggle">▶</span>
-                        </div>
-                        <div class="collapsible-content" id="testing-actions-content">
-                            <div class="testing-actions-grid">
-                                <button class="btn btn-soft" onclick="makeUnhealthy()">💔 Make Unhealthy</button>
-                                <button class="btn btn-soft" onclick="simulateNotReady()">⏸️ Not Ready</button>
-                                <button class="btn btn-soft" onclick="resetApp()">🔄 Reset App</button>
-                                <button class="btn btn-soft" onclick="switchTab('loadtest')">⚡ HPA Load Test</button>
-                                <button class="btn btn-soft" onclick="switchTab('database')">🗄️ Test Stateful DB</button>
-                                <button class="btn btn-soft" onclick="switchTab('logs')">📝 Logs</button>
-                                <button class="btn btn-soft" onclick="showMonitoringCommands()">📊 Basic CLI Info</button>
                             </div>
                         </div>
                     </div>

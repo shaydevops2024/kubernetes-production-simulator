@@ -1,0 +1,61 @@
+{
+  "scenario_id": "03-docker-build-registry",
+  "difficulty": "medium",
+  "duration": "15 min",
+  "commands": [
+    {
+      "name": "Step 1: Review Docker Build Pipeline",
+      "command": "cat gitlab-ci-scenarios/03-docker-build-registry/.gitlab-ci.yml",
+      "description": "Examine a production Docker build pipeline with Kaniko",
+      "explanation": "This pipeline builds Docker images using Kaniko (the production standard) instead of Docker-in-Docker. Kaniko runs in unprivileged mode, doesn't need a Docker daemon, and supports layer caching. The pipeline builds, tags with commit SHA and semver, and pushes to the container registry.",
+      "what_it_does": "Displays a complete Docker build pipeline using Kaniko with multi-tag strategy.",
+      "next_step": "Understand why Kaniko over Docker-in-Docker.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 2: Kaniko vs Docker-in-Docker",
+      "command": "echo '=== Docker-in-Docker (DinD) ===' && echo 'How: Runs a Docker daemon inside the CI container' && echo 'Requires: privileged: true (security risk!)' && echo 'Pros: Full Docker CLI compatibility' && echo 'Cons: Privileged mode, slower startup, layer cache lost between jobs' && echo '' && echo '.gitlab-ci.yml:' && echo '  build:' && echo '    image: docker:24.0' && echo '    services:' && echo '      - docker:24.0-dind        # Sidecar Docker daemon' && echo '    variables:' && echo '      DOCKER_TLS_CERTDIR: \"/certs\"' && echo '    script:' && echo '      - docker build -t myapp .' && echo '      - docker push myapp' && echo '' && echo '=== Kaniko (Production Standard) ===' && echo 'How: Builds images in userspace, no Docker daemon needed' && echo 'Requires: No special privileges' && echo 'Pros: Secure, built-in caching, works in restricted clusters' && echo 'Cons: Cannot run Docker commands (only builds)' && echo '' && echo '.gitlab-ci.yml:' && echo '  build:' && echo '    image:' && echo '      name: gcr.io/kaniko-project/executor:v1.14.0-debug' && echo '      entrypoint: [\"\"]' && echo '    script:' && echo '      - /kaniko/executor' && echo '          --context $CI_PROJECT_DIR' && echo '          --dockerfile $CI_PROJECT_DIR/Dockerfile' && echo '          --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA' && echo '          --cache=true' && echo '' && echo '✅ Use Kaniko for production. DinD only for special cases.'",
+      "description": "Compare Docker-in-Docker and Kaniko approaches for building images in CI",
+      "explanation": "Docker-in-Docker requires running containers in privileged mode, which is a security risk - a container escape could compromise the host. Kaniko builds images entirely in userspace by extracting the base image filesystem, executing Dockerfile commands, and snapshotting layers. Most Kubernetes clusters disable privileged containers, making Kaniko the only option.",
+      "what_it_does": "Compares DinD and Kaniko with code examples, highlighting why Kaniko is preferred for production.",
+      "next_step": "Learn about image tagging strategies.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 3: Image Tagging Strategies",
+      "command": "echo '=== Image Tagging Strategies ===' && echo '' && echo '1. Commit SHA (REQUIRED for production):' && echo '   registry.gitlab.com/myapp:a1b2c3d4e5f6' && echo '   ✅ Unique, traceable, immutable' && echo '   ✅ \"Which exact code is running?\" → git show a1b2c3d4e5f6' && echo '' && echo '2. Semantic Version (for releases):' && echo '   registry.gitlab.com/myapp:1.4.2' && echo '   ✅ Human-readable, follows semver' && echo '   ✅ Used for tagged releases' && echo '' && echo '3. Latest (for development only):' && echo '   registry.gitlab.com/myapp:latest' && echo '   ⚠️  NEVER use in production deployments' && echo '   ⚠️  \"latest\" is mutable - you cannot trace what is running' && echo '' && echo '4. Branch-based (for feature branches):' && echo '   registry.gitlab.com/myapp:feature-login-page' && echo '   ✅ Good for review apps and testing' && echo '' && echo 'Production pattern: Tag with BOTH SHA and version' && echo '  --destination $REGISTRY:$CI_COMMIT_SHA' && echo '  --destination $REGISTRY:$CI_COMMIT_TAG  # if tagged' && echo '' && echo 'Deploy with SHA, display version to users.'",
+      "description": "Learn which image tags to use for different environments and why",
+      "explanation": "Image tagging is a critical production decision. Using 'latest' in production means you cannot tell which code is running and cannot reliably rollback. Commit SHA tags are unique and let you trace any running container back to the exact code. Semver tags are for human consumption. The production pattern is to tag with SHA (for deployment) AND version (for display).",
+      "what_it_does": "Explains the four main tagging strategies and when to use each one.",
+      "next_step": "See how layer caching speeds up builds.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 4: Layer Caching for Fast Builds",
+      "command": "echo '=== Docker Layer Caching in CI ===' && echo '' && echo 'Without caching: Every build downloads ALL base layers + rebuilds everything' && echo '  Build time: 5-15 minutes ❌' && echo '' && echo 'With caching: Only rebuilds layers that changed' && echo '  Build time: 30-60 seconds ✅' && echo '' && echo '--- Kaniko Cache Configuration ---' && echo '/kaniko/executor \\' && echo '  --cache=true \\' && echo '  --cache-repo=$CI_REGISTRY_IMAGE/cache \\' && echo '  --cache-ttl=168h  # 7 days' && echo '' && echo '--- Dockerfile Optimization for Caching ---' && echo '# ❌ Bad: COPY before install invalidates cache on any file change' && echo '  COPY . /app/' && echo '  RUN pip install -r requirements.txt' && echo '' && echo '# ✅ Good: Copy requirements first, install, then copy code' && echo '  COPY requirements.txt /app/' && echo '  RUN pip install -r requirements.txt  # Cached if requirements unchanged' && echo '  COPY . /app/                          # Only this layer rebuilds' && echo '' && echo 'Rule: Put rarely-changing layers FIRST, frequently-changing layers LAST.'",
+      "description": "Understand Docker layer caching and how to optimize builds for CI",
+      "explanation": "Layer caching can reduce build times from minutes to seconds. Docker caches each layer (instruction) and reuses it if the input hasn't changed. In CI, Kaniko can store and retrieve cache from the container registry itself (--cache-repo). The Dockerfile order matters enormously: put dependency installation before code copy, so changing code doesn't invalidate the dependency cache.",
+      "what_it_does": "Explains layer caching with Kaniko and shows Dockerfile optimization patterns.",
+      "next_step": "Review the example multi-stage Dockerfile.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 5: Multi-Stage Dockerfile",
+      "command": "cat gitlab-ci-scenarios/03-docker-build-registry/Dockerfile.example",
+      "description": "Examine a production multi-stage Dockerfile optimized for CI builds",
+      "explanation": "Multi-stage builds produce smaller, more secure images. The builder stage has all the build tools (gcc, npm, pip). The final stage only has the runtime (python-slim). This can reduce image size from 1GB+ to under 100MB. Smaller images mean faster pulls, less storage cost, and a smaller attack surface.",
+      "what_it_does": "Displays a multi-stage Dockerfile with builder and runtime stages.",
+      "next_step": "Review the complete Docker build pipeline summary.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 6: Docker Build Pipeline Summary",
+      "command": "echo '============================================' && echo '  Docker Build Pipeline Best Practices' && echo '============================================' && echo '' && echo 'Build:' && echo '  ✅ Use Kaniko (not DinD) for security' && echo '  ✅ Enable layer caching (--cache=true)' && echo '  ✅ Use multi-stage Dockerfiles' && echo '  ✅ Order Dockerfile for cache efficiency' && echo '' && echo 'Tagging:' && echo '  ✅ Always tag with $CI_COMMIT_SHA' && echo '  ✅ Add semver tag for releases ($CI_COMMIT_TAG)' && echo '  ❌ Never deploy \"latest\" to production' && echo '' && echo 'Security:' && echo '  ✅ Scan images for vulnerabilities (container_scanning)' && echo '  ✅ Use minimal base images (alpine, distroless, slim)' && echo '  ✅ Run as non-root user in Dockerfile' && echo '  ✅ No secrets in Docker build args' && echo '' && echo 'Registry:' && echo '  ✅ Use GitLab Container Registry ($CI_REGISTRY_IMAGE)' && echo '  ✅ Set image expiration policies (cleanup old tags)' && echo '  ✅ Use immutable tags for production deployments'",
+      "description": "Review the complete checklist for Docker builds in GitLab CI",
+      "explanation": "These practices form the standard for production Docker builds. Kaniko for security, caching for speed, SHA tagging for traceability, and scanning for vulnerability detection. Every production team should have these patterns in their pipeline library.",
+      "what_it_does": "Prints a comprehensive Docker build pipeline best practices checklist.",
+      "next_step": "Scenario complete!",
+      "cleanup": false
+    }
+  ]
+}

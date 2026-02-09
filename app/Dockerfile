@@ -49,13 +49,23 @@ COPY k8s-scenarios/ /scenarios/
 # Copy ArgoCD scenarios into the image
 COPY argocd-scenarios/ /argocd-scenarios/
 
+# Copy Helm scenarios into the image
+COPY helm-scenarios/ /helm-scenarios/
+
+# Copy GitLab CI scenarios into the image
+COPY gitlab-ci-scenarios/ /gitlab-ci-scenarios/
+
 # Now create non-root user and set ownership
 RUN useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /app && \
     chown -R appuser:appuser /scenarios && \
     chmod -R 755 /scenarios && \
     chown -R appuser:appuser /argocd-scenarios && \
-    chmod -R 755 /argocd-scenarios
+    chmod -R 755 /argocd-scenarios && \
+    chown -R appuser:appuser /helm-scenarios && \
+    chmod -R 755 /helm-scenarios && \
+    chown -R appuser:appuser /gitlab-ci-scenarios && \
+    chmod -R 755 /gitlab-ci-scenarios
 
 # Switch to non-root user
 USER appuser

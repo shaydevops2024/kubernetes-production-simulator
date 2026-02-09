@@ -1,0 +1,21 @@
+replicaCount: 2
+image:
+  repository: nginx
+  tag: "1.24"
+  pullPolicy: IfNotPresent
+service:
+  type: ClusterIP
+  port: 80
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+canary:
+  enabled: false
+  weight: 20
+healthcheck:
+  path: /
+  port: 80

@@ -1,0 +1,98 @@
+# .gitlab-ci.yml - Kubernetes Deployments from GitLab CI
+# Production-grade K8s deployment pipeline
+
+stages:
+  - build
+  - deploy-staging
+  - test-staging
+  - deploy-production
+
+variables:
+  APP_NAME: "myapp"
+  HELM_CHART: "./chart"
+
+# Build and push Docker image
+build:
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:v1.14.0-debug
+    entrypoint: [""]
+  script:
+    - /kaniko/executor
+        --context $CI_PROJECT_DIR
+        --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+        --cache=true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# Deploy to staging (automatic)
+deploy-staging:
+  stage: deploy-staging
+  image: alpine/helm:3.14
+  script:
+    - helm upgrade --install $APP_NAME $HELM_CHART
+        --namespace staging
+        --values $HELM_CHART/values-staging.yaml
+        --set image.tag=$CI_COMMIT_SHA
+        --set image.repository=$CI_REGISTRY_IMAGE
+        --atomic
+        --timeout 5m
+        --wait
+        --max-history 10
+  environment:
+    name: staging
+    url: https://staging.example.com
+    kubernetes:
+      namespace: staging
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# Smoke test staging
+smoke-test-staging:
+  stage: test-staging
+  image: curlimages/curl:latest
+  script:
+    - curl -f https://staging.example.com/health || exit 1
+    - curl -f https://staging.example.com/api/status || exit 1
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# Deploy to production (manual gate)
+deploy-production:
+  stage: deploy-production
+  image: alpine/helm:3.14
+  script:
+    - helm upgrade --install $APP_NAME $HELM_CHART
+        --namespace production
+        --values $HELM_CHART/values-production.yaml
+        --set image.tag=$CI_COMMIT_SHA
+        --set image.repository=$CI_REGISTRY_IMAGE
+        --atomic
+        --timeout 10m
+        --wait
+        --max-history 10
+  environment:
+    name: production
+    url: https://app.example.com
+    kubernetes:
+      namespace: production
+  when: manual  # Requires manual approval
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# Emergency rollback (manual)
+rollback-production:
+  stage: deploy-production
+  image: alpine/helm:3.14
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - helm rollback $APP_NAME 0 --namespace production --wait
+    - echo "Rolled back to previous release"
+    - helm history $APP_NAME --namespace production
+  environment:
+    name: production
+    action: stop
+  when: manual
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"

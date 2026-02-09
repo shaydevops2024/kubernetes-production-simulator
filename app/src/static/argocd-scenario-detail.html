@@ -639,10 +639,10 @@
             fetch('/api/argocd/url')
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
-                    window.open(data.url || 'http://localhost:30800', '_blank');
+                    window.open(data.url || 'http://k8s-multi-demo.argocd:30800/', '_blank');
                 })
                 .catch(function() {
-                    window.open('http://localhost:30800', '_blank');
+                    window.open('http://k8s-multi-demo.argocd:30800/', '_blank');
                 });
         }
 
@@ -664,6 +664,14 @@
                 totalSteps = allCommands.length;
 
                 renderScenario(data);
+
+                // Auto-scroll to bottom after 2 seconds
+                setTimeout(function() {
+                    window.scrollTo({
+                        top: document.body.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                }, 2000);
             } catch (error) {
                 document.getElementById('scenario-content').innerHTML =
                     '<div class="error-message"><h3>Error Loading Scenario</h3><p>' + error.message + '</p></div>';
@@ -892,16 +900,51 @@
 
         function copyCommand(btn, encodedCommand) {
             var command = atob(encodedCommand);
-            navigator.clipboard.writeText(command).then(function() {
+
+            function showSuccess() {
                 btn.classList.add('copied');
                 btn.innerHTML = '<span>✓</span><span>Copied!</span>';
                 setTimeout(function() {
                     btn.classList.remove('copied');
                     btn.innerHTML = '<span>📋</span><span>Copy Command</span>';
                 }, 2000);
-            }).catch(function(err) {
+            }
+
+            function showError(err) {
                 console.error('Copy failed:', err);
-            });
+                alert('Failed to copy. Please copy manually: ' + command);
+            }
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(command).then(showSuccess).catch(function(err) {
+                    // Fallback for clipboard API failure
+                    fallbackCopy(command, showSuccess, showError);
+                });
+            } else {
+                // Fallback for browsers without clipboard API
+                fallbackCopy(command, showSuccess, showError);
+            }
+        }
+
+        function fallbackCopy(text, onSuccess, onError) {
+            var textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                var successful = document.execCommand('copy');
+                if (successful) {
+                    onSuccess();
+                } else {
+                    onError('execCommand returned false');
+                }
+            } catch (err) {
+                onError(err);
+            }
+            document.body.removeChild(textarea);
         }
 
         function escapeHtml(text) {

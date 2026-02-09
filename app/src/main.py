@@ -137,6 +137,22 @@ async def argocd_scenarios_page():
 async def argocd_scenario_detail_page(scenario_id: str):
     return FileResponse(str(static_dir / "argocd-scenario-detail.html"))
 
+@app.get("/helm-scenarios")
+async def helm_scenarios_page():
+    return FileResponse(str(static_dir / "helm-scenarios.html"))
+
+@app.get("/helm-scenario/{scenario_id}")
+async def helm_scenario_detail_page(scenario_id: str):
+    return FileResponse(str(static_dir / "helm-scenario-detail.html"))
+
+@app.get("/gitlab-ci-scenarios")
+async def gitlab_ci_scenarios_page():
+    return FileResponse(str(static_dir / "gitlab-ci-scenarios.html"))
+
+@app.get("/gitlab-ci-scenario/{scenario_id}")
+async def gitlab_ci_scenario_detail_page(scenario_id: str):
+    return FileResponse(str(static_dir / "gitlab-ci-scenario-detail.html"))
+
 @app.get("/health")
 async def health():
     REQUEST_COUNT.labels(method='GET', endpoint='/health').inc()
@@ -1141,6 +1157,348 @@ async def get_argocd_scenario(scenario_id: str):
         raise
     except Exception as e:
         logger.error(f"Error in get_argocd_scenario: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/helm-scenarios")
+async def get_helm_scenarios():
+    """Get list of all available Helm scenarios"""
+    try:
+        possible_paths = [
+            Path("/helm-scenarios"),
+            Path("/app/helm-scenarios"),
+            Path(__file__).parent.parent.parent / "helm-scenarios"
+        ]
+
+        scenarios_dir = None
+        for path in possible_paths:
+            if path.exists() and path.is_dir():
+                scenarios_dir = path
+                logger.info(f"Found Helm scenarios at: {scenarios_dir}")
+                break
+
+        if not scenarios_dir:
+            logger.warning("No Helm scenarios directory found")
+            return {"scenarios": []}
+
+        scenarios = []
+        scenario_dirs = sorted([d for d in scenarios_dir.iterdir() if d.is_dir()])
+        logger.info(f"Found {len(scenario_dirs)} Helm scenario directories")
+
+        for scenario_dir in scenario_dirs:
+            try:
+                readme_path = scenario_dir / "README.md"
+                commands_path = scenario_dir / "commands.json"
+
+                scenario_info = {
+                    "id": scenario_dir.name,
+                    "name": scenario_dir.name.replace("-", " ").title(),
+                    "description": "No description available",
+                    "difficulty": "medium",
+                    "duration": "20 min",
+                    "readme": "",
+                    "command_count": 0,
+                    "namespace": "helm-scenarios"
+                }
+
+                if readme_path.exists():
+                    with open(readme_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        lines = [l.strip() for l in content.split('\n') if l.strip() and not l.startswith('#')]
+                        if lines:
+                            scenario_info["description"] = lines[0][:200]
+                        scenario_info["readme"] = content
+
+                if commands_path.exists():
+                    with open(commands_path, 'r', encoding='utf-8') as f:
+                        commands_data = json.load(f)
+                        scenario_info["command_count"] = len(commands_data.get("commands", []))
+                        scenario_info["difficulty"] = commands_data.get("difficulty", "medium")
+                        scenario_info["duration"] = commands_data.get("duration", "20 min")
+
+                yaml_files = list(scenario_dir.glob("*.yaml")) + list(scenario_dir.glob("*.yml"))
+                scenario_info["yaml_file_count"] = len(yaml_files)
+
+                scenarios.append(scenario_info)
+            except Exception as e:
+                logger.error(f"Error processing Helm scenario {scenario_dir.name}: {e}")
+                continue
+
+        logger.info(f"Processed {len(scenarios)} Helm scenarios")
+        return {"scenarios": scenarios}
+    except Exception as e:
+        logger.error(f"Fatal error in get_helm_scenarios: {e}", exc_info=True)
+        return {"scenarios": [], "error": str(e)}
+
+@app.get("/api/helm-scenarios/{scenario_id}")
+async def get_helm_scenario(scenario_id: str):
+    """Get detailed Helm scenario info including YAML files"""
+    try:
+        possible_paths = [
+            Path("/helm-scenarios"),
+            Path("/app/helm-scenarios"),
+            Path(__file__).parent.parent.parent / "helm-scenarios"
+        ]
+
+        scenario_dir = None
+        for base_path in possible_paths:
+            test_path = base_path / scenario_id
+            if test_path.exists() and test_path.is_dir():
+                scenario_dir = test_path
+                break
+
+        if not scenario_dir:
+            raise HTTPException(status_code=404, detail=f"Helm scenario '{scenario_id}' not found")
+
+        logger.info(f"Loading Helm scenario from: {scenario_dir}")
+
+        scenario_info = {
+            "id": scenario_id,
+            "name": scenario_id.replace("-", " ").title(),
+            "readme": "",
+            "commands": [],
+            "yaml_files": [],
+            "difficulty": "medium",
+            "duration": "20 min",
+            "namespace": "helm-scenarios"
+        }
+
+        readme_path = scenario_dir / "README.md"
+        if readme_path.exists():
+            with open(readme_path, 'r', encoding='utf-8') as f:
+                scenario_info["readme"] = f.read()
+        else:
+            scenario_info["readme"] = "# No README available"
+
+        commands_path = scenario_dir / "commands.json"
+        if commands_path.exists():
+            with open(commands_path, 'r', encoding='utf-8') as f:
+                commands_data = json.load(f)
+                scenario_info["commands"] = commands_data.get("commands", [])
+                scenario_info["difficulty"] = commands_data.get("difficulty", "medium")
+                scenario_info["duration"] = commands_data.get("duration", "20 min")
+
+        # Collect YAML files from scenario dir and subdirectories
+        yaml_files = []
+        for pattern in ["*.yaml", "*.yml"]:
+            yaml_files.extend(scenario_dir.glob(pattern))
+            yaml_files.extend(scenario_dir.glob(f"**/{pattern}"))
+
+        # Deduplicate and sort
+        seen = set()
+        unique_yaml = []
+        for f in yaml_files:
+            if f.resolve() not in seen:
+                seen.add(f.resolve())
+                unique_yaml.append(f)
+
+        def yaml_sort_key(p):
+            name = p.name.lower()
+            if 'chart' in name:
+                return (0, name)
+            elif 'values' in name:
+                return (1, name)
+            elif 'deployment' in name:
+                return (2, name)
+            elif 'service' in name:
+                return (3, name)
+            else:
+                return (4, name)
+
+        unique_yaml = sorted(unique_yaml, key=yaml_sort_key)
+        logger.info(f"Found {len(unique_yaml)} YAML files for Helm scenario {scenario_id}")
+
+        for yaml_file in unique_yaml:
+            try:
+                rel_path = yaml_file.relative_to(scenario_dir)
+                with open(yaml_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    scenario_info["yaml_files"].append({
+                        "name": str(rel_path),
+                        "content": content
+                    })
+            except Exception as e:
+                logger.error(f"Error reading {yaml_file.name}: {e}")
+                scenario_info["yaml_files"].append({
+                    "name": yaml_file.name,
+                    "content": f"# Error loading file: {str(e)}"
+                })
+
+        logger.info(f"Helm scenario {scenario_id}: {len(scenario_info['commands'])} commands, {len(scenario_info['yaml_files'])} YAML files")
+        return scenario_info
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in get_helm_scenario: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/gitlab-ci-scenarios")
+async def get_gitlab_ci_scenarios():
+    """Get list of all available GitLab CI scenarios"""
+    try:
+        possible_paths = [
+            Path("/gitlab-ci-scenarios"),
+            Path("/app/gitlab-ci-scenarios"),
+            Path(__file__).parent.parent.parent / "gitlab-ci-scenarios"
+        ]
+
+        scenarios_dir = None
+        for path in possible_paths:
+            if path.exists() and path.is_dir():
+                scenarios_dir = path
+                logger.info(f"Found GitLab CI scenarios at: {scenarios_dir}")
+                break
+
+        if not scenarios_dir:
+            logger.warning("No GitLab CI scenarios directory found")
+            return {"scenarios": []}
+
+        scenarios = []
+        scenario_dirs = sorted([d for d in scenarios_dir.iterdir() if d.is_dir()])
+        logger.info(f"Found {len(scenario_dirs)} GitLab CI scenario directories")
+
+        for scenario_dir in scenario_dirs:
+            try:
+                readme_path = scenario_dir / "README.md"
+                commands_path = scenario_dir / "commands.json"
+
+                scenario_info = {
+                    "id": scenario_dir.name,
+                    "name": scenario_dir.name.replace("-", " ").title(),
+                    "description": "No description available",
+                    "difficulty": "medium",
+                    "duration": "15 min",
+                    "readme": "",
+                    "command_count": 0,
+                    "namespace": "gitlab-ci-scenarios"
+                }
+
+                if readme_path.exists():
+                    with open(readme_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        lines = [l.strip() for l in content.split('\n') if l.strip() and not l.startswith('#')]
+                        if lines:
+                            scenario_info["description"] = lines[0][:200]
+                        scenario_info["readme"] = content
+
+                if commands_path.exists():
+                    with open(commands_path, 'r', encoding='utf-8') as f:
+                        commands_data = json.load(f)
+                        scenario_info["command_count"] = len(commands_data.get("commands", []))
+                        scenario_info["difficulty"] = commands_data.get("difficulty", "medium")
+                        scenario_info["duration"] = commands_data.get("duration", "15 min")
+
+                yaml_files = list(scenario_dir.glob("*.yaml")) + list(scenario_dir.glob("*.yml"))
+                scenario_info["yaml_file_count"] = len(yaml_files)
+
+                scenarios.append(scenario_info)
+            except Exception as e:
+                logger.error(f"Error processing GitLab CI scenario {scenario_dir.name}: {e}")
+                continue
+
+        logger.info(f"Processed {len(scenarios)} GitLab CI scenarios")
+        return {"scenarios": scenarios}
+    except Exception as e:
+        logger.error(f"Fatal error in get_gitlab_ci_scenarios: {e}", exc_info=True)
+        return {"scenarios": [], "error": str(e)}
+
+@app.get("/api/gitlab-ci-scenarios/{scenario_id}")
+async def get_gitlab_ci_scenario(scenario_id: str):
+    """Get detailed GitLab CI scenario info including YAML files"""
+    try:
+        possible_paths = [
+            Path("/gitlab-ci-scenarios"),
+            Path("/app/gitlab-ci-scenarios"),
+            Path(__file__).parent.parent.parent / "gitlab-ci-scenarios"
+        ]
+
+        scenario_dir = None
+        for base_path in possible_paths:
+            test_path = base_path / scenario_id
+            if test_path.exists() and test_path.is_dir():
+                scenario_dir = test_path
+                break
+
+        if not scenario_dir:
+            raise HTTPException(status_code=404, detail=f"GitLab CI scenario '{scenario_id}' not found")
+
+        logger.info(f"Loading GitLab CI scenario from: {scenario_dir}")
+
+        scenario_info = {
+            "id": scenario_id,
+            "name": scenario_id.replace("-", " ").title(),
+            "readme": "",
+            "commands": [],
+            "yaml_files": [],
+            "difficulty": "medium",
+            "duration": "15 min",
+            "namespace": "gitlab-ci-scenarios"
+        }
+
+        readme_path = scenario_dir / "README.md"
+        if readme_path.exists():
+            with open(readme_path, 'r', encoding='utf-8') as f:
+                scenario_info["readme"] = f.read()
+        else:
+            scenario_info["readme"] = "# No README available"
+
+        commands_path = scenario_dir / "commands.json"
+        if commands_path.exists():
+            with open(commands_path, 'r', encoding='utf-8') as f:
+                commands_data = json.load(f)
+                scenario_info["commands"] = commands_data.get("commands", [])
+                scenario_info["difficulty"] = commands_data.get("difficulty", "medium")
+                scenario_info["duration"] = commands_data.get("duration", "15 min")
+
+        # Collect YAML files from scenario dir and subdirectories
+        yaml_files = []
+        for pattern in ["*.yaml", "*.yml"]:
+            yaml_files.extend(scenario_dir.glob(pattern))
+            yaml_files.extend(scenario_dir.glob(f"**/{pattern}"))
+
+        # Deduplicate and sort
+        seen = set()
+        unique_yaml = []
+        for f in yaml_files:
+            if f.resolve() not in seen:
+                seen.add(f.resolve())
+                unique_yaml.append(f)
+
+        def yaml_sort_key(p):
+            name = p.name.lower()
+            if 'pipeline' in name or 'gitlab-ci' in name:
+                return (0, name)
+            elif 'deployment' in name:
+                return (1, name)
+            elif 'service' in name:
+                return (2, name)
+            else:
+                return (3, name)
+
+        unique_yaml = sorted(unique_yaml, key=yaml_sort_key)
+        logger.info(f"Found {len(unique_yaml)} YAML files for GitLab CI scenario {scenario_id}")
+
+        for yaml_file in unique_yaml:
+            try:
+                rel_path = yaml_file.relative_to(scenario_dir)
+                with open(yaml_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    scenario_info["yaml_files"].append({
+                        "name": str(rel_path),
+                        "content": content
+                    })
+            except Exception as e:
+                logger.error(f"Error reading {yaml_file.name}: {e}")
+                scenario_info["yaml_files"].append({
+                    "name": yaml_file.name,
+                    "content": f"# Error loading file: {str(e)}"
+                })
+
+        logger.info(f"GitLab CI scenario {scenario_id}: {len(scenario_info['commands'])} commands, {len(scenario_info['yaml_files'])} YAML files")
+        return scenario_info
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in get_gitlab_ci_scenario: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.on_event("shutdown")

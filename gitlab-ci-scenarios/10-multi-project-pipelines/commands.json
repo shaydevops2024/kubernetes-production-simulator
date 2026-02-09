@@ -1,0 +1,52 @@
+{
+  "scenario_id": "10-multi-project-pipelines",
+  "difficulty": "hard",
+  "duration": "20 min",
+  "commands": [
+    {
+      "name": "Step 1: Review Cross-Project Pipeline",
+      "command": "cat gitlab-ci-scenarios/10-multi-project-pipelines/.gitlab-ci.yml",
+      "description": "Examine a pipeline that triggers builds in other GitLab projects",
+      "explanation": "In a microservice architecture, services live in separate repositories. When you deploy the API service, you need to trigger integration tests (in a separate repo) and notify the deployment orchestrator (another repo). Multi-project pipelines let you chain these across repositories with full status tracking.",
+      "what_it_does": "Displays a pipeline that builds locally then triggers downstream pipelines in other projects.",
+      "next_step": "Understand cross-project triggers.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 2: Cross-Project Trigger Syntax",
+      "command": "echo '=== Triggering Pipelines in Other Projects ===' && echo '' && echo '# Basic cross-project trigger' && echo 'trigger-integration-tests:' && echo '  stage: test' && echo '  trigger:' && echo '    project: mygroup/integration-tests  # Target project' && echo '    branch: main                       # Target branch' && echo '    strategy: depend                   # Wait for result' && echo '' && echo '# With variables' && echo 'trigger-deploy:' && echo '  stage: deploy' && echo '  trigger:' && echo '    project: mygroup/deploy-orchestrator' && echo '    branch: main' && echo '    strategy: depend' && echo '  variables:' && echo '    UPSTREAM_PROJECT: $CI_PROJECT_PATH' && echo '    UPSTREAM_SHA: $CI_COMMIT_SHA' && echo '    UPSTREAM_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA' && echo '    DEPLOY_ENV: staging' && echo '' && echo '=== Authentication ===' && echo 'Cross-project triggers use $CI_JOB_TOKEN automatically.' && echo 'Requirements:' && echo '  - The triggering project needs at least Developer access' && echo '    to the target project' && echo '  - Or configure a trigger token in target project settings' && echo '' && echo '=== strategy: depend ===' && echo '  Without: Parent continues immediately (fire-and-forget)' && echo '  With:    Parent waits and mirrors child status' && echo '           Child fails → Parent fails'",
+      "description": "Learn the syntax for triggering pipelines across GitLab projects",
+      "explanation": "The trigger:project keyword creates a bridge job that launches a pipeline in another project. Variables passed via the variables: block are available in the downstream pipeline. The strategy: depend flag is critical for correctness: without it, the parent doesn't know if the downstream pipeline failed. With it, failures propagate back.",
+      "what_it_does": "Shows cross-project trigger syntax with variable passing and status propagation.",
+      "next_step": "See the deployment orchestrator pattern.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 3: Deployment Orchestrator Pattern",
+      "command": "cat gitlab-ci-scenarios/10-multi-project-pipelines/orchestrator-pipeline.yml",
+      "description": "Examine a deployment orchestrator that coordinates multiple service deployments",
+      "explanation": "The deployment orchestrator is a dedicated project that manages the deployment sequence. Individual services trigger it after their builds succeed. The orchestrator runs integration tests, deploys to staging, runs smoke tests, and then deploys to production. This centralizes deployment logic and ensures consistent rollout across all services.",
+      "what_it_does": "Displays a deployment orchestrator pipeline that coordinates multi-service deployments.",
+      "next_step": "Understand the full multi-project flow.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 4: Full Multi-Project Flow",
+      "command": "echo '=== Multi-Project Pipeline Flow ===' && echo '' && echo 'Developer pushes to api-service repo:' && echo '' && echo 'api-service/.gitlab-ci.yml:' && echo '  [build] → [test] → [trigger-integration] → [trigger-deploy]' && echo '                            │                      │' && echo '                            ▼                      ▼' && echo 'integration-tests/.gitlab-ci.yml:    deploy-orchestrator/.gitlab-ci.yml:' && echo '  [setup] → [api-tests]              [deploy-staging] → [smoke-test]' && echo '          → [web-tests]                               → [deploy-prod]' && echo '          → [e2e-tests]' && echo '' && echo '=== Variable Flow ===' && echo '' && echo 'api-service passes to integration-tests:' && echo '  UPSTREAM_IMAGE=registry/api:abc123' && echo '  UPSTREAM_PROJECT=mygroup/api-service' && echo '' && echo 'api-service passes to deploy-orchestrator:' && echo '  SERVICE_NAME=api' && echo '  IMAGE_TAG=abc123' && echo '  DEPLOY_ENV=staging' && echo '' && echo '=== Status Propagation (strategy: depend) ===' && echo '' && echo 'integration-tests FAILS → api-service pipeline FAILS' && echo 'deploy-orchestrator FAILS → api-service pipeline FAILS' && echo '' && echo 'The developer sees the failure in THEIR pipeline,' && echo 'even though the failure happened in another project.'",
+      "description": "Visualize the complete multi-project pipeline flow with variable and status propagation",
+      "explanation": "This is how large organizations manage microservice deployments. Each service repo is responsible for building and testing its own code. Cross-project triggers handle the integration: testing all services together and orchestrating the deployment. Status propagation ensures developers see failures regardless of where they occur.",
+      "what_it_does": "Shows the complete pipeline flow across three projects with variable passing and status propagation.",
+      "next_step": "Learn about multi-project best practices.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 5: Multi-Project Best Practices",
+      "command": "echo '============================================' && echo '  Multi-Project Pipeline Best Practices' && echo '============================================' && echo '' && echo 'Architecture:' && echo '  ✅ Each service builds and unit-tests independently' && echo '  ✅ Centralize integration tests in a dedicated project' && echo '  ✅ Use a deployment orchestrator for sequenced rollouts' && echo '  ✅ Always use strategy: depend for status propagation' && echo '' && echo 'Variables:' && echo '  ✅ Pass image tags, not full configs' && echo '  ✅ Use standard variable names (UPSTREAM_IMAGE, DEPLOY_ENV)' && echo '  ✅ Dont pass secrets - use project-level CI variables instead' && echo '' && echo 'Authentication:' && echo '  ✅ $CI_JOB_TOKEN for same-group projects' && echo '  ✅ Trigger tokens for cross-group projects' && echo '  ❌ Never hardcode tokens in .gitlab-ci.yml' && echo '' && echo 'Debugging:' && echo '  ✅ Log upstream project and SHA in downstream pipeline' && echo '  ✅ Link back to upstream pipeline in job output' && echo '  ✅ Use pipeline bridges view in GitLab UI' && echo '' && echo 'Limits:' && echo '  - Max 2 levels of downstream pipelines' && echo '  - Trigger token rate limits apply' && echo '  - Large fan-outs (50+ triggers) need queueing'",
+      "description": "Review best practices for multi-project pipelines",
+      "explanation": "Multi-project pipelines add complexity. The key practices are: use strategy: depend (otherwise you have no visibility into failures), centralize integration tests (don't duplicate across repos), standardize variable names (so downstream pipelines work with any upstream), and always log the upstream context for debugging.",
+      "what_it_does": "Prints a comprehensive multi-project pipeline best practices checklist.",
+      "next_step": "Scenario complete!",
+      "cleanup": false
+    }
+  ]
+}

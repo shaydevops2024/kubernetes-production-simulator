@@ -1,0 +1,106 @@
+# .gitlab-ci.yml - Merge Request Pipelines & Review Apps
+# Demonstrates MR-specific pipelines and ephemeral environments
+
+# Prevent duplicate pipelines (MR takes priority over branch)
+workflow:
+  rules:
+    - if: $CI_MERGE_REQUEST_IID
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG
+
+stages:
+  - lint
+  - test
+  - build
+  - deploy
+  - cleanup
+
+# --- Runs on ALL pipelines (MR + main) ---
+lint:
+  stage: lint
+  image: python:3.11-slim
+  script:
+    - pip install flake8
+    - flake8 src/ --max-line-length=120
+
+test:
+  stage: test
+  image: python:3.11
+  script:
+    - pip install -r requirements.txt
+    - pytest tests/ -v
+
+# --- Only on MR pipelines ---
+build-review:
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:v1.14.0-debug
+    entrypoint: [""]
+  script:
+    - /kaniko/executor
+        --context $CI_PROJECT_DIR
+        --destination $CI_REGISTRY_IMAGE:review-$CI_MERGE_REQUEST_IID
+        --cache=true
+  rules:
+    - if: $CI_MERGE_REQUEST_IID
+
+deploy-review:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  script:
+    - kubectl create namespace review-$CI_MERGE_REQUEST_IID
+        --dry-run=client -o yaml | kubectl apply -f -
+    - helm upgrade --install review-$CI_MERGE_REQUEST_IID ./chart
+        --namespace review-$CI_MERGE_REQUEST_IID
+        --set image.tag=review-$CI_MERGE_REQUEST_IID
+        --set ingress.host=review-$CI_MERGE_REQUEST_IID.dev.example.com
+        --wait --timeout 120s
+  environment:
+    name: review/$CI_COMMIT_REF_SLUG
+    url: https://review-$CI_MERGE_REQUEST_IID.dev.example.com
+    on_stop: stop-review
+    auto_stop_in: 1 week
+  rules:
+    - if: $CI_MERGE_REQUEST_IID
+
+stop-review:
+  stage: cleanup
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - helm uninstall review-$CI_MERGE_REQUEST_IID
+        --namespace review-$CI_MERGE_REQUEST_IID || true
+    - kubectl delete namespace review-$CI_MERGE_REQUEST_IID
+        --ignore-not-found
+  environment:
+    name: review/$CI_COMMIT_REF_SLUG
+    action: stop
+  rules:
+    - if: $CI_MERGE_REQUEST_IID
+      when: manual
+
+# --- Only on main branch ---
+build-production:
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:v1.14.0-debug
+    entrypoint: [""]
+  script:
+    - /kaniko/executor
+        --context $CI_PROJECT_DIR
+        --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+        --cache=true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+deploy-staging:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  script:
+    - kubectl set image deployment/myapp
+        myapp=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA -n staging
+  environment:
+    name: staging
+    url: https://staging.example.com
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"

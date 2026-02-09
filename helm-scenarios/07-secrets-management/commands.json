@@ -1,0 +1,133 @@
+{
+  "scenario_id": "07-secrets-management",
+  "difficulty": "hard",
+  "duration": "25 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Namespace",
+      "command": "kubectl create namespace helm-scenarios --dry-run=client -o yaml | kubectl apply -f -",
+      "description": "Create the helm-scenarios namespace",
+      "explanation": "Creates the namespace for our secrets management experiments.",
+      "what_it_does": "Creates 'helm-scenarios' namespace if it does not already exist.",
+      "next_step": "Review the secret template.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 2: Review Secret Template",
+      "command": "cat helm-scenarios/07-secrets-management/templates/secret.yaml",
+      "description": "Examine the secret template with lookup function support",
+      "explanation": "This template has two modes: (1) Without lookup - always creates secrets from values. (2) With lookup enabled - checks if the secret already exists in the cluster and reuses its data instead of overwriting. The lookup function is key to preventing accidental secret rotation during upgrades.",
+      "what_it_does": "Displays the secret.yaml template showing both the lookup and non-lookup code paths.",
+      "next_step": "Install with --set to pass secrets (the insecure way).",
+      "cleanup": false
+    },
+    {
+      "name": "Step 3: Install with --set (Insecure Method)",
+      "command": "helm install secrets-demo helm-scenarios/07-secrets-management/ --namespace helm-scenarios --set secrets.dbPassword=SuperSecret123 --set secrets.apiKey=api-key-abc-456 --wait",
+      "description": "Install the chart passing secrets via --set flags",
+      "explanation": "Using --set is the quickest way to pass secrets, but it is INSECURE. The values you pass are stored in the Helm release secret in the cluster. Anyone with access to Helm history or the release secret can read them. We will prove this in the next step.",
+      "what_it_does": "Installs the chart with the database password and API key passed as --set flags.",
+      "next_step": "Prove that --set values are stored in Helm history.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 4: Expose the Security Problem",
+      "command": "echo '=== SECURITY ISSUE: --set values are stored in Helm release ===' && echo '' && echo '--- helm get values shows all --set overrides: ---' && helm get values secrets-demo -n helm-scenarios && echo '' && echo '--- The actual Kubernetes secret: ---' && kubectl get secret secrets-demo-secrets-demo-credentials -n helm-scenarios -o jsonpath='{.data.DB_PASSWORD}' | base64 -d && echo '' && echo '' && echo '--- Helm release data is stored as a K8s secret: ---' && kubectl get secrets -n helm-scenarios -l owner=helm",
+      "description": "Demonstrate why --set for secrets is dangerous",
+      "explanation": "Three problems exposed: (1) 'helm get values' shows the plaintext password you passed via --set - anyone with Helm access can see it. (2) Kubernetes Secrets are only base64-encoded, not encrypted. (3) Helm stores its entire release data (including your values) as a Kubernetes Secret. Your 'secret' password is stored in at least TWO places in the cluster.",
+      "what_it_does": "Shows that --set values are visible in Helm history and the secret is only base64-encoded.",
+      "next_step": "Show the full release history containing secrets.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 5: Check Helm Release History",
+      "command": "echo '=== Helm stores ALL values for EVERY revision ===' && helm get values secrets-demo -n helm-scenarios --all && echo '' && echo '=== Even after upgrade, old revision values persist ===' && helm history secrets-demo -n helm-scenarios",
+      "description": "Show that Helm retains secret values across all revisions",
+      "explanation": "Helm keeps values for every revision. If you pass a secret via --set on revision 1, then change it on revision 2, BOTH values are stored in the cluster. Even if you rotate a password, the old one remains accessible in Helm's release history. This is why --set is fundamentally insecure for secrets.",
+      "what_it_does": "Displays all stored values and the release history, showing secrets are retained.",
+      "next_step": "Uninstall and try a better approach.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 6: Uninstall Insecure Release",
+      "command": "helm uninstall secrets-demo -n helm-scenarios",
+      "description": "Remove the insecure release before trying a better approach",
+      "explanation": "We uninstall to start fresh. In production, you would never want to leave secrets exposed in Helm history. Note: even after uninstall, if someone had taken a backup of the Helm release secrets, your passwords would be compromised.",
+      "what_it_does": "Removes the secrets-demo release and all its resources.",
+      "next_step": "Create a secret manually, then use lookup to preserve it.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 7: Create Secret Manually",
+      "command": "kubectl create secret generic secrets-demo-secrets-demo-credentials --from-literal=DB_USERNAME=app_user --from-literal=DB_PASSWORD=ManuallySetSecurePassword --from-literal=API_KEY=manually-set-api-key-789 -n helm-scenarios",
+      "description": "Create a secret outside of Helm (as an operator would)",
+      "explanation": "In many workflows, secrets are created outside of Helm - by a human operator, a CI/CD pipeline, or a secrets manager. The challenge is: how do you install/upgrade a Helm chart without overwriting these pre-existing secrets? This is where the lookup function comes in.",
+      "what_it_does": "Creates a Kubernetes Secret manually with secure credentials, outside of Helm.",
+      "next_step": "Install with lookup enabled to preserve the existing secret.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 8: Install with Lookup Function",
+      "command": "helm install secrets-demo helm-scenarios/07-secrets-management/ --namespace helm-scenarios --set secrets.useLookup=true --wait",
+      "description": "Install the chart with lookup function enabled",
+      "explanation": "With useLookup=true, the template first checks if the secret already exists in the cluster using Helm's lookup function. Since we created it manually in the previous step, the template will reuse the existing secret data instead of overwriting it with the default values from values.yaml. The default 'CHANGE_ME' passwords are NOT used.",
+      "what_it_does": "Installs the chart. The lookup function detects the existing secret and preserves its values.",
+      "next_step": "Verify the lookup preserved the manually-set secret.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 9: Verify Lookup Preserved Secret",
+      "command": "echo '=== Secret preserved by lookup function ===' && echo 'DB_PASSWORD:' && kubectl get secret secrets-demo-secrets-demo-credentials -n helm-scenarios -o jsonpath='{.data.DB_PASSWORD}' | base64 -d && echo '' && echo 'API_KEY:' && kubectl get secret secrets-demo-secrets-demo-credentials -n helm-scenarios -o jsonpath='{.data.API_KEY}' | base64 -d && echo '' && echo '' && echo '=== Helm values do NOT contain real secrets ===' && helm get values secrets-demo -n helm-scenarios",
+      "description": "Confirm the manually-created secret was preserved, not overwritten",
+      "explanation": "The secret still contains 'ManuallySetSecurePassword' and 'manually-set-api-key-789' - the values we set manually. The Helm values only show useLookup=true, NOT the actual passwords. This is much more secure because the real secrets never pass through Helm's values system.",
+      "what_it_does": "Shows that the secret data was preserved from the manual creation and Helm values do not contain passwords.",
+      "next_step": "Understand the lookup function limitation.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 10: Understand Lookup Limitations",
+      "command": "echo '=== IMPORTANT: lookup has limitations ===' && echo '' && echo '1. lookup only works during install/upgrade (not helm template)' && echo '   Try it:' && helm template secrets-demo helm-scenarios/07-secrets-management/ --set secrets.useLookup=true --namespace helm-scenarios 2>&1 | grep -A5 'Secret' | head -15 && echo '' && echo '2. lookup requires cluster access at render time' && echo '3. helm template --dry-run=client does NOT run lookup' && echo '4. lookup returns empty on first install (no existing secret)' && echo '' && echo 'For these reasons, lookup is a partial solution, not a complete one.'",
+      "description": "Learn the limitations of the lookup function",
+      "explanation": "The lookup function has key limitations: (1) It returns empty during 'helm template' since there is no cluster to query. (2) It requires cluster access at render time, which breaks GitOps workflows. (3) On first install with no existing secret, it falls back to values. These limitations are why production teams use sealed-secrets or external secret operators instead.",
+      "what_it_does": "Demonstrates that helm template with lookup renders differently than helm install.",
+      "next_step": "Learn about the sealed-secrets production approach.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 11: Sealed-Secrets Best Practice",
+      "command": "echo '============================================' && echo '  PRODUCTION BEST PRACTICE: Sealed Secrets' && echo '============================================' && echo '' && echo 'Sealed Secrets (by Bitnami) is the recommended approach:' && echo '' && echo '1. Install sealed-secrets controller:' && echo '   helm install sealed-secrets sealed-secrets/sealed-secrets \\' && echo '     --namespace kube-system' && echo '' && echo '2. Encrypt a secret (safe to commit to Git):' && echo '   kubeseal --format yaml < my-secret.yaml > my-sealed-secret.yaml' && echo '' && echo '3. The SealedSecret resource can be stored in Git:' && echo '   - Only the controller can decrypt it' && echo '   - Encrypted with the cluster public key' && echo '   - Can be safely committed to version control' && echo '' && echo '4. Other production options:' && echo '   - External Secrets Operator (AWS SM, Vault, GCP SM)' && echo '   - CSI Secret Store Driver (mounts secrets as volumes)' && echo '   - HashiCorp Vault with sidecar injector' && echo '' && echo 'The chart supports this pattern with:' && echo '  externalSecret.enabled=true' && echo '  externalSecret.secretName=app-sealed-secret' && cat helm-scenarios/07-secrets-management/templates/deployment.yaml | grep -A 20 'externalSecret.enabled'",
+      "description": "Overview of the sealed-secrets approach for production",
+      "explanation": "Sealed-secrets solves the fundamental problem: how to store encrypted secrets in Git. The kubeseal CLI encrypts secrets with a cluster-specific public key. Only the sealed-secrets controller (running in the cluster) has the private key to decrypt them. This enables true GitOps for secrets. Our chart supports referencing externally-managed secrets via the externalSecret configuration.",
+      "what_it_does": "Explains the sealed-secrets workflow and shows how the chart supports external secret references.",
+      "next_step": "Review the summary of approaches.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 12: Summary of Approaches",
+      "command": "echo '============================================' && echo '  Secrets Management Summary' && echo '============================================' && echo '' && echo 'AVOID in production:' && echo '  x  helm install --set secrets.password=xxx' && echo '     (stored in Helm release history)' && echo '' && echo '  x  Secrets in values.yaml committed to Git' && echo '     (plaintext in version control)' && echo '' && echo 'USE with caution:' && echo '  ~  lookup function (preserves existing secrets)' && echo '     (does not work with helm template/GitOps)' && echo '' && echo 'RECOMMENDED for production:' && echo '  +  Sealed Secrets (encrypted in Git)' && echo '  +  External Secrets Operator (syncs from cloud vaults)' && echo '  +  CSI Secret Store Driver (mounts from vault)' && echo '  +  HashiCorp Vault + injector sidecar' && echo '' && echo 'Key principle: Secrets should NEVER flow through Helm values.'",
+      "description": "Summary of all secrets management approaches covered",
+      "explanation": "The core lesson: keep secrets out of Helm's values pipeline entirely. Use external tools to manage the Secret resource independently, and have your Helm chart reference it via secretKeyRef. This decouples secret lifecycle from application lifecycle.",
+      "what_it_does": "Prints a summary comparison of all secrets management approaches.",
+      "next_step": "Clean up.",
+      "cleanup": false
+    },
+    {
+      "name": "Cleanup: Uninstall Release",
+      "command": "helm uninstall secrets-demo --namespace helm-scenarios --ignore-not-found",
+      "description": "Remove the secrets-demo release",
+      "explanation": "Uninstalls the Helm release. Note: secrets with the 'helm.sh/resource-policy: keep' annotation may persist.",
+      "what_it_does": "Uninstalls the secrets-demo release.",
+      "next_step": "Delete the namespace.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup: Delete Namespace",
+      "command": "kubectl delete namespace helm-scenarios --ignore-not-found",
+      "description": "Remove the namespace and any remaining secrets",
+      "explanation": "Deleting the namespace removes everything, including any manually-created or kept secrets.",
+      "what_it_does": "Removes the helm-scenarios namespace and all resources within it.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

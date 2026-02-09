@@ -1,0 +1,52 @@
+{
+  "scenario_id": "11-compliance-governance",
+  "difficulty": "hard",
+  "duration": "20 min",
+  "commands": [
+    {
+      "name": "Step 1: Review Compliance Pipeline",
+      "command": "cat gitlab-ci-scenarios/11-compliance-governance/.gitlab-ci.yml",
+      "description": "Examine a pipeline enforcing organizational compliance requirements",
+      "explanation": "This pipeline demonstrates governance controls that platform teams enforce across all projects. It includes mandatory security scans that cannot be skipped, approval gates for production, deployment freeze windows, and audit logging. In regulated industries (finance, healthcare), these controls are legally required.",
+      "what_it_does": "Displays a compliance-enforced pipeline with mandatory security gates and approval workflows.",
+      "next_step": "Understand compliance pipeline enforcement.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 2: Group-Level Compliance Pipelines",
+      "command": "echo '=== Compliance Pipelines (Group-Level Enforcement) ===' && echo '' && echo 'Problem: Developers can modify .gitlab-ci.yml to skip security scans.' && echo '' && echo 'Solution: Compliance pipeline framework' && echo '' && echo 'How it works:' && echo '  1. Group admin defines compliance-pipeline.yml' && echo '  2. It runs IN ADDITION to the project pipeline' && echo '  3. Developers CANNOT modify or skip it' && echo '' && echo 'Group Settings > General > Compliance framework:' && echo '  - Create framework label (e.g., \"SOC2\", \"PCI-DSS\")' && echo '  - Assign compliance pipeline YAML' && echo '  - Apply label to projects that must comply' && echo '' && echo 'Compliance pipeline config:' && echo '  # compliance-pipeline.yml (owned by security team)' && echo '  include:' && echo '    - project: $CI_PROJECT_PATH  # Include project pipeline' && echo '      file: .gitlab-ci.yml' && echo '' && echo '  # MANDATORY security scans (cannot be overridden)' && echo '  compliance-sast:' && echo '    stage: .pre  # Runs BEFORE all other stages' && echo '    image: semgrep' && echo '    script:' && echo '      - semgrep --config auto src/' && echo '    allow_failure: false  # MUST pass' && echo '' && echo '  compliance-secret-scan:' && echo '    stage: .pre' && echo '    script:' && echo '      - gitleaks detect --source . --verbose' && echo '    allow_failure: false' && echo '' && echo 'Result: Even if developer removes scans from their pipeline,' && echo 'the compliance scans still run and can block the pipeline.'",
+      "description": "Learn how group-level compliance pipelines enforce mandatory security controls",
+      "explanation": "Compliance pipelines solve the trust problem: you cannot rely on developers to keep security scans in their pipelines. The compliance framework runs a group-controlled pipeline that includes the project pipeline but adds mandatory jobs that developers cannot modify. The .pre stage ensures compliance jobs run first.",
+      "what_it_does": "Explains the compliance pipeline framework with configuration examples.",
+      "next_step": "Learn about protected environments and approval gates.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 3: Protected Environments & Approval Gates",
+      "command": "echo '=== Protected Environments ===' && echo '' && echo 'Settings > CI/CD > Protected environments:' && echo '' && echo '  Environment: production' && echo '  Allowed to deploy:' && echo '    - Role: Maintainer (minimum role)' && echo '    - Group: platform-team (specific group)' && echo '  Required approvals: 2' && echo '  Approvers:' && echo '    - Group: senior-engineers' && echo '    - User: tech-lead@company.com' && echo '' && echo 'What this means:' && echo '  1. Only Maintainers can trigger production deploy jobs' && echo '  2. Even after triggering, 2 approvals are needed' && echo '  3. Approvers must be from senior-engineers group' && echo '  4. Approval is tracked in audit log' && echo '' && echo '=== In the Pipeline ===' && echo '' && echo 'deploy-production:' && echo '  environment:' && echo '    name: production  # Links to protected environment' && echo '  when: manual        # Requires manual trigger' && echo '  rules:' && echo '    - if: $CI_COMMIT_BRANCH == \"main\"' && echo '' && echo 'Flow:' && echo '  Developer clicks Deploy → Approval request sent' && echo '  → 2 seniors approve → Deployment proceeds' && echo '  → All actions logged in audit trail'",
+      "description": "Configure production environments that require approvals before deployment",
+      "explanation": "Protected environments add a human approval layer to deployments. Even if the pipeline passes all automated checks, a human must approve before production deployment. This is required by SOC2, PCI-DSS, and HIPAA. The audit trail records who triggered, who approved, and when - essential for compliance audits.",
+      "what_it_does": "Shows how to configure protected environments with approval gates and role restrictions.",
+      "next_step": "Learn about deployment freeze windows.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 4: Deployment Freeze Windows",
+      "command": "echo '=== Deployment Freeze Windows ===' && echo '' && echo 'Block deployments during critical periods:' && echo '  - Black Friday / holiday traffic peaks' && echo '  - End of quarter / financial close' && echo '  - After 5 PM Friday (change freeze)' && echo '' && echo 'Settings > CI/CD > Deploy freeze:' && echo '  Freeze start:  CRON: 0 17 * * 5  (Friday 5 PM)' && echo '  Freeze end:    CRON: 0 9 * * 1   (Monday 9 AM)' && echo '' && echo 'In pipeline (check via rules):' && echo '  deploy-production:' && echo '    rules:' && echo '      - if: $CI_DEPLOY_FREEZE' && echo '        when: manual' && echo '        allow_failure: true  # Deployment blocked but visible' && echo '      - if: $CI_COMMIT_BRANCH == \"main\"' && echo '        when: manual' && echo '' && echo '=== Break Glass Procedure ===' && echo '' && echo 'For emergencies during freeze:' && echo '' && echo 'emergency-deploy:' && echo '  environment: production' && echo '  rules:' && echo '    - if: $EMERGENCY_DEPLOY == \"true\"' && echo '      when: manual' && echo '  variables:' && echo '    EMERGENCY_DEPLOY:' && echo '      value: \"false\"' && echo '      description: \"Set to true for emergency deployment\"' && echo '' && echo 'Process:' && echo '  1. Run pipeline with EMERGENCY_DEPLOY=true' && echo '  2. Requires protected environment approval' && echo '  3. Creates audit log entry with emergency flag' && echo '  4. Post-mortem required within 48 hours'",
+      "description": "Learn how to implement deployment freeze windows with emergency override",
+      "explanation": "Deployment freezes prevent risky changes during critical business periods. The $CI_DEPLOY_FREEZE variable is automatically set by GitLab during freeze windows. The break-glass procedure uses a manual pipeline variable as an emergency override - it still requires approval but bypasses the freeze. The audit trail ensures accountability.",
+      "what_it_does": "Shows deployment freeze configuration with break-glass emergency override procedure.",
+      "next_step": "See the compliance summary.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 5: Compliance Summary",
+      "command": "echo '============================================' && echo '  Compliance & Governance Summary' && echo '============================================' && echo '' && echo 'Enforcement layers:' && echo '  1. Compliance pipelines  - Mandatory scans (cannot skip)' && echo '  2. Protected environments - Approval gates (human review)' && echo '  3. Deployment freezes    - Time-based blocks (risk windows)' && echo '  4. Protected branches    - Merge controls (code review)' && echo '' && echo 'Audit trail:' && echo '  ✅ Who triggered the pipeline' && echo '  ✅ Who approved the deployment' && echo '  ✅ What was deployed (commit SHA, image tag)' && echo '  ✅ When it was deployed (timestamp)' && echo '  ✅ Which environment was targeted' && echo '' && echo 'Compliance frameworks:' && echo '  SOC2:   Require change management + audit logging' && echo '  PCI-DSS: Require separation of duties + access controls' && echo '  HIPAA:  Require access logging + encryption' && echo '  ISO27001: Require change control + risk assessment' && echo '' && echo 'Implementation order:' && echo '  1. Start with protected branches (merge approvals)' && echo '  2. Add protected environments (deploy approvals)' && echo '  3. Add compliance pipelines (mandatory scans)' && echo '  4. Add deployment freezes (risk windows)' && echo '  5. Add break-glass procedures (emergency access)'",
+      "description": "Review the complete compliance and governance framework",
+      "explanation": "Compliance is built in layers. Each layer adds a control without blocking all development. Start with the least disruptive (protected branches for code review) and work up to the most restrictive (compliance pipelines that cannot be overridden). The key is that every action is auditable - you can prove to auditors exactly what happened.",
+      "what_it_does": "Prints a comprehensive compliance framework checklist with implementation order.",
+      "next_step": "Scenario complete!",
+      "cleanup": false
+    }
+  ]
+}

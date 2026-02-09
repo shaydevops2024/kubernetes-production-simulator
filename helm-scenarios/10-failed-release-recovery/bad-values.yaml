@@ -1,0 +1,28 @@
+# bad-values.yaml
+# Intentionally broken values that will cause a deployment failure.
+# Uses a non-existent image tag that will never pull successfully,
+# causing pods to enter ImagePullBackOff and the release to time out.
+
+replicaCount: 2
+
+image:
+  repository: nginx
+  # This tag does not exist -- pods will fail with ImagePullBackOff
+  tag: "99.99.99-nonexistent"
+  pullPolicy: Always
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 32Mi
+  limits:
+    cpu: 100m
+    memory: 128Mi
+
+labels:
+  version: "v2-broken"

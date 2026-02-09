@@ -1,0 +1,6 @@
+apiVersion: v2
+name: secrets-demo
+description: A Helm chart demonstrating secrets management patterns and best practices
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

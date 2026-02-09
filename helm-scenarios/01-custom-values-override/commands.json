@@ -1,0 +1,115 @@
+{
+  "scenario_id": "01-custom-values-override",
+  "difficulty": "easy",
+  "duration": "15 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Helm Scenarios Namespace",
+      "command": "kubectl create namespace helm-scenarios --dry-run=client -o yaml | kubectl apply -f -",
+      "description": "Create dedicated 'helm-scenarios' namespace for all Helm learning scenarios",
+      "explanation": "This creates a separate namespace called 'helm-scenarios' where all Helm scenario resources will be deployed. Using --dry-run with apply makes it idempotent - safe to run multiple times.",
+      "what_it_does": "Creates the 'helm-scenarios' namespace if it doesn't exist, or does nothing if it already exists.",
+      "next_step": "Namespace ready. Now add the Bitnami Helm chart repository.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 2: Add Bitnami Helm Repository",
+      "command": "helm repo add bitnami https://charts.bitnami.com/bitnami && helm repo update",
+      "description": "Add the Bitnami chart repository and update the local cache",
+      "explanation": "Helm repositories are like package registries. Bitnami maintains a large collection of production-ready charts. 'helm repo add' registers the repo URL, and 'helm repo update' downloads the latest chart index so Helm knows what's available.",
+      "what_it_does": "Registers the Bitnami repository at https://charts.bitnami.com/bitnami and refreshes the local chart index cache.",
+      "next_step": "Repository added. Now install Nginx with default values.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 3: Install Nginx with Default Values",
+      "command": "helm install my-nginx bitnami/nginx --namespace helm-scenarios --wait --timeout 120s",
+      "description": "Install the Bitnami Nginx chart using all default values",
+      "explanation": "This installs a release named 'my-nginx' using the bitnami/nginx chart with default settings. The --wait flag tells Helm to wait until all pods are Running before reporting success. Default values include 1 replica, ClusterIP service, and standard resource settings.",
+      "what_it_does": "Creates Helm release 'my-nginx' in helm-scenarios namespace with all chart default values. Deploys Nginx deployment, service, and related resources.",
+      "next_step": "Nginx is running with defaults. Let's inspect the release.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 4: Check the Release Status",
+      "command": "helm list --namespace helm-scenarios && echo '---' && kubectl get pods,svc -n helm-scenarios -l app.kubernetes.io/instance=my-nginx",
+      "description": "Verify the Helm release and its Kubernetes resources",
+      "explanation": "'helm list' shows all releases in the namespace with their status, chart version, and app version. Then we check the actual Kubernetes pods and services created by the chart. You should see 1 pod (default replicaCount is 1) and a ClusterIP service.",
+      "what_it_does": "Lists the Helm release details and shows the pods and services created in helm-scenarios namespace.",
+      "next_step": "Release is healthy. Now let's override a value using --set.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 5: Upgrade with --set to Change Replica Count",
+      "command": "helm upgrade my-nginx bitnami/nginx --namespace helm-scenarios --set replicaCount=2 --wait --timeout 120s",
+      "description": "Override the replica count using the --set flag",
+      "explanation": "The --set flag overrides individual values from the command line. Here we change replicaCount from the default of 1 to 2. This is useful for quick, one-off changes. The upgrade creates a new revision (revision 2) of the release.",
+      "what_it_does": "Upgrades the 'my-nginx' release to run 2 replicas instead of 1. Helm creates revision 2 of the release.",
+      "next_step": "Replicas increased. Verify the change, then try a values file.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 6: Verify the --set Override",
+      "command": "kubectl get pods -n helm-scenarios -l app.kubernetes.io/instance=my-nginx && echo '---' && helm get values my-nginx --namespace helm-scenarios",
+      "description": "Confirm 2 replicas are running and check the user-supplied values",
+      "explanation": "'kubectl get pods' confirms 2 Nginx pods are now running. 'helm get values' shows only the values you explicitly set (not the full merged values). You should see replicaCount: 2 as the only user-supplied value.",
+      "what_it_does": "Lists running pods to confirm 2 replicas, then shows the user-supplied values for the release.",
+      "next_step": "Now let's upgrade using a values file for more complex overrides.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 7: Upgrade with -f custom-values.yaml",
+      "command": "helm upgrade my-nginx bitnami/nginx --namespace helm-scenarios -f helm-scenarios/01-custom-values-override/custom-values.yaml --wait --timeout 120s",
+      "description": "Override multiple values using a custom values file",
+      "explanation": "The -f (or --values) flag points to a YAML file containing value overrides. This is better than --set for complex changes because: (1) it's version-controllable, (2) it supports nested structures, and (3) it's easier to read and maintain. Our custom-values.yaml sets 3 replicas, resource limits, NodePort service, and a custom server block.",
+      "what_it_does": "Upgrades 'my-nginx' to revision 3 with values from custom-values.yaml: 3 replicas, NodePort service on port 30080, resource limits, and custom labels.",
+      "next_step": "Values file applied. Let's verify the changes took effect.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 8: Verify Values File Override",
+      "command": "kubectl get pods,svc -n helm-scenarios -l app.kubernetes.io/instance=my-nginx && echo '---' && helm get values my-nginx --namespace helm-scenarios",
+      "description": "Confirm all overrides from the values file are applied",
+      "explanation": "You should now see 3 pods (replicaCount: 3) and a NodePort service (type changed from ClusterIP). 'helm get values' shows all user-supplied values from the file. Notice how the --set value from Step 5 is gone because it wasn't included in the values file.",
+      "what_it_does": "Shows 3 running pods, the NodePort service, and all user-supplied values from the custom values file.",
+      "next_step": "Now let's see values precedence in action: --set overriding -f.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 9: Demonstrate Precedence: --set Overrides -f",
+      "command": "helm upgrade my-nginx bitnami/nginx --namespace helm-scenarios -f helm-scenarios/01-custom-values-override/custom-values.yaml --set replicaCount=1 --wait --timeout 120s",
+      "description": "Show that --set takes precedence over values files",
+      "explanation": "When you combine -f and --set, the --set flag wins for any conflicting keys. Our custom-values.yaml sets replicaCount: 3, but --set replicaCount=1 overrides it. This demonstrates the precedence: defaults < -f file < --set. The rest of the values from the file still apply.",
+      "what_it_does": "Upgrades to revision 4. The replicaCount is forced to 1 by --set despite custom-values.yaml specifying 3. All other values from the file remain.",
+      "next_step": "Check the final values to see the precedence result.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 10: Show Effective Values with helm get values",
+      "command": "helm get values my-nginx --namespace helm-scenarios && echo '--- All computed values (including defaults) ---' && helm get values my-nginx --namespace helm-scenarios --all | head -40",
+      "description": "Compare user-supplied values vs. all computed values",
+      "explanation": "'helm get values' without --all shows only what you explicitly set. With --all, it shows every value including chart defaults merged with your overrides. Notice replicaCount is 1 (from --set) not 3 (from file). The --all output is very long, so we show the first 40 lines.",
+      "what_it_does": "Displays the user-supplied values (showing --set override) and then the first 40 lines of all computed values including chart defaults.",
+      "next_step": "You've mastered values override precedence! Time to clean up.",
+      "cleanup": false
+    },
+    {
+      "name": "Cleanup 1: Uninstall the Helm Release",
+      "command": "helm uninstall my-nginx --namespace helm-scenarios",
+      "description": "Remove the Nginx Helm release and all its Kubernetes resources",
+      "explanation": "'helm uninstall' removes the release and all Kubernetes resources it created (deployment, service, configmaps, etc.). The release name is freed up for reuse. Unlike Helm 2, Helm 3 does not keep release history after uninstall by default.",
+      "what_it_does": "Deletes the 'my-nginx' release and all associated Kubernetes resources from helm-scenarios namespace.",
+      "next_step": "Release removed. Verify cleanup is complete.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup 2: Verify Resources Removed",
+      "command": "helm list --namespace helm-scenarios && echo '---' && kubectl get all -n helm-scenarios",
+      "description": "Confirm all Helm resources have been removed",
+      "explanation": "'helm list' should show no releases. 'kubectl get all' should show no resources (or only the default service). This confirms the uninstall was successful and the namespace is clean for the next scenario.",
+      "what_it_does": "Verifies that no Helm releases or Kubernetes resources remain in the helm-scenarios namespace.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+# Production environment overrides
+# Strict resources, info logging, HA with anti-affinity
+
+replicaCount: 3
+
+config:
+  environment: "production"
+  logLevel: "info"
+  debugMode: false
+  featureFlags:
+    enableMetrics: true
+    enableTracing: false
+    enableProfiling: false
+  database:
+    host: "postgres-prod.database.svc.cluster.local"
+    port: 5432
+    name: "appdb_prod"
+    maxConnections: 50
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+antiAffinity:
+  enabled: true

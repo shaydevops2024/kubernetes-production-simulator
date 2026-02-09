@@ -616,67 +616,139 @@ body {
     margin-top: 5px;
 }
 
-/* Collapsible Section */
-.collapsible-section {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    margin-bottom: 20px;
-    overflow: hidden;
+/* Testing Actions Button - Orange with white text */
+.btn-testing-actions {
+    background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.collapsible-header {
+.btn-testing-actions:hover {
+    background: linear-gradient(135deg, #C2410C 0%, #9A3412 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
+}
+
+/* Right Sidebar Overlay */
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 998;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.sidebar-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Right Sidebar Panel */
+.right-sidebar {
+    position: fixed;
+    top: 0;
+    right: -350px;
+    width: 350px;
+    height: 100vh;
+    background: var(--bg-card);
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+    z-index: 999;
+    transition: right 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.right-sidebar.active {
+    right: 0;
+}
+
+.right-sidebar-header {
+    background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%);
+    color: white;
+    padding: 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px 20px;
+}
+
+.right-sidebar-header h3 {
+    margin: 0;
+    font-size: 1.2em;
+    font-weight: 600;
+}
+
+.right-sidebar-close {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 1.2em;
     cursor: pointer;
-    background: var(--bg-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: background 0.2s ease;
 }
 
-.collapsible-header:hover {
-    background: #FEE2E2;
+.right-sidebar-close:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
-.collapsible-title {
-    font-weight: 600;
-    color: var(--text-primary);
+.right-sidebar-content {
+    padding: 20px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* Testing Actions List in Sidebar */
+.testing-actions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.testing-actions-list .btn {
+    width: 100%;
+    padding: 14px 16px;
     font-size: 0.95em;
-}
-
-.collapsible-toggle {
-    color: var(--primary);
-    font-size: 0.9em;
-    transition: transform 0.3s ease;
-}
-
-.collapsible-toggle.expanded {
-    transform: rotate(90deg);
-}
-
-.collapsible-content {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease, padding 0.3s ease;
-    padding: 0 20px;
-}
-
-.collapsible-content.expanded {
-    max-height: 300px;
-    padding: 15px 20px;
-}
-
-/* Testing Actions Grid */
-.testing-actions-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    text-align: left;
+    display: flex;
+    align-items: center;
     gap: 10px;
+    justify-content: flex-start;
 }
 
-.testing-actions-grid .btn {
-    font-size: 0.85em;
-    padding: 10px 12px;
+.testing-actions-list .btn .action-icon {
+    font-size: 1.2em;
+    min-width: 25px;
+}
+
+/* Application Info Header with Button */
+.status-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.status-card-header h3 {
+    margin: 0;
 }
 
 /* Sticky Stats Section */
@@ -931,10 +1003,10 @@ body {
     display: block;
 }
 
-/* Scrollbar */
+/* Scrollbar - Orange theme matching header */
 ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
 }
 
 ::-webkit-scrollbar-track {
@@ -942,12 +1014,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: 4px;
+    background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%);
+    border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--text-muted);
+    background: linear-gradient(135deg, #C2410C 0%, #9A3412 100%);
 }
 
 /* Responsive */
@@ -1195,8 +1267,324 @@ body {
     .deployment-stats-container {
         padding: 8px 0;
     }
-    
+
     .deployment-stat-value {
         font-size: 2em;
     }
+}
+
+/* ==================== GUIDED TOUR STYLES ==================== */
+
+/* Tour overlay - darkens everything except highlighted element */
+.tour-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 9998;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.tour-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Highlighted element gets elevated above overlay */
+.tour-highlight {
+    position: relative;
+    z-index: 9999 !important;
+    box-shadow: 0 0 0 4px var(--primary), 0 0 20px rgba(234, 88, 12, 0.5) !important;
+    border-radius: 8px;
+}
+
+/* Tour tooltip */
+.tour-tooltip {
+    position: fixed;
+    background: var(--bg-card);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px var(--border);
+    z-index: 10000;
+    max-width: 380px;
+    min-width: 300px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+}
+
+.tour-tooltip.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* Tooltip arrow */
+.tour-tooltip::before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    transform: rotate(45deg);
+}
+
+.tour-tooltip.arrow-top::before {
+    top: -9px;
+    left: 30px;
+    border-right: none;
+    border-bottom: none;
+}
+
+.tour-tooltip.arrow-bottom::before {
+    bottom: -9px;
+    left: 30px;
+    border-left: none;
+    border-top: none;
+}
+
+.tour-tooltip.arrow-left::before {
+    left: -9px;
+    top: 30px;
+    border-right: none;
+    border-top: none;
+}
+
+.tour-tooltip.arrow-right::before {
+    right: -9px;
+    top: 30px;
+    border-left: none;
+    border-bottom: none;
+}
+
+/* Tooltip header */
+.tour-tooltip-header {
+    background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tour-tooltip-header h4 {
+    margin: 0;
+    font-size: 1.1em;
+    font-weight: 600;
+}
+
+.tour-step-counter {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    font-weight: 500;
+}
+
+/* Tooltip content */
+.tour-tooltip-content {
+    padding: 20px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    font-size: 0.95em;
+}
+
+.tour-tooltip-content p {
+    margin: 0;
+}
+
+/* Tooltip footer with navigation */
+.tour-tooltip-footer {
+    padding: 15px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.tour-tooltip-footer .btn {
+    padding: 8px 16px;
+    font-size: 0.9em;
+}
+
+.tour-nav-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.tour-skip-btn {
+    background: transparent;
+    color: var(--text-muted);
+    border: none;
+    cursor: pointer;
+    font-size: 0.85em;
+    padding: 8px 12px;
+    transition: color 0.2s;
+}
+
+.tour-skip-btn:hover {
+    color: var(--text-primary);
+}
+
+/* Help button - floating */
+.tour-help-btn {
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 1.5em;
+    cursor: pointer;
+    z-index: 100;
+    box-shadow: 0 4px 15px rgba(234, 88, 12, 0.4);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tour-help-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(234, 88, 12, 0.5);
+}
+
+.tour-help-btn .tooltip-text {
+    position: absolute;
+    right: 60px;
+    background: var(--sidebar-bg);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.55em;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s;
+}
+
+.tour-help-btn:hover .tooltip-text {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Welcome modal for tour */
+.tour-welcome-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.tour-welcome-modal.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.tour-welcome-content {
+    background: var(--bg-card);
+    border-radius: 16px;
+    max-width: 450px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: modalSlideIn 0.3s ease;
+    overflow: hidden;
+}
+
+.tour-welcome-header {
+    background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%);
+    color: white;
+    padding: 30px 25px;
+}
+
+.tour-welcome-header h2 {
+    margin: 0 0 10px 0;
+    font-size: 1.5em;
+}
+
+.tour-welcome-header p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 0.95em;
+}
+
+.tour-welcome-body {
+    padding: 25px;
+}
+
+.tour-welcome-body p {
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 25px;
+}
+
+.tour-welcome-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.tour-welcome-actions .btn {
+    width: 100%;
+    padding: 14px;
+}
+
+.tour-welcome-checkbox {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 15px;
+    color: var(--text-muted);
+    font-size: 0.85em;
+}
+
+.tour-welcome-checkbox input {
+    width: auto;
+    cursor: pointer;
+}
+
+/* Progress dots */
+.tour-progress {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 20px 15px;
+}
+
+.tour-progress-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: all 0.3s ease;
+}
+
+.tour-progress-dot.active {
+    background: var(--primary);
+    transform: scale(1.2);
+}
+
+.tour-progress-dot.completed {
+    background: var(--success);
 }

@@ -1,0 +1,115 @@
+{
+  "scenario_id": "08-production-pipeline",
+  "difficulty": "hard",
+  "duration": "30 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Namespace",
+      "command": "kubectl create namespace helm-scenarios --dry-run=client -o yaml | kubectl apply -f -",
+      "description": "Create the helm-scenarios namespace for our pipeline demo",
+      "explanation": "Every production pipeline deploys to a specific namespace. We create one to isolate our resources.",
+      "what_it_does": "Creates the 'helm-scenarios' namespace if it does not already exist.",
+      "next_step": "Lint the chart before deployment.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 2: Lint the Chart",
+      "command": "helm lint helm-scenarios/08-production-pipeline/ && echo '' && echo 'Lint with staging values:' && helm lint helm-scenarios/08-production-pipeline/ -f helm-scenarios/08-production-pipeline/values-staging.yaml && echo '' && echo 'Lint with production values:' && helm lint helm-scenarios/08-production-pipeline/ -f helm-scenarios/08-production-pipeline/values-prod.yaml",
+      "description": "Validate the chart structure and templates with all value files",
+      "explanation": "helm lint is the first gate in any CI/CD pipeline. It catches template errors, missing required values, and YAML syntax issues BEFORE anything reaches the cluster. Always lint with every values file you plan to use - a chart may lint clean with defaults but fail with production overrides.",
+      "what_it_does": "Runs helm lint against the chart with default, staging, and production value files.",
+      "next_step": "Dry-run the template rendering.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 3: Template Dry-Run",
+      "command": "echo '=== Rendered manifests for staging ===' && helm template pipeline-app helm-scenarios/08-production-pipeline/ -f helm-scenarios/08-production-pipeline/values-staging.yaml --namespace helm-scenarios | head -60 && echo '' && echo '=== Checking for common issues ===' && echo 'Resource count:' && helm template pipeline-app helm-scenarios/08-production-pipeline/ -f helm-scenarios/08-production-pipeline/values-staging.yaml --namespace helm-scenarios | grep -c '^kind:' && echo 'Missing image tags:' && helm template pipeline-app helm-scenarios/08-production-pipeline/ -f helm-scenarios/08-production-pipeline/values-staging.yaml --namespace helm-scenarios | grep 'image:' | grep -c '<no value>' || echo '0 (good)'",
+      "description": "Render templates without deploying to catch rendering errors",
+      "explanation": "helm template renders all templates locally without contacting the cluster. This is your second gate: you can inspect the exact YAML that will be applied. In CI pipelines, teams often pipe this output through kubeval or kubeconform to validate the rendered manifests against the Kubernetes API schema.",
+      "what_it_does": "Renders the chart templates with staging values and checks for common issues.",
+      "next_step": "Deploy to staging first.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 4: Deploy to Staging",
+      "command": "helm install pipeline-app helm-scenarios/08-production-pipeline/ -f helm-scenarios/08-production-pipeline/values-staging.yaml --namespace helm-scenarios --wait --timeout 60s && echo '' && echo '=== Staging deployment status ===' && kubectl get pods -n helm-scenarios -l app=pipeline-app && echo '' && kubectl get svc -n helm-scenarios -l app=pipeline-app",
+      "description": "Install to staging environment with staging values",
+      "explanation": "The --wait flag makes Helm wait until all resources are ready before returning success. The --timeout flag sets how long to wait. In CI/CD, if --wait fails (pods crash, readiness probe fails), the pipeline step fails and deployment is aborted. This prevents broken releases from progressing to production.",
+      "what_it_does": "Installs the chart with staging values and waits for pods to be ready.",
+      "next_step": "Run helm tests to validate the deployment.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 5: Run Helm Tests",
+      "command": "echo '=== Running helm test ===' && helm test pipeline-app --namespace helm-scenarios && echo '' && echo '=== Test pod logs ===' && kubectl logs pipeline-app-test-connection -n helm-scenarios 2>/dev/null || echo '(test pod already cleaned up - this is expected with hook-succeeded policy)'",
+      "description": "Execute the chart's test hooks to validate the deployment works",
+      "explanation": "helm test runs all pods annotated with 'helm.sh/hook: test'. Our test pod makes an HTTP request to the service. If the connection fails, helm test returns a non-zero exit code, which would fail the CI pipeline. In production, you would have more thorough tests: health endpoint checks, database connectivity, integration tests.",
+      "what_it_does": "Runs the test-connection pod that verifies the service is reachable.",
+      "next_step": "Simulate a production upgrade.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 6: Upgrade to Production Values",
+      "command": "echo '=== Upgrading to production configuration ===' && helm upgrade pipeline-app helm-scenarios/08-production-pipeline/ -f helm-scenarios/08-production-pipeline/values-prod.yaml --namespace helm-scenarios --wait --timeout 90s && echo '' && echo '=== Post-upgrade status ===' && kubectl get pods -n helm-scenarios -l app=pipeline-app && echo '' && echo 'Replicas scaled from 1 (staging) to 3 (production)' && echo '' && helm history pipeline-app -n helm-scenarios",
+      "description": "Upgrade the release with production values (more replicas, more resources)",
+      "explanation": "helm upgrade replaces the chart values with production settings. In this case, replicas increase from 1 to 3 and resource limits increase. The --wait flag ensures all 3 pods are running before reporting success. Helm records this as revision 2, allowing rollback to revision 1 if needed.",
+      "what_it_does": "Upgrades the release to production values: 3 replicas with higher resource limits.",
+      "next_step": "Simulate a failed upgrade and automatic rollback.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 7: Simulate Failed Upgrade",
+      "command": "echo '=== Simulating a bad upgrade (invalid image tag) ===' && helm upgrade pipeline-app helm-scenarios/08-production-pipeline/ -f helm-scenarios/08-production-pipeline/values-prod.yaml --set image.tag=99.99.99-nonexistent --namespace helm-scenarios --wait --timeout 30s 2>&1; echo '' && echo '=== Exit code: '$?' '(non-zero = failure) ===' && echo '' && echo '=== Current pod status (should show ImagePullBackOff) ===' && kubectl get pods -n helm-scenarios -l app=pipeline-app && echo '' && echo '=== Release history shows FAILED revision ===' && helm history pipeline-app -n helm-scenarios",
+      "description": "Attempt an upgrade with a bad image to see how Helm handles failures",
+      "explanation": "When --wait detects that pods are not becoming ready within the timeout, Helm marks the release as FAILED. The deployment is left in a bad state. In production CI/CD, this failed exit code triggers the rollback step. Note: Kubernetes deployment strategy will keep old pods running alongside the failing new ones.",
+      "what_it_does": "Attempts an upgrade with a non-existent image tag. The upgrade fails due to ImagePullBackOff.",
+      "next_step": "Roll back to the last good revision.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 8: Automated Rollback",
+      "command": "echo '=== Rolling back to last successful revision ===' && helm rollback pipeline-app 2 --namespace helm-scenarios --wait && echo '' && echo '=== Post-rollback status ===' && kubectl get pods -n helm-scenarios -l app=pipeline-app && echo '' && echo '=== Release history shows rollback ===' && helm history pipeline-app -n helm-scenarios && echo '' && echo '=== Verify the image is back to the good version ===' && kubectl get deployment pipeline-app -n helm-scenarios -o jsonpath='{.spec.template.spec.containers[0].image}'",
+      "description": "Roll back to the last known good revision",
+      "explanation": "helm rollback reverts to a specific revision number. Revision 2 was our successful production deployment. After rollback, Helm creates a NEW revision (4) with the same config as revision 2. In CI/CD, this rollback step is automatic: if upgrade fails, immediately rollback and alert the team. The --wait flag ensures rollback completes successfully.",
+      "what_it_does": "Rolls back to revision 2 (the successful production deployment) and verifies pods are healthy.",
+      "next_step": "Learn about atomic upgrades.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 9: Atomic Upgrades",
+      "command": "echo '=== Atomic upgrade: auto-rollback on failure ===' && echo 'The --atomic flag combines --wait + automatic rollback:' && echo '' && helm upgrade pipeline-app helm-scenarios/08-production-pipeline/ -f helm-scenarios/08-production-pipeline/values-prod.yaml --set image.tag=99.99.99-bad --namespace helm-scenarios --atomic --timeout 30s 2>&1; echo '' && echo '=== Exit code: '$?' ===' && echo '' && echo '=== With --atomic, Helm automatically rolled back ===' && echo '=== Current healthy state preserved ===' && kubectl get pods -n helm-scenarios -l app=pipeline-app && echo '' && helm history pipeline-app -n helm-scenarios",
+      "description": "Use --atomic for automatic rollback on failure",
+      "explanation": "The --atomic flag is the production standard. It combines --wait (wait for readiness) with automatic rollback (revert if not ready). If the upgrade fails, Helm rolls back without any manual intervention. Your CI pipeline can simply use 'helm upgrade --atomic' and failures are self-healing. This is the single most important flag for production Helm deployments.",
+      "what_it_does": "Attempts a bad upgrade with --atomic. Helm detects the failure and automatically rolls back.",
+      "next_step": "Learn the production pipeline checklist.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 10: Production Pipeline Checklist",
+      "command": "echo '============================================' && echo '  Production Helm Pipeline Checklist' && echo '============================================' && echo '' && echo 'CI Stage (before deployment):' && echo '  1. helm lint (validate chart structure)' && echo '  2. helm template (render and inspect manifests)' && echo '  3. kubeval/kubeconform (validate against K8s schema)' && echo '  4. helm diff (preview changes vs running release)' && echo '  5. OPA/Kyverno policy checks (security policies)' && echo '' && echo 'CD Stage (deployment):' && echo '  6. helm upgrade --install --atomic --timeout 5m' && echo '     (install-or-upgrade with auto-rollback)' && echo '  7. helm test (post-deploy validation)' && echo '  8. Integration/smoke tests (application-specific)' && echo '' && echo 'Safety flags for production:' && echo '  --atomic       Auto-rollback on failure' && echo '  --wait         Wait for resources to be ready' && echo '  --timeout      Max time to wait before failing' && echo '  --cleanup-on-fail  Remove new resources on failure' && echo '  --max-history 10   Limit stored revisions' && echo '' && echo 'Example CI/CD command:' && echo '  helm upgrade --install myapp ./chart \\' && echo '    -f values-prod.yaml \\' && echo '    --namespace production \\' && echo '    --atomic \\' && echo '    --timeout 5m \\' && echo '    --max-history 10'",
+      "description": "Review the complete production pipeline workflow",
+      "explanation": "This is the checklist used by production teams. The CI stage catches errors early (lint, template, schema validation, diff preview, policy checks). The CD stage deploys safely (atomic upgrade, test, smoke test). The key insight: every flag exists because someone had a production incident without it. --atomic prevents stuck failed releases. --timeout prevents infinite waits. --max-history prevents etcd bloat from thousands of release revisions.",
+      "what_it_does": "Prints the complete production Helm pipeline checklist with all recommended stages and flags.",
+      "next_step": "Clean up.",
+      "cleanup": false
+    },
+    {
+      "name": "Cleanup: Uninstall Release",
+      "command": "helm uninstall pipeline-app --namespace helm-scenarios --ignore-not-found",
+      "description": "Remove the pipeline-app release",
+      "explanation": "Removes the Helm release and all associated Kubernetes resources.",
+      "what_it_does": "Uninstalls the pipeline-app release from the cluster.",
+      "next_step": "Delete the namespace.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup: Delete Namespace",
+      "command": "kubectl delete namespace helm-scenarios --ignore-not-found",
+      "description": "Remove the namespace and all remaining resources",
+      "explanation": "Final cleanup - removes the namespace and any resources that may have been left behind.",
+      "what_it_does": "Deletes the helm-scenarios namespace.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}
