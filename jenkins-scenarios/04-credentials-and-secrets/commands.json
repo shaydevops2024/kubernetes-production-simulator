@@ -1,0 +1,79 @@
+{
+  "scenario_id": "04-credentials-and-secrets",
+  "difficulty": "easy",
+  "duration": "12 min",
+  "commands": [
+    {
+      "name": "Step 1: Understand Jenkins Credential Types",
+      "command": "echo '=== Jenkins Credential Types ===' && echo '' && echo '1. Username with Password' && echo '   - Docker Hub login, Git auth, database creds' && echo '   - Stored as: username + password pair' && echo '   - Injected via: usernamePassword()' && echo '' && echo '2. Secret Text' && echo '   - API tokens, webhook secrets, license keys' && echo '   - Stored as: single encrypted string' && echo '   - Injected via: string()' && echo '' && echo '3. SSH Username with Private Key' && echo '   - Git SSH access, server SSH access' && echo '   - Stored as: username + private key + passphrase' && echo '   - Injected via: sshUserPrivateKey()' && echo '' && echo '4. Secret File' && echo '   - Kubeconfig, service account JSON, certificates' && echo '   - Stored as: encrypted file' && echo '   - Injected via: file()' && echo '' && echo '5. Certificate (PKCS#12)' && echo '   - TLS/SSL certificates for mutual auth' && echo '   - Stored as: keystore + password' && echo '' && echo 'All credentials are encrypted at rest in $JENKINS_HOME/credentials.xml' && echo 'using Jenkins master key encryption.'",
+      "description": "Learn the five credential types Jenkins supports",
+      "explanation": "Jenkins Credential Store is the secure way to manage secrets. Never hardcode passwords or tokens in Jenkinsfiles - they would be visible in source control. Instead, store them in Jenkins and reference them by ID. Jenkins encrypts credentials at rest and masks them in console output.",
+      "what_it_does": "Displays a reference of all Jenkins credential types with their use cases and injection methods.",
+      "next_step": "See how to use withCredentials() in a pipeline.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 2: Review withCredentials() Usage",
+      "command": "echo '=== withCredentials() in Jenkinsfile ===' && echo '' && echo 'pipeline {' && echo '    agent any' && echo '    stages {' && echo '        stage(\"Deploy\") {' && echo '            steps {' && echo '                // Username + Password credential' && echo '                withCredentials([usernamePassword(' && echo '                    credentialsId: \"docker-hub-creds\",' && echo '                    usernameVariable: \"DOCKER_USER\",' && echo '                    passwordVariable: \"DOCKER_PASS\"' && echo '                )]) {' && echo '                    sh \"docker login -u $DOCKER_USER -p $DOCKER_PASS\"' && echo '                    sh \"docker push myapp:latest\"' && echo '                }' && echo '' && echo '                // Secret text credential' && echo '                withCredentials([string(' && echo '                    credentialsId: \"slack-webhook\",' && echo '                    variable: \"SLACK_URL\"' && echo '                )]) {' && echo '                    sh \"curl -X POST $SLACK_URL -d '{\\\"text\\\": \\\"Deployed!\\\"}' \"' && echo '                }' && echo '' && echo '                // Secret file credential' && echo '                withCredentials([file(' && echo '                    credentialsId: \"kubeconfig\",' && echo '                    variable: \"KUBECONFIG\"' && echo '                )]) {' && echo '                    sh \"kubectl apply -f deployment.yaml\"' && echo '                }' && echo '            }' && echo '        }' && echo '    }' && echo '}' && echo '' && echo 'KEY RULES:' && echo '  - Variables are ONLY available inside the withCredentials{} block' && echo '  - Jenkins MASKS credential values in console output' && echo '  - If a credential is used in echo/print, it shows ****'",
+      "description": "Learn how withCredentials() injects secrets into pipeline steps",
+      "explanation": "withCredentials() creates a secure scope where credential values are bound to environment variables. Outside this block, the variables do not exist. Jenkins automatically detects and masks these values in build logs, so even if you accidentally echo a password, it appears as ****. This is why withCredentials() is preferred over the older environment { credentials() } syntax - it limits the scope of secret exposure.",
+      "what_it_does": "Shows a complete Jenkinsfile example with three different credential types being used in a deploy stage.",
+      "next_step": "Understand how Jenkins credentials map to Kubernetes secrets.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 3: Jenkins + Kubernetes Secrets Integration",
+      "command": "echo '=== Jenkins to K8s Secrets Pipeline ===' && echo '' && echo 'In production, Jenkins pipelines often need to:' && echo '  1. Read Jenkins credentials (stored in Jenkins)' && echo '  2. Create/update Kubernetes secrets' && echo '  3. Deploy apps that reference those K8s secrets' && echo '' && echo 'Example flow:' && echo '' && echo 'stage(\"Create K8s Secrets\") {' && echo '    steps {' && echo '        withCredentials([usernamePassword(' && echo '            credentialsId: \"db-credentials\",' && echo '            usernameVariable: \"DB_USER\",' && echo '            passwordVariable: \"DB_PASS\"' && echo '        )]) {' && echo '            sh \"\"\"' && echo '                kubectl create secret generic db-credentials \\\\' && echo '                    --from-literal=username=\\$DB_USER \\\\' && echo '                    --from-literal=password=\\$DB_PASS \\\\' && echo '                    --namespace=production \\\\' && echo '                    --dry-run=client -o yaml | kubectl apply -f -' && echo '            \"\"\"' && echo '        }' && echo '    }' && echo '}' && echo '' && echo 'This pattern ensures:' && echo '  - Secrets are never stored in Git (only credential IDs are in Jenkinsfile)' && echo '  - K8s secrets are created/rotated automatically by the pipeline' && echo '  - Apps consume secrets via env vars or volume mounts'",
+      "description": "Understand how Jenkins pipelines create Kubernetes secrets",
+      "explanation": "In a real production environment, Jenkins acts as a bridge between your secret management system and Kubernetes. The pipeline reads credentials from Jenkins, creates Kubernetes secrets, and deploys apps that consume those secrets. Using --dry-run=client -o yaml | kubectl apply -f - makes the operation idempotent - it creates or updates the secret without failing if it already exists.",
+      "what_it_does": "Shows the production pattern for flowing secrets from Jenkins into Kubernetes deployments.",
+      "next_step": "Create a Kubernetes secret hands-on.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 4: Create a Kubernetes Secret",
+      "command": "kubectl create namespace jenkins-scenarios --dry-run=client -o yaml | kubectl apply -f - && kubectl create secret generic db-credentials --from-literal=username=app_user --from-literal=password=S3cur3P@ssw0rd --from-literal=host=postgres.database.svc --namespace=jenkins-scenarios --dry-run=client -o yaml | kubectl apply -f - && echo '' && echo '=== Secret created ===' && kubectl get secret db-credentials -n jenkins-scenarios -o yaml",
+      "description": "Create a Kubernetes secret simulating what a Jenkins pipeline would do",
+      "explanation": "This is exactly what the Jenkins pipeline's withCredentials block would execute. We create a secret with database credentials that our application will consume. In production, these values would come from Jenkins credentials, not be hardcoded. The --dry-run=client -o yaml | kubectl apply -f - pattern makes this idempotent.",
+      "what_it_does": "Creates the jenkins-scenarios namespace and a db-credentials secret with username, password, and host values.",
+      "next_step": "Deploy an application that uses the secret.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 5: Deploy App That Uses Secrets",
+      "command": "cat <<'YAML' | kubectl apply -f -\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: jenkins-secret-demo\n  namespace: jenkins-scenarios\n  labels:\n    app: secret-demo\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: secret-demo\n  template:\n    metadata:\n      labels:\n        app: secret-demo\n    spec:\n      containers:\n      - name: app\n        image: nginx:alpine\n        env:\n        - name: DB_USERNAME\n          valueFrom:\n            secretKeyRef:\n              name: db-credentials\n              key: username\n        - name: DB_PASSWORD\n          valueFrom:\n            secretKeyRef:\n              name: db-credentials\n              key: password\n        - name: DB_HOST\n          valueFrom:\n            secretKeyRef:\n              name: db-credentials\n              key: host\nYAML\necho '' && echo '=== Deployment created - app reads secrets as env vars ==='",
+      "description": "Deploy an application that consumes Kubernetes secrets as environment variables",
+      "explanation": "The deployment references the db-credentials secret using secretKeyRef. Kubernetes injects the secret values as environment variables into the container at runtime. The application code reads DB_USERNAME, DB_PASSWORD, and DB_HOST from its environment - it never needs to know how the secrets were provisioned. This decouples secret management from application code.",
+      "what_it_does": "Creates a deployment where the container receives database credentials as environment variables from the K8s secret.",
+      "next_step": "Verify the secrets are properly mounted in the pod.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 6: Verify Secrets Are Mounted",
+      "command": "echo '=== Waiting for pod to be ready ===' && kubectl wait --for=condition=ready pod -l app=secret-demo -n jenkins-scenarios --timeout=60s && echo '' && echo '=== Verifying secret injection ===' && POD=$(kubectl get pod -l app=secret-demo -n jenkins-scenarios -o jsonpath='{.items[0].metadata.name}') && echo \"Pod: $POD\" && echo '' && echo 'DB_USERNAME:' && kubectl exec $POD -n jenkins-scenarios -- printenv DB_USERNAME && echo 'DB_HOST:' && kubectl exec $POD -n jenkins-scenarios -- printenv DB_HOST && echo 'DB_PASSWORD: [MASKED - exists in pod but we wont print it]' && echo '' && echo '=== In Jenkins, console output would show **** for secret values ==='",
+      "description": "Verify that the deployed application can read the injected secrets",
+      "explanation": "We verify that Kubernetes successfully injected the secret values into the container. In production, you would typically verify connectivity (e.g., the app can connect to the database) rather than printing credentials. Notice we intentionally mask the password - this mirrors how Jenkins masks credentials in build logs.",
+      "what_it_does": "Shows that the pod has the secret values available as environment variables, with password masked for security.",
+      "next_step": "Review the complete credential management summary.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 7: Credentials Best Practices Summary",
+      "command": "echo '============================================' && echo '  Jenkins Credentials Best Practices' && echo '============================================' && echo '' && echo 'DO:' && echo '  1. Use Credential Store for ALL secrets' && echo '  2. Use withCredentials() with minimal scope' && echo '  3. Rotate credentials regularly' && echo '  4. Use folder-scoped credentials for team isolation' && echo '  5. Audit credential usage via Jenkins logs' && echo '  6. Use external secret managers (Vault, AWS SM) for enterprise' && echo '' && echo 'DO NOT:' && echo '  1. Hardcode secrets in Jenkinsfile or source code' && echo '  2. Print/echo credential values in pipeline' && echo '  3. Pass secrets as build parameters (visible in UI)' && echo '  4. Store secrets in pipeline shared libraries' && echo '  5. Use global credentials when folder-scope is sufficient' && echo '' && echo 'Credential Scope Hierarchy:' && echo '  Global    → Available to all jobs (use sparingly)' && echo '  System    → Available to Jenkins internals only' && echo '  Folder    → Available to jobs within a folder (recommended)' && echo '  Pipeline  → Available to a single pipeline (most restrictive)' && echo '' && echo 'Enterprise Pattern: Jenkins + HashiCorp Vault' && echo '  - Vault stores secrets with TTL and audit logging' && echo '  - Jenkins Vault plugin fetches secrets at build time' && echo '  - Secrets are never persisted in Jenkins'",
+      "description": "Review security best practices for Jenkins credential management",
+      "explanation": "Proper credential management is one of the most critical aspects of CI/CD security. The scope hierarchy (Global > System > Folder > Pipeline) follows the principle of least privilege. In enterprise environments, integrating with HashiCorp Vault or AWS Secrets Manager adds rotation, TTL, and audit capabilities that Jenkins alone cannot provide.",
+      "what_it_does": "Prints comprehensive do's, don'ts, and enterprise patterns for Jenkins credential management.",
+      "next_step": "Clean up resources.",
+      "cleanup": false
+    },
+    {
+      "name": "Cleanup: Remove Resources",
+      "command": "kubectl delete namespace jenkins-scenarios --ignore-not-found && echo 'Cleanup complete!'",
+      "description": "Remove all resources created by this scenario",
+      "explanation": "Deletes the namespace and all resources within it, including the secret and deployment.",
+      "what_it_does": "Removes the jenkins-scenarios namespace, the db-credentials secret, and the secret-demo deployment.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

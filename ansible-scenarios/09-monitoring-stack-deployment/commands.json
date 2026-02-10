@@ -1,0 +1,178 @@
+{
+  "scenario_id": "09-monitoring-stack-deployment",
+  "difficulty": "medium",
+  "duration": "40 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Monitoring Infrastructure Containers",
+      "command": "docker run -d --name prometheus --hostname prometheus -p 9090:9090 rastasheep/ubuntu-sshd && docker run -d --name node1 --hostname node1 -p 2301:22 -p 9100:9100 rastasheep/ubuntu-sshd && docker run -d --name node2 --hostname node2 -p 2302:22 -p 9101:9100 rastasheep/ubuntu-sshd && docker run -d --name grafana --hostname grafana -p 3000:3000 rastasheep/ubuntu-sshd",
+      "description": "Launch monitoring stack containers",
+      "explanation": "Creates 4 containers: prometheus (metrics server), node1/node2 (monitored servers with Node Exporter), grafana (visualization). Port 9090 for Prometheus UI, 9100/9101 for metrics endpoints, 3000 for Grafana.",
+      "what_it_does": "Creates complete monitoring infrastructure with data sources and visualization.",
+      "next_step": "Containers ready. View inventory structure."
+    },
+    {
+      "name": "Step 2: View Monitoring Inventory",
+      "command": "cat ansible-scenarios/09-monitoring-stack-deployment/inventory/hosts.ini",
+      "description": "Display inventory with monitoring groups",
+      "explanation": "Shows [prometheus], [monitored_nodes], and [grafana] groups. Group organization enables role-based deployment: monitoring server, agents, and visualization separately.",
+      "what_it_does": "Displays host organization for monitoring stack deployment.",
+      "next_step": "Inventory reviewed. View main deployment playbook."
+    },
+    {
+      "name": "Step 3: View Monitoring Stack Playbook",
+      "command": "cat ansible-scenarios/09-monitoring-stack-deployment/deploy-monitoring.yml",
+      "description": "Display orchestration playbook for monitoring deployment",
+      "explanation": "Shows 3 plays: 1) Deploy Node Exporter to monitored nodes, 2) Configure Prometheus server with scrape configs, 3) Deploy Grafana with dashboards. Order matters: agents before server.",
+      "what_it_does": "Shows complete monitoring stack deployment orchestration.",
+      "next_step": "Playbook structure clear. Deploy Node Exporters."
+    },
+    {
+      "name": "Step 4: Deploy Node Exporter on Monitored Nodes",
+      "command": "cd ansible-scenarios/09-monitoring-stack-deployment && ansible-playbook -i inventory/hosts.ini deploy-monitoring.yml --tags node_exporter",
+      "description": "Install system metrics exporters on target nodes",
+      "explanation": "Installs Node Exporter (9100) on node1 and node2. Exposes system metrics: CPU, memory, disk, network. Prometheus scrapes these endpoints for monitoring data.",
+      "what_it_does": "Deploys metrics agents on monitored systems.",
+      "next_step": "Node Exporters deployed. Verify metrics endpoint."
+    },
+    {
+      "name": "Step 5: Test Node Exporter Metrics",
+      "command": "curl -s http://localhost:9100/metrics | head -20",
+      "description": "View raw metrics from Node Exporter",
+      "explanation": "Shows Prometheus format metrics: node_cpu_seconds_total, node_memory_MemAvailable_bytes, etc. Each metric has labels and values. This is what Prometheus scrapes.",
+      "what_it_does": "Displays sample system metrics in Prometheus exposition format.",
+      "next_step": "Metrics available. View Prometheus config template."
+    },
+    {
+      "name": "Step 6: View Prometheus Configuration Template",
+      "command": "cat ansible-scenarios/09-monitoring-stack-deployment/roles/prometheus/templates/prometheus.yml.j2",
+      "description": "Display Prometheus scrape configuration",
+      "explanation": "Shows scrape_configs with jobs for node exporters. Uses Jinja2 to dynamically generate targets from inventory. scrape_interval: 15s means collect metrics every 15 seconds.",
+      "what_it_does": "Shows dynamic configuration generation for monitored targets.",
+      "next_step": "Config template reviewed. Deploy Prometheus."
+    },
+    {
+      "name": "Step 7: Deploy Prometheus Server",
+      "command": "cd ansible-scenarios/09-monitoring-stack-deployment && ansible-playbook -i inventory/hosts.ini deploy-monitoring.yml --tags prometheus",
+      "description": "Install and configure Prometheus monitoring server",
+      "explanation": "Installs Prometheus, generates config from template with node1/node2 as targets, starts service. Prometheus begins scraping metrics immediately.",
+      "what_it_does": "Deploys Prometheus with configured scrape targets.",
+      "next_step": "Prometheus deployed. Verify it's scraping targets."
+    },
+    {
+      "name": "Step 8: Check Prometheus Targets Status",
+      "command": "curl -s http://localhost:9090/api/v1/targets | python3 -m json.tool | grep -E '(scrapeUrl|health|lastError)' | head -20",
+      "description": "Query Prometheus API for target health",
+      "explanation": "Shows active targets with scrapeUrl and health status. 'up' means target is reachable and metrics collected successfully. 'down' indicates scrape failure.",
+      "what_it_does": "Verifies Prometheus successfully scraping metrics from Node Exporters.",
+      "next_step": "Targets UP. View alerting rules."
+    },
+    {
+      "name": "Step 9: View Alert Rules Configuration",
+      "command": "cat ansible-scenarios/09-monitoring-stack-deployment/roles/prometheus/files/alert-rules.yml",
+      "description": "Display Prometheus alerting rules",
+      "explanation": "Shows alert definitions: InstanceDown (target unreachable 5min), HighMemoryUsage (>90%), HighCPUUsage (>80%). Rules use PromQL queries. Alerts fire when conditions met.",
+      "what_it_does": "Shows proactive monitoring alerts for system issues.",
+      "next_step": "Rules reviewed. Apply alerting configuration."
+    },
+    {
+      "name": "Step 10: Configure Prometheus Alerting",
+      "command": "cd ansible-scenarios/09-monitoring-stack-deployment && ansible-playbook -i inventory/hosts.ini configure-alerts.yml",
+      "description": "Deploy alert rules to Prometheus",
+      "explanation": "Copies alert-rules.yml to Prometheus config directory and reloads configuration. Prometheus evaluates rules at 'evaluation_interval' (default 15s). Active alerts visible in UI.",
+      "what_it_does": "Activates alerting rules for system monitoring.",
+      "next_step": "Alerts configured. Check active alerts."
+    },
+    {
+      "name": "Step 11: Query Prometheus for Metrics",
+      "command": "curl -s 'http://localhost:9090/api/v1/query?query=up' | python3 -m json.tool",
+      "description": "Execute PromQL query via API",
+      "explanation": "Queries 'up' metric showing target availability. Returns 1 (up) or 0 (down) for each target. PromQL is Prometheus query language for filtering/aggregating metrics.",
+      "what_it_does": "Demonstrates querying metrics data from Prometheus.",
+      "next_step": "Query works. Deploy Grafana."
+    },
+    {
+      "name": "Step 12: Deploy Grafana with Datasource",
+      "command": "cd ansible-scenarios/09-monitoring-stack-deployment && ansible-playbook -i inventory/hosts.ini deploy-monitoring.yml --tags grafana",
+      "description": "Install Grafana and configure Prometheus datasource",
+      "explanation": "Installs Grafana, configures Prometheus datasource (http://prometheus:9090), sets up authentication. Grafana provides rich visualization and dashboarding for Prometheus metrics.",
+      "what_it_does": "Deploys visualization layer connected to Prometheus.",
+      "next_step": "Grafana deployed. Verify datasource."
+    },
+    {
+      "name": "Step 13: Test Grafana API and Datasource",
+      "command": "curl -s -u admin:admin http://localhost:3000/api/datasources | python3 -m json.tool",
+      "description": "Query Grafana API for configured datasources",
+      "explanation": "Shows Prometheus datasource configuration: URL, access mode, type. Confirms Grafana can reach Prometheus. Uses default credentials (admin:admin).",
+      "what_it_does": "Verifies Grafana successfully connected to Prometheus.",
+      "next_step": "Datasource verified. Import dashboard."
+    },
+    {
+      "name": "Step 14: Import Grafana Dashboard",
+      "command": "cd ansible-scenarios/09-monitoring-stack-deployment && ansible-playbook -i inventory/hosts.ini import-dashboards.yml",
+      "description": "Deploy pre-built monitoring dashboards",
+      "explanation": "Imports Node Exporter Full dashboard (JSON) via Grafana API. Shows CPU, memory, disk, network graphs. Dashboards visualize metrics collected by Prometheus.",
+      "what_it_does": "Adds pre-configured dashboards for system monitoring.",
+      "next_step": "Dashboard imported. View dashboard list."
+    },
+    {
+      "name": "Step 15: List Grafana Dashboards",
+      "command": "curl -s -u admin:admin http://localhost:3000/api/search?query= | python3 -m json.tool | grep -E '(title|uid)'",
+      "description": "Display imported dashboards",
+      "explanation": "Shows dashboard titles and UIDs. Each UID provides stable URL for direct access. Dashboards can be organized into folders and tagged.",
+      "what_it_does": "Lists available dashboards for monitoring visualization.",
+      "next_step": "Dashboards listed. Configure service discovery."
+    },
+    {
+      "name": "Step 16: View File-based Service Discovery Config",
+      "command": "cat ansible-scenarios/09-monitoring-stack-deployment/roles/prometheus/templates/file_sd_config.json.j2",
+      "description": "Display dynamic target discovery configuration",
+      "explanation": "Shows file_sd_configs JSON with targets array. Prometheus watches this file for changes. Adding new targets to file automatically updates scrape config without restart.",
+      "what_it_does": "Demonstrates dynamic service discovery for monitoring targets.",
+      "next_step": "Service discovery understood. Add new target dynamically."
+    },
+    {
+      "name": "Step 17: Add Target via Service Discovery",
+      "command": "cd ansible-scenarios/09-monitoring-stack-deployment && ansible-playbook -i inventory/hosts.ini add-monitoring-target.yml -e 'new_target=node3:9100'",
+      "description": "Dynamically add monitoring target without Prometheus restart",
+      "explanation": "Updates file_sd_config.json with node3. Prometheus detects file change (checks every 5 minutes or configured interval) and adds target automatically. No service restart needed.",
+      "what_it_does": "Demonstrates zero-downtime target addition via service discovery.",
+      "next_step": "Target added. Verify complete stack health."
+    },
+    {
+      "name": "Step 18: Complete Monitoring Stack Validation",
+      "command": "cd ansible-scenarios/09-monitoring-stack-deployment && ansible-playbook -i inventory/hosts.ini validate-monitoring.yml",
+      "description": "Run validation playbook for entire stack",
+      "explanation": "Checks: Node Exporter endpoints responding, Prometheus scraping targets, alerts evaluated, Grafana datasource connected. Reports PASS/FAIL for each component.",
+      "what_it_does": "Validates complete monitoring stack is operational.",
+      "next_step": "Stack validated. Scenario complete! Clean up."
+    },
+    {
+      "name": "Cleanup 1: Stop All Containers",
+      "command": "docker stop prometheus node1 node2 grafana",
+      "description": "Stop monitoring stack containers",
+      "explanation": "Stops all monitoring infrastructure containers.",
+      "what_it_does": "Stops Prometheus, Node Exporters, and Grafana containers.",
+      "next_step": "Containers stopped. Remove them.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup 2: Remove All Containers",
+      "command": "docker rm prometheus node1 node2 grafana",
+      "description": "Remove stopped containers",
+      "explanation": "Deletes all containers and their monitoring data.",
+      "what_it_does": "Removes all monitoring stack containers from Docker.",
+      "next_step": "Containers removed. Clean up volumes.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup 3: Remove Prometheus Data",
+      "command": "docker volume rm prometheus-data grafana-data 2>/dev/null || echo 'No volumes to remove'",
+      "description": "Remove persistent monitoring data",
+      "explanation": "Deletes Prometheus time-series database and Grafana dashboards/configs.",
+      "what_it_does": "Removes persistent monitoring data volumes.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

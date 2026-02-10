@@ -55,6 +55,15 @@ COPY helm-scenarios/ /helm-scenarios/
 # Copy GitLab CI scenarios into the image
 COPY gitlab-ci-scenarios/ /gitlab-ci-scenarios/
 
+# Copy Jenkins scenarios into the image
+COPY jenkins-scenarios/ /jenkins-scenarios/
+
+# Copy Terraform scenarios into the image
+COPY terraform-scenarios/ /terraform-scenarios/
+
+# Copy Ansible scenarios into the image
+COPY ansible-scenarios/ /ansible-scenarios/
+
 # Now create non-root user and set ownership
 RUN useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /app && \
@@ -65,7 +74,13 @@ RUN useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /helm-scenarios && \
     chmod -R 755 /helm-scenarios && \
     chown -R appuser:appuser /gitlab-ci-scenarios && \
-    chmod -R 755 /gitlab-ci-scenarios
+    chmod -R 755 /gitlab-ci-scenarios && \
+    chown -R appuser:appuser /jenkins-scenarios && \
+    chmod -R 755 /jenkins-scenarios && \
+    chown -R appuser:appuser /terraform-scenarios && \
+    chmod -R 755 /terraform-scenarios && \
+    chown -R appuser:appuser /ansible-scenarios && \
+    chmod -R 755 /ansible-scenarios
 
 # Switch to non-root user
 USER appuser

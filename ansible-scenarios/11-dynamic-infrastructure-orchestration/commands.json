@@ -1,0 +1,217 @@
+{
+  "scenario_id": "11-dynamic-infrastructure-orchestration",
+  "difficulty": "hard",
+  "duration": "55 min",
+  "commands": [
+    {
+      "name": "Step 1: View Dynamic Inventory Script",
+      "command": "cat ansible-scenarios/11-dynamic-infrastructure-orchestration/inventory/docker_inventory.py",
+      "description": "Display Docker API dynamic inventory script",
+      "explanation": "Shows Python script querying Docker API for running containers. Returns Ansible-compatible JSON with hosts, groups, and variables. Automatically discovers infrastructure without static inventory files.",
+      "what_it_does": "Shows dynamic inventory implementation for Docker containers.",
+      "next_step": "Script reviewed. Make it executable."
+    },
+    {
+      "name": "Step 2: Make Inventory Script Executable",
+      "command": "chmod +x ansible-scenarios/11-dynamic-infrastructure-orchestration/inventory/docker_inventory.py",
+      "description": "Set execute permissions on dynamic inventory",
+      "explanation": "Ansible executes inventory scripts to get host data. Script must have +x permission. Ansible calls with --list or --host flags.",
+      "what_it_does": "Enables Ansible to execute the dynamic inventory script.",
+      "next_step": "Script executable. Test dynamic inventory."
+    },
+    {
+      "name": "Step 3: Test Dynamic Inventory (Empty)",
+      "command": "cd ansible-scenarios/11-dynamic-infrastructure-orchestration && ./inventory/docker_inventory.py --list | python3 -m json.tool",
+      "description": "Query Docker API before creating containers",
+      "explanation": "Returns empty inventory (no containers). Shows JSON structure: _meta with hostvars, and groups. As containers start, they appear automatically in inventory.",
+      "what_it_does": "Displays current dynamic inventory state (empty).",
+      "next_step": "Empty inventory confirmed. View container creation playbook."
+    },
+    {
+      "name": "Step 4: View Dynamic Container Creation Playbook",
+      "command": "cat ansible-scenarios/11-dynamic-infrastructure-orchestration/create-dynamic-infrastructure.yml",
+      "description": "Display playbook that creates containers dynamically",
+      "explanation": "Shows playbook using docker_container module with loop. Creates N containers based on count variable. Uses register to capture container details (IDs, IPs) for later tasks.",
+      "what_it_does": "Shows infrastructure creation with output capture.",
+      "next_step": "Playbook reviewed. Create containers dynamically."
+    },
+    {
+      "name": "Step 5: Create Dynamic Infrastructure",
+      "command": "cd ansible-scenarios/11-dynamic-infrastructure-orchestration && ansible-playbook create-dynamic-infrastructure.yml -e 'container_count=5'",
+      "description": "Create 5 containers dynamically",
+      "explanation": "Launches 5 Ubuntu SSH containers with names app-0 through app-4. Each gets unique port (2321-2325). register: container_results saves all creation details for later use.",
+      "what_it_does": "Creates 5 containers and captures their metadata.",
+      "next_step": "Containers created. Test dynamic inventory discovery."
+    },
+    {
+      "name": "Step 6: Test Dynamic Inventory (Populated)",
+      "command": "cd ansible-scenarios/11-dynamic-infrastructure-orchestration && ./inventory/docker_inventory.py --list | python3 -m json.tool | grep -E '(app-[0-9]|ansible_host)' | head -20",
+      "description": "Query dynamic inventory after container creation",
+      "explanation": "Now shows app-0 through app-4 with ansible_host (IP addresses) automatically discovered from Docker API. No manual inventory updates needed. Infrastructure changes reflected immediately.",
+      "what_it_does": "Shows auto-discovered containers in dynamic inventory.",
+      "next_step": "Discovery working. View conditional execution playbook."
+    },
+    {
+      "name": "Step 7: View Conditional Execution Playbook",
+      "command": "cat ansible-scenarios/11-dynamic-infrastructure-orchestration/conditional-tasks.yml",
+      "description": "Display playbook with conditional logic",
+      "explanation": "Shows tasks with 'when' conditions based on facts: ansible_distribution, ansible_memory_mb, ansible_processor_vcpus. Different tasks run on different systems. Enables universal playbooks.",
+      "what_it_does": "Demonstrates fact-based conditional task execution.",
+      "next_step": "Conditionals reviewed. Execute against dynamic inventory."
+    },
+    {
+      "name": "Step 8: Execute Conditional Tasks",
+      "command": "cd ansible-scenarios/11-dynamic-infrastructure-orchestration && ansible-playbook -i inventory/docker_inventory.py conditional-tasks.yml",
+      "description": "Run playbook with dynamic inventory and conditionals",
+      "explanation": "Playbook targets dynamic inventory. Gathers facts from each container, evaluates conditions, executes matching tasks. Some tasks skip based on when clauses. Shows 'skipped' for unmatched conditions.",
+      "what_it_does": "Executes conditionally on dynamically discovered infrastructure.",
+      "next_step": "Conditionals executed. View register and output usage."
+    },
+    {
+      "name": "Step 9: View Register and Set_Fact Playbook",
+      "command": "cat ansible-scenarios/11-dynamic-infrastructure-orchestration/register-outputs.yml",
+      "description": "Display playbook using task outputs",
+      "explanation": "Shows register capturing task output, then using registered variable in subsequent tasks. set_fact creates new variables from registered data. Enables multi-step workflows where later tasks depend on earlier results.",
+      "what_it_does": "Shows task output capture and reuse pattern.",
+      "next_step": "Pattern understood. Execute with output chaining."
+    },
+    {
+      "name": "Step 10: Execute Task Output Chaining",
+      "command": "cd ansible-scenarios/11-dynamic-infrastructure-orchestration && ansible-playbook -i inventory/docker_inventory.py register-outputs.yml --limit app-0",
+      "description": "Demonstrate registered variable usage",
+      "explanation": "Runs commands capturing output in variables. Later tasks access outputs via registered_var.stdout. Creates dependencies between tasks. Useful for multi-stage deployments.",
+      "what_it_does": "Chains task outputs through playbook execution.",
+      "next_step": "Output chaining verified. View error handling playbook."
+    },
+    {
+      "name": "Step 11: View Block/Rescue/Always Error Handling",
+      "command": "cat ansible-scenarios/11-dynamic-infrastructure-orchestration/error-handling.yml",
+      "description": "Display complex error handling patterns",
+      "explanation": "Shows block/rescue/always structure (similar to try/catch/finally). block contains normal tasks, rescue runs on failure, always runs regardless. Enables graceful degradation and cleanup on errors.",
+      "what_it_does": "Shows advanced error handling and recovery patterns.",
+      "next_step": "Error handling reviewed. Test with failing task."
+    },
+    {
+      "name": "Step 12: Execute Error Handling Playbook",
+      "command": "cd ansible-scenarios/11-dynamic-infrastructure-orchestration && ansible-playbook -i inventory/docker_inventory.py error-handling.yml --limit app-0",
+      "description": "Trigger error and observe rescue behavior",
+      "explanation": "Playbook attempts task that fails. Control transfers to rescue block, executes recovery tasks, logs error. always block runs last (cleanup). Playbook completes successfully despite error.",
+      "what_it_does": "Demonstrates error recovery preventing playbook failure.",
+      "next_step": "Error handling works. View async tasks."
+    },
+    {
+      "name": "Step 13: View Asynchronous Tasks Playbook",
+      "command": "cat ansible-scenarios/11-dynamic-infrastructure-orchestration/async-tasks.yml",
+      "description": "Display async task configuration",
+      "explanation": "Shows tasks with async: 300 poll: 0 (fire-and-forget) and async: 600 poll: 10 (poll every 10s). Async enables long-running tasks without blocking. Used for simultaneous deployments, backups, etc.",
+      "what_it_does": "Shows asynchronous task execution patterns.",
+      "next_step": "Async pattern understood. Execute long-running tasks."
+    },
+    {
+      "name": "Step 14: Execute Asynchronous Tasks",
+      "command": "cd ansible-scenarios/11-dynamic-infrastructure-orchestration && ansible-playbook -i inventory/docker_inventory.py async-tasks.yml",
+      "description": "Run tasks asynchronously on all containers",
+      "explanation": "Starts long-running task on all 5 containers simultaneously. Without async, would run serially (5x duration). With async, completes in time of longest task. Uses async_status to check completion.",
+      "what_it_does": "Executes tasks in parallel across infrastructure.",
+      "next_step": "Async tasks complete. View polling example."
+    },
+    {
+      "name": "Step 15: View Manual Polling Playbook",
+      "command": "cat ansible-scenarios/11-dynamic-infrastructure-orchestration/async-polling.yml",
+      "description": "Display manual async status polling",
+      "explanation": "Shows fire-and-forget task (poll: 0) followed by manual async_status checks in later task with until/retries. Gives control over polling frequency and timeout. Useful for coordinating async tasks.",
+      "what_it_does": "Shows manual control over async task completion checking.",
+      "next_step": "Polling pattern clear. Check container facts."
+    },
+    {
+      "name": "Step 16: Gather Facts from Dynamic Infrastructure",
+      "command": "cd ansible-scenarios/11-dynamic-infrastructure-orchestration && ansible -i inventory/docker_inventory.py all -m setup -a 'filter=ansible_distribution*'",
+      "description": "Collect facts from all discovered containers",
+      "explanation": "Uses setup module with dynamic inventory. Gathers distribution facts from all containers. Facts available as variables in playbooks for conditional logic.",
+      "what_it_does": "Collects system facts from dynamically discovered hosts.",
+      "next_step": "Facts gathered. View delegation example."
+    },
+    {
+      "name": "Step 17: View Playbook with Delegation and Run_Once",
+      "command": "cat ansible-scenarios/11-dynamic-infrastructure-orchestration/delegation-example.yml",
+      "description": "Display delegation and run_once patterns",
+      "explanation": "Shows run_once (task executes on only one host despite targeting multiple) and delegate_to (task runs on different host). Used for orchestration tasks: load balancer updates, database migrations, cluster operations.",
+      "what_it_does": "Shows advanced task execution control patterns.",
+      "next_step": "Delegation understood. Execute orchestration."
+    },
+    {
+      "name": "Step 18: Execute Orchestration with Delegation",
+      "command": "cd ansible-scenarios/11-dynamic-infrastructure-orchestration && ansible-playbook -i inventory/docker_inventory.py delegation-example.yml",
+      "description": "Run orchestration tasks with delegation",
+      "explanation": "Runs cluster operation once despite 5 hosts. Delegates load balancer update to localhost. Shows orchestration without targeting LB in inventory. Demonstrates coordination patterns.",
+      "what_it_does": "Executes coordinated operations across infrastructure.",
+      "next_step": "Orchestration complete. Scale infrastructure."
+    },
+    {
+      "name": "Step 19: Scale Infrastructure Up",
+      "command": "cd ansible-scenarios/11-dynamic-infrastructure-orchestration && ansible-playbook create-dynamic-infrastructure.yml -e 'container_count=3 name_prefix=worker'",
+      "description": "Add 3 more containers with different name prefix",
+      "explanation": "Creates worker-0, worker-1, worker-2 in addition to existing app containers. Dynamic inventory automatically includes new containers. No inventory updates needed. Demonstrates elastic infrastructure.",
+      "what_it_does": "Scales infrastructure by adding 3 new containers.",
+      "next_step": "Infrastructure scaled. Verify discovery."
+    },
+    {
+      "name": "Step 20: Verify Scaled Infrastructure",
+      "command": "cd ansible-scenarios/11-dynamic-infrastructure-orchestration && ansible -i inventory/docker_inventory.py all --list-hosts",
+      "description": "List all discovered hosts",
+      "explanation": "Shows 8 hosts: app-0 to app-4 (5) plus worker-0 to worker-2 (3). All discovered automatically via Docker API. Demonstrates dynamic inventory keeping pace with infrastructure changes.",
+      "what_it_does": "Lists all hosts in dynamic inventory after scaling.",
+      "next_step": "Scaling verified. View targeted operations."
+    },
+    {
+      "name": "Step 21: Target Subset by Label",
+      "command": "cd ansible-scenarios/11-dynamic-infrastructure-orchestration && ansible -i inventory/docker_inventory.py 'all:&worker_*' -m ping",
+      "description": "Use patterns to target worker containers only",
+      "explanation": "Pattern 'all:&worker_*' uses intersection (&) to match hosts starting with 'worker_'. Only pings worker containers, ignoring app containers. Demonstrates inventory subset targeting.",
+      "what_it_does": "Targets specific subset of dynamic infrastructure.",
+      "next_step": "Subset targeting works. Destroy infrastructure."
+    },
+    {
+      "name": "Step 22: View Infrastructure Destruction Playbook",
+      "command": "cat ansible-scenarios/11-dynamic-infrastructure-orchestration/destroy-dynamic-infrastructure.yml",
+      "description": "Display container cleanup playbook",
+      "explanation": "Shows playbook querying Docker for containers matching label/pattern, then removing them. Uses docker_container with state: absent. Automates infrastructure teardown.",
+      "what_it_does": "Shows automated infrastructure destruction pattern.",
+      "next_step": "Destruction playbook reviewed. Remove worker containers."
+    },
+    {
+      "name": "Step 23: Scale Down Infrastructure",
+      "command": "cd ansible-scenarios/11-dynamic-infrastructure-orchestration && ansible-playbook destroy-dynamic-infrastructure.yml -e 'name_prefix=worker'",
+      "description": "Remove worker containers",
+      "explanation": "Finds and removes all worker-* containers. Dynamic inventory immediately reflects removal (worker hosts disappear). Demonstrates elastic scale-down.",
+      "what_it_does": "Removes worker containers reducing infrastructure size.",
+      "next_step": "Scale down complete. Verify removal."
+    },
+    {
+      "name": "Step 24: Verify Scale Down",
+      "command": "cd ansible-scenarios/11-dynamic-infrastructure-orchestration && ansible -i inventory/docker_inventory.py all --list-hosts",
+      "description": "List remaining hosts after scale down",
+      "explanation": "Shows only 5 hosts: app-0 to app-4. Worker containers removed and no longer in inventory. No manual cleanup needed. Dynamic inventory stays synchronized with actual infrastructure.",
+      "what_it_does": "Confirms worker containers removed from inventory.",
+      "next_step": "Scenario complete! Clean up remaining infrastructure."
+    },
+    {
+      "name": "Cleanup 1: Destroy All Dynamic Infrastructure",
+      "command": "cd ansible-scenarios/11-dynamic-infrastructure-orchestration && ansible-playbook destroy-dynamic-infrastructure.yml -e 'name_prefix=app'",
+      "description": "Remove all app containers",
+      "explanation": "Removes all remaining containers created during scenario.",
+      "what_it_does": "Removes all app-* containers.",
+      "next_step": "Containers removed. Verify cleanup.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup 2: Verify Complete Cleanup",
+      "command": "cd ansible-scenarios/11-dynamic-infrastructure-orchestration && ./inventory/docker_inventory.py --list | python3 -m json.tool | grep -E 'app-|worker-' || echo 'All scenario containers removed'",
+      "description": "Confirm no scenario containers remain",
+      "explanation": "Checks dynamic inventory is empty of scenario containers. Confirms complete cleanup.",
+      "what_it_does": "Verifies all dynamically created containers are removed.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

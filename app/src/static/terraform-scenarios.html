@@ -1,0 +1,301 @@
+<!-- app/src/static/terraform-scenarios.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terraform Learning Scenarios</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #5C4EE5 0%, #813CF2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            padding: 40px 20px;
+        }
+
+        .header h1 {
+            font-size: 48px;
+            margin: 0 0 15px 0;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 20px;
+            opacity: 0.95;
+            margin: 0;
+        }
+
+        .header-actions {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .scenarios-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 25px;
+            margin-top: 40px;
+        }
+
+        .scenario-card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .scenario-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .scenario-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .scenario-number {
+            font-size: 14px;
+            font-weight: 700;
+            color: #5C4EE5;
+            background: #EDE9FE;
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        .difficulty-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .difficulty-easy {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .difficulty-medium {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .difficulty-hard {
+            background: #fecaca;
+            color: #991b1b;
+        }
+
+        .scenario-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1a202c;
+            margin: 15px 0 10px 0;
+            line-height: 1.3;
+        }
+
+        .scenario-description {
+            color: #4b5563;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            min-height: 60px;
+        }
+
+        .scenario-meta {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #e5e7eb;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: white;
+            font-size: 18px;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 24px;
+            background: white;
+            color: #5C4EE5;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .scenarios-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 32px;
+            }
+
+            .header p {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Play Terraform</h1>
+            <p>Hands-on Terraform scenarios - Master infrastructure as code, modules, state management, and production cloud workflows</p>
+            <div class="header-actions">
+                <a href="/" class="back-button">
+                    <span>&larr;</span>
+                    <span>Back to Dashboard</span>
+                </a>
+            </div>
+        </div>
+
+        <div id="scenarios-content" class="loading">
+            <div class="spinner"></div>
+            <div>Loading Terraform scenarios...</div>
+        </div>
+    </div>
+
+    <script>
+        async function loadScenarios() {
+            try {
+                var response = await fetch('/api/terraform-scenarios');
+                var data = await response.json();
+
+                if (data.scenarios && data.scenarios.length > 0) {
+                    renderScenarios(data.scenarios);
+                } else {
+                    document.getElementById('scenarios-content').innerHTML = '<div class="error-message"><h3>No Terraform Scenarios Found</h3><p>No Terraform scenarios are currently available.</p></div>';
+                }
+            } catch (error) {
+                document.getElementById('scenarios-content').innerHTML = '<div class="error-message"><h3>Error Loading Scenarios</h3><p>' + error.message + '</p></div>';
+            }
+        }
+
+        function renderScenarios(scenarios) {
+            var difficultyOrder = { easy: 0, medium: 1, hard: 2 };
+            var sortedScenarios = scenarios.sort(function(a, b) {
+                var da = difficultyOrder[a.difficulty || 'medium'] || 0;
+                var db = difficultyOrder[b.difficulty || 'medium'] || 0;
+                if (da !== db) return da - db;
+                return a.id.localeCompare(b.id);
+            });
+
+            var grid = document.createElement('div');
+            grid.className = 'scenarios-grid';
+
+            sortedScenarios.forEach(function(scenario, index) {
+                var card = createScenarioCard(scenario, index + 1);
+                grid.appendChild(card);
+            });
+
+            document.getElementById('scenarios-content').innerHTML = '';
+            document.getElementById('scenarios-content').appendChild(grid);
+        }
+
+        function createScenarioCard(scenario, number) {
+            var link = document.createElement('a');
+            link.href = '/terraform-scenario/' + scenario.id;
+            link.className = 'scenario-card';
+
+            var difficultyClass = 'difficulty-' + (scenario.difficulty || 'medium');
+
+            var paddedNumber = number < 10 ? '0' + number : '' + number;
+            link.innerHTML = '<div class="scenario-header">'
+                + '<span class="scenario-number">#' + paddedNumber + '</span>'
+                + '<span class="difficulty-badge ' + difficultyClass + '">'
+                + (scenario.difficulty || 'medium').toUpperCase()
+                + '</span>'
+                + '</div>'
+                + '<h3 class="scenario-title">' + scenario.name + '</h3>'
+                + '<p class="scenario-description">'
+                + (scenario.description || 'A hands-on Terraform learning scenario')
+                + '</p>'
+                + '<div class="scenario-meta">'
+                + '<div class="meta-item"><span>&#9202;</span><span>' + (scenario.duration || '20 min') + '</span></div>'
+                + '<div class="meta-item"><span>&#128221;</span><span>' + (scenario.command_count || 0) + ' commands</span></div>'
+                + '</div>';
+
+            return link;
+        }
+
+        loadScenarios();
+    </script>
+</body>
+</html>

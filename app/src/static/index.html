@@ -72,6 +72,88 @@
         </div>
     </div>
 
+    <!-- Prerequisites Modal -->
+    <div id="prerequisites-modal" class="modal-overlay">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>📦 System Prerequisites</h3>
+                <button class="modal-close" onclick="closePrerequisitesModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Step 1: Run checker script -->
+                <div id="prereq-step-1" class="prereq-step active">
+                    <div class="prereq-intro">
+                        <p><strong>Step 1:</strong> Check which tools are installed on your local machine.</p>
+                        <p>Copy and run this command in your terminal:</p>
+                    </div>
+                    <div class="cli-commands">
+                        <code id="checker-command">curl -s http://localhost:30080/api/prerequisites/checker.sh | bash</code>
+                        <button class="copy-btn" onclick="copyCheckerCommand()">Copy</button>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <button class="btn btn-primary" onclick="refreshPrereqStatus()">I've run the command</button>
+                    </div>
+                </div>
+
+                <!-- Step 2: View results and select tools -->
+                <div id="prereq-step-2" class="prereq-step">
+                    <div class="status-summary">
+                        <span id="prereq-installed-count" class="status-badge badge-success">0 Installed</span>
+                        <span id="prereq-missing-count" class="status-badge badge-warning">0 Missing</span>
+                    </div>
+                    <div class="prerequisites-list" id="prerequisites-list">
+                        <!-- Populated dynamically -->
+                    </div>
+                    <div class="prerequisites-actions">
+                        <button class="btn btn-secondary" onclick="backToStep1()">← Back</button>
+                        <button class="btn btn-success" id="install-now-btn" onclick="installNow()" disabled>
+                            🚀 Install Now
+                        </button>
+                        <button class="btn btn-primary" id="download-installer-btn" onclick="downloadInstaller()" disabled>
+                            📥 Download Installer
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Direct installation command -->
+                <div id="prereq-step-3" class="prereq-step">
+                    <div class="prereq-intro">
+                        <p><strong>Step 3:</strong> Copy and run this command in your terminal to install the selected tools.</p>
+                        <p>This will download and execute the installer script automatically:</p>
+                    </div>
+                    <div class="cli-commands">
+                        <code id="install-command">curl -s http://localhost:30080/api/prerequisites/installer.sh | bash</code>
+                        <button class="copy-btn" onclick="copyInstallCommand()">Copy</button>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <p style="color: var(--text-secondary); font-size: 14px;">
+                            ⚠️ <strong>Note:</strong> The installer requires sudo privileges and will prompt for your password.
+                        </p>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <button class="btn btn-secondary" onclick="backToStep2()">← Back</button>
+                        <button class="btn btn-primary" onclick="closePrerequisitesModal()">Done</button>
+                    </div>
+                </div>
+
+                <!-- Step 4: Download instructions (for manual installation) -->
+                <div id="prereq-step-4" class="prereq-step">
+                    <div class="prereq-intro">
+                        <p><strong>Step 4:</strong> Run the downloaded installer script.</p>
+                        <p>In your terminal, navigate to your Downloads folder and run:</p>
+                    </div>
+                    <div class="cli-commands">
+                        <code>bash ~/Downloads/install-prerequisites.sh</code>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <button class="btn btn-secondary" onclick="backToStep2()">← Back</button>
+                        <button class="btn btn-primary" onclick="closePrerequisitesModal()">Done</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Testing Actions Sidebar Overlay -->
     <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeTestingSidebar()"></div>
 
@@ -119,8 +201,9 @@
                     <span class="nav-icon">📊</span>
                     <span class="nav-text">Dashboard</span>
                 </div>
+                <div class="nav-separator"></div>
                 <div class="nav-item" id="tour-play-k8s" onclick="openPlayKubernetes()">
-                    <span class="nav-icon">🎮</span>
+                    <span class="nav-icon" style="color: #326CE5;">🎮</span>
                     <span class="nav-text">Play Kubernetes</span>
                 </div>
                 <div class="nav-item" id="tour-play-argocd" onclick="openPlayArgoCD()">
@@ -128,12 +211,24 @@
                     <span class="nav-text">Play ArgoCD</span>
                 </div>
                 <div class="nav-item" id="tour-play-helm" onclick="openPlayHelm()">
-                    <span class="nav-icon" style="color: #326CE5;">⎈</span>
-                    <span class="nav-text">Play Helm</span>
+                    <span class="nav-icon helm-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="3.5" stroke="#326CE5" stroke-width="1.8"/><circle cx="12" cy="12" r="9.5" stroke="#326CE5" stroke-width="1.8"/><line x1="12" y1="1" x2="12" y2="8.5" stroke="#326CE5" stroke-width="1.8" stroke-linecap="round"/><line x1="12" y1="15.5" x2="12" y2="23" stroke="#326CE5" stroke-width="1.8" stroke-linecap="round"/><line x1="1" y1="12" x2="8.5" y2="12" stroke="#326CE5" stroke-width="1.8" stroke-linecap="round"/><line x1="15.5" y1="12" x2="23" y2="12" stroke="#326CE5" stroke-width="1.8" stroke-linecap="round"/><line x1="4.2" y1="4.2" x2="8.5" y2="8.5" stroke="#326CE5" stroke-width="1.8" stroke-linecap="round"/><line x1="15.5" y1="15.5" x2="19.8" y2="19.8" stroke="#326CE5" stroke-width="1.8" stroke-linecap="round"/><line x1="19.8" y1="4.2" x2="15.5" y2="8.5" stroke="#326CE5" stroke-width="1.8" stroke-linecap="round"/><line x1="4.2" y1="19.8" x2="8.5" y2="15.5" stroke="#326CE5" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+                    <span class="nav-text"> Play Helm</span>
                 </div>
                 <div class="nav-item" id="tour-play-gitlab-ci" onclick="openPlayGitlabCI()">
                     <span class="nav-icon" style="color: #E24329;">🦊</span>
                     <span class="nav-text">Play GitLab CI</span>
+                </div>
+                <div class="nav-item" id="tour-play-jenkins" onclick="openPlayJenkins()">
+                    <span class="nav-icon jenkins-icon"><svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg"><path d="M4 23Q4 16 12 14.5Q20 16 20 23" fill="#335061"/><path d="M10.2 15L12 19L13.8 15" fill="#fff"/><path d="M9.5 15.5L12 17L14.5 15.5L12 16Z" fill="#D33833"/><circle cx="12" cy="9" r="5.5" fill="#F0D6B7"/><path d="M6.5 9Q6.5 3 12 3Q17.5 3 17.5 9Q17.5 7 15.5 5.5Q13.5 4.5 12 4.5Q10.5 4.5 8.5 5.5Q6.5 7 6.5 9Z" fill="#4a3728"/><path d="M9 9Q10 8 11 9" stroke="#555" stroke-width="1" fill="none" stroke-linecap="round"/><path d="M13 9Q14 8 15 9" stroke="#555" stroke-width="1" fill="none" stroke-linecap="round"/><path d="M9.5 11.5Q12 13.5 14.5 11.5" stroke="#555" stroke-width="0.8" fill="none" stroke-linecap="round"/></svg></span>
+                    <span class="nav-text">Play Jenkins</span>
+                </div>
+                <div class="nav-item" id="tour-play-terraform" onclick="openPlayTerraform()">
+                    <span class="nav-icon terraform-icon"><svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg"><path d="M1.5 4.5v6.25l5.5 3.15V7.65L1.5 4.5z" fill="#5C4EE5"/><path d="M8.25 7.65v6.25l5.5-3.15V4.5L8.25 7.65z" fill="#5C4EE5"/><path d="M8.25 15.4v6.25l5.5-3.15v-6.25L8.25 15.4z" fill="#5C4EE5"/><path d="M15 4.5v6.25l5.5-3.15V1.35L15 4.5z" fill="#5C4EE5"/></svg></span>
+                    <span class="nav-text">Play Terraform</span>
+                </div>
+                <div class="nav-item" id="tour-play-ansible" onclick="openPlayAnsible()">
+                    <span class="nav-icon" style="color: #6B7280;">🔧</span>
+                    <span class="nav-text">Play Ansible</span>
                 </div>
             </nav>
             <div class="sidebar-footer" id="tour-developer-info">
@@ -197,9 +292,14 @@
                     <div class="status-card" id="tour-app-info">
                         <div class="status-card-header">
                             <h3>Application Info</h3>
-                            <button class="btn-testing-actions" id="tour-testing-btn" onclick="openTestingSidebar()">
-                                🧪 Testing Actions
-                            </button>
+                            <div class="header-button-group">
+                                <button class="btn-prerequisites" onclick="openPrerequisitesModal()">
+                                    📦 Prerequisites
+                                </button>
+                                <button class="btn-testing-actions" id="tour-testing-btn" onclick="openTestingSidebar()">
+                                    🧪 Testing Actions
+                                </button>
+                            </div>
                         </div>
                         <div class="status-list">
                             <div class="status-row">

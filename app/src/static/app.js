@@ -106,6 +106,21 @@ function openPlayGitlabCI() {
     window.open('/static/gitlab-ci-scenarios.html', '_blank');
 }
 
+// Open Play Jenkins scenarios page
+function openPlayJenkins() {
+    window.open('/static/jenkins-scenarios.html', '_blank');
+}
+
+// Open Play Terraform scenarios page
+function openPlayTerraform() {
+    window.open('/static/terraform-scenarios.html', '_blank');
+}
+
+// Open Play Ansible scenarios page
+function openPlayAnsible() {
+    window.open('/static/ansible-scenarios.html', '_blank');
+}
+
 // Open ArgoCD with automatic fallback
 function openArgoCD() {
     // Ask backend which ArgoCD URL to use
@@ -1507,3 +1522,265 @@ function prevTourStep() {
 window.addEventListener('DOMContentLoaded', function() {
     setTimeout(checkTourStatus, 2000);
 });
+
+// ============================================
+// PREREQUISITES MODAL
+// ============================================
+
+var currentPrereqStep = 1;
+var currentSessionId = null;
+var prerequisitesData = null;
+
+function openPrerequisitesModal() {
+    currentPrereqStep = 1;
+    showPrereqStep(1);
+    var modal = document.getElementById('prerequisites-modal');
+    modal.classList.add('active');
+}
+
+function closePrerequisitesModal() {
+    var modal = document.getElementById('prerequisites-modal');
+    modal.classList.remove('active');
+    currentPrereqStep = 1;
+    currentSessionId = null;
+}
+
+function showPrereqStep(stepNum) {
+    var steps = document.querySelectorAll('.prereq-step');
+    steps.forEach(function(step, idx) {
+        step.classList.remove('active');
+        if (idx + 1 === stepNum) {
+            step.classList.add('active');
+        }
+    });
+    currentPrereqStep = stepNum;
+}
+
+function copyCheckerCommand() {
+    var code = document.getElementById('checker-command');
+    var textToCopy = code.textContent.trim();
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(textToCopy).then(function() {
+            // Change button text temporarily
+            var btn = event.target;
+            var originalText = btn.textContent;
+            btn.textContent = '✓ Copied!';
+            btn.style.background = '#16A34A';
+            setTimeout(function() {
+                btn.textContent = originalText;
+                btn.style.background = '';
+            }, 2000);
+        }).catch(function(err) {
+            showModal('Error', 'Failed to copy: ' + err, false);
+        });
+    } else {
+        // Fallback for older browsers
+        var textArea = document.createElement('textarea');
+        textArea.value = textToCopy;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            var btn = event.target;
+            var originalText = btn.textContent;
+            btn.textContent = '✓ Copied!';
+            btn.style.background = '#16A34A';
+            setTimeout(function() {
+                btn.textContent = originalText;
+                btn.style.background = '';
+            }, 2000);
+        } catch (err) {
+            showModal('Error', 'Failed to copy: ' + err, false);
+        }
+        document.body.removeChild(textArea);
+    }
+}
+
+function refreshPrereqStatus() {
+    // Poll for latest session report
+    fetch('/api/prerequisites/status/latest')
+        .then(function(r) {
+            if (!r.ok) {
+                throw new Error('No report found. Please run the checker command first.');
+            }
+            return r.json();
+        })
+        .then(function(data) {
+            currentSessionId = data.session_id || 'latest';
+            prerequisitesData = data;
+            displayPrereqResults(data);
+            showPrereqStep(2);
+        })
+        .catch(function(e) {
+            // Close prerequisites modal first, then show error
+            closePrerequisitesModal();
+            setTimeout(function() {
+                showModal('Error', e.message, false);
+            }, 300);
+        });
+}
+
+function displayPrereqResults(data) {
+    var tools = data.tools;
+    var installedCount = 0;
+    var missingCount = 0;
+    var listHtml = '';
+
+    // Sort tools: installed first, then missing
+    var toolEntries = Object.entries(tools).sort(function(a, b) {
+        if (a[1].installed === b[1].installed) return 0;
+        return a[1].installed ? -1 : 1;
+    });
+
+    toolEntries.forEach(function(entry) {
+        var toolId = entry[0];
+        var tool = entry[1];
+        var installed = tool.installed;
+
+        if (installed) installedCount++;
+        else missingCount++;
+
+        var itemClass = installed ? 'prereq-item installed' : 'prereq-item';
+        var statusClass = installed ? 'prereq-status installed' : 'prereq-status missing';
+        var statusText = installed ? '✓ Installed' : '✗ Missing';
+        var versionText = installed ? tool.version : 'Not available';
+        var checkboxDisabled = installed ? 'disabled' : '';
+
+        listHtml += '<div class="' + itemClass + '">';
+        listHtml += '  <input type="checkbox" class="prereq-checkbox" ';
+        listHtml += '    data-tool-id="' + toolId + '" ';
+        listHtml += '    onchange="updateDownloadButton()" ';
+        listHtml += checkboxDisabled + '>';
+        listHtml += '  <div class="prereq-info">';
+        listHtml += '    <div class="prereq-name">' + toolId + '</div>';
+        listHtml += '    <div class="prereq-version">' + versionText + '</div>';
+        listHtml += '  </div>';
+        listHtml += '  <div class="' + statusClass + '">' + statusText + '</div>';
+        listHtml += '</div>';
+    });
+
+    document.getElementById('prereq-installed-count').textContent = installedCount + ' Installed';
+    document.getElementById('prereq-missing-count').textContent = missingCount + ' Missing';
+    document.getElementById('prerequisites-list').innerHTML = listHtml;
+
+    // Auto-check missing tools
+    updateDownloadButton();
+}
+
+function updateDownloadButton() {
+    var checkboxes = document.querySelectorAll('.prereq-checkbox:checked:not([disabled])');
+    var downloadBtn = document.getElementById('download-installer-btn');
+    var installBtn = document.getElementById('install-now-btn');
+
+    if (checkboxes.length > 0) {
+        var toolText = checkboxes.length + ' tool' + (checkboxes.length > 1 ? 's' : '');
+        downloadBtn.disabled = false;
+        downloadBtn.textContent = '📥 Download Installer (' + toolText + ')';
+        installBtn.disabled = false;
+        installBtn.textContent = '🚀 Install Now (' + toolText + ')';
+    } else {
+        downloadBtn.disabled = true;
+        downloadBtn.textContent = '📥 Download Installer';
+        installBtn.disabled = true;
+        installBtn.textContent = '🚀 Install Now';
+    }
+}
+
+function installNow() {
+    var checkboxes = document.querySelectorAll('.prereq-checkbox:checked:not([disabled])');
+    var selectedTools = [];
+
+    checkboxes.forEach(function(cb) {
+        selectedTools.push(cb.dataset.toolId);
+    });
+
+    if (selectedTools.length === 0) {
+        showModal('Error', 'Please select at least one tool to install.', false);
+        return;
+    }
+
+    // Build the install command with selected tools
+    var toolsParam = selectedTools.join(',');
+    var installCmd = 'curl -s http://localhost:30080/api/prerequisites/installer.sh?tools=' + toolsParam + ' | bash';
+
+    // Update the command in Step 3
+    document.getElementById('install-command').textContent = installCmd;
+
+    // Show step 3
+    showPrereqStep(3);
+}
+
+function copyInstallCommand() {
+    var code = document.getElementById('install-command');
+    var textToCopy = code.textContent.trim();
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(textToCopy).then(function() {
+            var btn = event.target;
+            var originalText = btn.textContent;
+            btn.textContent = '✓ Copied!';
+            btn.style.background = '#16A34A';
+            setTimeout(function() {
+                btn.textContent = originalText;
+                btn.style.background = '';
+            }, 2000);
+        }).catch(function(err) {
+            showModal('Error', 'Failed to copy: ' + err, false);
+        });
+    } else {
+        var textArea = document.createElement('textarea');
+        textArea.value = textToCopy;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            var btn = event.target;
+            var originalText = btn.textContent;
+            btn.textContent = '✓ Copied!';
+            btn.style.background = '#16A34A';
+            setTimeout(function() {
+                btn.textContent = originalText;
+                btn.style.background = '';
+            }, 2000);
+        } catch (err) {
+            showModal('Error', 'Failed to copy: ' + err, false);
+        }
+        document.body.removeChild(textArea);
+    }
+}
+
+function downloadInstaller() {
+    var checkboxes = document.querySelectorAll('.prereq-checkbox:checked:not([disabled])');
+    var selectedTools = [];
+
+    checkboxes.forEach(function(cb) {
+        selectedTools.push(cb.dataset.toolId);
+    });
+
+    if (selectedTools.length === 0) {
+        showModal('Error', 'Please select at least one tool to install.', false);
+        return;
+    }
+
+    // Download installer script
+    var url = '/api/prerequisites/installer.sh?tools=' + selectedTools.join(',');
+    window.location.href = url;
+
+    // Show step 4 (download instructions)
+    setTimeout(function() {
+        showPrereqStep(4);
+    }, 500);
+}
+
+function backToStep1() {
+    showPrereqStep(1);
+}
+
+function backToStep2() {
+    showPrereqStep(2);
+}

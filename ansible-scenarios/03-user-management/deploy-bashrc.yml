@@ -1,0 +1,20 @@
+---
+- name: Deploy custom .bashrc files
+  hosts: servers
+  become: yes
+  tasks:
+    - name: Deploy .bashrc for devuser
+      template:
+        src: templates/bashrc.j2
+        dest: /home/devuser/.bashrc
+        owner: devuser
+        group: developers
+        mode: '0644'
+
+    - name: Deploy .bashrc for appuser
+      template:
+        src: templates/bashrc.j2
+        dest: /home/appuser/.bashrc
+        owner: appuser
+        group: appuser
+        mode: '0644'

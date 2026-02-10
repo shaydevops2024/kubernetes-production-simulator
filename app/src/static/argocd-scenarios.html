@@ -262,6 +262,10 @@
                     <span>&#9654;</span>
                     <span>Open ArgoCD UI</span>
                 </a>
+                <button class="argocd-button" onclick="showArgoPassword()" title="Get ArgoCD admin password">
+                    <span>&#128274;</span>
+                    <span>Get Password</span>
+                </button>
             </div>
         </div>
 
@@ -281,6 +285,57 @@
                 .catch(function() {
                     window.open('http://localhost:30800', '_blank');
                 });
+        }
+
+        function copyToClipboard(text, btn) {
+            function onSuccess() {
+                btn.textContent = 'Copied!';
+                setTimeout(function() { btn.textContent = 'Copy'; }, 1500);
+            }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(onSuccess).catch(function() {
+                    fallbackCopy(text, btn, onSuccess);
+                });
+            } else {
+                fallbackCopy(text, btn, onSuccess);
+            }
+        }
+
+        function fallbackCopy(text, btn, onSuccess) {
+            var textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.cssText = 'position:fixed;opacity:0;left:-9999px;';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                onSuccess();
+            } catch (e) {
+                btn.textContent = 'Failed';
+                setTimeout(function() { btn.textContent = 'Copy'; }, 1500);
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function showArgoPassword() {
+            var cmd = "kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d";
+            var overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:9999;';
+            overlay.onclick = function(e) { if (e.target === overlay) document.body.removeChild(overlay); };
+            var box = document.createElement('div');
+            box.style.cssText = 'background:white;border-radius:16px;padding:30px;max-width:620px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);';
+            box.innerHTML = '<h3 style="margin:0 0 8px;color:#0d9488;">ArgoCD Admin Password</h3>'
+                + '<p style="color:#666;margin:0 0 16px;font-size:14px;">Run this command to get the ArgoCD admin password:</p>'
+                + '<div style="background:#1e293b;color:#e2e8f0;padding:14px 18px;border-radius:10px;font-family:monospace;font-size:13px;text-align:left;word-break:break-all;position:relative;">'
+                + '<span>' + cmd + '</span>'
+                + '<button id="argo-copy-btn" style="position:absolute;top:8px;right:8px;background:#0d9488;color:white;border:none;border-radius:6px;padding:4px 12px;cursor:pointer;font-size:12px;">Copy</button>'
+                + '</div>'
+                + '<p style="color:#888;margin:12px 0 0;font-size:13px;">Default username: <strong>admin</strong></p>';
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+            document.getElementById('argo-copy-btn').onclick = function() {
+                copyToClipboard(cmd, this);
+            };
         }
 
         async function loadScenarios() {

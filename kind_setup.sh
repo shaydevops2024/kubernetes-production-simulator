@@ -12,7 +12,9 @@ CLUSTER_NAME="k8s-demo"
 NAMESPACE="k8s-multi-demo"
 APP_IMAGE="k8s-demo-app:latest"
 NODEPORT="30080"
-ARGOCD_NODEPORT="30800" 
+ARGOCD_NODEPORT="30800"
+JENKINS_NODEPORT="30880"
+JENKINS_HOST_PORT="8080"
 
 # Colors for output
 RED='\033[0;31m'
@@ -70,11 +72,12 @@ echo "  8. Verify scenarios in pods"
 echo "  9. Install metrics-server"
 echo "  10. Configure HPA (Horizontal Pod Autoscaler)"
 echo "  11. Install and configure ArgoCD"
-echo "  12. Run comprehensive tests"
+echo "  12. Install Jenkins via Helm"
+echo "  13. Run comprehensive tests"
 echo "  13. Configure /etc/hosts for ingress"
 echo "  14. Display access information"
 echo ""
-echo -e "${YELLOW}⏱️  Estimated time: 15-20 minutes${NC}"
+echo -e "${YELLOW}⏱️  Estimated time: 10-15 minutes${NC}"
 echo ""
 read -p "Press Enter to continue or Ctrl+C to cancel..."
 
@@ -107,6 +110,15 @@ if command -v kind &> /dev/null; then
     print_success "kind installed (version $KIND_VERSION)"
 else
     print_error "kind not found. Please install kind first."
+    exit 1
+fi
+
+print_step "Checking Helm..."
+if command -v helm &> /dev/null; then
+    HELM_VERSION=$(helm version --short 2>/dev/null | cut -d'+' -f1)
+    print_success "Helm installed (version $HELM_VERSION)"
+else
+    print_error "Helm not found. Please install Helm first."
     exit 1
 fi
 
@@ -177,6 +189,9 @@ nodes:
     protocol: TCP
   - containerPort: ${ARGOCD_NODEPORT}
     hostPort: ${ARGOCD_NODEPORT}
+    protocol: TCP
+  - containerPort: ${JENKINS_NODEPORT}
+    hostPort: ${JENKINS_HOST_PORT}
     protocol: TCP
 - role: worker
 - role: worker
@@ -380,9 +395,12 @@ print_step "Installing ArgoCD manifests..."
 kubectl apply --server-side -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 print_success "ArgoCD manifests applied"
 
-print_step "Waiting for ArgoCD server to be ready (this may take a few minutes)..."
-kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=argocd-server -n argocd --timeout=600s
-print_success "ArgoCD server is ready"
+print_step "Applying ArgoCD config patches before pods are ready (avoids restart)..."
+# Wait briefly for the configmaps to be created by the manifest
+sleep 5
+kubectl patch configmap argocd-cmd-params-cm -n argocd --type merge -p '{"data":{"server.insecure":"true"}}' 2>/dev/null || sleep 5 && kubectl patch configmap argocd-cmd-params-cm -n argocd --type merge -p '{"data":{"server.insecure":"true"}}'
+kubectl patch configmap argocd-cm -n argocd --type merge -p '{"data":{"url":"http://k8s-multi-demo.argocd","server.rbac.logout.redirect":"http://k8s-multi-demo.argocd"}}'
+print_success "ArgoCD config patches applied"
 
 print_step "Exposing ArgoCD via NodePort (port ${ARGOCD_NODEPORT})..."
 kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "NodePort", "ports": [{"name": "http", "port": 80, "targetPort": 8080, "nodePort": 30800}]}}'
@@ -392,20 +410,9 @@ print_step "Applying ArgoCD Ingress..."
 kubectl apply -f k8s/argoCD/argocd-ingress.yaml
 print_success "ArgoCD Ingress created"
 
-print_step "Configuring ArgoCD to disable HTTPS redirection..."
-kubectl patch configmap argocd-cmd-params-cm -n argocd --type merge -p '{"data":{"server.insecure":"true"}}'
-print_success "HTTPS redirection disabled"
-
-print_step "Updating ArgoCD ConfigMap with URL and logout redirect..."
-kubectl patch configmap argocd-cm -n argocd --type merge -p '{"data":{"url":"http://k8s-multi-demo.argocd","server.rbac.logout.redirect":"http://k8s-multi-demo.argocd"}}'
-print_success "ArgoCD ConfigMap updated"
-
-print_step "Restarting ArgoCD server pods..."
-kubectl delete pod -n argocd -l app.kubernetes.io/name=argocd-server
-print_success "ArgoCD server pods restarted"
-
-print_step "Waiting for ArgoCD server to be ready again..."
+print_step "Waiting for ArgoCD server to be ready (this may take a few minutes)..."
 kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=argocd-server -n argocd --timeout=600s
+print_success "ArgoCD server is ready"
 
 print_step "Retrieving ArgoCD admin password..."
 ARGOCD_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" 2>/dev/null | base64 -d)
@@ -419,7 +426,46 @@ fi
 print_success "ArgoCD installation complete!"
 
 # ============================================
-# STEP 12: COMPREHENSIVE TESTING
+# STEP 12: INSTALL JENKINS
+# ============================================
+print_header "STEP 12: INSTALLING JENKINS"
+
+print_step "Adding Jenkins Helm repository..."
+helm repo add jenkins https://charts.jenkins.io
+helm repo update
+print_success "Jenkins Helm repo added"
+
+print_step "Installing Jenkins via Helm..."
+helm install jenkins jenkins/jenkins -n jenkins --create-namespace \
+  --set controller.serviceType=NodePort \
+  --set controller.nodePort=${JENKINS_NODEPORT}
+print_success "Jenkins Helm release created"
+
+print_step "Waiting for Jenkins pod to be created..."
+for i in $(seq 1 60); do
+    if kubectl get pods -l app.kubernetes.io/name=jenkins -n jenkins --no-headers 2>/dev/null | grep -q .; then
+        break
+    fi
+    sleep 5
+done
+
+print_step "Waiting for Jenkins to be ready (this may take a few minutes)..."
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=jenkins -n jenkins --timeout=600s
+print_success "Jenkins is ready!"
+
+print_step "Retrieving Jenkins admin password..."
+JENKINS_PASSWORD=$(kubectl exec -n jenkins svc/jenkins -c jenkins -- cat /run/secrets/additional/chart-admin-password 2>/dev/null)
+if [ -n "$JENKINS_PASSWORD" ]; then
+    print_success "Jenkins admin password retrieved"
+else
+    print_warning "Could not retrieve Jenkins password"
+    JENKINS_PASSWORD="(check manually)"
+fi
+
+print_success "Jenkins installation complete!"
+
+# ============================================
+# STEP 13: COMPREHENSIVE TESTING
 # ============================================
 print_header "STEP 12/14: RUNNING COMPREHENSIVE TESTS"
 
@@ -559,6 +605,13 @@ echo "    - Username: admin"
 echo "    - Password: ${ARGOCD_PASSWORD}"
 echo ""
 
+echo -e "${CYAN}📍 JENKINS ACCESS POINTS:${NC}"
+echo -e "  ${GREEN}Via localhost:${NC}"
+echo "    - URL:      http://localhost:${JENKINS_HOST_PORT}"
+echo "    - Username: admin"
+echo "    - Password: ${JENKINS_PASSWORD}"
+echo ""
+
 echo -e "${CYAN}📚 Kubernetes Scenarios:${NC}"
 echo "  ✅ 18 Interactive Scenarios Built Into Image"
 echo "  ℹ️  Scenarios are baked into the Docker image - always available!"
@@ -576,6 +629,9 @@ echo "  kubectl get pods -n ${NAMESPACE}"
 echo ""
 echo "  # View ArgoCD pods:"
 echo "  kubectl get pods -n argocd"
+echo ""
+echo "  # View Jenkins pods:"
+echo "  kubectl get pods -n jenkins"
 echo ""
 echo "  # View scenarios in pod:"
 if [ -n "$FIRST_POD" ]; then
@@ -599,6 +655,7 @@ echo ""
 echo -e "${YELLOW}🚀 Start exploring:${NC}"
 echo -e "${CYAN}  Application: http://localhost:${NODEPORT}/static/scenarios.html${NC}"
 echo -e "${CYAN}  ArgoCD:      http://localhost:${ARGOCD_NODEPORT}${NC}"
+echo -e "${CYAN}  Jenkins:     http://localhost:${JENKINS_HOST_PORT}${NC}"
 echo ""
 echo -e "${GREEN}Enjoy exploring 18 hands-on Kubernetes scenarios with GitOps!${NC}"
 echo ""

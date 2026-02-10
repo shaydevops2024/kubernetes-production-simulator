@@ -1,0 +1,122 @@
+{
+  "scenario_id": "02-package-management",
+  "difficulty": "easy",
+  "duration": "20 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Target Containers",
+      "command": "docker run -d --name ubuntu-pkg --hostname ubuntu-pkg -p 2231:22 rastasheep/ubuntu-sshd && docker run -d --name debian-pkg --hostname debian-pkg -p 2232:22 rastasheep/ubuntu-sshd",
+      "description": "Launch Ubuntu/Debian containers for package management",
+      "explanation": "Creates 2 containers simulating different servers. Both use SSH (ports 2231-2232) for Ansible connectivity. Default credentials: root/root.",
+      "what_it_does": "Creates 2 running Docker containers for package management exercises.",
+      "next_step": "Containers ready. View the inventory."
+    },
+    {
+      "name": "Step 2: View Inventory",
+      "command": "cat ansible-scenarios/02-package-management/inventory/hosts.ini",
+      "description": "Display inventory with package management hosts",
+      "explanation": "Shows hosts grouped as [pkg_servers]. Both hosts will receive the same package management tasks.",
+      "what_it_does": "Displays inventory file with ubuntu-pkg and debian-pkg hosts.",
+      "next_step": "Inventory ready. Run the package installation playbook."
+    },
+    {
+      "name": "Step 3: Install Packages Playbook",
+      "command": "cd ansible-scenarios/02-package-management && ansible-playbook -i inventory/hosts.ini install-packages.yml",
+      "description": "Install nginx, curl, and htop on all hosts",
+      "explanation": "Playbook uses apt module with state=present to ensure packages exist. It first updates apt cache, then installs packages. Ansible handles idempotency - running twice won't reinstall.",
+      "what_it_does": "Updates apt cache and installs 3 packages on both containers.",
+      "next_step": "Packages installed. Verify nginx is installed."
+    },
+    {
+      "name": "Step 4: Verify Package Installation",
+      "command": "cd ansible-scenarios/02-package-management && ansible pkg_servers -i inventory/hosts.ini -m command -a 'nginx -v'",
+      "description": "Check nginx version to confirm installation",
+      "explanation": "Runs 'nginx -v' on all pkg_servers. You should see nginx version output from both hosts. This confirms successful installation.",
+      "what_it_does": "Displays nginx version from both containers, proving package is installed.",
+      "next_step": "Installation verified. Now manage the nginx service."
+    },
+    {
+      "name": "Step 5: Start and Enable Service",
+      "command": "cd ansible-scenarios/02-package-management && ansible-playbook -i inventory/hosts.ini manage-service.yml",
+      "description": "Start nginx service and enable on boot",
+      "explanation": "Uses service module with state=started (ensures running now) and enabled=yes (starts on boot). Service management is idempotent - safe to run repeatedly.",
+      "what_it_does": "Starts nginx service if stopped, enables it for boot, reloads if already running.",
+      "next_step": "Service managed. Verify it's running."
+    },
+    {
+      "name": "Step 6: Check Service Status",
+      "command": "cd ansible-scenarios/02-package-management && ansible pkg_servers -i inventory/hosts.ini -m service_facts",
+      "description": "Gather service status facts",
+      "explanation": "service_facts module collects information about all services. Look for nginx in the output showing state=running.",
+      "what_it_does": "Returns JSON with all service states, including nginx status.",
+      "next_step": "Service running. Test nginx is accessible."
+    },
+    {
+      "name": "Step 7: Test Nginx Response",
+      "command": "cd ansible-scenarios/02-package-management && ansible pkg_servers -i inventory/hosts.ini -m uri -a 'url=http://localhost return_content=yes'",
+      "description": "Make HTTP request to nginx on each host",
+      "explanation": "uri module makes HTTP requests. Connects to localhost:80 inside each container. You should see nginx's default HTML response.",
+      "what_it_does": "Tests nginx is responding to HTTP requests on both hosts.",
+      "next_step": "Nginx working. Now update package cache."
+    },
+    {
+      "name": "Step 8: Update Package Cache",
+      "command": "cd ansible-scenarios/02-package-management && ansible pkg_servers -i inventory/hosts.ini -m apt -a 'update_cache=yes cache_valid_time=3600'",
+      "description": "Refresh apt package cache (if older than 1 hour)",
+      "explanation": "update_cache=yes runs 'apt update'. cache_valid_time=3600 skips update if cache is less than 1 hour old. This prevents unnecessary updates.",
+      "what_it_does": "Updates package lists from repositories if cache is stale.",
+      "next_step": "Cache updated. Install additional package."
+    },
+    {
+      "name": "Step 9: Install Single Package",
+      "command": "cd ansible-scenarios/02-package-management && ansible pkg_servers -i inventory/hosts.ini -m apt -a 'name=vim state=present'",
+      "description": "Install vim editor using ad-hoc command",
+      "explanation": "Ad-hoc apt module with state=present ensures vim is installed. If already present, Ansible reports 'ok' with no changes.",
+      "what_it_does": "Installs vim on both hosts if not already installed.",
+      "next_step": "Vim installed. Remove a package."
+    },
+    {
+      "name": "Step 10: Remove Package",
+      "command": "cd ansible-scenarios/02-package-management && ansible pkg_servers -i inventory/hosts.ini -m apt -a 'name=htop state=absent'",
+      "description": "Uninstall htop package",
+      "explanation": "state=absent removes the package. Config files may remain (use purge for complete removal). Idempotent - if already absent, no changes occur.",
+      "what_it_does": "Removes htop from both containers.",
+      "next_step": "Package removed. Verify removal."
+    },
+    {
+      "name": "Step 11: Verify Package Removed",
+      "command": "cd ansible-scenarios/02-package-management && ansible pkg_servers -i inventory/hosts.ini -m command -a 'which htop' -i",
+      "description": "Check htop is no longer available (expect failure)",
+      "explanation": "The 'which htop' command will fail (exit code 1) since htop is removed. The -i flag tells Ansible to ignore errors and continue.",
+      "what_it_does": "Attempts to find htop binary, expecting failure to confirm removal.",
+      "next_step": "Removal confirmed. Package management complete! Clean up."
+    },
+    {
+      "name": "Cleanup 1: Stop Services",
+      "command": "cd ansible-scenarios/02-package-management && ansible pkg_servers -i inventory/hosts.ini -m service -a 'name=nginx state=stopped'",
+      "description": "Stop nginx service on all hosts",
+      "explanation": "Gracefully stops nginx before container removal. This demonstrates proper service management.",
+      "what_it_does": "Stops nginx service on both containers.",
+      "next_step": "Services stopped. Now remove containers.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup 2: Stop Containers",
+      "command": "docker stop ubuntu-pkg debian-pkg",
+      "description": "Stop all package management containers",
+      "explanation": "Stops the running containers.",
+      "what_it_does": "Stops ubuntu-pkg and debian-pkg containers.",
+      "next_step": "Containers stopped. Remove them.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup 3: Remove Containers",
+      "command": "docker rm ubuntu-pkg debian-pkg",
+      "description": "Remove stopped containers",
+      "explanation": "Deletes containers and their filesystems completely.",
+      "what_it_does": "Removes ubuntu-pkg and debian-pkg containers from Docker.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

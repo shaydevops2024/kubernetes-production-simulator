@@ -1,0 +1,154 @@
+{
+  "scenario_id": "06-ansible-vault-secrets",
+  "difficulty": "medium",
+  "duration": "30 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Target Containers",
+      "command": "docker run -d --name app1 --hostname app1 -p 2271:22 rastasheep/ubuntu-sshd && docker run -d --name app2 --hostname app2 -p 2272:22 rastasheep/ubuntu-sshd",
+      "description": "Launch application containers for secrets deployment",
+      "explanation": "Creates 2 Ubuntu containers to simulate production servers where encrypted secrets will be deployed. These represent different environments.",
+      "what_it_does": "Creates 2 running Docker containers accessible via SSH.",
+      "next_step": "Containers ready. Create a secrets file to encrypt."
+    },
+    {
+      "name": "Step 2: View Unencrypted Secrets File",
+      "command": "cat ansible-scenarios/06-ansible-vault-secrets/vars/secrets.yml",
+      "description": "Display plaintext secrets file before encryption",
+      "explanation": "Shows unencrypted YAML file containing database passwords, API keys, and certificates. This is NOT secure and should never be committed to version control.",
+      "what_it_does": "Displays sensitive data in plaintext format (before encryption).",
+      "next_step": "Secrets visible. Now encrypt the file."
+    },
+    {
+      "name": "Step 3: Encrypt Secrets with Vault",
+      "command": "cd ansible-scenarios/06-ansible-vault-secrets && ansible-vault encrypt vars/secrets.yml --vault-password-file .vault_pass",
+      "description": "Encrypt the secrets file using ansible-vault",
+      "explanation": "Encrypts secrets.yml with AES256. The --vault-password-file reads password from file (you can also use --ask-vault-pass for interactive). File becomes unreadable without password.",
+      "what_it_does": "Converts plaintext secrets to encrypted format.",
+      "next_step": "File encrypted. View encrypted content."
+    },
+    {
+      "name": "Step 4: View Encrypted File",
+      "command": "cat ansible-scenarios/06-ansible-vault-secrets/vars/secrets.yml",
+      "description": "Display encrypted file content",
+      "explanation": "Shows the AES256-encrypted content. Begins with $ANSIBLE_VAULT header. Data is now safe to commit to version control (but keep .vault_pass out of git!).",
+      "what_it_does": "Displays encrypted secrets showing unreadable ciphertext.",
+      "next_step": "Encryption verified. Decrypt to view."
+    },
+    {
+      "name": "Step 5: View Encrypted File (Decrypted)",
+      "command": "cd ansible-scenarios/06-ansible-vault-secrets && ansible-vault view vars/secrets.yml --vault-password-file .vault_pass",
+      "description": "View encrypted file content without modifying it",
+      "explanation": "The 'view' command decrypts and displays content without editing. Original file stays encrypted. Useful for reading secrets without risk of accidentally saving unencrypted.",
+      "what_it_does": "Temporarily decrypts and displays secrets content.",
+      "next_step": "Content viewed. Create environment-specific vaults."
+    },
+    {
+      "name": "Step 6: View Production Vault",
+      "command": "cat ansible-scenarios/06-ansible-vault-secrets/vars/production.yml",
+      "description": "Display production-specific encrypted secrets",
+      "explanation": "Shows encrypted production secrets. Using separate vault files per environment isolates credentials and reduces blast radius of compromised passwords.",
+      "what_it_does": "Displays encrypted production environment secrets.",
+      "next_step": "Production vault ready. View staging vault."
+    },
+    {
+      "name": "Step 7: View Staging Vault with Different Vault ID",
+      "command": "cd ansible-scenarios/06-ansible-vault-secrets && ansible-vault view vars/staging.yml --vault-id staging@.vault_pass_staging",
+      "description": "View staging secrets using named vault ID",
+      "explanation": "Multiple vault IDs allow different passwords for different environments. Syntax: --vault-id label@password_source. Label 'staging' identifies which password to use.",
+      "what_it_does": "Decrypts staging secrets using staging-specific password.",
+      "next_step": "Multi-vault setup clear. Deploy secrets with playbook."
+    },
+    {
+      "name": "Step 8: Deploy Secrets to Production",
+      "command": "cd ansible-scenarios/06-ansible-vault-secrets && ansible-playbook -i inventory/hosts.ini deploy-secrets.yml --vault-password-file .vault_pass --limit app1",
+      "description": "Deploy encrypted secrets to app1 (production)",
+      "explanation": "Playbook decrypts secrets.yml and production.yml, then deploys to app1. Creates config files with database credentials and API keys. Vault password required to run.",
+      "what_it_does": "Deploys decrypted secrets to production container securely.",
+      "next_step": "Secrets deployed. Verify they exist on target."
+    },
+    {
+      "name": "Step 9: Verify Deployed Secrets",
+      "command": "cd ansible-scenarios/06-ansible-vault-secrets && ansible app1 -i inventory/hosts.ini -m command -a 'cat /etc/app/database.conf'",
+      "description": "Check deployed configuration file on app1",
+      "explanation": "Reads deployed config file showing decrypted database password. In production, ensure proper file permissions (600) to restrict access.",
+      "what_it_does": "Displays deployed secrets on target to verify successful deployment.",
+      "next_step": "Secrets deployed successfully. Edit encrypted file."
+    },
+    {
+      "name": "Step 10: Edit Encrypted File",
+      "command": "cd ansible-scenarios/06-ansible-vault-secrets && ansible-vault edit vars/secrets.yml --vault-password-file .vault_pass",
+      "description": "Modify encrypted secrets file",
+      "explanation": "Opens decrypted content in $EDITOR (default vi/vim). When saved, automatically re-encrypts. Safe way to update secrets without exposure. Change 'db_password' value.",
+      "what_it_does": "Allows editing secrets file while maintaining encryption.",
+      "next_step": "Edit completed. Re-deploy updated secrets."
+    },
+    {
+      "name": "Step 11: Re-deploy After Secret Rotation",
+      "command": "cd ansible-scenarios/06-ansible-vault-secrets && ansible-playbook -i inventory/hosts.ini deploy-secrets.yml --vault-password-file .vault_pass --limit app1",
+      "description": "Deploy rotated credentials",
+      "explanation": "Runs playbook again with new secrets. Shows 'changed' status for config files with updated passwords. Demonstrates credential rotation workflow.",
+      "what_it_does": "Deploys updated secrets after password rotation.",
+      "next_step": "Credentials rotated. Deploy to staging with different vault."
+    },
+    {
+      "name": "Step 12: Deploy to Staging Environment",
+      "command": "cd ansible-scenarios/06-ansible-vault-secrets && ansible-playbook -i inventory/hosts.ini deploy-secrets.yml --vault-id staging@.vault_pass_staging --limit app2 -e 'env=staging'",
+      "description": "Deploy staging secrets using separate vault password",
+      "explanation": "Uses staging vault ID with different password. Variable env=staging loads staging.yml. Demonstrates multi-environment secrets management with isolated credentials.",
+      "what_it_does": "Deploys staging-specific secrets to app2 container.",
+      "next_step": "Multi-environment deployment complete. Change vault password."
+    },
+    {
+      "name": "Step 13: Rotate Vault Password",
+      "command": "cd ansible-scenarios/06-ansible-vault-secrets && ansible-vault rekey vars/secrets.yml --vault-password-file .vault_pass --new-vault-password-file .vault_pass_new",
+      "description": "Change the encryption password",
+      "explanation": "Rekey command decrypts with old password, re-encrypts with new one. Critical for security if old password is compromised. All users need new password to access.",
+      "what_it_does": "Changes vault encryption password to rotate access credentials.",
+      "next_step": "Password rotated. Verify new password works."
+    },
+    {
+      "name": "Step 14: Test New Vault Password",
+      "command": "cd ansible-scenarios/06-ansible-vault-secrets && ansible-vault view vars/secrets.yml --vault-password-file .vault_pass_new",
+      "description": "Verify new password can decrypt secrets",
+      "explanation": "Tests that rekeying succeeded. Old password (.vault_pass) will no longer work. In production, securely distribute new password to team.",
+      "what_it_does": "Confirms new vault password successfully decrypts secrets.",
+      "next_step": "New password verified. View mixed encrypted/plaintext playbook."
+    },
+    {
+      "name": "Step 15: View Playbook with Inline Encrypted Variables",
+      "command": "cat ansible-scenarios/06-ansible-vault-secrets/deploy-with-inline-secrets.yml",
+      "description": "Display playbook with encrypted vars inline",
+      "explanation": "Shows playbook with !vault tag for inline encrypted variables. Useful for encrypting specific sensitive vars without a separate file.",
+      "what_it_does": "Demonstrates inline encrypted variable syntax in playbooks.",
+      "next_step": "Scenario complete! Clean up resources."
+    },
+    {
+      "name": "Cleanup 1: Stop Containers",
+      "command": "docker stop app1 app2",
+      "description": "Stop application containers",
+      "explanation": "Stops the containers used for secrets deployment testing.",
+      "what_it_does": "Stops app1 and app2 containers.",
+      "next_step": "Containers stopped. Remove them.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup 2: Remove Containers",
+      "command": "docker rm app1 app2",
+      "description": "Remove stopped containers",
+      "explanation": "Deletes containers and their filesystems including deployed secrets.",
+      "what_it_does": "Removes app1 and app2 containers from Docker.",
+      "next_step": "Containers removed. Reset vault files.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup 3: Decrypt Vault Files",
+      "command": "cd ansible-scenarios/06-ansible-vault-secrets && ansible-vault decrypt vars/secrets.yml --vault-password-file .vault_pass_new && ansible-vault decrypt vars/production.yml --vault-password-file .vault_pass && ansible-vault decrypt vars/staging.yml --vault-id staging@.vault_pass_staging",
+      "description": "Decrypt all vault files to reset scenario",
+      "explanation": "Returns vault files to plaintext state for next scenario run. In production, NEVER leave secrets unencrypted.",
+      "what_it_does": "Decrypts all vault files back to plaintext.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

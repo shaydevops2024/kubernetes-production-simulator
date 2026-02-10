@@ -1,0 +1,218 @@
+{
+  "scenario_id": "10-disaster-recovery-automation",
+  "difficulty": "hard",
+  "duration": "50 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Database Container",
+      "command": "docker run -d --name postgres-prod --hostname postgres-prod -p 5432:5432 -p 2311:22 -e POSTGRES_PASSWORD=prodpassword -e POSTGRES_USER=produser -e POSTGRES_DB=production_db postgres:13",
+      "description": "Launch PostgreSQL production database",
+      "explanation": "Creates PostgreSQL 13 container simulating production database. Port 5432 for database, 2311 for management access. Contains production data that needs backup/restore capability.",
+      "what_it_does": "Creates production PostgreSQL database container.",
+      "next_step": "Database ready. Populate with sample data."
+    },
+    {
+      "name": "Step 2: Populate Database with Sample Data",
+      "command": "cd ansible-scenarios/10-disaster-recovery-automation && ansible-playbook -i inventory/hosts.ini populate-database.yml",
+      "description": "Create sample tables and data",
+      "explanation": "Creates tables (users, orders, products) and inserts sample data. Simulates production database with critical business data requiring backup protection.",
+      "what_it_does": "Populates database with test data for backup scenarios.",
+      "next_step": "Data loaded. View backup playbook."
+    },
+    {
+      "name": "Step 3: View Database Backup Playbook",
+      "command": "cat ansible-scenarios/10-disaster-recovery-automation/backup-database.yml",
+      "description": "Display automated backup procedure",
+      "explanation": "Shows playbook using pg_dump to create logical backup, compresses with gzip, adds timestamp to filename, transfers to backup server. Implements 3-2-1 backup strategy.",
+      "what_it_does": "Shows automated database backup orchestration.",
+      "next_step": "Playbook reviewed. Execute backup."
+    },
+    {
+      "name": "Step 4: Execute Database Backup",
+      "command": "cd ansible-scenarios/10-disaster-recovery-automation && ansible-playbook -i inventory/hosts.ini backup-database.yml",
+      "description": "Create full database backup",
+      "explanation": "Runs pg_dump with --format=custom for flexibility. Creates backup file with timestamp: production_db_YYYY-MM-DD_HH-MM-SS.dump.gz. Verifies backup size and integrity.",
+      "what_it_does": "Creates compressed backup of entire PostgreSQL database.",
+      "next_step": "Backup created. Verify backup file."
+    },
+    {
+      "name": "Step 5: Verify Backup File",
+      "command": "cd ansible-scenarios/10-disaster-recovery-automation && ansible localhost -i inventory/hosts.ini -m command -a 'ls -lh backups/database/' | grep dump",
+      "description": "List backup files with sizes",
+      "explanation": "Shows backup file with size and timestamp. File size indicates data volume. Multiple backups show retention policy in action. Timestamp critical for point-in-time recovery.",
+      "what_it_does": "Displays created backup files with metadata.",
+      "next_step": "Backup verified. View configuration backup."
+    },
+    {
+      "name": "Step 6: View Configuration Backup Playbook",
+      "command": "cat ansible-scenarios/10-disaster-recovery-automation/backup-configs.yml",
+      "description": "Display configuration backup to Git",
+      "explanation": "Shows playbook that collects configs (/etc/postgresql/, /etc/nginx/, app configs), commits to Git repo with timestamp. Version control provides history and easy rollback.",
+      "what_it_does": "Shows automated configuration version control backup.",
+      "next_step": "Playbook understood. Backup configurations."
+    },
+    {
+      "name": "Step 7: Execute Configuration Backup",
+      "command": "cd ansible-scenarios/10-disaster-recovery-automation && ansible-playbook -i inventory/hosts.ini backup-configs.yml",
+      "description": "Backup configurations to Git repository",
+      "explanation": "Collects critical config files, creates Git commit with message 'Automated backup YYYY-MM-DD'. Git provides diff capability showing configuration drift over time.",
+      "what_it_does": "Commits current configuration state to version control.",
+      "next_step": "Configs backed up. View Git history."
+    },
+    {
+      "name": "Step 8: View Configuration Backup History",
+      "command": "cd ansible-scenarios/10-disaster-recovery-automation/backups/configs && git log --oneline --decorate -5",
+      "description": "Display recent configuration commits",
+      "explanation": "Shows last 5 backup commits with timestamps. Each commit is a restore point. Can diff any two commits to see configuration changes between backups.",
+      "what_it_does": "Lists configuration backup history in Git.",
+      "next_step": "History reviewed. Simulate disaster."
+    },
+    {
+      "name": "Step 9: Simulate Database Disaster",
+      "command": "cd ansible-scenarios/10-disaster-recovery-automation && ansible-playbook -i inventory/hosts.ini simulate-disaster.yml",
+      "description": "Delete database to simulate data loss",
+      "explanation": "Drops production_db database, simulating catastrophic failure (hardware failure, ransomware, accidental deletion). This is the disaster scenario requiring restore.",
+      "what_it_does": "Simulates complete database loss requiring recovery.",
+      "next_step": "Disaster simulated. Verify data loss."
+    },
+    {
+      "name": "Step 10: Confirm Data Loss",
+      "command": "cd ansible-scenarios/10-disaster-recovery-automation && ansible-playbook -i inventory/hosts.ini verify-database.yml 2>&1 | grep -i 'error\\|does not exist' || echo 'Database missing as expected'",
+      "description": "Attempt to query deleted database",
+      "explanation": "Query fails with 'database does not exist' error. Confirms data loss. In production, this triggers disaster recovery procedures and incident response.",
+      "what_it_does": "Verifies disaster scenario (data unavailable).",
+      "next_step": "Data loss confirmed. View restore playbook."
+    },
+    {
+      "name": "Step 11: View Database Restore Playbook",
+      "command": "cat ansible-scenarios/10-disaster-recovery-automation/restore-database.yml",
+      "description": "Display restore procedure",
+      "explanation": "Shows restore steps: 1) Create new database, 2) Decompress backup, 3) pg_restore with --clean --if-exists, 4) Validate data, 5) Run integrity checks. Automates recovery runbook.",
+      "what_it_does": "Shows automated database recovery procedure.",
+      "next_step": "Restore playbook reviewed. Execute restore."
+    },
+    {
+      "name": "Step 12: Execute Database Restore",
+      "command": "cd ansible-scenarios/10-disaster-recovery-automation && ansible-playbook -i inventory/hosts.ini restore-database.yml",
+      "description": "Restore database from backup",
+      "explanation": "Runs pg_restore from latest backup. Recreates database structure and data. Validates restore by counting tables and rows. RTO (Recovery Time Objective) is playbook duration.",
+      "what_it_does": "Restores database from backup file to recover from disaster.",
+      "next_step": "Restore complete. Verify data recovered."
+    },
+    {
+      "name": "Step 13: Validate Restored Data",
+      "command": "cd ansible-scenarios/10-disaster-recovery-automation && ansible-playbook -i inventory/hosts.ini verify-database.yml",
+      "description": "Confirm data integrity after restore",
+      "explanation": "Queries restored database for expected tables and row counts. Compares checksums with pre-disaster state. All checks pass = successful recovery. Documents RPO (Recovery Point Objective).",
+      "what_it_does": "Validates complete and correct data restoration.",
+      "next_step": "Data validated. Test point-in-time recovery."
+    },
+    {
+      "name": "Step 14: View Point-in-Time Recovery Playbook",
+      "command": "cat ansible-scenarios/10-disaster-recovery-automation/pitr-restore.yml",
+      "description": "Display PITR configuration",
+      "explanation": "Shows WAL (Write-Ahead Logging) archiving setup and recovery to specific timestamp. Enables recovery to any point between backups. Requires continuous WAL archiving in production.",
+      "what_it_does": "Shows advanced recovery to specific point in time.",
+      "next_step": "PITR understood. Configure WAL archiving."
+    },
+    {
+      "name": "Step 15: Configure WAL Archiving",
+      "command": "cd ansible-scenarios/10-disaster-recovery-automation && ansible-playbook -i inventory/hosts.ini configure-wal-archiving.yml",
+      "description": "Enable continuous backup with WAL",
+      "explanation": "Enables archive_mode and archive_command in postgresql.conf. PostgreSQL copies WAL segments to archive location. Combined with base backup, enables PITR.",
+      "what_it_does": "Configures continuous archiving for point-in-time recovery.",
+      "next_step": "WAL archiving configured. Make more data changes."
+    },
+    {
+      "name": "Step 16: Add More Data After Backup",
+      "command": "cd ansible-scenarios/10-disaster-recovery-automation && ansible-playbook -i inventory/hosts.ini add-incremental-data.yml",
+      "description": "Insert additional data to demonstrate PITR",
+      "explanation": "Adds new orders and users after base backup. Records timestamp of changes. Demonstrates recovering data created between full backups using WAL replay.",
+      "what_it_does": "Creates test data for point-in-time recovery demonstration.",
+      "next_step": "New data added. Take another backup."
+    },
+    {
+      "name": "Step 17: Create Incremental Backup",
+      "command": "cd ansible-scenarios/10-disaster-recovery-automation && ansible-playbook -i inventory/hosts.ini backup-database.yml -e 'backup_type=incremental'",
+      "description": "Create backup including recent WAL segments",
+      "explanation": "Creates base backup plus copies recent WAL files. Backup includes all changes since last full backup. Faster than full backup, provides shorter recovery time.",
+      "what_it_does": "Creates incremental backup with transaction logs.",
+      "next_step": "Incremental backup done. Test PITR."
+    },
+    {
+      "name": "Step 18: Perform Point-in-Time Recovery",
+      "command": "cd ansible-scenarios/10-disaster-recovery-automation && ansible-playbook -i inventory/hosts.ini pitr-restore.yml -e 'recovery_target_time=2024-01-15 14:30:00'",
+      "description": "Restore to specific timestamp",
+      "explanation": "Restores base backup then replays WAL up to specified time. Database state matches exact point in time. Critical for recovering from logical errors (accidental DELETE) before they occurred.",
+      "what_it_does": "Restores database to precise point in time using WAL replay.",
+      "next_step": "PITR complete. Verify timestamp recovery."
+    },
+    {
+      "name": "Step 19: Verify Recovery Time",
+      "command": "cd ansible-scenarios/10-disaster-recovery-automation && ansible-playbook -i inventory/hosts.ini verify-recovery-time.yml",
+      "description": "Confirm database state at recovery target",
+      "explanation": "Queries data to verify recovery stopped at correct time. Data after target time should not exist. Data before target time should be present. Validates PITR accuracy.",
+      "what_it_does": "Validates point-in-time recovery accuracy.",
+      "next_step": "Recovery time verified. Implement backup retention."
+    },
+    {
+      "name": "Step 20: Configure Backup Retention Policy",
+      "command": "cd ansible-scenarios/10-disaster-recovery-automation && ansible-playbook -i inventory/hosts.ini configure-retention.yml",
+      "description": "Set up automated backup cleanup",
+      "explanation": "Configures retention: keep daily backups 7 days, weekly 4 weeks, monthly 12 months. Deletes old backups automatically. Balances storage cost vs recovery capability. Implements cron job for automation.",
+      "what_it_does": "Implements backup lifecycle management and cleanup.",
+      "next_step": "Retention configured. Test backup rotation."
+    },
+    {
+      "name": "Step 21: Execute Backup Rotation",
+      "command": "cd ansible-scenarios/10-disaster-recovery-automation && ansible-playbook -i inventory/hosts.ini rotate-backups.yml",
+      "description": "Run retention policy enforcement",
+      "explanation": "Identifies backups older than retention period and deletes them. Logs deletion for audit trail. In production, runs daily via cron. Prevents disk space exhaustion.",
+      "what_it_does": "Removes old backups according to retention policy.",
+      "next_step": "Rotation complete. View retention report."
+    },
+    {
+      "name": "Step 22: View Backup Inventory Report",
+      "command": "cd ansible-scenarios/10-disaster-recovery-automation && ansible-playbook -i inventory/hosts.ini backup-report.yml",
+      "description": "Generate backup status report",
+      "explanation": "Lists all backups with: filename, size, age, type (full/incremental). Identifies gaps in backup schedule. Alerts on backups older than retention or missing recent backups.",
+      "what_it_does": "Creates comprehensive backup inventory for compliance.",
+      "next_step": "Report generated. Test restore time."
+    },
+    {
+      "name": "Step 23: Measure RTO (Recovery Time Objective)",
+      "command": "cd ansible-scenarios/10-disaster-recovery-automation && time ansible-playbook -i inventory/hosts.ini restore-database.yml",
+      "description": "Time complete restore procedure",
+      "explanation": "Measures end-to-end restore duration. RTO defines maximum acceptable downtime. If restore takes 10 minutes, RTO is 10 minutes. Critical for SLA planning and DR testing.",
+      "what_it_does": "Benchmarks disaster recovery time to meet RTO requirements.",
+      "next_step": "RTO measured. Scenario complete! Clean up."
+    },
+    {
+      "name": "Cleanup 1: Stop Database Container",
+      "command": "docker stop postgres-prod",
+      "description": "Stop PostgreSQL container",
+      "explanation": "Stops the database container.",
+      "what_it_does": "Stops postgres-prod container.",
+      "next_step": "Container stopped. Remove it.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup 2: Remove Container",
+      "command": "docker rm postgres-prod",
+      "description": "Remove stopped container",
+      "explanation": "Deletes container and its data.",
+      "what_it_does": "Removes postgres-prod container from Docker.",
+      "next_step": "Container removed. Clean backup files.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup 3: Remove Backup Files",
+      "command": "rm -rf ansible-scenarios/10-disaster-recovery-automation/backups/",
+      "description": "Delete all backup files and Git repos",
+      "explanation": "Removes database dumps, WAL archives, and configuration Git repository.",
+      "what_it_does": "Cleans up all backup data created during scenario.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

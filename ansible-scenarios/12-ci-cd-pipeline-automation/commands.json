@@ -1,0 +1,250 @@
+{
+  "scenario_id": "12-ci-cd-pipeline-automation",
+  "difficulty": "hard",
+  "duration": "60 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Blue/Green Environment Infrastructure",
+      "command": "docker run -d --name blue-app --hostname blue-app -p 2331:22 -p 8091:80 -e ENV_COLOR=blue rastasheep/ubuntu-sshd && docker run -d --name green-app --hostname green-app -p 2332:22 -p 8092:80 -e ENV_COLOR=green rastasheep/ubuntu-sshd && docker run -d --name loadbalancer --hostname loadbalancer -p 2333:22 -p 8090:80 rastasheep/ubuntu-sshd",
+      "description": "Launch blue and green environments with load balancer",
+      "explanation": "Creates 3 containers: blue-app (port 8091), green-app (port 8092), loadbalancer (port 8090). Blue serves live traffic initially. Green is deployment target. LB switches traffic between them for zero downtime.",
+      "what_it_does": "Creates blue/green deployment infrastructure with traffic router.",
+      "next_step": "Environments ready. View pipeline playbook."
+    },
+    {
+      "name": "Step 2: View CI/CD Pipeline Playbook",
+      "command": "cat ansible-scenarios/12-ci-cd-pipeline-automation/pipeline-deploy.yml",
+      "description": "Display complete CI/CD pipeline orchestration",
+      "explanation": "Shows pipeline stages: 1) Clone from Git, 2) Build application, 3) Deploy to green, 4) Run tests, 5) Switch traffic if tests pass, 6) Rollback if tests fail. All automated.",
+      "what_it_does": "Shows end-to-end CI/CD pipeline implementation.",
+      "next_step": "Pipeline structure understood. View initial state."
+    },
+    {
+      "name": "Step 3: Check Current Production Environment",
+      "command": "curl -s http://localhost:8090/version | grep -E '(version|environment)'",
+      "description": "Query load balancer to see active environment",
+      "explanation": "Shows current production state. Initially returns blue environment. After successful deployment, will show green. Demonstrates traffic routing through LB.",
+      "what_it_does": "Displays which environment is currently serving traffic.",
+      "next_step": "Blue active. View application repository."
+    },
+    {
+      "name": "Step 4: View Application Repository Configuration",
+      "command": "cat ansible-scenarios/12-ci-cd-pipeline-automation/vars/app-config.yml",
+      "description": "Display app source and deployment settings",
+      "explanation": "Shows git_repo URL, branch, deployment paths, test URLs. Pipeline uses these variables. Change git_branch to deploy different version/feature branch.",
+      "what_it_does": "Shows configurable pipeline parameters.",
+      "next_step": "Config reviewed. Deploy initial version to blue."
+    },
+    {
+      "name": "Step 5: Deploy Application v1.0 to Blue",
+      "command": "cd ansible-scenarios/12-ci-cd-pipeline-automation && ansible-playbook -i inventory/hosts.ini initial-deploy.yml -e 'target_env=blue app_version=1.0'",
+      "description": "Deploy baseline application to blue environment",
+      "explanation": "Clones app from Git (main branch), builds application, deploys to blue, starts services. This is initial production deployment. Blue now serves v1.0.",
+      "what_it_does": "Deploys v1.0 application to blue environment.",
+      "next_step": "v1.0 deployed to blue. Configure load balancer."
+    },
+    {
+      "name": "Step 6: Configure Load Balancer for Blue",
+      "command": "cd ansible-scenarios/12-ci-cd-pipeline-automation && ansible-playbook -i inventory/hosts.ini configure-lb.yml -e 'active_env=blue'",
+      "description": "Point load balancer to blue environment",
+      "explanation": "Configures nginx upstream to route traffic to blue-app:80. Green exists but receives no traffic. Customers see blue. This is production state before deployment.",
+      "what_it_does": "Routes production traffic to blue environment.",
+      "next_step": "LB configured for blue. Test production."
+    },
+    {
+      "name": "Step 7: Test Production Environment",
+      "command": "for i in {1..5}; do curl -s http://localhost:8090/version | grep -o 'Version: [^,]*'; done",
+      "description": "Verify production serving v1.0 from blue",
+      "explanation": "All 5 requests return 'Version: 1.0' from blue environment. Confirms baseline working. This is state before pipeline deploys v2.0.",
+      "what_it_does": "Validates production is serving expected version.",
+      "next_step": "Production verified. View deployment pipeline stages."
+    },
+    {
+      "name": "Step 8: View Pipeline Stage Breakdown",
+      "command": "cat ansible-scenarios/12-ci-cd-pipeline-automation/roles/pipeline/tasks/main.yml",
+      "description": "Display pipeline task execution order",
+      "explanation": "Shows import_tasks for each stage: clone, build, deploy, test, switch-traffic, rollback. Each stage is separate task file. Enables reusable pipeline components and clear separation of concerns.",
+      "what_it_does": "Shows modular pipeline stage organization.",
+      "next_step": "Stages reviewed. Execute full pipeline for v2.0."
+    },
+    {
+      "name": "Step 9: Execute CI/CD Pipeline - Deploy v2.0",
+      "command": "cd ansible-scenarios/12-ci-cd-pipeline-automation && ansible-playbook -i inventory/hosts.ini pipeline-deploy.yml -e 'app_version=2.0 deploy_to=green'",
+      "description": "Run complete pipeline deploying v2.0 to green",
+      "explanation": "Pipeline: 1) Clones v2.0 branch, 2) Builds app, 3) Deploys to green (blue still serves traffic), 4) Runs automated tests on green, 5) If tests pass, switches LB to green, 6) Blue becomes idle.",
+      "what_it_does": "Executes zero-downtime deployment from blue to green.",
+      "next_step": "Pipeline executing. Watch for test results."
+    },
+    {
+      "name": "Step 10: Verify Traffic Switched to Green",
+      "command": "for i in {1..5}; do curl -s http://localhost:8090/version | grep -o 'Version: [^,]*'; sleep 0.5; done",
+      "description": "Confirm production now serves v2.0 from green",
+      "explanation": "All requests now return 'Version: 2.0' from green environment. Blue still runs v1.0 but receives no traffic. Traffic switch was instantaneous (zero downtime). Blue is now fallback.",
+      "what_it_does": "Validates successful blue-to-green traffic switch.",
+      "next_step": "Green serving traffic. View test suite."
+    },
+    {
+      "name": "Step 11: View Automated Test Suite",
+      "command": "cat ansible-scenarios/12-ci-cd-pipeline-automation/roles/pipeline/tasks/test.yml",
+      "description": "Display post-deployment automated tests",
+      "explanation": "Shows tests: health check (HTTP 200), version verification, response time check, API endpoint validation. Tests run against green before traffic switch. Failures trigger rollback.",
+      "what_it_does": "Shows quality gates preventing bad deployments.",
+      "next_step": "Tests understood. View test results."
+    },
+    {
+      "name": "Step 12: Review Test Results",
+      "command": "cat ansible-scenarios/12-ci-cd-pipeline-automation/test-results.json",
+      "description": "Display automated test outcomes",
+      "explanation": "Shows JSON with test results: name, status (PASS/FAIL), duration, details. All tests passed for v2.0 deployment. If any test fails, pipeline aborts traffic switch and rolls back.",
+      "what_it_does": "Shows automated quality validation results.",
+      "next_step": "Tests passed. Deploy broken version to trigger rollback."
+    },
+    {
+      "name": "Step 13: Simulate Failed Deployment",
+      "command": "cd ansible-scenarios/12-ci-cd-pipeline-automation && ansible-playbook -i inventory/hosts.ini pipeline-deploy.yml -e 'app_version=3.0-broken deploy_to=blue' || echo 'Pipeline failed as expected'",
+      "description": "Deploy broken version to test rollback",
+      "explanation": "Deploys v3.0-broken to blue (green still serves v2.0 traffic). Health checks fail on blue. Pipeline detects failure, skips traffic switch, keeps green active. Blue rolled back to v1.0.",
+      "what_it_does": "Tests pipeline failure detection and rollback mechanism.",
+      "next_step": "Deployment failed, rollback triggered. Verify production."
+    },
+    {
+      "name": "Step 14: Verify Production Still on v2.0",
+      "command": "curl -s http://localhost:8090/version | grep -o 'Version: [^,]*'",
+      "description": "Confirm failed deployment didn't affect production",
+      "explanation": "Still returns 'Version: 2.0' from green. Broken deployment to blue never reached production. Green continued serving throughout. Blue/green pattern provided safety net.",
+      "what_it_does": "Validates production unaffected by failed deployment.",
+      "next_step": "Production safe. Check blue environment."
+    },
+    {
+      "name": "Step 15: Check Blue Environment After Rollback",
+      "command": "curl -s http://localhost:8091/version | grep -o 'Version: [^,]*'",
+      "description": "Verify blue rolled back to last good version",
+      "explanation": "Blue now serves v1.0 (last known good). Rollback playbook detected test failure and restored previous version. Blue ready for next deployment attempt.",
+      "what_it_does": "Confirms automatic rollback restored safe state.",
+      "next_step": "Rollback verified. View rollback implementation."
+    },
+    {
+      "name": "Step 16: View Rollback Playbook",
+      "command": "cat ansible-scenarios/12-ci-cd-pipeline-automation/roles/pipeline/tasks/rollback.yml",
+      "description": "Display automatic rollback procedure",
+      "explanation": "Shows rollback: 1) Stop broken service, 2) Restore from previous deployment backup, 3) Restart with good version, 4) Log incident. Triggered by test failures. Prevents manual emergency rollbacks.",
+      "what_it_does": "Shows automated failure recovery mechanism.",
+      "next_step": "Rollback logic clear. View Jenkins integration."
+    },
+    {
+      "name": "Step 17: View Jenkins Pipeline Integration",
+      "command": "cat ansible-scenarios/12-ci-cd-pipeline-automation/Jenkinsfile",
+      "description": "Display Jenkins pipeline calling Ansible",
+      "explanation": "Shows Jenkinsfile with stages matching Ansible playbook. Each stage runs ansible-playbook command. Jenkins provides UI/scheduling/triggers, Ansible provides deployment logic. Separation of orchestration and execution.",
+      "what_it_does": "Shows CI/CD tool integration with Ansible.",
+      "next_step": "Integration pattern understood. Deploy hotfix."
+    },
+    {
+      "name": "Step 18: Deploy Hotfix Using Fast Track",
+      "command": "cd ansible-scenarios/12-ci-cd-pipeline-automation && ansible-playbook -i inventory/hosts.ini hotfix-deploy.yml -e 'app_version=2.1 target_env=blue'",
+      "description": "Fast-track deploy critical fix to blue",
+      "explanation": "Hotfix playbook skips some pipeline stages (abbreviated testing) for urgent fixes. Deploys v2.1 to blue. For emergencies only. Green still serves v2.0 (production).",
+      "what_it_does": "Demonstrates expedited deployment for critical fixes.",
+      "next_step": "Hotfix deployed to blue. Verify before traffic switch."
+    },
+    {
+      "name": "Step 19: Manual Smoke Test Before Switching",
+      "command": "curl -s http://localhost:8091/health && curl -s http://localhost:8091/version",
+      "description": "Manually verify hotfix before promoting to production",
+      "explanation": "Blue shows v2.1 healthy. Manual verification before traffic switch for hotfixes. Provides human confirmation for critical changes before exposing to customers.",
+      "what_it_does": "Performs manual validation of hotfix deployment.",
+      "next_step": "Hotfix verified. Switch traffic to blue."
+    },
+    {
+      "name": "Step 20: Switch Production Traffic to Blue",
+      "command": "cd ansible-scenarios/12-ci-cd-pipeline-automation && ansible-playbook -i inventory/hosts.ini configure-lb.yml -e 'active_env=blue'",
+      "description": "Promote blue (v2.1 hotfix) to production",
+      "explanation": "Updates LB upstream to blue-app. Traffic switches from green (v2.0) to blue (v2.1). Instant cutover. Customers now see hotfix. Green becomes fallback with v2.0.",
+      "what_it_does": "Switches production traffic to hotfix environment.",
+      "next_step": "Traffic switched. Verify production."
+    },
+    {
+      "name": "Step 21: Verify Production Running Hotfix",
+      "command": "for i in {1..5}; do curl -s http://localhost:8090/version | grep -o 'Version: [^,]*'; done",
+      "description": "Confirm customers receiving v2.1",
+      "explanation": "All requests return 'Version: 2.1'. Hotfix successfully promoted. If issues arise, can instantly switch back to green (v2.0) by reconfiguring LB.",
+      "what_it_does": "Validates production serving hotfix version.",
+      "next_step": "Hotfix in production. View deployment history."
+    },
+    {
+      "name": "Step 22: Generate Deployment Report",
+      "command": "cd ansible-scenarios/12-ci-cd-pipeline-automation && ansible-playbook -i inventory/hosts.ini deployment-report.yml",
+      "description": "Create audit trail of all deployments",
+      "explanation": "Queries both environments for versions, deployment times, test results. Generates report showing: current production (blue v2.1), fallback (green v2.0), deployment history, test pass/fail rates.",
+      "what_it_does": "Creates compliance and audit documentation.",
+      "next_step": "Report generated. View it."
+    },
+    {
+      "name": "Step 23: View Deployment Report",
+      "command": "cat ansible-scenarios/12-ci-cd-pipeline-automation/deployment-report.txt",
+      "description": "Display deployment audit trail",
+      "explanation": "Shows complete deployment history: timestamps, versions, environments, test results, rollback events. Provides audit trail for compliance (SOC2, ISO27001). Documents deployment frequency and success rate.",
+      "what_it_does": "Displays comprehensive deployment history and metrics.",
+      "next_step": "Report reviewed. Implement canary deployment."
+    },
+    {
+      "name": "Step 24: View Canary Deployment Configuration",
+      "command": "cat ansible-scenarios/12-ci-cd-pipeline-automation/canary-deploy.yml",
+      "description": "Display canary deployment pattern",
+      "explanation": "Shows progressive rollout: 10% traffic to green (new version), 90% to blue (stable). Monitor metrics. If good, increase to 50%, then 100%. If bad, instant rollback. Reduces blast radius.",
+      "what_it_does": "Shows gradual rollout pattern for risk reduction.",
+      "next_step": "Canary pattern understood. Execute canary for v3.0."
+    },
+    {
+      "name": "Step 25: Execute Canary Deployment",
+      "command": "cd ansible-scenarios/12-ci-cd-pipeline-automation && ansible-playbook -i inventory/hosts.ini canary-deploy.yml -e 'app_version=3.0 canary_percent=10'",
+      "description": "Deploy v3.0 to 10% of traffic",
+      "explanation": "Deploys v3.0 to green, configures LB to send 10% traffic to green (v3.0), 90% to blue (v2.1). Monitors error rates. If stable for 10 minutes, increases percentage. Gradual risk mitigation.",
+      "what_it_does": "Implements progressive traffic shift for new version.",
+      "next_step": "Canary deployed. Monitor traffic split."
+    },
+    {
+      "name": "Step 26: Verify Traffic Split",
+      "command": "for i in {1..20}; do curl -s http://localhost:8090/version | grep -o 'Version: [^,]*'; done | sort | uniq -c",
+      "description": "Confirm 10/90 traffic split",
+      "explanation": "Shows ~2 requests to v3.0 (green), ~18 to v2.1 (blue) from 20 requests. Confirms 10% canary. Real implementation monitors error rates, latency. Auto-promotes or rolls back based on metrics.",
+      "what_it_does": "Validates canary traffic percentage.",
+      "next_step": "Traffic split verified. Complete canary rollout."
+    },
+    {
+      "name": "Step 27: Complete Canary Rollout",
+      "command": "cd ansible-scenarios/12-ci-cd-pipeline-automation && ansible-playbook -i inventory/hosts.ini canary-deploy.yml -e 'app_version=3.0 canary_percent=100'",
+      "description": "Promote canary to full production",
+      "explanation": "After monitoring period, increases to 100% traffic to green (v3.0). Blue (v2.1) remains as instant rollback target. Completes progressive deployment. Safest deployment pattern.",
+      "what_it_does": "Completes gradual rollout of new version.",
+      "next_step": "Rollout complete. Scenario finished! Clean up."
+    },
+    {
+      "name": "Cleanup 1: Stop All Containers",
+      "command": "docker stop blue-app green-app loadbalancer",
+      "description": "Stop deployment infrastructure",
+      "explanation": "Stops all pipeline containers.",
+      "what_it_does": "Stops blue, green, and load balancer containers.",
+      "next_step": "Containers stopped. Remove them.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup 2: Remove All Containers",
+      "command": "docker rm blue-app green-app loadbalancer",
+      "description": "Remove stopped containers",
+      "explanation": "Deletes all containers and their data.",
+      "what_it_does": "Removes all pipeline infrastructure containers.",
+      "next_step": "Containers removed. Clean deployment artifacts.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup 3: Remove Deployment Artifacts",
+      "command": "rm -rf ansible-scenarios/12-ci-cd-pipeline-automation/deployments/ ansible-scenarios/12-ci-cd-pipeline-automation/*.json ansible-scenarios/12-ci-cd-pipeline-automation/*.txt",
+      "description": "Remove deployment files and reports",
+      "explanation": "Cleans up cloned repositories, build artifacts, test results, and reports.",
+      "what_it_does": "Removes all deployment artifacts and logs.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

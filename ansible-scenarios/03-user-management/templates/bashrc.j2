@@ -1,0 +1,13 @@
+# Custom bashrc for {{ ansible_user_id }}
+export PS1='\u@\h:\w\$ '
+export EDITOR=vim
+export PATH=$PATH:/usr/local/bin
+
+# Aliases
+alias ll='ls -lah'
+alias grep='grep --color=auto'
+alias ..='cd ..'
+
+# History settings
+export HISTSIZE=10000
+export HISTFILESIZE=20000

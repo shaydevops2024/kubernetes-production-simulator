@@ -1,0 +1,5 @@
+---
+nginx_port: 80
+nginx_worker_processes: 2
+server_name: web1.example.com
+app_env: production

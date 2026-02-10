@@ -1,0 +1,5 @@
+---
+db_port: 5432
+db_type: postgresql
+max_connections: 100
+backup_enabled: true

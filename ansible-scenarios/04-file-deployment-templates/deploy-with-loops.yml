@@ -1,0 +1,10 @@
+---
+- name: Deploy configuration with loops
+  hosts: webservers
+  become: yes
+  tasks:
+    - name: Deploy looped config
+      template:
+        src: templates/nginx.conf.j2
+        dest: /etc/nginx/nginx-with-backends.conf
+        mode: '0644'

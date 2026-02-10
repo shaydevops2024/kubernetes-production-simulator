@@ -1,0 +1,10 @@
+---
+- name: Manage nginx service
+  hosts: pkg_servers
+  become: yes
+  tasks:
+    - name: Ensure nginx is started and enabled
+      service:
+        name: nginx
+        state: started
+        enabled: yes

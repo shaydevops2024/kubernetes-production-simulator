@@ -202,6 +202,33 @@ body {
     min-width: 25px;
 }
 
+.nav-icon svg {
+    display: block;
+}
+
+/* Separator between Dashboard and Play items */
+.nav-separator {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.12);
+    margin: 8px 20px;
+}
+
+/* Helm SVG icon alignment */
+.helm-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 25px;
+}
+
+/* Jenkins SVG icon alignment */
+.jenkins-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 25px;
+}
+
 .nav-text {
     font-size: 1em;
 }
@@ -636,6 +663,145 @@ body {
     background: linear-gradient(135deg, #C2410C 0%, #9A3412 100%);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
+}
+
+/* Prerequisites Button and Modal */
+.header-button-group {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.btn-prerequisites {
+    background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-prerequisites:hover {
+    background: linear-gradient(135deg, #C2410C 0%, #9A3412 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+}
+
+.modal-large {
+    max-width: 800px;
+    width: 95%;
+}
+
+.prereq-step {
+    display: none;
+}
+
+.prereq-step.active {
+    display: block;
+}
+
+.prereq-intro {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #FFF7ED;
+    border-radius: 8px;
+    border-left: 4px solid #EA580C;
+}
+
+.prereq-intro p {
+    margin: 8px 0;
+}
+
+.status-summary {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.status-badge {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9em;
+}
+
+.prerequisites-list {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+}
+
+.prereq-item {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    border: 2px solid #E5E7EB;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    transition: all 0.2s ease;
+}
+
+.prereq-item:hover {
+    border-color: #EA580C;
+    background: #FFFBEB;
+}
+
+.prereq-item.installed {
+    background: #F0FDF4;
+    border-color: #16A34A;
+}
+
+.prereq-checkbox {
+    margin-right: 15px;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.prereq-info {
+    flex: 1;
+}
+
+.prereq-name {
+    font-weight: 600;
+    font-size: 1.05em;
+    margin-bottom: 4px;
+}
+
+.prereq-version {
+    color: #6B7280;
+    font-size: 0.9em;
+}
+
+.prereq-status {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.85em;
+    font-weight: 600;
+}
+
+.prereq-status.installed {
+    background: #DCFCE7;
+    color: #16A34A;
+}
+
+.prereq-status.missing {
+    background: #FEF3C7;
+    color: #D97706;
+}
+
+.prerequisites-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 15px;
+    border-top: 1px solid #E5E7EB;
 }
 
 /* Right Sidebar Overlay */

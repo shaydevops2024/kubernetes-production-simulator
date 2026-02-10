@@ -1,0 +1,5 @@
+---
+http_port: 80
+https_port: 443
+app_env: production
+max_workers: 4

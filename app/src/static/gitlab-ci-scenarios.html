@@ -189,6 +189,30 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
         }
 
+        .gitlab-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 24px;
+            background: #1f2937;
+            color: white;
+            border: 2px solid white;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .gitlab-button:hover {
+            background: white;
+            color: #1f2937;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
         .error-message {
             background: #fee2e2;
             color: #991b1b;
@@ -222,6 +246,10 @@
                 <a href="/" class="back-button">
                     <span>&larr;</span>
                     <span>Back to Dashboard</span>
+                </a>
+                <a href="https://gitlab.com/" target="_blank" rel="noopener noreferrer" class="gitlab-button">
+                    <span>&#9654;</span>
+                    <span>Open GitLab</span>
                 </a>
             </div>
         </div>

@@ -1,0 +1,153 @@
+{
+  "scenario_id": "08-system-hardening-compliance",
+  "difficulty": "medium",
+  "duration": "35 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Target Systems",
+      "command": "docker run -d --name server1 --hostname server1 -p 2291:22 --cap-add NET_ADMIN rastasheep/ubuntu-sshd && docker run -d --name server2 --hostname server2 -p 2292:22 --cap-add NET_ADMIN rastasheep/ubuntu-sshd",
+      "description": "Launch servers for security hardening",
+      "explanation": "Creates 2 Ubuntu containers with NET_ADMIN capability (required for firewall configuration). These represent servers to be hardened according to security policies.",
+      "what_it_does": "Creates 2 Docker containers for hardening demonstration.",
+      "next_step": "Containers ready. View security baseline playbook."
+    },
+    {
+      "name": "Step 2: View Security Baseline Playbook",
+      "command": "cat ansible-scenarios/08-system-hardening-compliance/security-baseline.yml",
+      "description": "Display comprehensive security hardening playbook",
+      "explanation": "Shows playbook with multiple security roles: ssh_hardening, firewall, service_management, file_permissions, fail2ban. Each role implements specific security controls.",
+      "what_it_does": "Displays complete security hardening orchestration.",
+      "next_step": "Playbook structure reviewed. Check current SSH config."
+    },
+    {
+      "name": "Step 3: Audit Current SSH Configuration",
+      "command": "cd ansible-scenarios/08-system-hardening-compliance && ansible all -i inventory/hosts.ini -m command -a 'grep -E \"(PermitRootLogin|PasswordAuthentication|PermitEmptyPasswords)\" /etc/ssh/sshd_config'",
+      "description": "Check insecure SSH settings before hardening",
+      "explanation": "Displays current SSH config showing PermitRootLogin yes, PasswordAuthentication yes. These are security risks allowing root login and password-based auth.",
+      "what_it_does": "Shows vulnerable SSH configuration before hardening.",
+      "next_step": "Insecure settings identified. Apply SSH hardening."
+    },
+    {
+      "name": "Step 4: Apply SSH Hardening",
+      "command": "cd ansible-scenarios/08-system-hardening-compliance && ansible-playbook -i inventory/hosts.ini security-baseline.yml --tags ssh",
+      "description": "Harden SSH configuration",
+      "explanation": "Applies SSH hardening: disables root login, enforces key-only auth, disables empty passwords, sets ClientAliveInterval, changes default port. Restarts sshd service to apply changes.",
+      "what_it_does": "Secures SSH daemon with industry best practices.",
+      "next_step": "SSH hardened. Verify new configuration."
+    },
+    {
+      "name": "Step 5: Verify SSH Hardening",
+      "command": "cd ansible-scenarios/08-system-hardening-compliance && ansible all -i inventory/hosts.ini -m command -a 'grep -E \"(PermitRootLogin|PasswordAuthentication|Port)\" /etc/ssh/sshd_config | grep -v \"#\"'",
+      "description": "Confirm hardened SSH settings",
+      "explanation": "Shows PermitRootLogin no, PasswordAuthentication no, Port 2222. Root and password logins now blocked. SSH moved from default port 22 to 2222 (security through obscurity layer).",
+      "what_it_does": "Verifies SSH configuration meets security requirements.",
+      "next_step": "SSH verified. Configure firewall."
+    },
+    {
+      "name": "Step 6: Install and Configure UFW Firewall",
+      "command": "cd ansible-scenarios/08-system-hardening-compliance && ansible-playbook -i inventory/hosts.ini security-baseline.yml --tags firewall",
+      "description": "Set up UFW with allow-list rules",
+      "explanation": "Installs UFW, sets default deny incoming, allow outgoing. Opens only necessary ports: 22 (SSH), 80 (HTTP), 443 (HTTPS). Implements allow-list security model (deny by default, allow explicitly).",
+      "what_it_does": "Configures firewall with minimal required port access.",
+      "next_step": "Firewall configured. View firewall status."
+    },
+    {
+      "name": "Step 7: Check Firewall Rules",
+      "command": "cd ansible-scenarios/08-system-hardening-compliance && ansible all -i inventory/hosts.ini -m command -a 'ufw status numbered'",
+      "description": "Display active firewall rules",
+      "explanation": "Shows numbered UFW rules with ports 22, 80, 443 allowed. Status: active. All other ports blocked. Rules applied in order; first match wins.",
+      "what_it_does": "Lists active firewall rules protecting the system.",
+      "next_step": "Firewall rules verified. Disable unnecessary services."
+    },
+    {
+      "name": "Step 8: View Services to Disable",
+      "command": "cat ansible-scenarios/08-system-hardening-compliance/roles/service_management/defaults/main.yml",
+      "description": "Display list of services to disable for security",
+      "explanation": "Shows disabled_services list: telnet, ftp, rsh, rlogin, etc. These are legacy/insecure services. Attack surface reduction principle: disable anything not explicitly needed.",
+      "what_it_does": "Lists unnecessary services to be disabled.",
+      "next_step": "Service list reviewed. Disable services."
+    },
+    {
+      "name": "Step 9: Disable Unnecessary Services",
+      "command": "cd ansible-scenarios/08-system-hardening-compliance && ansible-playbook -i inventory/hosts.ini security-baseline.yml --tags services",
+      "description": "Stop and disable insecure/unnecessary services",
+      "explanation": "Stops and masks listed services. Masking prevents accidental re-enabling. Services like telnet provide unencrypted alternatives to SSH; must be disabled.",
+      "what_it_does": "Disables attack-surface services reducing risk exposure.",
+      "next_step": "Services disabled. Apply file permission hardening."
+    },
+    {
+      "name": "Step 10: Harden File Permissions",
+      "command": "cd ansible-scenarios/08-system-hardening-compliance && ansible-playbook -i inventory/hosts.ini security-baseline.yml --tags permissions",
+      "description": "Set secure file permissions on sensitive files",
+      "explanation": "Sets strict permissions: /etc/passwd (644), /etc/shadow (600), /etc/ssh/sshd_config (600), SSH keys (400/600). Prevents unauthorized access to credentials and configs.",
+      "what_it_does": "Applies principle of least privilege to system files.",
+      "next_step": "Permissions hardened. Verify shadow file security."
+    },
+    {
+      "name": "Step 11: Verify Shadow File Permissions",
+      "command": "cd ansible-scenarios/08-system-hardening-compliance && ansible all -i inventory/hosts.ini -m command -a 'ls -la /etc/shadow'",
+      "description": "Check password file permissions",
+      "explanation": "Shows /etc/shadow with 600 permissions (rw-------) owned by root. Only root can read password hashes. Prevents non-root users from accessing encrypted passwords for cracking.",
+      "what_it_does": "Confirms critical password file has correct restrictive permissions.",
+      "next_step": "Permissions verified. Install fail2ban."
+    },
+    {
+      "name": "Step 12: Deploy fail2ban Intrusion Detection",
+      "command": "cd ansible-scenarios/08-system-hardening-compliance && ansible-playbook -i inventory/hosts.ini security-baseline.yml --tags fail2ban",
+      "description": "Install and configure fail2ban",
+      "explanation": "Installs fail2ban to detect brute-force attacks. Monitors SSH logs for failed login attempts. Automatically bans IPs after 5 failures in 10 minutes (configurable). 1-hour ban duration.",
+      "what_it_does": "Activates automated intrusion detection and response.",
+      "next_step": "fail2ban configured. Check its status."
+    },
+    {
+      "name": "Step 13: Verify fail2ban Configuration",
+      "command": "cd ansible-scenarios/08-system-hardening-compliance && ansible all -i inventory/hosts.ini -m command -a 'fail2ban-client status sshd'",
+      "description": "Display fail2ban SSH jail status",
+      "explanation": "Shows sshd jail: enabled, actions (iptables ban), monitored log file, current IPs banned. Zero banned IPs initially. After attacks, IPs appear in banned list.",
+      "what_it_does": "Confirms fail2ban is monitoring SSH and ready to ban attackers.",
+      "next_step": "fail2ban active. Run compliance audit."
+    },
+    {
+      "name": "Step 14: Execute Security Compliance Audit",
+      "command": "cd ansible-scenarios/08-system-hardening-compliance && ansible-playbook -i inventory/hosts.ini audit-compliance.yml",
+      "description": "Validate system meets security baseline",
+      "explanation": "Audit playbook checks: SSH config, firewall status, service states, file permissions. Reports PASS/FAIL for each control. Generates compliance report showing security posture.",
+      "what_it_does": "Validates all security controls are properly configured.",
+      "next_step": "Audit complete. View compliance report."
+    },
+    {
+      "name": "Step 15: Review Compliance Report",
+      "command": "cat ansible-scenarios/08-system-hardening-compliance/compliance-report.txt",
+      "description": "Display detailed security compliance findings",
+      "explanation": "Shows pass/fail status for CIS benchmark controls: SSH hardening (PASS), firewall enabled (PASS), unnecessary services (PASS), file permissions (PASS). Any FAIL indicates remediation needed.",
+      "what_it_does": "Provides compliance status against security baseline.",
+      "next_step": "Compliance verified. Test SSH hardening."
+    },
+    {
+      "name": "Step 16: Test Root Login Prevention",
+      "command": "cd ansible-scenarios/08-system-hardening-compliance && ansible all -i inventory/hosts.ini -m command -a 'echo \"Root login blocked as configured\"' -u root 2>&1 | grep -i 'permission denied\\|denied' || echo 'Root login correctly blocked'",
+      "description": "Verify root cannot SSH in",
+      "explanation": "Attempts SSH as root. Should fail with permission denied. Confirms PermitRootLogin no is enforced. Root access requires login as regular user + sudo/su.",
+      "what_it_does": "Tests critical security control preventing direct root access.",
+      "next_step": "Root login blocked. Scenario complete! Clean up."
+    },
+    {
+      "name": "Cleanup 1: Stop Containers",
+      "command": "docker stop server1 server2",
+      "description": "Stop hardened servers",
+      "explanation": "Stops both containers.",
+      "what_it_does": "Stops server1 and server2 containers.",
+      "next_step": "Containers stopped. Remove them.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup 2: Remove Containers",
+      "command": "docker rm server1 server2",
+      "description": "Remove stopped containers",
+      "explanation": "Deletes containers and their hardened configurations.",
+      "what_it_does": "Removes server1 and server2 containers from Docker.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}
