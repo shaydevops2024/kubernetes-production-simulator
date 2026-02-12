@@ -153,7 +153,7 @@ body {
     height: 100vh;
     left: 0;
     top: 0;
-    z-index: 100;
+    z-index: 10000;
 }
 
 .sidebar-header {
@@ -211,6 +211,73 @@ body {
     height: 1px;
     background: rgba(255, 255, 255, 0.12);
     margin: 8px 20px;
+}
+
+/* Special separator with more spacing for featured sections */
+.nav-separator-featured {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(234, 88, 12, 0.6), transparent);
+    margin: 20px 15px;
+}
+
+/* Special hands-on projects nav item */
+.nav-item-featured {
+    background: linear-gradient(135deg, #FB923C 0%, #EA580C 50%, #C2410C 100%);
+    margin: 0 10px;
+    border-radius: 10px;
+    padding: 16px 20px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(234, 88, 12, 0.4);
+    animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.nav-item-featured::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+    transform: rotate(45deg);
+    animation: shine 3s infinite;
+}
+
+@keyframes shine {
+    0% {
+        transform: translateX(-100%) translateY(-100%) rotate(45deg);
+    }
+    100% {
+        transform: translateX(100%) translateY(100%) rotate(45deg);
+    }
+}
+
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 0 4px 12px rgba(234, 88, 12, 0.4);
+    }
+    50% {
+        box-shadow: 0 6px 20px rgba(234, 88, 12, 0.6);
+    }
+}
+
+.nav-item-featured:hover {
+    background: linear-gradient(135deg, #EA580C 0%, #C2410C 50%, #9A3412 100%);
+    transform: translateX(5px);
+    box-shadow: 0 6px 20px rgba(234, 88, 12, 0.7);
+}
+
+.nav-item-featured .nav-icon {
+    font-size: 1.4em;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.nav-item-featured .nav-text {
+    color: #FFFFFF;
+    font-weight: 700;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    letter-spacing: 0.3px;
 }
 
 /* Helm SVG icon alignment */
@@ -794,6 +861,20 @@ body {
 .prereq-status.missing {
     background: #FEF3C7;
     color: #D97706;
+}
+
+.location-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75em;
+    font-weight: 600;
+    margin-left: 8px;
+}
+
+.location-badge.local {
+    background: #DBEAFE;
+    color: #1D4ED8;
 }
 
 .prerequisites-actions {
@@ -1474,7 +1555,7 @@ body {
     background: var(--bg-card);
     border-radius: 12px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px var(--border);
-    z-index: 10000;
+    z-index: 10001;
     max-width: 380px;
     min-width: 300px;
     opacity: 0;

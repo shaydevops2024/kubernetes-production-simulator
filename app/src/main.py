@@ -100,9 +100,9 @@ check_tool() {
         version=$($check_cmd 2>&1 | head -1 || echo "unknown")
         # Escape quotes and special characters for JSON
         version=$(echo "$version" | sed 's/"/\\\\"/g' | tr -d '\\n')
-        echo "    \\"$tool\\": {\\"installed\\": true, \\"version\\": \\"$version\\"},"
+        echo "    \\"$tool\\": {\\"installed\\": true, \\"version\\": \\"$version\\", \\"location\\": \\"local\\"},"
     else
-        echo "    \\"$tool\\": {\\"installed\\": false, \\"version\\": null},"
+        echo "    \\"$tool\\": {\\"installed\\": false, \\"version\\": null, \\"location\\": null},"
     fi
 }
 
@@ -112,9 +112,9 @@ echo ""
 # Build JSON report
 JSON_TOOLS=$(cat <<EOF
 $(check_tool "docker" "docker --version")
-$(check_tool "kubectl" "kubectl version --client --short")
+$(check_tool "kubectl" "kubectl version --client")
 $(check_tool "kind" "kind version")
-$(check_tool "helm" "helm version --short")
+$(check_tool "helm" "helm version")
 $(check_tool "terraform" "terraform version")
 $(check_tool "ansible" "ansible --version")
 $(check_tool "gitlab-runner" "gitlab-runner --version")
@@ -307,8 +307,8 @@ async def get_argocd_url():
     # Try to check if the ingress hostname resolves
     try:
         socket.gethostbyname('k8s-multi-demo.argocd')
-        # If hostname resolves, try the ingress URL
-        primary_url = 'http://k8s-multi-demo.argocd'
+        # If hostname resolves, try the ingress URL with port
+        primary_url = 'http://k8s-multi-demo.argocd:30800'
         return {"url": primary_url, "type": "ingress"}
     except socket.gaierror:
         # If hostname doesn't resolve, use NodePort on localhost
@@ -450,7 +450,7 @@ async def get_argocd_status():
     # Check ArgoCD CLI version
     try:
         argocd_result = subprocess.run(
-            ["argocd", "version", "--client", "--short"],
+            ["argocd", "version", "--client"],
             capture_output=True,
             text=True,
             timeout=10

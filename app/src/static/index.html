@@ -34,10 +34,10 @@
         <div class="tour-welcome-content">
             <div class="tour-welcome-header">
                 <h2>Welcome to DevOps Simulator!</h2>
-                <p>Your Kubernetes Learning Platform</p>
+                <p>Your DevOps Learning Platform</p>
             </div>
             <div class="tour-welcome-body">
-                <p>This interactive platform helps you learn Kubernetes, Helm, and ArgoCD through hands-on scenarios and real-time cluster monitoring.</p>
+                <p>This interactive platform is the best way to learn Kubernetes, Helm, ArgoCD, and more through hands-on scenarios and real-time cluster monitoring.</p>
                 <div class="tour-welcome-actions">
                     <button class="btn btn-primary" onclick="startTour()">Take a Quick Tour</button>
                     <button class="btn btn-secondary" onclick="skipTour()">Skip for Now</button>
@@ -230,6 +230,11 @@
                     <span class="nav-icon" style="color: #6B7280;">🔧</span>
                     <span class="nav-text">Play Ansible</span>
                 </div>
+                <div class="nav-separator-featured"></div>
+                <div class="nav-item nav-item-featured" id="tour-hands-on-projects" onclick="openHandsOnProjects()">
+                    <span class="nav-icon">⭐</span>
+                    <span class="nav-text">Hands-On Projects</span>
+                </div>
             </nav>
             <div class="sidebar-footer" id="tour-developer-info">
                 <div class="developer-info">
@@ -293,7 +298,7 @@
                         <div class="status-card-header">
                             <h3>Application Info</h3>
                             <div class="header-button-group">
-                                <button class="btn-prerequisites" onclick="openPrerequisitesModal()">
+                                <button class="btn-prerequisites" id="tour-prerequisites-btn" onclick="openPrerequisitesModal()">
                                     📦 Prerequisites
                                 </button>
                                 <button class="btn-testing-actions" id="tour-testing-btn" onclick="openTestingSidebar()">

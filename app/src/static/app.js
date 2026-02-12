@@ -121,6 +121,11 @@ function openPlayAnsible() {
     window.open('/static/ansible-scenarios.html', '_blank');
 }
 
+// Open Hands-On Projects page
+function openHandsOnProjects() {
+    window.open('/static/hands-on-projects.html', '_blank');
+}
+
 // Open ArgoCD with automatic fallback
 function openArgoCD() {
     // Ask backend which ArgoCD URL to use
@@ -1259,49 +1264,49 @@ var tourSteps = [
     {
         element: '#tour-sidebar-nav',
         title: 'Navigation Menu',
-        content: 'Use the sidebar to navigate between the Dashboard and interactive learning scenarios. The Dashboard shows your cluster status in real-time.',
-        position: 'right'
-    },
-    {
-        element: '#tour-play-k8s',
-        title: 'Play Kubernetes',
-        content: 'Click here to access hands-on Kubernetes scenarios. Practice deploying apps, scaling pods, managing secrets, and troubleshooting real cluster issues.',
-        position: 'right'
-    },
-    {
-        element: '#tour-play-argocd',
-        title: 'Play ArgoCD',
-        content: 'Explore GitOps workflows with ArgoCD scenarios. Learn to deploy applications using declarative configurations and automated sync.',
+        content: 'Navigate between Dashboard and interactive learning scenarios for Kubernetes, ArgoCD, Helm, Terraform, Ansible, and more. Each section opens hands-on practice environments.',
         position: 'right'
     },
     {
         element: '#tour-cluster-stats',
         title: 'Cluster Overview',
-        content: 'Monitor your Kubernetes cluster at a glance. Click on any stat box to see detailed information about deployments, pods, and nodes.',
+        content: 'Monitor your Kubernetes cluster in real-time. Click any stat box to see detailed information about deployments, pods, and nodes.',
         position: 'bottom'
     },
     {
         element: '#tour-app-info',
         title: 'Application Status',
-        content: 'Track your application\'s health and readiness status. This shows real-time data from Kubernetes liveness and readiness probes.',
+        content: 'Track your application\'s health and readiness status from Kubernetes probes. This reflects real-time data from your cluster.',
         position: 'bottom'
     },
     {
         element: '#tour-testing-btn',
         title: 'Testing Actions',
-        content: 'Simulate real-world scenarios! Make the app unhealthy, trigger pod restarts, test HPA scaling, and observe how Kubernetes self-heals.',
+        content: 'Simulate real-world scenarios like pod failures, health check issues, and load testing. Observe how Kubernetes self-heals automatically.',
+        position: 'left'
+    },
+    {
+        element: '#tour-prerequisites-btn',
+        title: 'Prerequisites',
+        content: 'Check which DevOps tools are installed on your machine (kubectl, helm, docker, etc.) and install missing tools with a single command.',
         position: 'left'
     },
     {
         element: '#tour-deployment-tools',
         title: 'Deployment Tools',
-        content: 'View Helm releases and ArgoCD applications deployed in your cluster. Access CLI commands and open the ArgoCD UI directly.',
+        content: 'Monitor Helm releases and ArgoCD applications in your cluster. Access CLI commands and open the ArgoCD UI to manage GitOps deployments.',
         position: 'top'
     },
     {
+        element: '#tour-hands-on-projects',
+        title: 'Hands-On Projects',
+        content: 'Complete real-world DevOps projects combining multiple tools and technologies. Perfect for portfolio building and interview preparation!',
+        position: 'right'
+    },
+    {
         element: '#tour-developer-info',
-        title: 'About the Developer',
-        content: 'Click "Click Me" to learn more about the developer and access the project\'s GitHub repository. Enjoy exploring!',
+        title: 'How was it created',
+        content: 'Built by a DevOps Engineer to help others learn through practical scenarios. Click "Click Me" to learn more and access the GitHub repository.',
         position: 'right'
     }
 ];
@@ -1312,7 +1317,7 @@ function checkTourStatus() {
     if (!hasSeenTour) {
         setTimeout(function() {
             showTourWelcome();
-        }, 1500);
+        }, 1000);
     }
 }
 
@@ -1520,7 +1525,7 @@ function prevTourStep() {
 
 // Initialize tour check on page load
 window.addEventListener('DOMContentLoaded', function() {
-    setTimeout(checkTourStatus, 2000);
+    setTimeout(checkTourStatus, 1000);
 });
 
 // ============================================
@@ -1599,12 +1604,16 @@ function copyCheckerCommand() {
     }
 }
 
-function refreshPrereqStatus() {
+function refreshPrereqStatus(retryCount) {
+    retryCount = retryCount || 0;
+    var maxRetries = 5;
+    var retryDelay = 500; // ms
+
     // Poll for latest session report
     fetch('/api/prerequisites/status/latest')
         .then(function(r) {
             if (!r.ok) {
-                throw new Error('No report found. Please run the checker command first.');
+                throw new Error('NOT_FOUND');
             }
             return r.json();
         })
@@ -1615,11 +1624,21 @@ function refreshPrereqStatus() {
             showPrereqStep(2);
         })
         .catch(function(e) {
-            // Close prerequisites modal first, then show error
-            closePrerequisitesModal();
-            setTimeout(function() {
-                showModal('Error', e.message, false);
-            }, 300);
+            // Retry if report not found yet and retries remaining
+            if (e.message === 'NOT_FOUND' && retryCount < maxRetries) {
+                setTimeout(function() {
+                    refreshPrereqStatus(retryCount + 1);
+                }, retryDelay);
+            } else {
+                // Close prerequisites modal first, then show error
+                closePrerequisitesModal();
+                setTimeout(function() {
+                    var message = retryCount >= maxRetries
+                        ? 'No report found after multiple attempts. Please run the checker command and try again.'
+                        : 'Error loading prerequisites status. Please try again.';
+                    showModal('Error', message, false);
+                }, 300);
+            }
         });
 }
 
@@ -1647,6 +1666,8 @@ function displayPrereqResults(data) {
         var statusClass = installed ? 'prereq-status installed' : 'prereq-status missing';
         var statusText = installed ? '✓ Installed' : '✗ Missing';
         var versionText = installed ? tool.version : 'Not available';
+        var locationText = tool.location || '';
+        var locationBadge = locationText === 'local' ? '<span class="location-badge local">📍 local</span>' : '';
         var checkboxDisabled = installed ? 'disabled' : '';
 
         listHtml += '<div class="' + itemClass + '">';
@@ -1655,7 +1676,7 @@ function displayPrereqResults(data) {
         listHtml += '    onchange="updateDownloadButton()" ';
         listHtml += checkboxDisabled + '>';
         listHtml += '  <div class="prereq-info">';
-        listHtml += '    <div class="prereq-name">' + toolId + '</div>';
+        listHtml += '    <div class="prereq-name">' + toolId + ' ' + locationBadge + '</div>';
         listHtml += '    <div class="prereq-version">' + versionText + '</div>';
         listHtml += '  </div>';
         listHtml += '  <div class="' + statusClass + '">' + statusText + '</div>';
