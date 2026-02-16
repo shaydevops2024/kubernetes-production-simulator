@@ -73,7 +73,60 @@
       "description": "Mark node as schedulable again (replace <NODE_NAME>)",
       "explanation": "Uncordoning removes the scheduling restriction, making the node available for new pods. Existing pods don't automatically rebalance, but new pods can be scheduled here. Example: kubectl uncordon kind-worker",
       "what_it_does": "Removes SchedulingDisabled status from the node.",
-      "next_step": "Node is back in service. Scenario demonstrates successful failure handling!"
+      "next_step": "Node is back in service. Review the scenario summary to reinforce your learning!"
+    },
+    {
+      "name": "Step 10: Scenario Summary",
+      "command": "echo 'Scenario Complete! Review what you learned below.'",
+      "description": "Summary of node failure scenario learnings",
+      "explanation": "You've successfully completed the node failure scenario. This summary recaps the key concepts and commands you used.",
+      "what_it_does": "Displays a completion message and summarizes your learning journey.",
+      "next_step": "Ready for cleanup!",
+      "show_yaml": true,
+      "summary": {
+        "key_learnings": [
+          "Node Cordoning: Marking nodes as unschedulable prevents new pods from being placed while allowing existing pods to continue running",
+          "Node Draining: Safely evicting pods from a node triggers Kubernetes to reschedule them on healthy nodes, simulating node failure",
+          "Self-Healing: Kubernetes automatically maintains desired replica count by rescheduling pods when nodes become unavailable",
+          "High Availability: Distributing pods across multiple nodes ensures application resilience during node failures",
+          "Graceful Maintenance: Cordon-then-drain workflow enables safe node maintenance without service disruption",
+          "Pod Lifecycle: Understanding pod states (Running → Terminating → Pending → ContainerCreating → Running) during rescheduling"
+        ],
+        "commands_used": [
+          {
+            "command": "kubectl create namespace",
+            "purpose": "Creates isolated environment for scenario resources"
+          },
+          {
+            "command": "kubectl apply -f deployment.yaml",
+            "purpose": "Deploys application with multiple replicas across nodes"
+          },
+          {
+            "command": "kubectl get pods -o wide",
+            "purpose": "Views pod distribution across cluster nodes"
+          },
+          {
+            "command": "kubectl get nodes",
+            "purpose": "Lists all cluster nodes and their current status"
+          },
+          {
+            "command": "kubectl cordon <node>",
+            "purpose": "Marks node as unschedulable for new pods"
+          },
+          {
+            "command": "kubectl drain <node>",
+            "purpose": "Safely evicts all pods from a node for maintenance"
+          },
+          {
+            "command": "kubectl get pods -w",
+            "purpose": "Watches real-time pod rescheduling during node failure"
+          },
+          {
+            "command": "kubectl uncordon <node>",
+            "purpose": "Restores node to schedulable state after maintenance"
+          }
+        ]
+      }
     },
     {
       "name": "Cleanup: Delete Application",
@@ -81,7 +134,7 @@
       "description": "Remove all scenario resources",
       "explanation": "Deletes the deployment, service, and all pods created during this scenario.",
       "what_it_does": "Removes node-failure-demo deployment and service from scenarios namespace.",
-      "next_step": "Cleanup complete! Cleanup complete!",
+      "next_step": "Cleanup complete!",
       "cleanup": true
     }
   ]

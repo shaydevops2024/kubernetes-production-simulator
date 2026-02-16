@@ -1,0 +1,142 @@
+{
+  "scenario_id": "14-rbac-setup",
+  "difficulty": "hard",
+  "duration": "30 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Namespace",
+      "command": "kubectl create namespace scenarios --dry-run=client -o yaml | kubectl apply -f -",
+      "description": "Create scenarios namespace",
+      "explanation": "Creates namespace for RBAC testing.",
+      "what_it_does": "Creates 'scenarios' namespace if needed.",
+      "next_step": "Create RBAC resources."
+    },
+    {
+      "name": "Step 2: Create RBAC Resources",
+      "command": "kubectl apply -f k8s-scenarios/14-rbac-setup/serviceaccount.yaml -f k8s-scenarios/14-rbac-setup/role.yaml -f k8s-scenarios/14-rbac-setup/rolebinding.yaml -f k8s-scenarios/14-rbac-setup/deployment.yaml -n scenarios",
+      "description": "Create ServiceAccount, Role, RoleBinding, and test pod",
+      "explanation": "Creates: ServiceAccount (rbac-demo-sa) for pod identity, Role (rbac-demo-role) with specific permissions, RoleBinding (rbac-demo-binding) connecting SA to Role, and test deployment using the SA.",
+      "what_it_does": "Creates ServiceAccount, Role, RoleBinding, and rbac-demo-app deployment.",
+      "next_step": "Verify RBAC resources created."
+    },
+    {
+      "name": "Step 3: Check ServiceAccount",
+      "command": "kubectl get serviceaccount rbac-demo-sa -n scenarios -o yaml",
+      "description": "View ServiceAccount details",
+      "explanation": "Shows the ServiceAccount with automatically created token secret. Pods using this SA can authenticate to Kubernetes API with these credentials.",
+      "what_it_does": "Displays ServiceAccount configuration and secrets.",
+      "next_step": "Check the Role permissions."
+    },
+    {
+      "name": "Step 4: Check Role Permissions",
+      "command": "kubectl get role rbac-demo-role -n scenarios -o yaml",
+      "description": "View Role permissions",
+      "explanation": "Shows rules: apiGroups, resources (pods, services, deployments), and verbs (get, list, watch). This Role allows read-only access to pods, services, and deployments in scenarios namespace.",
+      "what_it_does": "Displays Role rules defining allowed operations.",
+      "next_step": "Check RoleBinding."
+    },
+    {
+      "name": "Step 5: Check RoleBinding",
+      "command": "kubectl get rolebinding rbac-demo-binding -n scenarios -o yaml",
+      "description": "View RoleBinding connecting SA to Role",
+      "explanation": "Shows subjects (rbac-demo-sa ServiceAccount) and roleRef (rbac-demo-role). This grants rbac-demo-sa the permissions defined in rbac-demo-role.",
+      "what_it_does": "Displays RoleBinding connecting ServiceAccount to Role.",
+      "next_step": "Test permissions with kubectl auth can-i."
+    },
+    {
+      "name": "Step 6: Test List Pods Permission",
+      "command": "kubectl auth can-i list pods --as=system:serviceaccount:scenarios:rbac-demo-sa -n scenarios",
+      "description": "Check if ServiceAccount can list pods (should return 'yes')",
+      "explanation": "Tests whether rbac-demo-sa has permission to list pods. Should return 'yes' because rbac-demo-role includes 'list' verb for pods resource.",
+      "what_it_does": "Tests permission without actually performing the action.",
+      "next_step": "Test denied permission."
+    },
+    {
+      "name": "Step 7: Test Create Pods Permission",
+      "command": "kubectl auth can-i create pods --as=system:serviceaccount:scenarios:rbac-demo-sa -n scenarios",
+      "description": "Check if ServiceAccount can create pods (should return 'no')",
+      "explanation": "Should return 'no' because rbac-demo-role only allows get/list/watch, not create. This demonstrates principle of least privilege.",
+      "what_it_does": "Tests a denied permission.",
+      "next_step": "Test from inside a pod."
+    },
+    {
+      "name": "Step 8: Exec into Test Pod",
+      "command": "kubectl exec -it -n scenarios deployment/rbac-demo-app -- /bin/sh",
+      "description": "Get shell in pod using rbac-demo-sa (type 'exit' when done)",
+      "explanation": "Opens shell in pod running with rbac-demo-sa ServiceAccount. From here, you can test API access using the SA's credentials. The pod has kubectl pre-installed for testing.",
+      "what_it_does": "Opens interactive shell in rbac-demo-app.",
+      "next_step": "Inside pod, run: kubectl get pods"
+    },
+    {
+      "name": "Step 9: Test API Access from Pod",
+      "command": "# Run inside pod: kubectl get pods -n scenarios",
+      "description": "(Run this inside pod from Step 8) Should succeed",
+      "explanation": "From inside the pod, this uses rbac-demo-sa credentials to list pods. Should work because rbac-demo-role allows 'list pods'. This demonstrates how pods can interact with Kubernetes API.",
+      "what_it_does": "Tests ServiceAccount permissions from within a pod.",
+      "next_step": "Try creating a pod (should fail)."
+    },
+    {
+      "name": "Step 10: Test Denied Action from Pod",
+      "command": "# Run inside pod: kubectl run test --image=nginx -n scenarios",
+      "description": "(Run this inside pod from Step 8) Should fail with 'forbidden'",
+      "explanation": "Attempts to create pod using rbac-demo-sa. Should fail with 'pods is forbidden: User ... cannot create resource'. Proves RBAC is enforcing permissions. Type 'exit' to leave pod shell.",
+      "what_it_does": "Tests that unauthorized actions are blocked.",
+      "next_step": "Review scenario summary."
+    },
+    {
+      "name": "Summary: What You Learned",
+      "command": "kubectl get sa,role,rolebinding -n scenarios",
+      "description": "Review all RBAC resources created in this scenario",
+      "explanation": "This command displays all ServiceAccounts, Roles, and RoleBindings in the scenarios namespace, giving you a complete view of the RBAC configuration you set up.",
+      "what_it_does": "Lists all RBAC resources for review and verification.",
+      "next_step": "Ready for cleanup!",
+      "show_yaml": true,
+      "summary": {
+        "key_learnings": [
+          "How to create ServiceAccounts for pod identity and authentication",
+          "How to define Roles with specific permissions (verbs, resources, apiGroups)",
+          "How to bind Roles to ServiceAccounts using RoleBindings",
+          "How to test permissions using kubectl auth can-i command",
+          "How to use ServiceAccounts in pod specifications",
+          "Understanding the principle of least privilege in Kubernetes RBAC",
+          "How to troubleshoot RBAC permissions from inside pods"
+        ],
+        "commands_used": [
+          {
+            "command": "kubectl apply -f <yaml-files>",
+            "purpose": "Create multiple Kubernetes resources from YAML manifests"
+          },
+          {
+            "command": "kubectl get serviceaccount <name> -o yaml",
+            "purpose": "View detailed ServiceAccount configuration and associated secrets"
+          },
+          {
+            "command": "kubectl get role <name> -o yaml",
+            "purpose": "Inspect Role permissions including verbs and resources"
+          },
+          {
+            "command": "kubectl get rolebinding <name> -o yaml",
+            "purpose": "View the binding between ServiceAccount and Role"
+          },
+          {
+            "command": "kubectl auth can-i <verb> <resource> --as=<service-account>",
+            "purpose": "Test if a ServiceAccount has specific permissions without executing the action"
+          },
+          {
+            "command": "kubectl exec -it deployment/<name> -- /bin/sh",
+            "purpose": "Open an interactive shell in a pod to test API access from within"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Cleanup: Delete RBAC Resources",
+      "command": "kubectl delete -f k8s-scenarios/14-rbac-setup/serviceaccount.yaml -f k8s-scenarios/14-rbac-setup/role.yaml -f k8s-scenarios/14-rbac-setup/rolebinding.yaml -f k8s-scenarios/14-rbac-setup/deployment.yaml -n scenarios",
+      "description": "Remove all RBAC resources and test pod",
+      "explanation": "Deletes ServiceAccount, Role, RoleBinding, and deployment.",
+      "what_it_does": "Removes all RBAC resources created in this scenario.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

@@ -219,6 +219,7 @@
         .wizard-content {
             padding: 40px;
             min-height: 400px;
+            text-align: left;
         }
 
         .step-header {
@@ -601,9 +602,271 @@
             font-family: monospace;
             margin: 0 2px;
         }
+
+        /* Summary Section */
+        .summary-section {
+            margin-top: 30px;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border: 2px solid #0ea5e9;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .summary-card h3 {
+            color: #0369a1;
+            font-size: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .summary-learnings {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .summary-learnings h4 {
+            color: #1e293b;
+            font-size: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .summary-learnings ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .summary-learnings li {
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+            color: #475569;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .summary-learnings li:last-child {
+            border-bottom: none;
+        }
+
+        .summary-learnings li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #22c55e;
+            font-weight: bold;
+        }
+
+        .commands-recap {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .commands-recap h4 {
+            color: #1e293b;
+            font-size: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .command-recap-item {
+            background: #f8fafc;
+            border-left: 3px solid #667eea;
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+        }
+
+        .command-recap-item code {
+            background: #1e293b;
+            color: #22c55e;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            display: inline-block;
+            margin-bottom: 5px;
+        }
+
+        .command-recap-item p {
+            color: #64748b;
+            font-size: 14px;
+            margin: 0;
+        }
+
+        /* YAML Explanation Sidebar */
+        .yaml-explanation-sidebar {
+            position: fixed;
+            left: -450px;
+            top: 0;
+            width: 450px;
+            height: 100vh;
+            background: white;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.2);
+            z-index: 1000;
+            transition: left 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .yaml-explanation-sidebar.open {
+            left: 0;
+        }
+
+        .yaml-sidebar-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .yaml-sidebar-header h3 {
+            margin: 0 0 5px 0;
+            font-size: 20px;
+        }
+
+        .yaml-sidebar-header p {
+            margin: 0;
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .yaml-sidebar-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .yaml-sidebar-close:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .yaml-sidebar-content {
+            padding: 20px;
+        }
+
+        .yaml-explain-section {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px dashed #e2e8f0;
+            text-align: left;
+        }
+
+        .yaml-explain-section:last-child {
+            border-bottom: none;
+        }
+
+        .yaml-explain-section h4 {
+            color: #1e293b;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .yaml-explain-section pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 13px;
+            margin: 10px 0;
+        }
+
+        .yaml-explain-section p, .yaml-explain-section ul {
+            color: #475569;
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 10px 0;
+        }
+
+        .yaml-explain-section ul {
+            padding-left: 20px;
+        }
+
+        .yaml-explain-section strong {
+            color: #1e293b;
+        }
+
+        .explain-yaml-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 15px;
+            transition: all 0.2s;
+        }
+
+        .explain-yaml-btn:hover {
+            background: #5a6fd6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Sidebar overlay */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
     </style>
 </head>
 <body>
+    <!-- YAML Explanation Sidebar -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeYamlExplanation()"></div>
+    <div class="yaml-explanation-sidebar" id="yaml-explanation-sidebar">
+        <div class="yaml-sidebar-header">
+            <button class="yaml-sidebar-close" onclick="closeYamlExplanation()">×</button>
+            <h3>📚 YAML Explanation Guide</h3>
+            <p>Understanding the configuration files</p>
+        </div>
+        <div class="yaml-sidebar-content" id="yaml-sidebar-content">
+            <p style="text-align: center; color: #94a3b8;">Loading explanation...</p>
+        </div>
+    </div>
+
     <div class="container">
         <a href="/static/scenarios.html" class="back-button">
             <span>←</span>
@@ -622,6 +885,7 @@
         let totalSteps = 0;
         let scenarioData = null;
         let allCommands = [];
+        let hasYamlExplanation = false;
 
         async function loadScenario() {
             try {
@@ -629,21 +893,18 @@
                 const data = await response.json();
                 scenarioData = data;
 
+                // Check if YAML explanation exists
+                hasYamlExplanation = data.yaml_explanation && data.yaml_explanation.trim().length > 0;
+
                 // Separate regular commands and cleanup commands
                 const regularCommands = data.commands.filter(function(cmd) { return !cmd.cleanup; });
                 const cleanupCommands = data.commands.filter(function(cmd) { return cmd.cleanup; });
                 allCommands = regularCommands.concat(cleanupCommands);
-                totalSteps = allCommands.length;
+
+                // Total steps = yaml explanation (if exists) + all commands
+                totalSteps = allCommands.length + (hasYamlExplanation ? 1 : 0);
 
                 renderScenario(data);
-
-                // Auto-scroll to bottom after 2 seconds
-                setTimeout(function() {
-                    window.scrollTo({
-                        top: document.body.scrollHeight,
-                        behavior: 'smooth'
-                    });
-                }, 2000);
             } catch (error) {
                 document.getElementById('scenario-content').innerHTML =
                     '<div class="error-message"><h3>Error Loading Scenario</h3><p>' + error.message + '</p></div>';
@@ -660,7 +921,7 @@
             html += '<div class="scenario-badges">';
             html += '<span class="badge ' + difficultyClass + '">' + (scenario.difficulty || 'medium').toUpperCase() + '</span>';
             html += '<span class="badge badge-duration">' + (scenario.duration || '20 min') + '</span>';
-            html += '<span class="badge badge-commands">' + allCommands.length + ' Commands</span>';
+            html += '<span class="badge badge-commands">' + totalSteps + ' Steps</span>';
             if (scenario.yaml_files && scenario.yaml_files.length > 0) {
                 html += '<span class="badge badge-yaml">' + scenario.yaml_files.length + ' YAML Files</span>';
             }
@@ -718,10 +979,55 @@
         }
 
         function renderStep(step) {
-            var cmd = allCommands[step - 1];
             var contentEl = document.getElementById('wizard-content');
+            var html = '';
 
-            var html = '<div class="step-header">';
+            // Special handling for Step 1 if YAML explanation exists
+            if (step === 1 && hasYamlExplanation) {
+                html += '<div class="step-header">';
+                html += '<div class="step-number">📚</div>';
+                html += '<h2 class="step-title">YAML Configuration Guide</h2>';
+                html += '</div>';
+
+                html += '<div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 2px solid #0ea5e9; border-radius: 15px; padding: 20px; margin-bottom: 20px;">';
+                html += '<p style="color: #0369a1; font-size: 15px; margin: 0; line-height: 1.6;">📖 <strong>Before you begin:</strong> This guide explains all the YAML configuration files used in this scenario. Understanding these files will help you grasp what each kubectl command does and why. Scroll down to read the full guide, then click "Next Step" to start the hands-on commands.</p>';
+                html += '</div>';
+
+                // Render markdown content with max height and scroll
+                html += '<div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-height: 600px; overflow-y: auto; text-align: left; word-wrap: break-word; overflow-wrap: break-word;">';
+                html += parseMarkdownToHtml(scenarioData.yaml_explanation);
+                html += '</div>';
+
+                html += '<div style="text-align: center; margin-top: 20px; padding: 15px; background: #fef3c7; border-radius: 10px; border: 1px solid #fde047;">';
+                html += '<p style="color: #92400e; margin: 0; font-size: 14px;">💡 <strong>Tip:</strong> Take your time reading through this guide. You can always return to this step using the navigation buttons or progress dots below.</p>';
+                html += '</div>';
+
+                // Back to Top button
+                html += '<div style="text-align: center; margin-top: 20px;">';
+                html += '<button onclick="window.scrollTo({ top: 0, behavior: \'smooth\' })" style="padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 6px 12px rgba(0,0,0,0.15)\';" onmouseout="this.style.transform=\'translateY(0)\'; this.style.boxShadow=\'0 4px 6px rgba(0,0,0,0.1)\';">';
+                html += '⬆️ Back to Top';
+                html += '</button>';
+                html += '</div>';
+
+                contentEl.innerHTML = html;
+
+                // Auto-scroll to bottom (skip first step)
+                if (step > 1) {
+                    setTimeout(function() {
+                        window.scrollTo({
+                            top: document.body.scrollHeight,
+                            behavior: 'smooth'
+                        });
+                    }, 300);
+                }
+                return;
+            }
+
+            // Regular command steps
+            var cmdIndex = hasYamlExplanation ? step - 2 : step - 1;
+            var cmd = allCommands[cmdIndex];
+
+            html = '<div class="step-header">';
             html += '<div class="step-number">' + step + '</div>';
             html += '<h2 class="step-title">' + escapeHtml(cmd.name || 'Step ' + step) + '</h2>';
             if (cmd.cleanup) {
@@ -795,10 +1101,48 @@
                 html += '</div>';
             }
 
-            // YAML files for this step (show on last step)
-            if (step === totalSteps && scenarioData.yaml_files && scenarioData.yaml_files.length > 0) {
+            // Summary section (if this step has summary data)
+            if (cmd.summary) {
+                html += '<div class="summary-section">';
+                html += '<div class="summary-card">';
+                html += '<h3>🎓 Scenario Complete! Here\'s What You Learned</h3>';
+
+                // Key Learnings
+                if (cmd.summary.key_learnings && cmd.summary.key_learnings.length > 0) {
+                    html += '<div class="summary-learnings">';
+                    html += '<h4>📚 Key Learnings</h4>';
+                    html += '<ul>';
+                    cmd.summary.key_learnings.forEach(function(learning) {
+                        html += '<li>' + escapeHtml(learning) + '</li>';
+                    });
+                    html += '</ul>';
+                    html += '</div>';
+                }
+
+                // Commands Recap
+                if (cmd.summary.commands_used && cmd.summary.commands_used.length > 0) {
+                    html += '<div class="commands-recap">';
+                    html += '<h4>⚙️ Commands You Used</h4>';
+                    cmd.summary.commands_used.forEach(function(cmdItem) {
+                        html += '<div class="command-recap-item">';
+                        html += '<code>' + escapeHtml(cmdItem.command) + '</code>';
+                        html += '<p>' + escapeHtml(cmdItem.purpose) + '</p>';
+                        html += '</div>';
+                    });
+                    html += '</div>';
+                }
+
+                html += '</div>';
+                html += '</div>';
+            }
+
+            // YAML files for this step (show on last step or steps with show_yaml flag)
+            if ((step === totalSteps || cmd.show_yaml) && scenarioData.yaml_files && scenarioData.yaml_files.length > 0) {
                 html += '<div class="yaml-section">';
-                html += '<h3>📄 YAML Configuration Files</h3>';
+                html += '<h3 onclick="toggleYamlSection()" style="cursor: pointer; user-select: none; display: flex; align-items: center; gap: 8px;">';
+                html += '<span id="yaml-toggle-icon">▶</span> 📄 YAML Configuration Files <span style="font-size: 14px; color: #94a3b8; font-weight: normal;">(Click to expand)</span>';
+                html += '</h3>';
+                html += '<div id="yaml-files-container" style="display: none; margin-top: 15px;">';
 
                 scenarioData.yaml_files.forEach(function(file, index) {
                     html += '<div class="yaml-box" style="margin-bottom: 15px;">';
@@ -813,9 +1157,20 @@
                 });
 
                 html += '</div>';
+                html += '</div>';
             }
 
             contentEl.innerHTML = html;
+
+            // Auto-scroll to bottom (skip first step)
+            if (step > 1) {
+                setTimeout(function() {
+                    window.scrollTo({
+                        top: document.body.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                }, 300);
+            }
         }
 
         function goToStep(step) {
@@ -959,10 +1314,166 @@
             return div.innerHTML;
         }
 
+        // YAML Explanation Sidebar Functions
+        let yamlExplanationContent = null;
+
+        async function loadYamlExplanation() {
+            if (yamlExplanationContent) {
+                return yamlExplanationContent;
+            }
+
+            try {
+                // Fetch the yaml-explanation.md file via API
+                const response = await fetch('/api/scenarios/' + scenarioId + '/yaml-explanation');
+                if (response.ok) {
+                    yamlExplanationContent = await response.text();
+                    return yamlExplanationContent;
+                }
+            } catch (error) {
+                console.log('No yaml-explanation.md found for this scenario');
+            }
+
+            return null;
+        }
+
+        function parseMarkdownToHtml(markdown) {
+            if (!markdown) return '<p style="text-align: center; color: #94a3b8;">No explanation available for this scenario.</p>';
+
+            var html = '';
+            var lines = markdown.split('\n');
+            var inCodeBlock = false;
+            var codeContent = '';
+            var inList = false;
+
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i];
+                var trimmedLine = line.trim();
+
+                // Code blocks (handle indented code blocks)
+                if (trimmedLine.startsWith('```')) {
+                    if (inCodeBlock) {
+                        html += '<pre style="background: #1e293b; color: #e2e8f0; padding: 15px; border-radius: 8px; overflow-x: auto; font-size: 13px; margin: 15px 0; white-space: pre-wrap; word-wrap: break-word;">' + escapeHtml(codeContent.trim()) + '</pre>';
+                        codeContent = '';
+                        inCodeBlock = false;
+                    } else {
+                        inCodeBlock = true;
+                    }
+                    continue;
+                }
+
+                if (inCodeBlock) {
+                    codeContent += line + '\n';
+                    continue;
+                }
+
+                // Headings
+                if (trimmedLine.startsWith('# ')) {
+                    html += '<h2 style="color: #1e293b; margin: 25px 0 15px 0; font-size: 24px; text-align: left; font-weight: 700;">' + escapeHtml(trimmedLine.substring(2)) + '</h2>';
+                } else if (trimmedLine.startsWith('## ')) {
+                    html += '<div class="yaml-explain-section"><h4 style="text-align: left; color: #1e293b; font-size: 18px; font-weight: 600; margin-bottom: 10px;">' + escapeHtml(trimmedLine.substring(3)) + '</h4>';
+                } else if (trimmedLine.startsWith('### ')) {
+                    html += '<h5 style="color: #475569; margin: 15px 0 10px 0; font-size: 15px; font-weight: 600; text-align: left;">' + escapeHtml(trimmedLine.substring(4)) + '</h5>';
+                } else if (trimmedLine.startsWith('---')) {
+                    html += '</div>';
+                } else if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
+                    if (!inList) {
+                        html += '<ul style="padding-left: 20px; margin: 10px 0; text-align: left; color: #475569;">';
+                        inList = true;
+                    }
+                    html += '<li style="margin: 5px 0; text-align: left; color: #475569; font-size: 14px; line-height: 1.6;">' + parseInlineMarkdown(trimmedLine.substring(2)) + '</li>';
+                } else if (trimmedLine.startsWith('| ')) {
+                    // Simple table support - just render as pre for now
+                    html += '<div style="font-family: monospace; font-size: 12px; color: #64748b; margin: 5px 0; text-align: left;">' + escapeHtml(trimmedLine) + '</div>';
+                } else if (trimmedLine === '') {
+                    if (inList) {
+                        html += '</ul>';
+                        inList = false;
+                    }
+                    html += '<br>';
+                } else {
+                    if (inList) {
+                        html += '</ul>';
+                        inList = false;
+                    }
+                    html += '<p style="margin: 10px 0; text-align: left; color: #475569; font-size: 14px; line-height: 1.6;">' + parseInlineMarkdown(trimmedLine) + '</p>';
+                }
+            }
+
+            if (inList) {
+                html += '</ul>';
+            }
+
+            return html;
+        }
+
+        function parseInlineMarkdown(text) {
+            // Escape HTML first to prevent XSS
+            text = escapeHtml(text);
+
+            // Bold
+            text = text.replace(/\*\*(.+?)\*\*/g, '<strong style="color: #1e293b; font-weight: 700;">$1</strong>');
+            // Italic
+            text = text.replace(/\*(.+?)\*/g, '<em style="color: #475569;">$1</em>');
+            // Inline code
+            text = text.replace(/`(.+?)`/g, '<code style="background: #f1f5f9; color: #1e293b; padding: 2px 6px; border-radius: 3px; font-size: 13px;">$1</code>');
+            // Links
+            text = text.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" style="color: #667eea; text-decoration: underline;">$1</a>');
+
+            return text;
+        }
+
+        async function openYamlExplanation() {
+            var sidebar = document.getElementById('yaml-explanation-sidebar');
+            var overlay = document.getElementById('sidebar-overlay');
+            var content = document.getElementById('yaml-sidebar-content');
+
+            // Show sidebar
+            sidebar.classList.add('open');
+            overlay.classList.add('active');
+
+            // Load explanation if not loaded
+            if (!yamlExplanationContent) {
+                content.innerHTML = '<p style="text-align: center; color: #94a3b8;">Loading explanation...</p>';
+                var explanation = await loadYamlExplanation();
+                if (explanation) {
+                    content.innerHTML = parseMarkdownToHtml(explanation);
+                } else {
+                    content.innerHTML = '<p style="text-align: center; color: #94a3b8;">No YAML explanation available for this scenario.</p>';
+                }
+            } else {
+                content.innerHTML = parseMarkdownToHtml(yamlExplanationContent);
+            }
+        }
+
+        function closeYamlExplanation() {
+            var sidebar = document.getElementById('yaml-explanation-sidebar');
+            var overlay = document.getElementById('sidebar-overlay');
+
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+        }
+
+        // Toggle YAML section (collapse/expand)
+        function toggleYamlSection() {
+            var container = document.getElementById('yaml-files-container');
+            var icon = document.getElementById('yaml-toggle-icon');
+
+            if (container && icon) {
+                if (container.style.display === 'none') {
+                    container.style.display = 'block';
+                    icon.textContent = '▼';
+                } else {
+                    container.style.display = 'none';
+                    icon.textContent = '▶';
+                }
+            }
+        }
+
         // Keyboard navigation
         document.addEventListener('keydown', function(e) {
             if (e.key === 'ArrowRight') nextStep();
             if (e.key === 'ArrowLeft') prevStep();
+            if (e.key === 'Escape') closeYamlExplanation();
         });
 
         loadScenario();

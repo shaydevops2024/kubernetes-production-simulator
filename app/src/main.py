@@ -23,6 +23,7 @@ from pathlib import Path
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 import json
+import re
 
 logging.basicConfig(
     level=logging.INFO,
@@ -1237,12 +1238,16 @@ async def get_scenario(scenario_id: str):
         
         logger.info(f"Loading scenario from: {scenario_dir}")
         
+        # Strip number prefix from scenario ID (e.g., "01-hpa-autoscaling" -> "hpa-autoscaling")
+        name_without_number = re.sub(r'^\d+-', '', scenario_id)
+
         scenario_info = {
             "id": scenario_id,
-            "name": scenario_id.replace("-", " ").title(),
+            "name": name_without_number.replace("-", " ").title(),
             "readme": "",
             "commands": [],
             "yaml_files": [],
+            "yaml_explanation": None,
             "difficulty": "medium",
             "duration": "20 min",
             "namespace": "scenarios"
@@ -1295,13 +1300,53 @@ async def get_scenario(scenario_id: str):
                     "name": yaml_file.name,
                     "content": f"# Error loading file: {str(e)}"
                 })
-        
+
+        # Read YAML explanation if exists
+        yaml_explanation_path = scenario_dir / "yaml-explanation.md"
+        if yaml_explanation_path.exists():
+            try:
+                with open(yaml_explanation_path, 'r', encoding='utf-8') as f:
+                    scenario_info["yaml_explanation"] = f.read()
+                    logger.info(f"Loaded yaml-explanation.md for {scenario_id}")
+            except Exception as e:
+                logger.error(f"Error reading yaml-explanation.md: {e}")
+
         logger.info(f"Scenario {scenario_id}: {len(scenario_info['commands'])} commands, {len(scenario_info['yaml_files'])} YAML files")
         return scenario_info
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error in get_scenario: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/scenarios/{scenario_id}/yaml-explanation")
+async def get_yaml_explanation(scenario_id: str):
+    """Get YAML explanation markdown file for a scenario"""
+    try:
+        possible_paths = [Path("/scenarios"), Path("/app/k8s-scenarios"), Path(__file__).parent.parent.parent / "k8s-scenarios"]
+
+        scenario_dir = None
+        for base_path in possible_paths:
+            test_path = base_path / scenario_id
+            if test_path.exists():
+                scenario_dir = test_path
+                break
+
+        if not scenario_dir:
+            raise HTTPException(status_code=404, detail=f"Scenario not found: {scenario_id}")
+
+        explanation_file = scenario_dir / "yaml-explanation.md"
+        if not explanation_file.exists():
+            raise HTTPException(status_code=404, detail="YAML explanation not found for this scenario")
+
+        with open(explanation_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        return Response(content=content, media_type="text/markdown")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting YAML explanation: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/scenarios/{scenario_id}/validate")
@@ -1611,6 +1656,7 @@ async def get_helm_scenario(scenario_id: str):
             "readme": "",
             "commands": [],
             "yaml_files": [],
+            "yaml_explanation": None,
             "difficulty": "medium",
             "duration": "20 min",
             "namespace": "helm-scenarios"
@@ -1630,6 +1676,16 @@ async def get_helm_scenario(scenario_id: str):
                 scenario_info["commands"] = commands_data.get("commands", [])
                 scenario_info["difficulty"] = commands_data.get("difficulty", "medium")
                 scenario_info["duration"] = commands_data.get("duration", "20 min")
+
+        # Load yaml-explanation.md if it exists
+        yaml_explanation_path = scenario_dir / "yaml-explanation.md"
+        if yaml_explanation_path.exists():
+            try:
+                with open(yaml_explanation_path, 'r', encoding='utf-8') as f:
+                    scenario_info["yaml_explanation"] = f.read()
+            except Exception as e:
+                logger.error(f"Error reading yaml-explanation.md: {e}")
+                scenario_info["yaml_explanation"] = None
 
         # Collect YAML files from scenario dir and subdirectories
         yaml_files = []

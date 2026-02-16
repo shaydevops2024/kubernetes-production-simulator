@@ -1,0 +1,90 @@
+{
+  "scenario_id": "05-network-policies",
+  "difficulty": "medium",
+  "duration": "30 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Namespace",
+      "command": "kubectl create namespace scenarios --dry-run=client -o yaml | kubectl apply -f -",
+      "description": "Create scenarios namespace",
+      "explanation": "Creates namespace for network policy testing.",
+      "what_it_does": "Creates 'scenarios' namespace if needed.",
+      "next_step": "Deploy backend application to test network policies."
+    },
+    {
+      "name": "Step 2: Deploy Backend",
+      "command": "kubectl apply -f k8s-scenarios/05-network-policies/deployment.yaml -f k8s-scenarios/05-network-policies/service.yaml -f k8s-scenarios/05-network-policies/network-policy.yaml -n scenarios",
+      "description": "Deploy backend deployment, service, and NetworkPolicy",
+      "explanation": "Creates backend deployment with labels 'app: netpol-demo' and 'role: backend', a service to access it, and a NetworkPolicy that restricts access. The NetworkPolicy will only allow pods with 'role: backend' label to connect.",
+      "what_it_does": "Creates netpol-demo-app deployment, netpol-demo-service, and netpol-demo-policy NetworkPolicy.",
+      "next_step": "Verify backend is running.",
+      "yaml_files": ["deployment.yaml", "service.yaml", "network-policy.yaml"]
+    },
+    {
+      "name": "Step 3: Check Backend Pods",
+      "command": "kubectl get pods -n scenarios -l app=netpol-demo",
+      "description": "Verify backend pods are running",
+      "explanation": "Should see 2 backend pods in Running state. These will be our protected backend that we'll control access to.",
+      "what_it_does": "Lists backend application pods.",
+      "next_step": "Test connectivity from unlabeled pod (should be blocked)."
+    },
+    {
+      "name": "Step 4: Test Access (Unlabeled Pod - Should Fail)",
+      "command": "kubectl run test-unauthorized --rm -i --tty --image=busybox:1.28 -n scenarios -- wget -qO- --timeout=2 http://netpol-demo-service || echo 'Connection blocked as expected'",
+      "description": "Test if pod without 'role: backend' label is blocked",
+      "explanation": "Creates temporary pod without any role label and tries to connect to backend. NetworkPolicy blocks this because the pod lacks 'role: backend' label. Should timeout/fail.",
+      "what_it_does": "Attempts HTTP request from unlabeled pod (should be blocked by NetworkPolicy).",
+      "next_step": "Access blocked! Now test with authorized backend label."
+    },
+    {
+      "name": "Step 5: Test Access (Backend Pod - Should Succeed)",
+      "command": "kubectl run test-authorized --rm -i --tty --labels=role=backend --image=busybox:1.28 -n scenarios -- wget -qO- --timeout=2 http://netpol-demo-service",
+      "description": "Test if pod WITH 'role: backend' label can access backend",
+      "explanation": "This pod has 'role: backend' label, matching the NetworkPolicy allow rule. Connection should succeed with HTTP 200 response from nginx backend.",
+      "what_it_does": "Attempts HTTP request from backend-labeled pod (should succeed).",
+      "next_step": "Access allowed! NetworkPolicy is working correctly."
+    },
+    {
+      "name": "Step 6: Describe NetworkPolicy",
+      "command": "kubectl describe networkpolicy netpol-demo-policy -n scenarios",
+      "description": "View detailed NetworkPolicy configuration",
+      "explanation": "Shows podSelector (which pods the policy applies to: app=netpol-demo, role=backend) and ingress rules (who can connect: role=backend). This creates a security boundary - only backend pods can reach backend.",
+      "what_it_does": "Displays full NetworkPolicy specification and status.",
+      "next_step": "Understand the policy rules."
+    },
+    {
+      "name": "Step 7: View Policy YAML",
+      "command": "kubectl get networkpolicy netpol-demo-policy -n scenarios -o yaml",
+      "description": "See NetworkPolicy in YAML format",
+      "explanation": "Shows the complete policy: podSelector targets app=netpol-demo and role=backend, policyTypes: Ingress restricts incoming traffic, ingress allows from podSelector role=backend. Default behavior is deny-all unless explicitly allowed.",
+      "what_it_does": "Displays NetworkPolicy as YAML for understanding structure.",
+      "next_step": "Test one more time to confirm behavior."
+    },
+    {
+      "name": "Step 8: Verify Policy Enforcement",
+      "command": "kubectl run verify-block --rm -i --tty --image=busybox:1.28 -n scenarios -- sh -c 'wget -qO- --timeout=2 http://netpol-demo-service && echo SUCCESS || echo BLOCKED'",
+      "description": "Final verification that unlabeled pods are blocked",
+      "explanation": "One more test to confirm: pods without the correct label cannot access the backend. This proves network segmentation is working.",
+      "what_it_does": "Attempts connection and confirms it's blocked (should show BLOCKED).",
+      "next_step": "Network policy enforcement verified!"
+    },
+    {
+      "name": "Step 9: Summary - What You Learned",
+      "command": "echo '=== Network Policies Scenario Complete ===' && echo '' && echo 'Key Concepts Learned:' && echo '1. Network Policies control pod-to-pod communication' && echo '2. podSelector determines which pods the policy applies to' && echo '3. Ingress rules control incoming traffic to pods' && echo '4. Only pods with matching labels can communicate' && echo '5. Default behavior is deny-all unless explicitly allowed' && echo '' && echo 'Commands Used:' && echo '- kubectl apply -f <file>: Deploy NetworkPolicy resources' && echo '- kubectl get networkpolicy: List network policies' && echo '- kubectl describe networkpolicy: View policy details' && echo '- kubectl run --labels: Create pods with specific labels' && echo '- kubectl get pods -l: Filter pods by labels' && echo '' && echo 'Security Best Practices:' && echo '- Implement zero-trust networking (deny by default)' && echo '- Use namespace selectors for isolation' && echo '- Combine with RBAC for defense in depth' && echo '- Test policies thoroughly before production'",
+      "description": "Summary of learning outcomes and commands",
+      "explanation": "Displays a comprehensive summary of what you learned in this scenario, including key concepts, commands used, and security best practices for Network Policies.",
+      "what_it_does": "Shows a summary of the scenario's learning objectives and key takeaways.",
+      "next_step": "Ready for cleanup!",
+      "show_yaml": true
+    },
+    {
+      "name": "Cleanup: Delete All Resources",
+      "command": "kubectl delete -f k8s-scenarios/05-network-policies/deployment.yaml -f k8s-scenarios/05-network-policies/service.yaml -f k8s-scenarios/05-network-policies/network-policy.yaml -n scenarios",
+      "description": "Remove backend, service, and NetworkPolicy",
+      "explanation": "Deletes all resources: backend deployment, service, and network policy.",
+      "what_it_does": "Removes all network policy scenario resources.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}
