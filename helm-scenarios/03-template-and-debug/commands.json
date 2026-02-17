@@ -59,9 +59,9 @@
     },
     {
       "name": "Step 7: Install the Chart for Real",
-      "command": "helm install debug-app helm-scenarios/03-template-and-debug/debug-app --namespace helm-scenarios --wait --timeout 120s",
+      "command": "helm install debug-app helm-scenarios/03-template-and-debug/debug-app --namespace helm-scenarios",
       "description": "Install the chart creating actual Kubernetes resources",
-      "explanation": "Now we install for real. This sends the rendered manifests to Kubernetes and creates the actual resources. --wait ensures Helm waits until all pods are Running. After install, you can compare what was planned (template/dry-run) with what was actually deployed (get manifest).",
+      "explanation": "Now we install for real. This sends the rendered manifests to Kubernetes and creates the actual resources. After install, you can compare what was planned (template/dry-run) with what was actually deployed (get manifest).",
       "what_it_does": "Creates the Helm release 'debug-app' and deploys all resources (ServiceAccount, Service, Deployment) into the helm-scenarios namespace.",
       "next_step": "Chart installed. Now compare with helm get manifest.",
       "cleanup": false
@@ -77,10 +77,10 @@
     },
     {
       "name": "Step 9: Inspect Release Details",
-      "command": "echo '=== Release Values ===' && helm get values debug-app --namespace helm-scenarios && echo '=== Release Notes ===' && helm get notes debug-app --namespace helm-scenarios",
-      "description": "View the user-supplied values and chart release notes",
-      "explanation": "'helm get values' shows user-supplied overrides (empty if you used all defaults). 'helm get notes' shows the NOTES.txt output - the post-install instructions that charts provide to help users access their application. These notes are generated from templates/NOTES.txt and can include computed service URLs and commands.",
-      "what_it_does": "Shows that no user-supplied values were set (all defaults used), then displays the chart's post-install notes with instructions for accessing the deployed application.",
+      "command": "echo '=== Release Values (all) ===' && helm get values debug-app --namespace helm-scenarios --all && echo '=== Release Notes ===' && helm get notes debug-app --namespace helm-scenarios",
+      "description": "View the computed values and chart release notes",
+      "explanation": "'helm get values --all' shows all values including chart defaults (not just user-supplied overrides). Without --all, it returns null when no --set or -f flags were used at install time. 'helm get notes' shows the NOTES.txt output - the post-install instructions that charts provide to help users access their application.",
+      "what_it_does": "Displays all computed values for the release (chart defaults since no overrides were supplied), then shows the chart's post-install notes with instructions for accessing the deployed application.",
       "next_step": "Now render templates with custom values to see how output changes.",
       "cleanup": false
     },

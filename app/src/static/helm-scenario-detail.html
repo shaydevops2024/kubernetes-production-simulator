@@ -321,7 +321,8 @@
             font-size: 15px;
             line-height: 1.6;
             white-space: pre-wrap;
-            word-break: break-all;
+            word-break: break-word;
+            overflow-wrap: break-word;
         }
 
         .command-code .prompt {
@@ -846,7 +847,10 @@
             // YAML files on last step
             if (step === totalSteps && scenarioData.yaml_files && scenarioData.yaml_files.length > 0) {
                 html += '<div class="yaml-section">';
-                html += '<h3>📄 Scenario Files</h3>';
+                html += '<h3 onclick="toggleYamlSection()" style="cursor: pointer; user-select: none; display: flex; align-items: center; gap: 8px;">';
+                html += '<span id="yaml-toggle-icon">▶</span> 📄 Scenario Files <span style="font-size: 14px; color: #94a3b8; font-weight: normal;">(Click to expand)</span>';
+                html += '</h3>';
+                html += '<div id="yaml-files-container" style="display: none; margin-top: 15px;">';
 
                 scenarioData.yaml_files.forEach(function(file) {
                     html += '<div class="yaml-box" style="margin-bottom: 15px;">';
@@ -860,6 +864,7 @@
                     html += '</div>';
                 });
 
+                html += '</div>';
                 html += '</div>';
             }
 
@@ -1002,6 +1007,20 @@
                 });
             } else {
                 fallbackCopy(content, showSuccess, showError);
+            }
+        }
+
+        function toggleYamlSection() {
+            var container = document.getElementById('yaml-files-container');
+            var icon = document.getElementById('yaml-toggle-icon');
+            if (container && icon) {
+                if (container.style.display === 'none') {
+                    container.style.display = 'block';
+                    icon.textContent = '▼';
+                } else {
+                    container.style.display = 'none';
+                    icon.textContent = '▶';
+                }
             }
         }
 

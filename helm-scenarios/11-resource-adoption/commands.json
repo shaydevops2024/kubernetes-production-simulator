@@ -68,7 +68,7 @@
     },
     {
       "name": "Step 8: Install Chart to Adopt Resources",
-      "command": "helm install adopted-app helm-scenarios/11-resource-adoption/ -n helm-scenarios --wait --timeout 90s",
+      "command": "helm install adopted-app helm-scenarios/11-resource-adoption/ -n helm-scenarios",
       "description": "Install the Helm chart -- this time it adopts the existing annotated resources",
       "explanation": "Now that the resources have Helm ownership annotations matching this release name and namespace, Helm recognizes them as its own and adopts them instead of trying to create new ones. The install succeeds because Helm updates (patches) the existing resources to match the chart templates rather than creating from scratch. No downtime occurs.",
       "what_it_does": "Helm adopts the existing resources and creates revision 1 of the release.",
@@ -86,7 +86,7 @@
     },
     {
       "name": "Step 10: Upgrade via Helm",
-      "command": "helm upgrade adopted-app helm-scenarios/11-resource-adoption/ -n helm-scenarios --set replicaCount=3 --set appVersion=v2 --set image.tag=1.25-alpine --wait --timeout 90s",
+      "command": "helm upgrade adopted-app helm-scenarios/11-resource-adoption/ -n helm-scenarios --set replicaCount=3 --set appVersion=v2 --set image.tag=1.25-alpine",
       "description": "Upgrade the adopted resources through Helm (scale to 3 replicas, update image)",
       "explanation": "This proves that Helm has full control. We scale from 2 to 3 replicas, update the image tag to 1.25-alpine, and change the app version label. Helm performs a rolling update just as if it had originally installed these resources. This is the payoff of adoption -- you now get all of Helm's upgrade, rollback, and history features.",
       "what_it_does": "Upgrades the adopted resources via Helm: 3 replicas, nginx:1.25-alpine.",

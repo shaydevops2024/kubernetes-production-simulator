@@ -23,7 +23,7 @@
     },
     {
       "name": "Step 3: Install Nginx with Default Values",
-      "command": "helm install my-nginx bitnami/nginx --namespace helm-scenarios --wait --timeout 120s",
+      "command": "helm install my-nginx bitnami/nginx --namespace helm-scenarios",
       "description": "Install the Bitnami Nginx chart using all default values",
       "explanation": "This installs a release named 'my-nginx' using the bitnami/nginx chart with default settings. The --wait flag tells Helm to wait until all pods are Running before reporting success. Default values include 1 replica, ClusterIP service, and standard resource settings.",
       "what_it_does": "Creates Helm release 'my-nginx' in helm-scenarios namespace with all chart default values. Deploys Nginx deployment, service, and related resources.",
@@ -41,7 +41,7 @@
     },
     {
       "name": "Step 5: Upgrade with --set to Change Replica Count",
-      "command": "helm upgrade my-nginx bitnami/nginx --namespace helm-scenarios --set replicaCount=2 --wait --timeout 120s",
+      "command": "helm upgrade my-nginx bitnami/nginx --namespace helm-scenarios --set replicaCount=2",
       "description": "Override the replica count using the --set flag",
       "explanation": "The --set flag overrides individual values from the command line. Here we change replicaCount from the default of 1 to 2. This is useful for quick, one-off changes. The upgrade creates a new revision (revision 2) of the release.",
       "what_it_does": "Upgrades the 'my-nginx' release to run 2 replicas instead of 1. Helm creates revision 2 of the release.",
@@ -59,10 +59,10 @@
     },
     {
       "name": "Step 7: Upgrade with -f custom-values.yaml",
-      "command": "helm upgrade my-nginx bitnami/nginx --namespace helm-scenarios -f helm-scenarios/01-custom-values-override/custom-values.yaml --wait --timeout 120s",
-      "description": "Override multiple values using a custom values file",
-      "explanation": "The -f (or --values) flag points to a YAML file containing value overrides. This is better than --set for complex changes because: (1) it's version-controllable, (2) it supports nested structures, and (3) it's easier to read and maintain. Our custom-values.yaml sets 3 replicas, resource limits, NodePort service, and a custom server block.",
-      "what_it_does": "Upgrades 'my-nginx' to revision 3 with values from custom-values.yaml: 3 replicas, NodePort service on port 30080, resource limits, and custom labels.",
+      "command": "kubectl delete svc my-nginx -n helm-scenarios --ignore-not-found=true && helm upgrade my-nginx bitnami/nginx --namespace helm-scenarios -f helm-scenarios/01-custom-values-override/custom-values.yaml",
+      "description": "Override multiple values using a custom values file (delete service first to change type)",
+      "explanation": "The -f (or --values) flag points to a YAML file containing value overrides. We first delete the existing ClusterIP service because Kubernetes doesn't allow patching service type from ClusterIP to NodePort. Helm will recreate it with the new type. Our custom-values.yaml sets 3 replicas, resource limits, NodePort service, and a custom server block.",
+      "what_it_does": "Deletes the existing service, then upgrades 'my-nginx' to revision 3 with values from custom-values.yaml: 3 replicas, NodePort service (auto-assigned port), resource limits, and custom labels.",
       "next_step": "Values file applied. Let's verify the changes took effect.",
       "cleanup": false
     },
@@ -77,7 +77,7 @@
     },
     {
       "name": "Step 9: Demonstrate Precedence: --set Overrides -f",
-      "command": "helm upgrade my-nginx bitnami/nginx --namespace helm-scenarios -f helm-scenarios/01-custom-values-override/custom-values.yaml --set replicaCount=1 --wait --timeout 120s",
+      "command": "helm upgrade my-nginx bitnami/nginx --namespace helm-scenarios -f helm-scenarios/01-custom-values-override/custom-values.yaml --set replicaCount=1",
       "description": "Show that --set takes precedence over values files",
       "explanation": "When you combine -f and --set, the --set flag wins for any conflicting keys. Our custom-values.yaml sets replicaCount: 3, but --set replicaCount=1 overrides it. This demonstrates the precedence: defaults < -f file < --set. The rest of the values from the file still apply.",
       "what_it_does": "Upgrades to revision 4. The replicaCount is forced to 1 by --set despite custom-values.yaml specifying 3. All other values from the file remain.",

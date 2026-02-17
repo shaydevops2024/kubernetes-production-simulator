@@ -23,9 +23,9 @@
     },
     {
       "name": "Step 3: Install Release with v1 Values",
-      "command": "helm install my-nginx bitnami/nginx --namespace helm-scenarios -f helm-scenarios/02-upgrade-and-rollback/values-v1.yaml --wait --timeout 120s",
+      "command": "helm install my-nginx bitnami/nginx --namespace helm-scenarios -f helm-scenarios/02-upgrade-and-rollback/values-v1.yaml",
       "description": "Install the Nginx chart with version 1 configuration",
-      "explanation": "This creates revision 1 of the release using values-v1.yaml. The v1 config sets 1 replica, ClusterIP service, conservative resource limits, and a simple server block that returns 'Hello from v1!'. The --wait flag ensures Helm waits for pods to be ready.",
+      "explanation": "This creates revision 1 of the release using values-v1.yaml. The v1 config sets 1 replica, ClusterIP service, conservative resource limits, and a simple server block that returns 'Hello from v1!'.",
       "what_it_does": "Creates Helm release 'my-nginx' at revision 1 with v1 configuration: 1 replica, ClusterIP service, and v1 server block.",
       "next_step": "Release installed at revision 1. Let's verify it's running.",
       "cleanup": false
@@ -41,10 +41,10 @@
     },
     {
       "name": "Step 5: Upgrade Release to v2",
-      "command": "helm upgrade my-nginx bitnami/nginx --namespace helm-scenarios -f helm-scenarios/02-upgrade-and-rollback/values-v2.yaml --wait --timeout 120s",
-      "description": "Upgrade the release to version 2 with scaled-up configuration",
-      "explanation": "'helm upgrade' applies new values to the existing release, creating revision 2. The v2 config scales to 3 replicas, changes service to NodePort, increases resource limits, and updates the server block. Helm performs a rolling update - pods are replaced gradually.",
-      "what_it_does": "Upgrades 'my-nginx' to revision 2 with v2 configuration: 3 replicas, NodePort service on port 30080, larger resource limits, and updated server block.",
+      "command": "kubectl delete svc my-nginx -n helm-scenarios --ignore-not-found=true && helm upgrade my-nginx bitnami/nginx --namespace helm-scenarios -f helm-scenarios/02-upgrade-and-rollback/values-v2.yaml",
+      "description": "Upgrade the release to version 2 (delete service first to change type from ClusterIP to NodePort)",
+      "explanation": "'helm upgrade' applies new values to the existing release, creating revision 2. The v2 config scales to 3 replicas, changes service to NodePort, increases resource limits, and updates the server block. We delete the existing ClusterIP service first because Kubernetes does not allow patching a service's type — Helm will recreate it as NodePort.",
+      "what_it_does": "Deletes the existing service, then upgrades 'my-nginx' to revision 2 with v2 configuration: 3 replicas, NodePort service (auto-assigned port), larger resource limits, and updated server block.",
       "next_step": "Upgraded to v2. Let's check the release history to see both revisions.",
       "cleanup": false
     },
@@ -68,10 +68,10 @@
     },
     {
       "name": "Step 8: Rollback to Revision 1",
-      "command": "helm rollback my-nginx 1 --namespace helm-scenarios --wait --timeout 120s",
-      "description": "Roll back the release to revision 1 (the original v1 configuration)",
-      "explanation": "'helm rollback <release> <revision>' reverts to a previous configuration. This doesn't delete revision 2 - instead, it creates revision 3 with the same config as revision 1. This preserves full audit history. The rollback triggers a rolling update back to the v1 pod spec.",
-      "what_it_does": "Creates revision 3 of 'my-nginx' with the same configuration as revision 1. Scales back to 1 replica, reverts to ClusterIP service, and restores the v1 server block.",
+      "command": "kubectl delete svc my-nginx -n helm-scenarios --ignore-not-found=true && helm rollback my-nginx 1 --namespace helm-scenarios",
+      "description": "Roll back the release to revision 1 (delete service first to change type from NodePort back to ClusterIP)",
+      "explanation": "'helm rollback <release> <revision>' reverts to a previous configuration. This doesn't delete revision 2 - instead, it creates revision 3 with the same config as revision 1. We delete the existing NodePort service first because Kubernetes does not allow patching service type — Helm will recreate it as ClusterIP.",
+      "what_it_does": "Deletes the existing service, then creates revision 3 of 'my-nginx' with the same configuration as revision 1. Scales back to 1 replica, reverts to ClusterIP service, and restores the v1 server block.",
       "next_step": "Rolled back. Let's verify the rollback worked.",
       "cleanup": false
     },

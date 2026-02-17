@@ -24,8 +24,6 @@ resources:
 service:
   type: NodePort
   port: 80
-  nodePorts:
-    http: "30090"
 
 # Updated server block with new version
 serverBlock: |-

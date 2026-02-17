@@ -14,9 +14,9 @@
     },
     {
       "name": "Step 2: Install Working Release",
-      "command": "helm install recovery-demo helm-scenarios/10-failed-release-recovery/ -f helm-scenarios/10-failed-release-recovery/values.yaml -n helm-scenarios --wait --timeout 90s",
+      "command": "helm install recovery-demo helm-scenarios/10-failed-release-recovery/ -f helm-scenarios/10-failed-release-recovery/values.yaml -n helm-scenarios",
       "description": "Install the recovery-demo chart with valid values (nginx:1.24-alpine, 2 replicas)",
-      "explanation": "Installs the custom chart with known-good values. This creates a deployment with 2 nginx:1.24-alpine pods and a ClusterIP service. The --wait flag ensures the deployment is fully healthy before continuing. This establishes our baseline 'good state' at revision 1.",
+      "explanation": "Installs the custom chart with known-good values. This creates a deployment with 2 nginx:1.24-alpine pods and a ClusterIP service. This establishes our baseline 'good state' at revision 1.",
       "what_it_does": "Deploys recovery-demo with working configuration (revision 1).",
       "next_step": "Verify the release is healthy before breaking it.",
       "cleanup": false
@@ -32,7 +32,7 @@
     },
     {
       "name": "Step 4: Simulate Failed Upgrade",
-      "command": "helm upgrade recovery-demo helm-scenarios/10-failed-release-recovery/ -f helm-scenarios/10-failed-release-recovery/bad-values.yaml -n helm-scenarios --wait --timeout 30s 2>&1 || true",
+      "command": "helm upgrade recovery-demo helm-scenarios/10-failed-release-recovery/ -f helm-scenarios/10-failed-release-recovery/bad-values.yaml -n helm-scenarios  2>&1 || true",
       "description": "Attempt an upgrade with bad values (non-existent image tag) -- this will fail",
       "explanation": "This upgrade uses bad-values.yaml which specifies the non-existent image 'nginx:99.99.99-nonexistent'. The pods will enter ImagePullBackOff and never become ready. With --timeout 30s, Helm will wait 30 seconds for pods to become ready, then mark the release as FAILED. The '|| true' prevents the error from stopping the scenario.",
       "what_it_does": "Attempts an upgrade that is designed to fail (creates revision 2 in FAILED state).",
@@ -68,9 +68,9 @@
     },
     {
       "name": "Step 8: Rollback to Working Revision",
-      "command": "helm rollback recovery-demo 1 -n helm-scenarios --wait --timeout 90s",
+      "command": "helm rollback recovery-demo 1 -n helm-scenarios",
       "description": "Roll back to revision 1 (the known-good deployment)",
-      "explanation": "Helm rollback restores the release to revision 1's configuration (nginx:1.24-alpine, 2 replicas). This creates a new revision (3) with the same configuration as revision 1. The --wait flag ensures the rollback completes and pods are healthy. This is the fastest and safest recovery method when a previous good state exists.",
+      "explanation": "Helm rollback restores the release to revision 1's configuration (nginx:1.24-alpine, 2 replicas). This creates a new revision (3) with the same configuration as revision 1. This is the fastest and safest recovery method when a previous good state exists.",
       "what_it_does": "Restores the release to revision 1 configuration, creating revision 3.",
       "next_step": "Verify the rollback succeeded.",
       "cleanup": false
@@ -95,7 +95,7 @@
     },
     {
       "name": "Step 11: Alternative Recovery - Reinstall",
-      "command": "helm install recovery-demo helm-scenarios/10-failed-release-recovery/ -f helm-scenarios/10-failed-release-recovery/values.yaml -n helm-scenarios --wait --timeout 90s",
+      "command": "helm install recovery-demo helm-scenarios/10-failed-release-recovery/ -f helm-scenarios/10-failed-release-recovery/values.yaml -n helm-scenarios",
       "description": "Reinstall the chart fresh with working values",
       "explanation": "After uninstalling, we reinstall from scratch with known-good values. This starts fresh at revision 1. The tradeoff is that you lose all release history, but you get a completely clean state. In production, this approach is best when the release history is corrupted or the state is unrecoverable via rollback.",
       "what_it_does": "Reinstalls recovery-demo fresh with working configuration.",

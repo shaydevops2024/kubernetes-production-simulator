@@ -32,7 +32,7 @@
     },
     {
       "name": "Step 4: Install Chart and Watch Hooks",
-      "command": "helm install hooks-demo helm-scenarios/05-helm-hooks/ --namespace helm-scenarios --wait --timeout 120s",
+      "command": "helm install hooks-demo helm-scenarios/05-helm-hooks/ --namespace helm-scenarios --wait",
       "description": "Install the chart - watch the hooks execute in order",
       "explanation": "When you run helm install, the following happens in order: (1) Templates are rendered, (2) Pre-install hook Job is created and Helm waits for it to complete, (3) Main resources (Deployment, Service) are created, (4) Post-install hook Job is created and Helm waits for it to complete, (5) Release is marked as 'deployed'. The --wait flag makes Helm also wait for the Deployment to be ready.",
       "what_it_does": "Installs the hooks-demo chart. You will see Helm pause while each hook Job runs to completion.",
@@ -50,7 +50,7 @@
     },
     {
       "name": "Step 6: View Smoke Test Logs",
-      "command": "kubectl logs -n helm-scenarios job/hooks-demo-hooks-demo-smoke-test",
+      "command": "kubectl logs -n helm-scenarios job/hooks-demo-smoke-test",
       "description": "Check the post-install smoke test output",
       "explanation": "The post-install hook's delete policy was 'before-hook-creation' (not 'hook-succeeded'), so the completed Job and its pod remain. This lets you inspect what the smoke test did. In production, you would use this pattern to verify your app is healthy after deployment.",
       "what_it_does": "Displays the smoke test output showing all 4 tests passed.",

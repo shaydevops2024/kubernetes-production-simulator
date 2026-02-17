@@ -32,9 +32,9 @@
     },
     {
       "name": "Step 4: Deploy to Staging",
-      "command": "helm install pipeline-app helm-scenarios/08-production-pipeline/ -f helm-scenarios/08-production-pipeline/values-staging.yaml --namespace helm-scenarios --wait --timeout 60s && echo '' && echo '=== Staging deployment status ===' && kubectl get pods -n helm-scenarios -l app=pipeline-app && echo '' && kubectl get svc -n helm-scenarios -l app=pipeline-app",
+      "command": "helm install pipeline-app helm-scenarios/08-production-pipeline/ -f helm-scenarios/08-production-pipeline/values-staging.yaml --namespace helm-scenarios --wait && echo '' && echo '=== Staging deployment status ===' && kubectl get pods -n helm-scenarios -l app=pipeline-app && echo '' && kubectl get svc -n helm-scenarios -l app=pipeline-app",
       "description": "Install to staging environment with staging values",
-      "explanation": "The --wait flag makes Helm wait until all resources are ready before returning success. The --timeout flag sets how long to wait. In CI/CD, if --wait fails (pods crash, readiness probe fails), the pipeline step fails and deployment is aborted. This prevents broken releases from progressing to production.",
+      "explanation": "The --wait flag makes Helm wait until all resources are ready before returning success. In CI/CD, if --wait fails (pods crash, readiness probe fails), the pipeline step fails and deployment is aborted. This prevents broken releases from progressing to production.",
       "what_it_does": "Installs the chart with staging values and waits for pods to be ready.",
       "next_step": "Run helm tests to validate the deployment.",
       "cleanup": false
@@ -50,7 +50,7 @@
     },
     {
       "name": "Step 6: Upgrade to Production Values",
-      "command": "echo '=== Upgrading to production configuration ===' && helm upgrade pipeline-app helm-scenarios/08-production-pipeline/ -f helm-scenarios/08-production-pipeline/values-prod.yaml --namespace helm-scenarios --wait --timeout 90s && echo '' && echo '=== Post-upgrade status ===' && kubectl get pods -n helm-scenarios -l app=pipeline-app && echo '' && echo 'Replicas scaled from 1 (staging) to 3 (production)' && echo '' && helm history pipeline-app -n helm-scenarios",
+      "command": "echo '=== Upgrading to production configuration ===' && helm upgrade pipeline-app helm-scenarios/08-production-pipeline/ -f helm-scenarios/08-production-pipeline/values-prod.yaml --namespace helm-scenarios --wait && echo '' && echo '=== Post-upgrade status ===' && kubectl get pods -n helm-scenarios -l app=pipeline-app && echo '' && echo 'Replicas scaled from 1 (staging) to 3 (production)' && echo '' && helm history pipeline-app -n helm-scenarios",
       "description": "Upgrade the release with production values (more replicas, more resources)",
       "explanation": "helm upgrade replaces the chart values with production settings. In this case, replicas increase from 1 to 3 and resource limits increase. The --wait flag ensures all 3 pods are running before reporting success. Helm records this as revision 2, allowing rollback to revision 1 if needed.",
       "what_it_does": "Upgrades the release to production values: 3 replicas with higher resource limits.",
@@ -59,7 +59,7 @@
     },
     {
       "name": "Step 7: Simulate Failed Upgrade",
-      "command": "echo '=== Simulating a bad upgrade (invalid image tag) ===' && helm upgrade pipeline-app helm-scenarios/08-production-pipeline/ -f helm-scenarios/08-production-pipeline/values-prod.yaml --set image.tag=99.99.99-nonexistent --namespace helm-scenarios --wait --timeout 30s 2>&1; echo '' && echo '=== Exit code: '$?' '(non-zero = failure) ===' && echo '' && echo '=== Current pod status (should show ImagePullBackOff) ===' && kubectl get pods -n helm-scenarios -l app=pipeline-app && echo '' && echo '=== Release history shows FAILED revision ===' && helm history pipeline-app -n helm-scenarios",
+      "command": "echo '=== Simulating a bad upgrade (invalid image tag) ===' && helm upgrade pipeline-app helm-scenarios/08-production-pipeline/ -f helm-scenarios/08-production-pipeline/values-prod.yaml --set image.tag=99.99.99-nonexistent --namespace helm-scenarios --wait --timeout 30s 2>&1; HELM_EXIT=$?; echo '' && echo \"=== Exit code: $HELM_EXIT - non-zero means failure ===\" && echo '' && echo '=== Current pod status (should show ImagePullBackOff) ===' && kubectl get pods -n helm-scenarios -l app=pipeline-app && echo '' && echo '=== Release history shows FAILED revision ===' && helm history pipeline-app -n helm-scenarios",
       "description": "Attempt an upgrade with a bad image to see how Helm handles failures",
       "explanation": "When --wait detects that pods are not becoming ready within the timeout, Helm marks the release as FAILED. The deployment is left in a bad state. In production CI/CD, this failed exit code triggers the rollback step. Note: Kubernetes deployment strategy will keep old pods running alongside the failing new ones.",
       "what_it_does": "Attempts an upgrade with a non-existent image tag. The upgrade fails due to ImagePullBackOff.",
@@ -77,7 +77,7 @@
     },
     {
       "name": "Step 9: Atomic Upgrades",
-      "command": "echo '=== Atomic upgrade: auto-rollback on failure ===' && echo 'The --atomic flag combines --wait + automatic rollback:' && echo '' && helm upgrade pipeline-app helm-scenarios/08-production-pipeline/ -f helm-scenarios/08-production-pipeline/values-prod.yaml --set image.tag=99.99.99-bad --namespace helm-scenarios --atomic --timeout 30s 2>&1; echo '' && echo '=== Exit code: '$?' ===' && echo '' && echo '=== With --atomic, Helm automatically rolled back ===' && echo '=== Current healthy state preserved ===' && kubectl get pods -n helm-scenarios -l app=pipeline-app && echo '' && helm history pipeline-app -n helm-scenarios",
+      "command": "echo '=== Atomic upgrade: auto-rollback on failure ===' && echo 'The --atomic flag combines --wait + automatic rollback:' && echo '' && helm upgrade pipeline-app helm-scenarios/08-production-pipeline/ -f helm-scenarios/08-production-pipeline/values-prod.yaml --set image.tag=99.99.99-bad --namespace helm-scenarios --atomic --timeout 30s 2>&1; HELM_EXIT=$?; echo '' && echo \"=== Exit code: $HELM_EXIT - non-zero means failure ===\" && echo '' && echo '=== With --atomic, Helm automatically rolled back ===' && echo '=== Current healthy state preserved ===' && kubectl get pods -n helm-scenarios -l app=pipeline-app && echo '' && helm history pipeline-app -n helm-scenarios",
       "description": "Use --atomic for automatic rollback on failure",
       "explanation": "The --atomic flag is the production standard. It combines --wait (wait for readiness) with automatic rollback (revert if not ready). If the upgrade fails, Helm rolls back without any manual intervention. Your CI pipeline can simply use 'helm upgrade --atomic' and failures are self-healing. This is the single most important flag for production Helm deployments.",
       "what_it_does": "Attempts a bad upgrade with --atomic. Helm detects the failure and automatically rolls back.",

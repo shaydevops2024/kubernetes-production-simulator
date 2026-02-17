@@ -15,8 +15,6 @@ resources:
 service:
   type: NodePort
   port: 80
-  nodePorts:
-    http: "30080"
 
 commonLabels:
   version: v2

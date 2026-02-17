@@ -32,7 +32,7 @@
     },
     {
       "name": "Step 4: Install Specific Chart Version",
-      "command": "CHART_VERSION=$(helm search repo bitnami/nginx --versions -o json | python3 -c \"import sys,json; versions=json.load(sys.stdin); print(versions[2]['version'] if len(versions)>2 else versions[0]['version'])\") && echo \"Installing chart version: $CHART_VERSION\" && helm install pinned-nginx bitnami/nginx --version $CHART_VERSION -n helm-scenarios --set replicaCount=1 --set resources.requests.cpu=25m --set resources.requests.memory=32Mi --set resources.limits.cpu=100m --set resources.limits.memory=128Mi --wait --timeout 120s",
+      "command": "CHART_VERSION=$(helm search repo bitnami/nginx --versions -o json | python3 -c \"import sys,json; versions=json.load(sys.stdin); print(versions[2]['version'] if len(versions)>2 else versions[0]['version'])\") && echo \"Installing chart version: $CHART_VERSION\" && helm install pinned-nginx bitnami/nginx --version $CHART_VERSION -n helm-scenarios --set replicaCount=1 --set resources.requests.cpu=25m --set resources.requests.memory=32Mi --set resources.limits.cpu=100m --set resources.limits.memory=128Mi",
       "description": "Install a specific (not latest) version of the nginx chart using --version",
       "explanation": "The --version flag pins the exact chart version to install. We deliberately choose the 3rd most recent version (not the latest) so there are newer versions available for the upgrade steps later. This mimics a production pattern: you deploy a tested version and upgrade deliberately, not automatically. Without --version, Helm would install the latest, which is unpredictable.",
       "what_it_does": "Installs a pinned chart version of bitnami/nginx as 'pinned-nginx'.",
@@ -59,7 +59,7 @@
     },
     {
       "name": "Step 7: Upgrade to Specific Newer Version",
-      "command": "TARGET_VERSION=$(helm search repo bitnami/nginx --versions -o json | python3 -c \"import sys,json; versions=json.load(sys.stdin); print(versions[0]['version'])\") && echo \"Upgrading to chart version: $TARGET_VERSION\" && helm upgrade pinned-nginx bitnami/nginx --version $TARGET_VERSION -n helm-scenarios --set replicaCount=1 --set resources.requests.cpu=25m --set resources.requests.memory=32Mi --set resources.limits.cpu=100m --set resources.limits.memory=128Mi --wait --timeout 120s",
+      "command": "TARGET_VERSION=$(helm search repo bitnami/nginx --versions -o json | python3 -c \"import sys,json; versions=json.load(sys.stdin); print(versions[0]['version'])\") && echo \"Upgrading to chart version: $TARGET_VERSION\" && helm upgrade pinned-nginx bitnami/nginx --version $TARGET_VERSION -n helm-scenarios --set replicaCount=1 --set resources.requests.cpu=25m --set resources.requests.memory=32Mi --set resources.limits.cpu=100m --set resources.limits.memory=128Mi",
       "description": "Upgrade to the latest available version using --version for explicit control",
       "explanation": "Even when upgrading, we use --version to specify the exact target version. This is intentional: 'helm upgrade' without --version would grab the latest, but by pinning explicitly we ensure the upgrade is deliberate and auditable. In a CI/CD pipeline, the version would come from a configuration file that gets reviewed in a pull request.",
       "what_it_does": "Upgrades the release to the latest chart version with explicit version pinning.",

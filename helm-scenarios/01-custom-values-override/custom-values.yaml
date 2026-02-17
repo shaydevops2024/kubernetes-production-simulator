@@ -18,8 +18,6 @@ resources:
 service:
   type: NodePort
   port: 80
-  nodePorts:
-    http: "30080"
 
 # Add custom labels to all resources
 commonLabels:

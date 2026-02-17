@@ -68,9 +68,9 @@
     },
     {
       "name": "Step 8: Install the Chart with Dependencies",
-      "command": "helm install myapp helm-scenarios/04-chart-dependencies/myapp --namespace helm-scenarios --wait --timeout 180s",
+      "command": "helm install myapp helm-scenarios/04-chart-dependencies/myapp --namespace helm-scenarios",
       "description": "Install the application chart which automatically deploys PostgreSQL as a subchart",
-      "explanation": "When you install a chart with dependencies, Helm installs everything together as a single release. Both the parent (Nginx) and subchart (PostgreSQL) resources are created and managed under the same release name. The --timeout is set to 180s because PostgreSQL takes longer to start up (it initializes the database, creates the user, and sets up permissions).",
+      "explanation": "When you install a chart with dependencies, Helm installs everything together as a single release. Both the parent (Nginx) and subchart (PostgreSQL) resources are created and managed under the same release name. Note: PostgreSQL takes longer to start up than Nginx (it initializes the database, creates the user, and sets up permissions), so wait a minute before checking pod status.",
       "what_it_does": "Creates the 'myapp' Helm release, deploying both the Nginx application and PostgreSQL database as a single unit in the helm-scenarios namespace.",
       "next_step": "Chart installed. Let's verify both app and database are running.",
       "cleanup": false
@@ -86,9 +86,9 @@
     },
     {
       "name": "Step 10: Verify Database Configuration",
-      "command": "echo '=== PostgreSQL overrides from parent values ===' && helm get values myapp --namespace helm-scenarios | grep -A 20 'postgresql:' && echo '=== PostgreSQL StatefulSet ===' && kubectl get statefulset -n helm-scenarios -l app.kubernetes.io/instance=myapp",
+      "command": "echo '=== PostgreSQL overrides from parent values ===' && helm get values myapp --namespace helm-scenarios --all | grep -A 20 'postgresql:' && echo '=== PostgreSQL StatefulSet ===' && kubectl get statefulset -n helm-scenarios -l app.kubernetes.io/instance=myapp",
       "description": "Confirm that subchart values were overridden by the parent chart",
-      "explanation": "The 'helm get values' output shows that our parent chart's postgresql overrides (auth settings, resources, persistence) were passed to the subchart. The StatefulSet confirms PostgreSQL is running as a stateful workload (appropriate for databases). This demonstrates how parent charts can fully control subchart behavior through values.",
+      "explanation": "The '--all' flag shows all values including chart defaults (not just user-supplied overrides). The postgresql section in the parent chart's values.yaml is passed to the subchart as its configuration. Without --all, helm get values returns nothing because the values are chart defaults rather than explicit overrides. The StatefulSet confirms PostgreSQL is running as a stateful workload (appropriate for databases).",
       "what_it_does": "Displays the PostgreSQL-related values from the release and shows the PostgreSQL StatefulSet confirming the database is running with our custom configuration.",
       "next_step": "Let's also explore what helm dependency build does differently.",
       "cleanup": false
