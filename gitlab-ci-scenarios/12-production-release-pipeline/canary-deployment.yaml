@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: release-demo-canary
+  namespace: gitlab-ci-scenarios
+  labels:
+    app: release-demo
+    version: v1.1.0
+    track: canary
+    scenario: release-pipeline
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: release-demo
+      track: canary
+  template:
+    metadata:
+      labels:
+        app: release-demo
+        track: canary
+        version: v1.1.0
+        scenario: release-pipeline
+    spec:
+      containers:
+        - name: app
+          image: nginx:1.25-alpine
+          ports:
+            - containerPort: 80
+          env:
+            - name: VERSION
+              value: "v1.1.0"
+            - name: CANARY
+              value: "true"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

@@ -1,0 +1,124 @@
+{
+  "scenario_id": "03-template-and-debug",
+  "difficulty": "medium",
+  "duration": "20 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Helm Scenarios Namespace",
+      "command": "kubectl create namespace helm-scenarios --dry-run=client -o yaml | kubectl apply -f -",
+      "description": "Create dedicated 'helm-scenarios' namespace for all Helm learning scenarios",
+      "explanation": "This creates a separate namespace called 'helm-scenarios' where all Helm scenario resources will be deployed. Using --dry-run with apply makes it idempotent - safe to run multiple times.",
+      "what_it_does": "Creates the 'helm-scenarios' namespace if it doesn't exist, or does nothing if it already exists.",
+      "next_step": "Namespace ready. Now create a new Helm chart from scratch.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 2: Create a New Helm Chart",
+      "command": "helm create helm-scenarios/03-template-and-debug/debug-app",
+      "description": "Scaffold a new Helm chart using helm create",
+      "explanation": "'helm create' generates a complete chart scaffold with best-practice structure: Chart.yaml (metadata), values.yaml (defaults), templates/ (Kubernetes manifests with Go templates), charts/ (dependencies), and .helmignore. The default chart deploys an Nginx container.",
+      "what_it_does": "Creates a new chart directory 'debug-app' with the standard Helm chart structure including deployment, service, serviceaccount, ingress, and HPA templates.",
+      "next_step": "Chart created. Let's explore the structure, then lint it.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 3: Explore Chart Structure",
+      "command": "ls -la helm-scenarios/03-template-and-debug/debug-app/ && echo '=== Chart.yaml ===' && cat helm-scenarios/03-template-and-debug/debug-app/Chart.yaml && echo '=== templates/ ===' && ls helm-scenarios/03-template-and-debug/debug-app/templates/",
+      "description": "Examine the chart directory layout and key files",
+      "explanation": "A Helm chart has a strict directory structure: Chart.yaml defines the chart name/version/description. values.yaml holds default configuration. templates/ contains Go-templated Kubernetes manifests. The _helpers.tpl file defines reusable template functions used across all templates.",
+      "what_it_does": "Lists the chart directory contents, displays Chart.yaml metadata, and shows all template files in the templates/ directory.",
+      "next_step": "Structure understood. Now lint the chart to check for issues.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 4: Lint the Chart",
+      "command": "helm lint helm-scenarios/03-template-and-debug/debug-app",
+      "description": "Validate the chart for structure and template errors",
+      "explanation": "'helm lint' runs a series of checks on a chart to verify: correct directory structure, valid Chart.yaml, valid YAML in templates when rendered with default values, and adherence to best practices. It reports errors (blocking), warnings (should fix), and info messages. A clean lint result gives confidence the chart will install correctly.",
+      "what_it_does": "Checks the debug-app chart for structural issues, template rendering errors, and best practice violations. Reports any problems found.",
+      "next_step": "Chart passes lint. Now render templates locally with helm template.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 5: Render Templates Locally with helm template",
+      "command": "helm template debug-app helm-scenarios/03-template-and-debug/debug-app --namespace helm-scenarios",
+      "description": "Render all chart templates locally without contacting the cluster",
+      "explanation": "'helm template' renders the Go templates using the default values and outputs the resulting Kubernetes YAML. It does NOT contact the cluster - everything happens locally. This is great for: (1) reviewing what will be deployed, (2) CI/CD pipelines that validate charts, (3) piping output to 'kubectl apply'. Note: it cannot validate against the cluster's API server, so some issues (like invalid API versions) won't be caught.",
+      "what_it_does": "Renders all templates (ServiceAccount, Service, Deployment, tests) with default values and outputs the complete Kubernetes YAML that would be applied.",
+      "next_step": "Templates rendered. Now try --dry-run --debug for server-side validation.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 6: Simulate Install with --dry-run --debug",
+      "command": "helm install debug-app helm-scenarios/03-template-and-debug/debug-app --namespace helm-scenarios --dry-run --debug 2>&1 | head -100",
+      "description": "Simulate an install server-side with full debug output",
+      "explanation": "'--dry-run' sends the rendered manifests to the Kubernetes API server for validation but does NOT create any resources. '--debug' adds extra output including the computed values, rendered templates, and chart metadata. Unlike 'helm template', this validates against the actual cluster API - catching issues like invalid resource kinds or API versions. Output is truncated to first 100 lines for readability.",
+      "what_it_does": "Sends rendered manifests to the Kubernetes API server for validation without creating resources. Displays debug info including computed values and rendered templates.",
+      "next_step": "Server-side validation passed. Now install the chart for real.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 7: Install the Chart for Real",
+      "command": "helm install debug-app helm-scenarios/03-template-and-debug/debug-app --namespace helm-scenarios",
+      "description": "Install the chart creating actual Kubernetes resources",
+      "explanation": "Now we install for real. This sends the rendered manifests to Kubernetes and creates the actual resources. After install, you can compare what was planned (template/dry-run) with what was actually deployed (get manifest).",
+      "what_it_does": "Creates the Helm release 'debug-app' and deploys all resources (ServiceAccount, Service, Deployment) into the helm-scenarios namespace.",
+      "next_step": "Chart installed. Now compare with helm get manifest.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 8: Inspect Deployed Manifests with helm get manifest",
+      "command": "helm get manifest debug-app --namespace helm-scenarios",
+      "description": "Retrieve the actual Kubernetes manifests stored by the release",
+      "explanation": "'helm get manifest' shows the exact YAML that was sent to the Kubernetes API server during install. This is what Helm has stored as the 'source of truth' for this release. Compare this with the 'helm template' output from Step 5 - they should be nearly identical. The main difference: 'helm template' uses a placeholder release name, while 'helm get manifest' shows the actual release name used.",
+      "what_it_does": "Displays the Kubernetes manifests that were actually deployed by the 'debug-app' release, as stored in the release secret.",
+      "next_step": "Now let's see other useful debugging commands.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 9: Inspect Release Details",
+      "command": "echo '=== Release Values (all) ===' && helm get values debug-app --namespace helm-scenarios --all && echo '=== Release Notes ===' && helm get notes debug-app --namespace helm-scenarios",
+      "description": "View the computed values and chart release notes",
+      "explanation": "'helm get values --all' shows all values including chart defaults (not just user-supplied overrides). Without --all, it returns null when no --set or -f flags were used at install time. 'helm get notes' shows the NOTES.txt output - the post-install instructions that charts provide to help users access their application.",
+      "what_it_does": "Displays all computed values for the release (chart defaults since no overrides were supplied), then shows the chart's post-install notes with instructions for accessing the deployed application.",
+      "next_step": "Now render templates with custom values to see how output changes.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 10: Render Templates with Custom Values",
+      "command": "helm template debug-app helm-scenarios/03-template-and-debug/debug-app --namespace helm-scenarios --set replicaCount=3 --set service.type=NodePort --set service.nodePort=30090 | grep -A 5 'replicas\\|type:\\|nodePort'",
+      "description": "Render templates with overrides and filter for changed sections",
+      "explanation": "Here we use 'helm template' with --set to see how custom values change the rendered output. We grep for the specific fields we changed (replicas, service type, nodePort) to quickly verify they appear correctly in the output. This is a powerful technique for validating value changes before applying them.",
+      "what_it_does": "Renders templates with 3 replicas and NodePort service, then filters the output to show only the changed fields confirming the overrides took effect.",
+      "next_step": "You've mastered Helm templating and debugging! Time to clean up.",
+      "cleanup": false
+    },
+    {
+      "name": "Cleanup 1: Uninstall the Helm Release",
+      "command": "helm uninstall debug-app --namespace helm-scenarios",
+      "description": "Remove the debug-app Helm release and all its Kubernetes resources",
+      "explanation": "'helm uninstall' removes the release and all Kubernetes resources it created. The chart directory on disk is not affected - only the deployed resources are removed.",
+      "what_it_does": "Deletes the 'debug-app' release and all associated Kubernetes resources from helm-scenarios namespace.",
+      "next_step": "Release removed. Now clean up the chart directory.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup 2: Remove Chart Directory",
+      "command": "rm -rf helm-scenarios/03-template-and-debug/debug-app && echo 'Chart directory removed'",
+      "description": "Remove the scaffolded chart directory from disk",
+      "explanation": "The chart directory was created by 'helm create' in Step 2. Since this was a learning exercise, we remove it to keep the scenario directory clean. In a real project, you would commit this chart to your Git repository.",
+      "what_it_does": "Deletes the 'debug-app' chart directory and all its files from the local filesystem.",
+      "next_step": "Verify cleanup is complete.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup 3: Verify Resources Removed",
+      "command": "helm list --namespace helm-scenarios && echo '---' && kubectl get all -n helm-scenarios",
+      "description": "Confirm all Helm resources have been removed",
+      "explanation": "'helm list' should show no releases. 'kubectl get all' should show no resources. This confirms the uninstall was successful and the namespace is clean for the next scenario.",
+      "what_it_does": "Verifies that no Helm releases or Kubernetes resources remain in the helm-scenarios namespace.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

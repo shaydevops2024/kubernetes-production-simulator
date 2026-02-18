@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: multi-source-service
+  namespace: argocd-sc-08
+  labels:
+    app: multi-source-app
+spec:
+  selector:
+    app: multi-source-app
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+  type: ClusterIP

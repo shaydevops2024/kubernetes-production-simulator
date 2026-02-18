@@ -1,0 +1,21 @@
+---
+- name: Deploy database tier
+  hosts: database
+  become: yes
+  tags: database
+  roles:
+    - database
+
+- name: Deploy backend tier
+  hosts: backend
+  become: yes
+  tags: backend
+  roles:
+    - backend
+
+- name: Deploy frontend tier
+  hosts: frontend
+  become: yes
+  tags: frontend
+  roles:
+    - frontend

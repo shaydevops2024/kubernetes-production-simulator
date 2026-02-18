@@ -1,0 +1,145 @@
+{
+  "scenario_id": "07-rolling-updates-zero-downtime",
+  "difficulty": "medium",
+  "duration": "40 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Web Server Fleet",
+      "command": "docker run -d --name web1 --hostname web1 -p 2281:22 -p 8081:80 rastasheep/ubuntu-sshd && docker run -d --name web2 --hostname web2 -p 2282:22 -p 8082:80 rastasheep/ubuntu-sshd && docker run -d --name web3 --hostname web3 -p 2283:22 -p 8083:80 rastasheep/ubuntu-sshd && docker run -d --name lb --hostname lb -p 2284:22 -p 8080:80 rastasheep/ubuntu-sshd",
+      "description": "Launch 3 web servers and 1 load balancer",
+      "explanation": "Creates 4 containers: 3 web servers (web1-3) and 1 load balancer (lb). Load balancer distributes traffic across web servers. Ports 8081-8083 for direct access, 8080 for load-balanced access.",
+      "what_it_does": "Creates a web server cluster with load balancer for rolling update testing.",
+      "next_step": "Containers ready. View inventory setup."
+    },
+    {
+      "name": "Step 2: View Inventory with Web Server Groups",
+      "command": "cat ansible-scenarios/07-rolling-updates-zero-downtime/inventory/hosts.ini",
+      "description": "Display inventory showing web servers and load balancer",
+      "explanation": "Shows [webservers] group with web1-3 and [loadbalancer] group with lb. Groups enable targeting servers separately for orchestrated updates.",
+      "what_it_does": "Displays host organization for rolling update orchestration.",
+      "next_step": "Inventory reviewed. Deploy initial application version."
+    },
+    {
+      "name": "Step 3: Deploy Application v1.0",
+      "command": "cd ansible-scenarios/07-rolling-updates-zero-downtime && ansible-playbook -i inventory/hosts.ini deploy-initial.yml",
+      "description": "Deploy initial application version to all web servers",
+      "explanation": "Installs nginx, deploys v1.0 application code (index.html), and configures health check endpoints on all 3 web servers simultaneously.",
+      "what_it_does": "Sets up web servers with version 1.0 of the application.",
+      "next_step": "v1.0 deployed. Configure load balancer."
+    },
+    {
+      "name": "Step 4: Configure Load Balancer",
+      "command": "cd ansible-scenarios/07-rolling-updates-zero-downtime && ansible-playbook -i inventory/hosts.ini configure-lb.yml",
+      "description": "Set up nginx load balancer with upstream servers",
+      "explanation": "Configures lb as reverse proxy with upstream block containing web1-3. Uses round-robin load balancing with health checks. Traffic distributed evenly across healthy servers.",
+      "what_it_does": "Configures load balancer to distribute traffic across web servers.",
+      "next_step": "Load balancer ready. Test application."
+    },
+    {
+      "name": "Step 5: Test Application Through Load Balancer",
+      "command": "for i in {1..6}; do curl -s http://localhost:8080 | grep -o 'Version: [^<]*' | head -1; done",
+      "description": "Make 6 requests to see load balancing in action",
+      "explanation": "Sends 6 requests through load balancer. Responses alternate between web1, web2, web3 showing round-robin distribution. All show v1.0.",
+      "what_it_does": "Verifies load balancer distributes requests across all web servers.",
+      "next_step": "Load balancing working. View rolling update playbook."
+    },
+    {
+      "name": "Step 6: View Rolling Update Playbook",
+      "command": "cat ansible-scenarios/07-rolling-updates-zero-downtime/rolling-update.yml",
+      "description": "Display playbook with serial execution strategy",
+      "explanation": "Key: 'serial: 1' updates ONE server at a time. Each server goes through: remove from LB → update → health check → add back to LB. Ensures 2 servers always serve traffic.",
+      "what_it_does": "Shows zero-downtime update strategy with serial execution.",
+      "next_step": "Strategy clear. Perform rolling update to v2.0."
+    },
+    {
+      "name": "Step 7: Execute Rolling Update to v2.0",
+      "command": "cd ansible-scenarios/07-rolling-updates-zero-downtime && ansible-playbook -i inventory/hosts.ini rolling-update.yml -e 'app_version=2.0'",
+      "description": "Deploy v2.0 using rolling update strategy",
+      "explanation": "Updates servers one-by-one: web1 first (removed from LB, updated, health-checked, re-added), then web2, then web3. At each moment, 2 servers serve traffic. Zero downtime.",
+      "what_it_does": "Performs zero-downtime rolling update from v1.0 to v2.0.",
+      "next_step": "Rolling update complete. Verify all servers on v2.0."
+    },
+    {
+      "name": "Step 8: Verify Update Across All Servers",
+      "command": "cd ansible-scenarios/07-rolling-updates-zero-downtime && ansible webservers -i inventory/hosts.ini -m uri -a 'url=http://localhost/version return_content=yes' | grep -E '(web[0-9]|\"content\")'",
+      "description": "Check version endpoint on all web servers",
+      "explanation": "Queries /version endpoint on each server directly (bypassing LB). All should return v2.0, confirming successful update.",
+      "what_it_does": "Verifies all web servers are running version 2.0.",
+      "next_step": "Update verified. Test continuous traffic during update."
+    },
+    {
+      "name": "Step 9: Monitor Traffic During Update",
+      "command": "cd ansible-scenarios/07-rolling-updates-zero-downtime && bash scripts/monitor-traffic.sh & sleep 2 && ansible-playbook -i inventory/hosts.ini rolling-update.yml -e 'app_version=3.0' && wait",
+      "description": "Run continuous requests while updating to v3.0",
+      "explanation": "Background script sends requests every 0.5s. Rolling update runs concurrently. You'll see mix of v2.0 and v3.0 responses as servers update, but NO failed requests (zero downtime).",
+      "what_it_does": "Demonstrates zero-downtime during update with continuous traffic.",
+      "next_step": "Zero downtime confirmed. View health check task."
+    },
+    {
+      "name": "Step 10: View Health Check Implementation",
+      "command": "cat ansible-scenarios/07-rolling-updates-zero-downtime/roles/deploy/tasks/health-check.yml",
+      "description": "Display health check task details",
+      "explanation": "Shows uri module with until/retries. Waits for HTTP 200 on /health endpoint. Retries 30 times (1s delay). Fails deployment if server doesn't become healthy.",
+      "what_it_does": "Shows how health checks prevent unhealthy servers from receiving traffic.",
+      "next_step": "Health checks understood. Test rollback on failure."
+    },
+    {
+      "name": "Step 11: Simulate Failed Deployment",
+      "command": "cd ansible-scenarios/07-rolling-updates-zero-downtime && ansible-playbook -i inventory/hosts.ini rolling-update.yml -e 'app_version=4.0-broken' || echo 'Deployment failed as expected'",
+      "description": "Deploy broken version to trigger rollback",
+      "explanation": "Version 4.0-broken has intentional bug. Health check fails on first server (web1). Playbook stops immediately, leaving web2 and web3 on v3.0. Only web1 affected.",
+      "what_it_does": "Demonstrates automatic failure detection stopping bad deployment.",
+      "next_step": "Failure detected. Rollback web1 to v3.0."
+    },
+    {
+      "name": "Step 12: Execute Rollback",
+      "command": "cd ansible-scenarios/07-rolling-updates-zero-downtime && ansible-playbook -i inventory/hosts.ini rollback.yml --limit web1",
+      "description": "Rollback failed server to previous version",
+      "explanation": "Rollback playbook deploys previous version (v3.0) to web1. Uses --limit to target only affected server. Reads version from backup taken before update.",
+      "what_it_does": "Restores web1 to last known good version (v3.0).",
+      "next_step": "Rollback complete. Verify cluster consistency."
+    },
+    {
+      "name": "Step 13: Verify All Servers on v3.0",
+      "command": "for i in {1..9}; do curl -s http://localhost:8080 | grep -o 'Version: [^<]*' | head -1; done",
+      "description": "Confirm all servers serving same version",
+      "explanation": "All 9 requests should return v3.0. Rollback restored consistency. In production, monitor for version skew alerts.",
+      "what_it_does": "Verifies successful rollback restored cluster to consistent state.",
+      "next_step": "Consistency restored. View delegation example."
+    },
+    {
+      "name": "Step 14: View Playbook with Delegation",
+      "command": "cat ansible-scenarios/07-rolling-updates-zero-downtime/rolling-update.yml | grep -A 5 delegate_to",
+      "description": "Display tasks using delegation",
+      "explanation": "Shows tasks with 'delegate_to: lb'. Runs on LB host instead of web servers. Used for adding/removing servers from load balancer during update. Enables orchestration from web server context.",
+      "what_it_does": "Demonstrates delegation for load balancer manipulation during updates.",
+      "next_step": "Delegation clear. View run_once example."
+    },
+    {
+      "name": "Step 15: Update with Custom Serial Batch Size",
+      "command": "cd ansible-scenarios/07-rolling-updates-zero-downtime && ansible-playbook -i inventory/hosts.ini rolling-update-batch.yml -e 'app_version=3.1'",
+      "description": "Deploy using serial: 2 (update 2 servers at once)",
+      "explanation": "serial: 2 updates 2 servers simultaneously. Faster than serial: 1 but requires LB to handle 1 server minimum. Tradeoff: speed vs safety. With 3 servers, updates in 2 batches.",
+      "what_it_does": "Demonstrates configurable batch sizes for rolling updates.",
+      "next_step": "Scenario complete! Clean up resources."
+    },
+    {
+      "name": "Cleanup 1: Stop All Containers",
+      "command": "docker stop web1 web2 web3 lb",
+      "description": "Stop web servers and load balancer",
+      "explanation": "Stops all 4 containers used in the scenario.",
+      "what_it_does": "Stops web1, web2, web3, and lb containers.",
+      "next_step": "Containers stopped. Remove them.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup 2: Remove All Containers",
+      "command": "docker rm web1 web2 web3 lb",
+      "description": "Remove stopped containers",
+      "explanation": "Deletes all containers and their data.",
+      "what_it_does": "Removes all web server and load balancer containers from Docker.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

@@ -7,6 +7,55 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+    <!-- Tour Overlay -->
+    <div id="tour-overlay" class="tour-overlay"></div>
+
+    <!-- Tour Tooltip -->
+    <div id="tour-tooltip" class="tour-tooltip">
+        <div class="tour-tooltip-header">
+            <h4 id="tour-title">Welcome</h4>
+            <span class="tour-step-counter" id="tour-step-counter">1/6</span>
+        </div>
+        <div class="tour-tooltip-content">
+            <p id="tour-content">Tour content here</p>
+        </div>
+        <div class="tour-progress" id="tour-progress"></div>
+        <div class="tour-tooltip-footer">
+            <button class="tour-skip-btn" onclick="endTour()">Skip Tour</button>
+            <div class="tour-nav-buttons">
+                <button class="btn btn-secondary" id="tour-prev-btn" onclick="prevTourStep()">Back</button>
+                <button class="btn btn-primary" id="tour-next-btn" onclick="nextTourStep()">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tour Welcome Modal -->
+    <div id="tour-welcome-modal" class="tour-welcome-modal">
+        <div class="tour-welcome-content">
+            <div class="tour-welcome-header">
+                <h2>Welcome to DevOps Simulator!</h2>
+                <p>Your DevOps Learning Platform</p>
+            </div>
+            <div class="tour-welcome-body">
+                <p>This interactive platform is the best way to learn Kubernetes, Helm, ArgoCD, and more through hands-on scenarios and real-time cluster monitoring.</p>
+                <div class="tour-welcome-actions">
+                    <button class="btn btn-primary" onclick="startTour()">Take a Quick Tour</button>
+                    <button class="btn btn-secondary" onclick="skipTour()">Skip for Now</button>
+                </div>
+                <label class="tour-welcome-checkbox">
+                    <input type="checkbox" id="tour-dont-show">
+                    Don't show this again
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Button - Start Tour -->
+    <button class="tour-help-btn" onclick="showTourWelcome()" title="Take a guided tour">
+        ?
+        <span class="tooltip-text">Take a Tour</span>
+    </button>
+
     <!-- Modal Overlay -->
     <div id="modal-overlay" class="modal-overlay">
         <div class="modal-content">
@@ -23,40 +72,176 @@
         </div>
     </div>
 
+    <!-- Prerequisites Modal -->
+    <div id="prerequisites-modal" class="modal-overlay">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>📦 System Prerequisites</h3>
+                <button class="modal-close" onclick="closePrerequisitesModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Step 1: Run checker script -->
+                <div id="prereq-step-1" class="prereq-step active">
+                    <div class="prereq-intro">
+                        <p><strong>Step 1:</strong> Check which tools are installed on your local machine.</p>
+                        <p>Copy and run this command in your terminal:</p>
+                    </div>
+                    <div class="cli-commands">
+                        <code id="checker-command">curl -s http://localhost:30080/api/prerequisites/checker.sh | bash</code>
+                        <button class="copy-btn" onclick="copyCheckerCommand()">Copy</button>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <button class="btn btn-primary" onclick="refreshPrereqStatus()">I've run the command</button>
+                    </div>
+                </div>
+
+                <!-- Step 2: View results and select tools -->
+                <div id="prereq-step-2" class="prereq-step">
+                    <div class="status-summary">
+                        <span id="prereq-installed-count" class="status-badge badge-success">0 Installed</span>
+                        <span id="prereq-missing-count" class="status-badge badge-warning">0 Missing</span>
+                    </div>
+                    <div class="prerequisites-list" id="prerequisites-list">
+                        <!-- Populated dynamically -->
+                    </div>
+                    <div class="prerequisites-actions">
+                        <button class="btn btn-secondary" onclick="backToStep1()">← Back</button>
+                        <button class="btn btn-success" id="install-now-btn" onclick="installNow()" disabled>
+                            🚀 Install Now
+                        </button>
+                        <button class="btn btn-primary" id="download-installer-btn" onclick="downloadInstaller()" disabled>
+                            📥 Download Installer
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Direct installation command -->
+                <div id="prereq-step-3" class="prereq-step">
+                    <div class="prereq-intro">
+                        <p><strong>Step 3:</strong> Copy and run this command in your terminal to install the selected tools.</p>
+                        <p>This will download and execute the installer script automatically:</p>
+                    </div>
+                    <div class="cli-commands">
+                        <code id="install-command">curl -s http://localhost:30080/api/prerequisites/installer.sh | bash</code>
+                        <button class="copy-btn" onclick="copyInstallCommand()">Copy</button>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <p style="color: var(--text-secondary); font-size: 14px;">
+                            ⚠️ <strong>Note:</strong> The installer requires sudo privileges and will prompt for your password.
+                        </p>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <button class="btn btn-secondary" onclick="backToStep2()">← Back</button>
+                        <button class="btn btn-primary" onclick="closePrerequisitesModal()">Done</button>
+                    </div>
+                </div>
+
+                <!-- Step 4: Download instructions (for manual installation) -->
+                <div id="prereq-step-4" class="prereq-step">
+                    <div class="prereq-intro">
+                        <p><strong>Step 4:</strong> Run the downloaded installer script.</p>
+                        <p>In your terminal, navigate to your Downloads folder and run:</p>
+                    </div>
+                    <div class="cli-commands">
+                        <code>bash ~/Downloads/install-prerequisites.sh</code>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <button class="btn btn-secondary" onclick="backToStep2()">← Back</button>
+                        <button class="btn btn-primary" onclick="closePrerequisitesModal()">Done</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Testing Actions Sidebar Overlay -->
+    <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeTestingSidebar()"></div>
+
+    <!-- Testing Actions Right Sidebar -->
+    <div id="testing-sidebar" class="right-sidebar">
+        <div class="right-sidebar-header">
+            <h3>Testing Actions</h3>
+            <button class="right-sidebar-close" onclick="closeTestingSidebar()">&times;</button>
+        </div>
+        <div class="right-sidebar-content">
+            <div class="testing-actions-list">
+                <button class="btn btn-soft" onclick="makeUnhealthy(); closeTestingSidebar();">
+                    <span class="action-icon">💔</span> Make Unhealthy
+                </button>
+                <button class="btn btn-soft" onclick="simulateNotReady(); closeTestingSidebar();">
+                    <span class="action-icon">⏸️</span> Not Ready
+                </button>
+                <button class="btn btn-soft" onclick="resetApp(); closeTestingSidebar();">
+                    <span class="action-icon">🔄</span> Reset App
+                </button>
+                <button class="btn btn-soft" onclick="closeTestingSidebar(); switchTab('loadtest');">
+                    <span class="action-icon">⚡</span> HPA Load Test
+                </button>
+                <button class="btn btn-soft" onclick="closeTestingSidebar(); switchTab('database');">
+                    <span class="action-icon">🗄️</span> Test Stateful DB
+                </button>
+                <button class="btn btn-soft" onclick="closeTestingSidebar(); switchTab('logs');">
+                    <span class="action-icon">📝</span> Logs
+                </button>
+                <button class="btn btn-soft" onclick="showMonitoringCommands(); closeTestingSidebar();">
+                    <span class="action-icon">📊</span> Basic CLI Info
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="app-container">
         <!-- Left Sidebar -->
         <div class="sidebar">
             <div class="sidebar-header">
                 <h1>DevOps<br>Simulator</h1>
             </div>
-            <nav class="sidebar-nav">
+            <nav class="sidebar-nav" id="tour-sidebar-nav">
                 <div class="nav-item active" onclick="switchTab('dashboard')">
                     <span class="nav-icon">📊</span>
                     <span class="nav-text">Dashboard</span>
                 </div>
-                <div class="nav-item" onclick="openPlayKubernetes()">
-                    <span class="nav-icon">🎮</span>
+                <div class="nav-separator"></div>
+                <div class="nav-item" id="tour-play-k8s" onclick="openPlayKubernetes()">
+                    <span class="nav-icon" style="color: #326CE5;">🎮</span>
                     <span class="nav-text">Play Kubernetes</span>
                 </div>
-                <div class="nav-item" onclick="switchTab('database')">
-                    <span class="nav-icon">🗄️</span>
-                    <span class="nav-text">StatefulSet-DB</span>
+                <div class="nav-item" id="tour-play-argocd" onclick="openPlayArgoCD()">
+                    <span class="nav-icon">🐙</span>
+                    <span class="nav-text">Play ArgoCD</span>
                 </div>
-                <div class="nav-item" onclick="switchTab('loadtest')">
-                    <span class="nav-icon">⚡</span>
-                    <span class="nav-text">HPA- Load Test</span>
+                <div class="nav-item" id="tour-play-helm" onclick="openPlayHelm()">
+                    <span class="nav-icon helm-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="3.5" stroke="#326CE5" stroke-width="1.8"/><circle cx="12" cy="12" r="9.5" stroke="#326CE5" stroke-width="1.8"/><line x1="12" y1="1" x2="12" y2="8.5" stroke="#326CE5" stroke-width="1.8" stroke-linecap="round"/><line x1="12" y1="15.5" x2="12" y2="23" stroke="#326CE5" stroke-width="1.8" stroke-linecap="round"/><line x1="1" y1="12" x2="8.5" y2="12" stroke="#326CE5" stroke-width="1.8" stroke-linecap="round"/><line x1="15.5" y1="12" x2="23" y2="12" stroke="#326CE5" stroke-width="1.8" stroke-linecap="round"/><line x1="4.2" y1="4.2" x2="8.5" y2="8.5" stroke="#326CE5" stroke-width="1.8" stroke-linecap="round"/><line x1="15.5" y1="15.5" x2="19.8" y2="19.8" stroke="#326CE5" stroke-width="1.8" stroke-linecap="round"/><line x1="19.8" y1="4.2" x2="15.5" y2="8.5" stroke="#326CE5" stroke-width="1.8" stroke-linecap="round"/><line x1="4.2" y1="19.8" x2="8.5" y2="15.5" stroke="#326CE5" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+                    <span class="nav-text"> Play Helm</span>
                 </div>
-                <div class="nav-item" onclick="switchTab('logs')">
-                    <span class="nav-icon">📝</span>
-                    <span class="nav-text">Logs</span>
+                <div class="nav-item" id="tour-play-gitlab-ci" onclick="openPlayGitlabCI()">
+                    <span class="nav-icon" style="color: #E24329;">🦊</span>
+                    <span class="nav-text">Play GitLab CI</span>
+                </div>
+                <div class="nav-item" id="tour-play-jenkins" onclick="openPlayJenkins()">
+                    <span class="nav-icon jenkins-icon"><svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg"><path d="M4 23Q4 16 12 14.5Q20 16 20 23" fill="#335061"/><path d="M10.2 15L12 19L13.8 15" fill="#fff"/><path d="M9.5 15.5L12 17L14.5 15.5L12 16Z" fill="#D33833"/><circle cx="12" cy="9" r="5.5" fill="#F0D6B7"/><path d="M6.5 9Q6.5 3 12 3Q17.5 3 17.5 9Q17.5 7 15.5 5.5Q13.5 4.5 12 4.5Q10.5 4.5 8.5 5.5Q6.5 7 6.5 9Z" fill="#4a3728"/><path d="M9 9Q10 8 11 9" stroke="#555" stroke-width="1" fill="none" stroke-linecap="round"/><path d="M13 9Q14 8 15 9" stroke="#555" stroke-width="1" fill="none" stroke-linecap="round"/><path d="M9.5 11.5Q12 13.5 14.5 11.5" stroke="#555" stroke-width="0.8" fill="none" stroke-linecap="round"/></svg></span>
+                    <span class="nav-text">Play Jenkins</span>
+                </div>
+                <div class="nav-item" id="tour-play-terraform" onclick="openPlayTerraform()">
+                    <span class="nav-icon terraform-icon"><svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg"><path d="M1.5 4.5v6.25l5.5 3.15V7.65L1.5 4.5z" fill="#5C4EE5"/><path d="M8.25 7.65v6.25l5.5-3.15V4.5L8.25 7.65z" fill="#5C4EE5"/><path d="M8.25 15.4v6.25l5.5-3.15v-6.25L8.25 15.4z" fill="#5C4EE5"/><path d="M15 4.5v6.25l5.5-3.15V1.35L15 4.5z" fill="#5C4EE5"/></svg></span>
+                    <span class="nav-text">Play Terraform</span>
+                </div>
+                <div class="nav-item" id="tour-play-ansible" onclick="openPlayAnsible()">
+                    <span class="nav-icon" style="color: #6B7280;">🔧</span>
+                    <span class="nav-text">Play Ansible</span>
+                </div>
+                <div class="nav-separator-featured"></div>
+                <div class="nav-item nav-item-featured" id="tour-hands-on-projects" onclick="openHandsOnProjects()">
+                    
+                    <span class="nav-text">Hands-On Projects</span>
                 </div>
             </nav>
-            <div class="sidebar-footer">
+            <div class="sidebar-footer" id="tour-developer-info">
                 <div class="developer-info">
                     Developed by<br>
                     <strong>Shay Guedj</strong><br>
-                    <button class="btn-profile" onclick="showDeveloperProfile()">Click Me</button>
                     DevOps Engineer
+                    <button class="btn-profile" onclick="showDeveloperProfile()">Click Me</button>
                 </div>
             </div>
         </div>
@@ -83,7 +268,7 @@
                     </div>
                     
                     <!-- Cluster Stats Grid (Updated with two-column layout for Deployments) -->
-                    <div class="cluster-stats-grid">
+                    <div class="cluster-stats-grid" id="tour-cluster-stats">
                         <div class="cluster-stat-box" onclick="showClusterDetails('deployments')">
                             <div class="deployment-stats-container">
                                 <div class="deployment-stat-column">
@@ -108,42 +293,102 @@
                         </div>
                     </div>
                     
-                    <div class="status-card">
-                        <h3>Application Info</h3>
-                        <div class="status-item">
-                            <span class="label">Environment</span>
-                            <span class="value" id="app-env">Loading...</span>
+                    <!-- Application Info - Full Width -->
+                    <div class="status-card" id="tour-app-info">
+                        <div class="status-card-header">
+                            <h3>Application Info</h3>
+                            <div class="header-button-group">
+                                <button class="btn-prerequisites" id="tour-prerequisites-btn" onclick="openPrerequisitesModal()">
+                                    📦 Prerequisites
+                                </button>
+                                <button class="btn-testing-actions" id="tour-testing-btn" onclick="openTestingSidebar()">
+                                    🧪 Testing Actions
+                                </button>
+                            </div>
                         </div>
-                        <div class="status-item">
-                            <span class="label">Application</span>
-                            <span class="value" id="app-name">Loading...</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="label">Health Status</span>
-                            <span class="badge badge-success" id="health-badge">✓ Healthy</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="label">Readiness</span>
-                            <span class="badge badge-success" id="ready-badge">✓ Ready</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="label">Secret Configured</span>
-                            <span class="badge" id="secret-badge">Loading...</span>
+                        <div class="status-list">
+                            <div class="status-row">
+                                <span class="status-label">Environment</span>
+                                <span class="status-value" id="app-env">Loading...</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="status-label">Application</span>
+                                <span class="status-value" id="app-name">Loading...</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="status-label">Health Status</span>
+                                <span class="badge badge-success" id="health-badge">✓ Healthy</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="status-label">Readiness</span>
+                                <span class="badge badge-success" id="ready-badge">✓ Ready</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="status-label">Secret Configured</span>
+                                <span class="badge" id="secret-badge">Loading...</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="status-label">ConfigMap Configured</span>
+                                <span class="badge" id="configmap-badge">Loading...</span>
+                            </div>
                         </div>
                     </div>
-                    
-                    <h3 class="section-title">Actions to test basic k8s behavior</h3>
-                    
-                    <!-- Action Buttons with Spacing -->
-                    <div class="button-grid">
-                        <button class="btn btn-danger" onclick="makeUnhealthy()">💔 Make Unhealthy</button>
-                        <button class="btn btn-warning" onclick="simulateNotReady()">⏸️ Not Ready</button>
-                        <button class="btn btn-primary" onclick="resetApp()">🔄 Reset App</button>
-                        <div style="width: 100%;"></div>
-                        <button class="btn btn-secondary" onclick="showMonitoringCommands()">📊 Basic CLI Info Commands</button>
+
+                    <!-- Deployment Tools - Full Width -->
+                    <div class="status-card" id="tour-deployment-tools">
+                        <h3>Deployment Tools</h3>
+                        <div class="deployment-tools-row">
+                            <!-- Helm Section -->
+                            <div class="tool-section">
+                                <div class="tool-section-header">
+                                    <span class="tool-icon">⎈</span>
+                                    <span class="tool-name">Helm</span>
+                                </div>
+                                <div class="status-list tool-status-list">
+                                    <div class="status-row">
+                                        <span class="status-label">Installed</span>
+                                        <span id="helm-installed" class="badge badge-grey">-</span>
+                                    </div>
+                                    <div class="status-row">
+                                        <span class="status-label">Version</span>
+                                        <span class="status-value" id="helm-version">-</span>
+                                    </div>
+                                    <div class="status-row">
+                                        <span class="status-label">Releases</span>
+                                        <span class="status-value" id="helm-releases">-</span>
+                                    </div>
+                                </div>
+                                <div id="helm-releases-list" class="tool-list" style="display: none;"></div>
+                                <button class="btn btn-soft" onclick="showHelmCommands()">CLI Commands</button>
+                            </div>
+
+                            <!-- ArgoCD Section -->
+                            <div class="tool-section">
+                                <div class="tool-section-header">
+                                    <span class="tool-icon">🔄</span>
+                                    <span class="tool-name">ArgoCD</span>
+                                </div>
+                                <div class="status-list tool-status-list">
+                                    <div class="status-row">
+                                        <span class="status-label">Installed</span>
+                                        <span id="argocd-installed" class="badge badge-grey">-</span>
+                                    </div>
+                                    <div class="status-row">
+                                        <span class="status-label">Version</span>
+                                        <span class="status-value" id="argocd-version">-</span>
+                                    </div>
+                                    <div class="status-row">
+                                        <span class="status-label">Apps</span>
+                                        <span class="status-value" id="argocd-app-count">-</span>
+                                    </div>
+                                </div>
+                                <div id="argocd-apps-list" class="tool-list" style="display: none;"></div>
+                                <button class="btn btn-primary" onclick="openArgoCD()">Open ArgoCD</button>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <!-- CLI Commands Section (appears below grid) -->
+
+                    <!-- CLI Commands Section (appears below) -->
                     <div id="cli-commands-container" class="cli-commands-container" style="display: none;">
                         <div class="cli-commands">
                             <h4 id="cli-commands-title">CLI Commands</h4>

@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rollback-app
+  annotations:
+    version: "v1"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: rollback-app
+  template:
+    metadata:
+      labels:
+        app: rollback-app
+    spec:
+      containers:
+        - name: app
+          image: nginx:1.20-alpine
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"

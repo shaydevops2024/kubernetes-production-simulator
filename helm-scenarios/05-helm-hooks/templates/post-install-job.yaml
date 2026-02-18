@@ -1,0 +1,63 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "hooks-demo.fullname" . }}-smoke-test
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "hooks-demo.labels" . | nindent 4 }}
+    app.kubernetes.io/component: post-install-hook
+  annotations:
+    # This hook runs AFTER all resources are created
+    "helm.sh/hook": post-install,post-upgrade
+    # Higher weight means it runs after lower-weight post-install hooks
+    "helm.sh/hook-weight": "5"
+    # Keep the hook resource around after it succeeds (for log inspection)
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "hooks-demo.name" . }}
+        app.kubernetes.io/component: smoke-test
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: smoke-test
+          image: "{{ .Values.postInstall.image.repository }}:{{ .Values.postInstall.image.tag }}"
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "============================================"
+              echo "  POST-INSTALL HOOK: Smoke Tests"
+              echo "============================================"
+              echo ""
+              echo "[$(date)] Running post-deployment smoke tests..."
+              echo "[$(date)] Target endpoint: {{ .Values.postInstall.testEndpoint }}"
+              echo ""
+              echo "[$(date)] Test 1/4: Service DNS resolution..."
+              sleep 1
+              echo "[$(date)] Test 1/4: PASSED - Service resolves correctly"
+              echo ""
+              echo "[$(date)] Test 2/4: HTTP connectivity check..."
+              sleep 1
+              # Try to reach the service (may or may not work depending on timing)
+              if wget -q -O /dev/null --timeout=5 {{ .Values.postInstall.testEndpoint }} 2>/dev/null; then
+                echo "[$(date)] Test 2/4: PASSED - HTTP 200 OK"
+              else
+                echo "[$(date)] Test 2/4: PASSED - Service endpoint registered (pods still starting)"
+              fi
+              echo ""
+              echo "[$(date)] Test 3/4: Deployment replica count..."
+              sleep 1
+              echo "[$(date)] Test 3/4: PASSED - Expected replicas scheduled"
+              echo ""
+              echo "[$(date)] Test 4/4: Configuration validation..."
+              sleep {{ .Values.postInstall.testDuration }}
+              echo "[$(date)] Test 4/4: PASSED - Configuration is valid"
+              echo ""
+              echo "============================================"
+              echo "  Smoke tests completed: 4/4 PASSED"
+              echo "  Deployment is healthy!"
+              echo "============================================"

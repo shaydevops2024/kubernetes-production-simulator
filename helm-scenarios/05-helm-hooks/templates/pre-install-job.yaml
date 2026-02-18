@@ -1,0 +1,61 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "hooks-demo.fullname" . }}-db-migrate
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "hooks-demo.labels" . | nindent 4 }}
+    app.kubernetes.io/component: pre-install-hook
+  annotations:
+    # This annotation marks it as a Helm hook
+    "helm.sh/hook": pre-install,pre-upgrade
+    # Hook weight controls execution order (lower = runs first)
+    "helm.sh/hook-weight": "0"
+    # Delete the hook resource after it succeeds
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 120
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "hooks-demo.name" . }}
+        app.kubernetes.io/component: db-migration
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: db-migrate
+          image: "{{ .Values.preInstall.image.repository }}:{{ .Values.preInstall.image.tag }}"
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "============================================"
+              echo "  PRE-INSTALL HOOK: Database Migration"
+              echo "============================================"
+              echo ""
+              echo "[$(date)] Starting database migration..."
+              echo "[$(date)] Target database: {{ .Values.preInstall.dbHost }}/{{ .Values.preInstall.dbName }}"
+              echo ""
+              echo "[$(date)] Step 1/4: Checking database connectivity..."
+              sleep 1
+              echo "[$(date)] Step 1/4: Database connection OK"
+              echo ""
+              echo "[$(date)] Step 2/4: Creating backup of current schema..."
+              sleep 1
+              echo "[$(date)] Step 2/4: Backup created: backup_$(date +%Y%m%d_%H%M%S).sql"
+              echo ""
+              echo "[$(date)] Step 3/4: Applying migration scripts..."
+              sleep {{ .Values.preInstall.migrationDuration }}
+              echo "[$(date)] Step 3/4: Migration 001_create_users_table.sql ... OK"
+              echo "[$(date)] Step 3/4: Migration 002_add_email_index.sql ... OK"
+              echo "[$(date)] Step 3/4: Migration 003_create_orders_table.sql ... OK"
+              echo ""
+              echo "[$(date)] Step 4/4: Verifying schema integrity..."
+              sleep 1
+              echo "[$(date)] Step 4/4: Schema verification passed"
+              echo ""
+              echo "============================================"
+              echo "  Database migration completed successfully!"
+              echo "  Applied 3 migrations in {{ .Values.preInstall.migrationDuration }}s"
+              echo "============================================"

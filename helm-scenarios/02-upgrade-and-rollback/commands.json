@@ -1,0 +1,115 @@
+{
+  "scenario_id": "02-upgrade-and-rollback",
+  "difficulty": "easy",
+  "duration": "15 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Helm Scenarios Namespace",
+      "command": "kubectl create namespace helm-scenarios --dry-run=client -o yaml | kubectl apply -f -",
+      "description": "Create dedicated 'helm-scenarios' namespace for all Helm learning scenarios",
+      "explanation": "This creates a separate namespace called 'helm-scenarios' where all Helm scenario resources will be deployed. Using --dry-run with apply makes it idempotent - safe to run multiple times.",
+      "what_it_does": "Creates the 'helm-scenarios' namespace if it doesn't exist, or does nothing if it already exists.",
+      "next_step": "Namespace ready. Now add the Bitnami Helm chart repository.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 2: Add Bitnami Helm Repository",
+      "command": "helm repo add bitnami https://charts.bitnami.com/bitnami && helm repo update",
+      "description": "Add the Bitnami chart repository and update the local cache",
+      "explanation": "Helm repositories are like package registries. Bitnami maintains a large collection of production-ready charts. 'helm repo add' registers the repo URL, and 'helm repo update' downloads the latest chart index.",
+      "what_it_does": "Registers the Bitnami repository and refreshes the local chart index cache.",
+      "next_step": "Repository added. Now install Nginx with v1 values.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 3: Install Release with v1 Values",
+      "command": "helm install my-nginx bitnami/nginx --namespace helm-scenarios -f helm-scenarios/02-upgrade-and-rollback/values-v1.yaml",
+      "description": "Install the Nginx chart with version 1 configuration",
+      "explanation": "This creates revision 1 of the release using values-v1.yaml. The v1 config sets 1 replica, ClusterIP service, conservative resource limits, and a simple server block that returns 'Hello from v1!'.",
+      "what_it_does": "Creates Helm release 'my-nginx' at revision 1 with v1 configuration: 1 replica, ClusterIP service, and v1 server block.",
+      "next_step": "Release installed at revision 1. Let's verify it's running.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 4: Verify v1 Release",
+      "command": "helm list --namespace helm-scenarios && echo '---' && kubectl get pods,svc -n helm-scenarios -l app.kubernetes.io/instance=my-nginx && echo '---' && helm history my-nginx --namespace helm-scenarios",
+      "description": "Check the release status, Kubernetes resources, and release history",
+      "explanation": "'helm list' shows the release is DEPLOYED at revision 1. The pods/services confirm 1 replica with ClusterIP. 'helm history' shows only one entry - revision 1 with status 'deployed'. Each upgrade or rollback adds a new history entry.",
+      "what_it_does": "Displays the Helm release info, shows 1 running pod and ClusterIP service, and lists the release history (currently only revision 1).",
+      "next_step": "v1 is stable. Now upgrade to v2 with new values.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 5: Upgrade Release to v2",
+      "command": "kubectl delete svc my-nginx -n helm-scenarios --ignore-not-found=true && helm upgrade my-nginx bitnami/nginx --namespace helm-scenarios -f helm-scenarios/02-upgrade-and-rollback/values-v2.yaml",
+      "description": "Upgrade the release to version 2 (delete service first to change type from ClusterIP to NodePort)",
+      "explanation": "'helm upgrade' applies new values to the existing release, creating revision 2. The v2 config scales to 3 replicas, changes service to NodePort, increases resource limits, and updates the server block. We delete the existing ClusterIP service first because Kubernetes does not allow patching a service's type — Helm will recreate it as NodePort.",
+      "what_it_does": "Deletes the existing service, then upgrades 'my-nginx' to revision 2 with v2 configuration: 3 replicas, NodePort service (auto-assigned port), larger resource limits, and updated server block.",
+      "next_step": "Upgraded to v2. Let's check the release history to see both revisions.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 6: Check Release History",
+      "command": "helm history my-nginx --namespace helm-scenarios",
+      "description": "View the full release history showing both revisions",
+      "explanation": "'helm history' shows all revisions of a release. You should see: Revision 1 (superseded) and Revision 2 (deployed). Each entry shows the revision number, timestamp, status, chart version, app version, and description. The 'superseded' status means that revision was replaced by a newer one.",
+      "what_it_does": "Lists all revisions of the 'my-nginx' release, showing revision 1 as 'superseded' and revision 2 as 'deployed'.",
+      "next_step": "Two revisions visible. Let's verify the v2 changes are applied.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 7: Verify v2 Changes",
+      "command": "kubectl get pods,svc -n helm-scenarios -l app.kubernetes.io/instance=my-nginx && echo '---' && helm get values my-nginx --namespace helm-scenarios",
+      "description": "Confirm the upgrade applied v2 values correctly",
+      "explanation": "You should see 3 pods running (scaled up from 1) and a NodePort service (changed from ClusterIP). 'helm get values' shows the v2 user-supplied values. Compare these with v1 to see what changed.",
+      "what_it_does": "Shows 3 running pods, the NodePort service, and the v2 user-supplied values confirming the upgrade worked.",
+      "next_step": "v2 confirmed. Now let's simulate a rollback to the stable v1.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 8: Rollback to Revision 1",
+      "command": "kubectl delete svc my-nginx -n helm-scenarios --ignore-not-found=true && helm rollback my-nginx 1 --namespace helm-scenarios",
+      "description": "Roll back the release to revision 1 (delete service first to change type from NodePort back to ClusterIP)",
+      "explanation": "'helm rollback <release> <revision>' reverts to a previous configuration. This doesn't delete revision 2 - instead, it creates revision 3 with the same config as revision 1. We delete the existing NodePort service first because Kubernetes does not allow patching service type — Helm will recreate it as ClusterIP.",
+      "what_it_does": "Deletes the existing service, then creates revision 3 of 'my-nginx' with the same configuration as revision 1. Scales back to 1 replica, reverts to ClusterIP service, and restores the v1 server block.",
+      "next_step": "Rolled back. Let's verify the rollback worked.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 9: Verify Rollback",
+      "command": "kubectl get pods,svc -n helm-scenarios -l app.kubernetes.io/instance=my-nginx && echo '---' && helm get values my-nginx --namespace helm-scenarios",
+      "description": "Confirm the rollback restored v1 configuration",
+      "explanation": "You should see 1 pod (back from 3) and a ClusterIP service (back from NodePort). 'helm get values' shows the v1 values. The rollback successfully reverted all changes made in v2.",
+      "what_it_does": "Shows 1 running pod, ClusterIP service, and v1 user-supplied values confirming the rollback restored the original configuration.",
+      "next_step": "Rollback confirmed. Let's check the full history to see all three revisions.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 10: Check History After Rollback",
+      "command": "helm history my-nginx --namespace helm-scenarios",
+      "description": "View the complete release history including the rollback",
+      "explanation": "The history now shows 3 revisions: Rev 1 (superseded - original install), Rev 2 (superseded - the v2 upgrade), Rev 3 (deployed - rollback to rev 1). Notice the description for Rev 3 says 'Rollback to 1'. Helm maintains this full audit trail so you always know what happened.",
+      "what_it_does": "Displays all 3 revisions showing the complete lifecycle: install, upgrade, and rollback. The rollback created a new revision rather than deleting the upgrade.",
+      "next_step": "You've mastered Helm upgrades and rollbacks! Time to clean up.",
+      "cleanup": false
+    },
+    {
+      "name": "Cleanup 1: Uninstall the Helm Release",
+      "command": "helm uninstall my-nginx --namespace helm-scenarios",
+      "description": "Remove the Nginx Helm release and all its Kubernetes resources",
+      "explanation": "'helm uninstall' removes the release and all Kubernetes resources it manages. In Helm 3, the release history is also purged by default (unlike Helm 2 which kept history unless you used --purge).",
+      "what_it_does": "Deletes the 'my-nginx' release, all 3 revisions of history, and all associated Kubernetes resources from helm-scenarios namespace.",
+      "next_step": "Release removed. Verify cleanup is complete.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup 2: Verify Resources Removed",
+      "command": "helm list --namespace helm-scenarios && echo '---' && kubectl get all -n helm-scenarios",
+      "description": "Confirm all Helm resources have been removed",
+      "explanation": "'helm list' should show no releases. 'kubectl get all' should show no resources. This confirms the uninstall was successful and the namespace is clean for the next scenario.",
+      "what_it_does": "Verifies that no Helm releases or Kubernetes resources remain in the helm-scenarios namespace.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

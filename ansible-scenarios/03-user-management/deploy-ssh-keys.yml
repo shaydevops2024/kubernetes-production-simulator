@@ -1,0 +1,16 @@
+---
+- name: Deploy SSH keys for passwordless authentication
+  hosts: servers
+  become: yes
+  tasks:
+    - name: Add SSH key for devuser
+      authorized_key:
+        user: devuser
+        key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDemokey123 devuser@example.com"
+        state: present
+
+    - name: Add SSH key for dbadmin
+      authorized_key:
+        user: dbadmin
+        key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDemokey456 dbadmin@example.com"
+        state: present

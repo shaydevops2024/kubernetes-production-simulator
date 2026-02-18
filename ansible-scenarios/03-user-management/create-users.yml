@@ -1,0 +1,42 @@
+---
+- name: Create users and groups
+  hosts: servers
+  become: yes
+  tasks:
+    - name: Create developers group
+      group:
+        name: developers
+        gid: 3000
+        state: present
+
+    - name: Create dbadmins group
+      group:
+        name: dbadmins
+        gid: 3001
+        state: present
+
+    - name: Create devuser
+      user:
+        name: devuser
+        uid: 2001
+        group: developers
+        shell: /bin/bash
+        create_home: yes
+        state: present
+
+    - name: Create dbadmin
+      user:
+        name: dbadmin
+        uid: 2002
+        group: dbadmins
+        shell: /bin/bash
+        create_home: yes
+        state: present
+
+    - name: Create appuser
+      user:
+        name: appuser
+        uid: 2003
+        shell: /bin/bash
+        create_home: yes
+        state: present

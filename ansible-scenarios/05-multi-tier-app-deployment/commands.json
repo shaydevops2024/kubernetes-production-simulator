@@ -1,0 +1,130 @@
+{
+  "scenario_id": "05-multi-tier-app-deployment",
+  "difficulty": "medium",
+  "duration": "35 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Application Tier Containers",
+      "command": "docker run -d --name database --hostname database -p 2261:22 -p 5432:5432 rastasheep/ubuntu-sshd && docker run -d --name backend --hostname backend -p 2262:22 -p 5000:5000 --link database:database rastasheep/ubuntu-sshd && docker run -d --name frontend --hostname frontend -p 2263:22 -p 8090:80 --link backend:backend rastasheep/ubuntu-sshd",
+      "description": "Launch 3-tier application containers with network links",
+      "explanation": "Creates database (PostgreSQL), backend (Flask app), and frontend (nginx) containers. Uses --link for container networking (database → backend → frontend).",
+      "what_it_does": "Creates 3 linked containers simulating a production application stack.",
+      "next_step": "Containers ready. View the site.yml playbook."
+    },
+    {
+      "name": "Step 2: View Main Playbook",
+      "command": "cat ansible-scenarios/05-multi-tier-app-deployment/site.yml",
+      "description": "Display the orchestration playbook",
+      "explanation": "Shows playbook structure with 3 plays targeting different host groups. Deploys in order: database → backend → frontend (respecting dependencies).",
+      "what_it_does": "Displays main playbook showing multi-tier deployment orchestration.",
+      "next_step": "Playbook structure reviewed. View roles directory."
+    },
+    {
+      "name": "Step 3: List Roles",
+      "command": "ls -R ansible-scenarios/05-multi-tier-app-deployment/roles/",
+      "description": "Display role structure",
+      "explanation": "Shows roles (database, backend, frontend) with tasks/, templates/, handlers/, and vars/ directories. Roles encapsulate tier-specific logic.",
+      "what_it_does": "Lists role directories showing organized playbook structure.",
+      "next_step": "Roles structure clear. Deploy database tier."
+    },
+    {
+      "name": "Step 4: Deploy Database Tier",
+      "command": "cd ansible-scenarios/05-multi-tier-app-deployment && ansible-playbook -i inventory/hosts.ini site.yml --tags database",
+      "description": "Install and configure PostgreSQL database",
+      "explanation": "Runs only database role using tags. Installs PostgreSQL, creates database/user, configures pg_hba.conf for network access.",
+      "what_it_does": "Deploys PostgreSQL on database container with configured access.",
+      "next_step": "Database deployed. Verify PostgreSQL is running."
+    },
+    {
+      "name": "Step 5: Verify Database Service",
+      "command": "cd ansible-scenarios/05-multi-tier-app-deployment && ansible database -i inventory/hosts.ini -m command -a 'pg_isready'",
+      "description": "Check PostgreSQL is accepting connections",
+      "explanation": "pg_isready tests if PostgreSQL is ready. Returns 'accepting connections' when healthy.",
+      "what_it_does": "Verifies PostgreSQL service is running and accessible.",
+      "next_step": "Database ready. Deploy backend tier."
+    },
+    {
+      "name": "Step 6: Deploy Backend Application",
+      "command": "cd ansible-scenarios/05-multi-tier-app-deployment && ansible-playbook -i inventory/hosts.ini site.yml --tags backend",
+      "description": "Install Python app with database connectivity",
+      "explanation": "Runs backend role: installs Python/Flask, deploys app code, configures database connection, starts app service. Uses handlers to restart on config changes.",
+      "what_it_does": "Deploys Flask application on backend container connected to database.",
+      "next_step": "Backend deployed. Test app endpoint."
+    },
+    {
+      "name": "Step 7: Test Backend API",
+      "command": "curl -s http://localhost:5000/health",
+      "description": "Verify backend application is responding",
+      "explanation": "Hits /health endpoint. Should return JSON showing app status and database connectivity.",
+      "what_it_does": "Tests backend application is running and can reach database.",
+      "next_step": "Backend working. Deploy frontend tier."
+    },
+    {
+      "name": "Step 8: Deploy Frontend Tier",
+      "command": "cd ansible-scenarios/05-multi-tier-app-deployment && ansible-playbook -i inventory/hosts.ini site.yml --tags frontend",
+      "description": "Configure nginx as reverse proxy to backend",
+      "explanation": "Runs frontend role: installs nginx, configures as reverse proxy to backend:5000, enables load balancing and caching.",
+      "what_it_does": "Deploys nginx on frontend container proxying to backend.",
+      "next_step": "Frontend deployed. Test through nginx."
+    },
+    {
+      "name": "Step 9: Test Full Stack",
+      "command": "curl -s http://localhost:8090/health && echo && curl -s http://localhost:8090/api/data | head -10",
+      "description": "Test complete request flow: frontend → backend → database",
+      "explanation": "Requests go: curl → nginx (8090) → Flask (5000) → PostgreSQL (5432). Tests full 3-tier stack.",
+      "what_it_does": "Verifies complete application stack is functioning end-to-end.",
+      "next_step": "Stack working! Run complete deployment."
+    },
+    {
+      "name": "Step 10: Full Stack Deployment",
+      "command": "cd ansible-scenarios/05-multi-tier-app-deployment && ansible-playbook -i inventory/hosts.ini site.yml",
+      "description": "Deploy all tiers in one playbook run",
+      "explanation": "Runs complete site.yml without tags. Deploys all tiers in order. Ansible's idempotency means already-configured services show 'ok' instead of 'changed'.",
+      "what_it_does": "Executes full multi-tier deployment orchestration.",
+      "next_step": "Full deployment complete. View handlers."
+    },
+    {
+      "name": "Step 11: Trigger Handler by Changing Config",
+      "command": "cd ansible-scenarios/05-multi-tier-app-deployment && ansible-playbook -i inventory/hosts.ini update-backend-config.yml",
+      "description": "Modify backend config to trigger restart handler",
+      "explanation": "Changes backend configuration. Handler 'restart backend' is notified and runs at end of play. Demonstrates declarative service management.",
+      "what_it_does": "Updates config and automatically restarts backend service via handler.",
+      "next_step": "Handler triggered. Check role dependencies."
+    },
+    {
+      "name": "Step 12: View Role Dependencies",
+      "command": "cat ansible-scenarios/05-multi-tier-app-deployment/roles/backend/meta/main.yml",
+      "description": "Display role metadata and dependencies",
+      "explanation": "meta/main.yml defines role dependencies. Backend depends on 'common' role, which runs first automatically.",
+      "what_it_does": "Shows how roles can depend on other roles for shared setup.",
+      "next_step": "Dependencies understood. Multi-tier deployment complete! Clean up."
+    },
+    {
+      "name": "Cleanup 1: Stop All Services",
+      "command": "cd ansible-scenarios/05-multi-tier-app-deployment && ansible-playbook -i inventory/hosts.ini stop-services.yml",
+      "description": "Gracefully stop all application services",
+      "explanation": "Stops services in reverse order: frontend → backend → database.",
+      "what_it_does": "Stops nginx, backend app, and PostgreSQL services.",
+      "next_step": "Services stopped. Remove containers.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup 2: Stop Containers",
+      "command": "docker stop frontend backend database",
+      "description": "Stop all application containers",
+      "explanation": "Stops the 3 containers.",
+      "what_it_does": "Stops frontend, backend, and database containers.",
+      "next_step": "Containers stopped. Remove them.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup 3: Remove Containers",
+      "command": "docker rm frontend backend database",
+      "description": "Remove stopped containers",
+      "explanation": "Deletes containers and their data.",
+      "what_it_does": "Removes all 3-tier application containers from Docker.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

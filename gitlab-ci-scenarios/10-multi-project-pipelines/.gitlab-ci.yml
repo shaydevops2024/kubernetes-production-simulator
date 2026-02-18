@@ -1,0 +1,64 @@
+# .gitlab-ci.yml - Multi-Project Pipelines (API Service Repo)
+# This pipeline builds the API, then triggers integration tests and deployment
+
+stages:
+  - build
+  - test
+  - integration
+  - deploy
+
+variables:
+  APP_NAME: "api-service"
+
+# Build the service
+build:
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:v1.14.0-debug
+    entrypoint: [""]
+  script:
+    - /kaniko/executor
+        --context $CI_PROJECT_DIR
+        --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+        --cache=true
+
+# Unit tests
+test:
+  stage: test
+  image: python:3.11
+  script:
+    - pip install -r requirements.txt
+    - pytest tests/ -v
+
+# Trigger integration tests in another project
+trigger-integration-tests:
+  stage: integration
+  trigger:
+    project: mygroup/integration-tests
+    branch: main
+    strategy: depend  # Wait for integration tests to complete
+  variables:
+    UPSTREAM_PROJECT: $CI_PROJECT_PATH
+    UPSTREAM_SHA: $CI_COMMIT_SHA
+    UPSTREAM_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    UPSTREAM_SERVICE: "api"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# Trigger deployment orchestrator
+trigger-deploy:
+  stage: deploy
+  trigger:
+    project: mygroup/deploy-orchestrator
+    branch: main
+    strategy: depend
+  variables:
+    SERVICE_NAME: $APP_NAME
+    IMAGE_TAG: $CI_COMMIT_SHA
+    IMAGE_REPO: $CI_REGISTRY_IMAGE
+    DEPLOY_ENV: "staging"
+    TRIGGERED_BY: $CI_PROJECT_PATH
+    TRIGGERED_BY_PIPELINE: $CI_PIPELINE_URL
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  needs: [trigger-integration-tests]

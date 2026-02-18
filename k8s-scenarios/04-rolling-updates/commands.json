@@ -1,0 +1,139 @@
+{
+  "scenario_id": "04-rolling-updates",
+  "difficulty": "medium",
+  "duration": "20 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Namespace",
+      "command": "kubectl create namespace scenarios --dry-run=client -o yaml | kubectl apply -f -",
+      "description": "Create scenarios namespace",
+      "explanation": "Creates namespace for rolling update demonstration.",
+      "what_it_does": "Creates 'scenarios' namespace if needed.",
+      "next_step": "Deploy v1 of the application."
+    },
+    {
+      "name": "Step 2: Deploy v1",
+      "command": "kubectl apply -f k8s-scenarios/04-rolling-updates/deployment.yaml -f k8s-scenarios/04-rolling-updates/service.yaml -n scenarios && kubectl annotate deployment/rolling-demo kubernetes.io/change-cause=\"Initial deployment with nginx:1.20-alpine (v1)\" -n scenarios",
+      "description": "Deploy nginx deployment and service with nginx:1.20-alpine (version 1)",
+      "explanation": "Creates deployment with 3 replicas and service running nginx:1.20-alpine. Uses RollingUpdate strategy with maxSurge:1 (can create 1 extra pod) and maxUnavailable:1 (at most 1 unavailable during update). The annotation tracks the change-cause for rollout history.",
+      "what_it_does": "Creates 'rolling-demo' deployment and 'rolling-service' with nginx:1.20, and annotates the deployment with change-cause.",
+      "next_step": "Verify v1 is running before updating."
+    },
+    {
+      "name": "Step 3: Verify v1 Running",
+      "command": "kubectl get pods -n scenarios -l app=rolling-demo -o jsonpath='{.items[*].spec.containers[*].image}' | tr ' ' '\\n' | sort -u",
+      "description": "Check that all pods are running nginx:1.20-alpine",
+      "explanation": "Extracts container images from all pods and shows unique values. All should be nginx:1.20-alpine (v1).",
+      "what_it_does": "Lists unique container images currently running.",
+      "next_step": "All pods on v1. Now update to v2."
+    },
+    {
+      "name": "Step 4: Update to v2",
+      "command": "kubectl set image deployment/rolling-demo app=nginx:1.21-alpine -n scenarios && kubectl annotate deployment/rolling-demo kubernetes.io/change-cause=\"Updated to nginx:1.21-alpine (v2)\" -n scenarios --overwrite",
+      "description": "Update container image to nginx:1.21-alpine (version 2)",
+      "explanation": "Triggers a rolling update. Kubernetes gradually replaces v1 pods with v2 pods. With maxUnavailable:1, at most 1 pod is down at a time, ensuring service availability. The annotation records the change-cause so you can see it in rollout history.",
+      "what_it_does": "Updates deployment image to v2 and records the change-cause annotation for tracking.",
+      "next_step": "Watch the update progress in real-time."
+    },
+    {
+      "name": "Step 5: Watch Rolling Update",
+      "command": "kubectl rollout status deployment/rolling-demo -n scenarios",
+      "description": "Monitor update progress (blocks until complete)",
+      "explanation": "Shows real-time progress: 'Waiting for deployment rollout to finish: 2 out of 3 new replicas have been updated...' then 'deployment rolled out'. Takes 30-90 seconds as pods update sequentially.",
+      "what_it_does": "Streams rolling update status until successfully completed.",
+      "next_step": "Update complete! Verify all pods are on v2."
+    },
+    {
+      "name": "Step 6: Verify v2 Running",
+      "command": "kubectl get pods -n scenarios -l app=rolling-demo -o jsonpath='{.items[*].spec.containers[*].image}' | tr ' ' '\\n' | sort -u",
+      "description": "Confirm all pods updated to nginx:1.21-alpine",
+      "explanation": "Should now show only nginx:1.21-alpine (v2). The rolling update completed with zero downtime - service was available throughout.",
+      "what_it_does": "Lists unique container images after update.",
+      "next_step": "Check deployment history to see revisions."
+    },
+    {
+      "name": "Step 7: View Rollout History",
+      "command": "kubectl rollout history deployment/rolling-demo -n scenarios",
+      "description": "View deployment revision history",
+      "explanation": "Shows all revisions with their change-cause annotations: Revision 1 (v1), Revision 2 (v2). Kubernetes keeps last 10 revisions by default (configurable with revisionHistoryLimit). This enables rollback capability and helps you track what changed in each revision.",
+      "what_it_does": "Lists all deployment revisions with descriptive change causes showing version information.",
+      "next_step": "Test rollback to previous version."
+    },
+    {
+      "name": "Step 8: Rollback to v1",
+      "command": "kubectl rollout undo deployment/rolling-demo -n scenarios && kubectl annotate deployment/rolling-demo kubernetes.io/change-cause=\"Rolled back to nginx:1.20-alpine (v1)\" -n scenarios --overwrite",
+      "description": "Rollback to previous version (v1)",
+      "explanation": "Reverts to Revision 1 (nginx:1.20). Rollback is another rolling update - same strategy, just backwards. Takes 30-90 seconds with zero downtime. We annotate the rollback so it appears in the history.",
+      "what_it_does": "Performs rolling update back to previous revision and records the rollback in change-cause.",
+      "next_step": "Wait for rollback to complete."
+    },
+    {
+      "name": "Step 9: Verify Rollback",
+      "command": "kubectl get pods -n scenarios -l app=rolling-demo -o jsonpath='{.items[*].spec.containers[*].image}' | tr ' ' '\\n' | sort -u",
+      "description": "Confirm pods are back on nginx:1.20-alpine",
+      "explanation": "Should show nginx:1.20-alpine again. Rollback successful! Both forward updates and rollbacks maintain zero downtime.",
+      "what_it_does": "Verifies current container images after rollback.",
+      "next_step": "Review what you've learned in this scenario."
+    },
+    {
+      "name": "Step 10: Summary & Review",
+      "command": "kubectl get deployment rolling-demo -n scenarios -o wide",
+      "description": "View final deployment state and review your accomplishments",
+      "explanation": "Congratulations! You've completed the Rolling Updates scenario. You now understand how Kubernetes manages zero-downtime deployments.",
+      "what_it_does": "Shows the final deployment state with all details.",
+      "next_step": "Ready for cleanup!",
+      "show_yaml": true,
+      "summary": {
+        "key_learnings": [
+          "Rolling updates allow zero-downtime deployment updates by gradually replacing old pods with new ones",
+          "The RollingUpdate strategy uses maxSurge and maxUnavailable to control update speed and availability",
+          "kubectl set image triggers a rolling update by changing the container image",
+          "kubectl rollout status monitors the progress of a rolling update in real-time",
+          "Rollout history tracks all revisions and change-cause annotations help identify what changed",
+          "kubectl rollout undo performs a rollback to the previous revision using the same rolling strategy",
+          "Annotations like kubernetes.io/change-cause are crucial for tracking changes in rollout history",
+          "Both updates and rollbacks maintain service availability throughout the process"
+        ],
+        "commands_used": [
+          {
+            "command": "kubectl apply -f deployment.yaml",
+            "purpose": "Deploys or updates Kubernetes resources declaratively from YAML files"
+          },
+          {
+            "command": "kubectl annotate deployment/name kubernetes.io/change-cause=\"message\"",
+            "purpose": "Adds metadata annotations to resources for tracking changes in rollout history"
+          },
+          {
+            "command": "kubectl get pods -o jsonpath='{.items[*].spec.containers[*].image}'",
+            "purpose": "Extracts specific fields from resources using JSONPath queries"
+          },
+          {
+            "command": "kubectl set image deployment/name container=image:tag",
+            "purpose": "Updates container image in a deployment, triggering a rolling update"
+          },
+          {
+            "command": "kubectl rollout status deployment/name",
+            "purpose": "Monitors and displays the progress of a deployment rollout"
+          },
+          {
+            "command": "kubectl rollout history deployment/name",
+            "purpose": "Shows revision history with change-cause annotations for tracking deployments"
+          },
+          {
+            "command": "kubectl rollout undo deployment/name",
+            "purpose": "Rolls back a deployment to the previous revision using rolling update strategy"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Cleanup: Delete Resources",
+      "command": "kubectl delete -f k8s-scenarios/04-rolling-updates/deployment.yaml -f k8s-scenarios/04-rolling-updates/service.yaml -n scenarios",
+      "description": "Remove deployment and service",
+      "explanation": "Deletes all resources created in this scenario.",
+      "what_it_does": "Removes rolling-demo deployment and rolling-service.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

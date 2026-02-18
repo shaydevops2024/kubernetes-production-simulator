@@ -1,0 +1,37 @@
+# values-v2.yaml
+# Version 2 configuration: scaled up with updated server block
+# This represents a new release with changes that we may want to roll back.
+
+replicaCount: 3
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+service:
+  type: NodePort
+  port: 80
+
+commonLabels:
+  version: v2
+  environment: learning
+
+# Updated server configuration with new endpoints
+serverBlock: |-
+  server {
+    listen 0.0.0.0:8080;
+    location /version {
+      return 200 "Version 2 - New Features\n";
+    }
+    location /api/health {
+      return 200 '{"status":"ok","version":"v2"}\n';
+      default_type application/json;
+    }
+    location / {
+      return 200 "Hello from v2 - upgraded!\n";
+    }
+  }

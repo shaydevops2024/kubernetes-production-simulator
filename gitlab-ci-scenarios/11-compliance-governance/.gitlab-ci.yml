@@ -1,0 +1,138 @@
+# .gitlab-ci.yml - Compliance & Governance Pipeline
+# Demonstrates mandatory security gates, approval workflows, and audit controls
+
+stages:
+  - compliance
+  - build
+  - test
+  - security
+  - deploy-staging
+  - approve
+  - deploy-production
+
+# ============================================
+# COMPLIANCE STAGE (mandatory, cannot be skipped)
+# ============================================
+
+# Mandatory: Check for required files
+compliance-check:
+  stage: compliance
+  image: alpine:latest
+  script:
+    - echo "=== Compliance Check ==="
+    # Verify required files exist
+    - test -f Dockerfile || (echo "ERROR: Dockerfile required" && exit 1)
+    - test -f .gitlab-ci.yml || (echo "ERROR: .gitlab-ci.yml required" && exit 1)
+    - echo "Required files present"
+    # Check for banned patterns
+    - "! grep -r 'password=' --include='*.py' --include='*.js' src/ || (echo 'ERROR: Hardcoded passwords detected' && exit 1)"
+    - echo "No banned patterns found"
+    - echo "Compliance check PASSED"
+  allow_failure: false  # MUST pass
+
+# Mandatory: License compliance
+license-scan:
+  stage: compliance
+  image: python:3.11-slim
+  script:
+    - pip install pip-licenses
+    - pip install -r requirements.txt 2>/dev/null || true
+    - pip-licenses --format=json --output=licenses.json
+    - echo "License scan complete"
+    # Check for banned licenses
+    - |
+      if pip-licenses | grep -i "GPL-3.0"; then
+        echo "WARNING: GPL-3.0 license detected - legal review required"
+      fi
+  artifacts:
+    paths:
+      - licenses.json
+    expire_in: 90 days  # Keep for audit
+  allow_failure: false
+
+# ============================================
+# STANDARD BUILD/TEST
+# ============================================
+build:
+  stage: build
+  script:
+    - echo "Building application..."
+
+test:
+  stage: test
+  script:
+    - echo "Running tests..."
+
+# ============================================
+# MANDATORY SECURITY (compliance-enforced)
+# ============================================
+security-sast:
+  stage: security
+  script:
+    - echo "Running SAST scan..."
+  allow_failure: false
+
+security-secrets:
+  stage: security
+  script:
+    - echo "Running secret detection..."
+  allow_failure: false
+
+# ============================================
+# DEPLOYMENT WITH APPROVAL GATES
+# ============================================
+
+deploy-staging:
+  stage: deploy-staging
+  script:
+    - echo "Deploying to staging..."
+    - echo "Image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+  environment:
+    name: staging
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# Manual approval gate (requires protected environment approvers)
+approve-production:
+  stage: approve
+  script:
+    - echo "Production deployment approved by $GITLAB_USER_LOGIN"
+    - echo "Commit: $CI_COMMIT_SHA"
+    - echo "Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  when: manual
+  allow_failure: false
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+deploy-production:
+  stage: deploy-production
+  script:
+    - echo "Deploying to production..."
+    - echo "Image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+    - echo "Approved by: $GITLAB_USER_LOGIN"
+  environment:
+    name: production
+  needs: [approve-production]
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# Emergency deployment (break glass)
+emergency-deploy:
+  stage: deploy-production
+  script:
+    - echo "⚠️  EMERGENCY DEPLOYMENT ⚠️"
+    - echo "Deployed by: $GITLAB_USER_LOGIN"
+    - echo "Reason: $EMERGENCY_REASON"
+    - echo "Post-mortem required within 48 hours"
+  environment:
+    name: production
+  when: manual
+  rules:
+    - if: $EMERGENCY_DEPLOY == "true"
+  variables:
+    EMERGENCY_DEPLOY:
+      value: "false"
+      description: "Set to true for emergency deployment during freeze"
+    EMERGENCY_REASON:
+      value: ""
+      description: "Required: Reason for emergency deployment"

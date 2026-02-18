@@ -1,0 +1,37 @@
+# custom-values.yaml
+# This file overrides default chart values when passed with: helm upgrade -f custom-values.yaml
+# Values here take precedence over the chart's defaults but are overridden by --set flags.
+
+# Scale to 3 replicas for high availability
+replicaCount: 3
+
+# Configure resource requests and limits suitable for a Kind cluster
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 150m
+    memory: 128Mi
+
+# Expose the service as NodePort so it's accessible outside the cluster
+service:
+  type: NodePort
+  port: 80
+
+# Add custom labels to all resources
+commonLabels:
+  environment: learning
+  scenario: custom-values-override
+
+# Configure a simple server block
+serverBlock: |-
+  server {
+    listen 0.0.0.0:8080;
+    location /healthz {
+      return 200 "healthy\n";
+    }
+    location / {
+      return 200 "Hello from Helm custom values!\n";
+    }
+  }

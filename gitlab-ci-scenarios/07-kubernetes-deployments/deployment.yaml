@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-deploy-demo
+  namespace: gitlab-ci-scenarios
+  labels:
+    app: k8s-deploy-demo
+    scenario: "07-kubernetes-deployments"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: k8s-deploy-demo
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: k8s-deploy-demo
+    spec:
+      containers:
+        - name: app
+          image: nginx:1.25-alpine
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8s-deploy-demo
+  namespace: gitlab-ci-scenarios
+  labels:
+    app: k8s-deploy-demo
+spec:
+  selector:
+    app: k8s-deploy-demo
+  ports:
+    - port: 80
+      targetPort: 80

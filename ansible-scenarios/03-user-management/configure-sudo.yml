@@ -1,0 +1,18 @@
+---
+- name: Configure sudo access
+  hosts: servers
+  become: yes
+  tasks:
+    - name: Grant full sudo to devuser
+      copy:
+        content: "devuser ALL=(ALL) ALL\n"
+        dest: /etc/sudoers.d/devuser
+        mode: '0440'
+        validate: 'visudo -cf %s'
+
+    - name: Grant passwordless sudo for specific commands to dbadmin
+      copy:
+        content: "dbadmin ALL=(ALL) NOPASSWD: /usr/bin/psql, /usr/bin/pg_dump\n"
+        dest: /etc/sudoers.d/dbadmin
+        mode: '0440'
+        validate: 'visudo -cf %s'

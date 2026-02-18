@@ -1,0 +1,115 @@
+{
+  "scenario_id": "05-helm-hooks",
+  "difficulty": "medium",
+  "duration": "20 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Namespace",
+      "command": "kubectl create namespace helm-scenarios --dry-run=client -o yaml | kubectl apply -f -",
+      "description": "Create the helm-scenarios namespace",
+      "explanation": "Creates the namespace where we will install our Helm chart. The dry-run pattern ensures idempotency - it won't fail if the namespace already exists.",
+      "what_it_does": "Creates 'helm-scenarios' namespace if it does not already exist.",
+      "next_step": "Review the pre-install hook template.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 2: Review Pre-Install Hook",
+      "command": "cat helm-scenarios/05-helm-hooks/templates/pre-install-job.yaml",
+      "description": "Examine the pre-install hook that simulates a database migration",
+      "explanation": "This Job has three critical annotations: 'helm.sh/hook: pre-install,pre-upgrade' tells Helm to run it BEFORE creating resources. 'helm.sh/hook-weight: 0' controls ordering when multiple hooks exist (lower runs first). 'helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded' means Helm deletes any previous hook Job before creating a new one, and cleans up after success.",
+      "what_it_does": "Displays the pre-install hook Job template with its Helm hook annotations.",
+      "next_step": "Review the post-install hook template.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 3: Review Post-Install Hook",
+      "command": "cat helm-scenarios/05-helm-hooks/templates/post-install-job.yaml",
+      "description": "Examine the post-install hook that runs smoke tests",
+      "explanation": "This hook uses 'helm.sh/hook: post-install,post-upgrade' so it runs AFTER all resources are created. Its weight is 5 (higher than pre-install's 0). The delete policy is 'before-hook-creation' only - meaning the Job is kept after success so you can inspect its logs. Helm waits for post-install hooks to complete before marking the release as 'deployed'.",
+      "what_it_does": "Displays the post-install hook Job template that performs smoke tests after deployment.",
+      "next_step": "Install the chart and watch hooks execute.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 4: Install Chart and Watch Hooks",
+      "command": "helm install hooks-demo helm-scenarios/05-helm-hooks/ --namespace helm-scenarios --wait",
+      "description": "Install the chart - watch the hooks execute in order",
+      "explanation": "When you run helm install, the following happens in order: (1) Templates are rendered, (2) Pre-install hook Job is created and Helm waits for it to complete, (3) Main resources (Deployment, Service) are created, (4) Post-install hook Job is created and Helm waits for it to complete, (5) Release is marked as 'deployed'. The --wait flag makes Helm also wait for the Deployment to be ready.",
+      "what_it_does": "Installs the hooks-demo chart. You will see Helm pause while each hook Job runs to completion.",
+      "next_step": "Verify the hook Jobs completed successfully.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 5: Check Hook Jobs",
+      "command": "kubectl get jobs -n helm-scenarios -l app.kubernetes.io/instance=hooks-demo",
+      "description": "List Jobs created by the hooks",
+      "explanation": "You should see the post-install smoke-test Job in Completed state. The pre-install Job was cleaned up automatically because its delete policy included 'hook-succeeded'. This is a key concept: you control whether hook resources persist after execution via the delete policy annotation.",
+      "what_it_does": "Lists all Jobs from the hooks-demo release. Only the post-install Job should remain.",
+      "next_step": "View the smoke test logs.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 6: View Smoke Test Logs",
+      "command": "kubectl logs -n helm-scenarios job/hooks-demo-smoke-test",
+      "description": "Check the post-install smoke test output",
+      "explanation": "The post-install hook's delete policy was 'before-hook-creation' (not 'hook-succeeded'), so the completed Job and its pod remain. This lets you inspect what the smoke test did. In production, you would use this pattern to verify your app is healthy after deployment.",
+      "what_it_does": "Displays the smoke test output showing all 4 tests passed.",
+      "next_step": "Check the main application resources.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 7: Verify Application Resources",
+      "command": "kubectl get all -n helm-scenarios -l app.kubernetes.io/instance=hooks-demo",
+      "description": "Confirm the main Deployment and Service were created",
+      "explanation": "These resources were created BETWEEN the pre-install and post-install hooks. The Deployment should show 2/2 replicas ready, and the Service should be type ClusterIP. Hooks are separate from these resources - they run alongside the release lifecycle but are not part of the running application.",
+      "what_it_does": "Lists the Deployment, Service, ReplicaSet, and Pods for the hooks-demo release.",
+      "next_step": "Check the Helm release status.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 8: Check Release Status",
+      "command": "helm status hooks-demo -n helm-scenarios",
+      "description": "View the Helm release status including hook information",
+      "explanation": "The status should show 'STATUS: deployed' which means all hooks completed successfully and the release is live. If any hook had failed, the release would show 'STATUS: failed' and the main resources would not have been created (for pre-install) or the release would be marked failed (for post-install).",
+      "what_it_does": "Shows the release status, last deployed time, namespace, and notes.",
+      "next_step": "View the release history.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 9: View Release History",
+      "command": "helm history hooks-demo -n helm-scenarios",
+      "description": "Check the release history for hook execution evidence",
+      "explanation": "The history shows each revision and its status. Revision 1 should show 'deployed'. If a hook had failed, you would see 'failed' status here. Helm history is crucial for debugging hook issues - if a pre-install hook fails, the release never reaches 'deployed' state.",
+      "what_it_does": "Displays the revision history showing the successful deployment.",
+      "next_step": "Uninstall and watch cleanup behavior.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 10: Uninstall Release",
+      "command": "helm uninstall hooks-demo -n helm-scenarios",
+      "description": "Delete the release - Helm removes all managed resources",
+      "explanation": "Helm uninstall removes the release and all its managed resources (Deployment, Service, hook Jobs). If we had a pre-delete hook, it would run before resource deletion. Note: resources created by hooks with 'hook-succeeded' delete policy are already gone. The remaining smoke-test Job will also be removed as part of the release.",
+      "what_it_does": "Uninstalls the hooks-demo release and removes all associated Kubernetes resources.",
+      "next_step": "Verify everything is cleaned up.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 11: Verify Cleanup",
+      "command": "kubectl get all -n helm-scenarios -l app.kubernetes.io/instance=hooks-demo",
+      "description": "Confirm all resources were removed",
+      "explanation": "After uninstall, all resources belonging to the release should be gone. The namespace itself remains (we created it separately). In production, you would typically keep the namespace and reuse it for future installations.",
+      "what_it_does": "Lists resources for hooks-demo (should show nothing).",
+      "next_step": "Cleanup complete! You have learned how Helm hooks work.",
+      "cleanup": false
+    },
+    {
+      "name": "Cleanup: Delete Namespace",
+      "command": "kubectl delete namespace helm-scenarios --ignore-not-found",
+      "description": "Remove the helm-scenarios namespace",
+      "explanation": "Deletes the namespace and any remaining resources within it.",
+      "what_it_does": "Removes the helm-scenarios namespace entirely.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

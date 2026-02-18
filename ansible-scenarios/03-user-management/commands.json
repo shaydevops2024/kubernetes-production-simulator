@@ -1,0 +1,122 @@
+{
+  "scenario_id": "03-user-management",
+  "difficulty": "easy",
+  "duration": "20 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Target Servers",
+      "command": "docker run -d --name server1 --hostname server1 -p 2241:22 rastasheep/ubuntu-sshd && docker run -d --name server2 --hostname server2 -p 2242:22 rastasheep/ubuntu-sshd",
+      "description": "Launch Ubuntu containers for user management",
+      "explanation": "Creates 2 containers (server1, server2) with SSH access. These simulate production servers where user management is needed.",
+      "what_it_does": "Creates 2 running Docker containers accessible via SSH.",
+      "next_step": "Servers ready. View the user management playbook."
+    },
+    {
+      "name": "Step 2: View User Creation Playbook",
+      "command": "cat ansible-scenarios/03-user-management/create-users.yml",
+      "description": "Display playbook for creating users and groups",
+      "explanation": "Shows tasks for creating groups, users with specific shells, and assigning users to groups. Uses user and group modules.",
+      "what_it_does": "Displays the playbook structure for user/group creation.",
+      "next_step": "Playbook reviewed. Execute it to create users."
+    },
+    {
+      "name": "Step 3: Create Users and Groups",
+      "command": "cd ansible-scenarios/03-user-management && ansible-playbook -i inventory/hosts.ini create-users.yml",
+      "description": "Execute user and group creation playbook",
+      "explanation": "Creates groups (developers, dbadmins), then users (devuser, dbadmin, appuser) with specific UIDs, shells, and group memberships. Sets home directories.",
+      "what_it_does": "Creates 2 groups and 3 users on both servers.",
+      "next_step": "Users created. Verify they exist."
+    },
+    {
+      "name": "Step 4: Verify Users Created",
+      "command": "cd ansible-scenarios/03-user-management && ansible servers -i inventory/hosts.ini -m command -a 'getent passwd devuser'",
+      "description": "Check devuser exists in /etc/passwd",
+      "explanation": "getent passwd queries user database. Shows devuser's UID, GID, home directory, and shell. Should match playbook configuration.",
+      "what_it_does": "Displays devuser account details from both servers.",
+      "next_step": "User verified. Check group membership."
+    },
+    {
+      "name": "Step 5: Check Group Membership",
+      "command": "cd ansible-scenarios/03-user-management && ansible servers -i inventory/hosts.ini -m command -a 'groups devuser'",
+      "description": "Display devuser's group memberships",
+      "explanation": "Shows all groups devuser belongs to (primary + secondary). Should include 'developers' group from playbook.",
+      "what_it_does": "Lists groups for devuser on both servers.",
+      "next_step": "Groups confirmed. Now deploy SSH keys."
+    },
+    {
+      "name": "Step 6: Deploy SSH Keys",
+      "command": "cd ansible-scenarios/03-user-management && ansible-playbook -i inventory/hosts.ini deploy-ssh-keys.yml",
+      "description": "Add SSH public keys for passwordless authentication",
+      "explanation": "Uses authorized_key module to add SSH public keys to user's ~/.ssh/authorized_keys. Creates .ssh directory with correct permissions (700) if needed.",
+      "what_it_does": "Deploys SSH keys for devuser and dbadmin on both servers.",
+      "next_step": "SSH keys deployed. Configure sudo access."
+    },
+    {
+      "name": "Step 7: Configure Sudo Access",
+      "command": "cd ansible-scenarios/03-user-management && ansible-playbook -i inventory/hosts.ini configure-sudo.yml",
+      "description": "Grant sudo privileges to specific users",
+      "explanation": "Creates files in /etc/sudoers.d/ with specific rules. devuser gets full sudo with password, dbadmin gets passwordless sudo for database commands only.",
+      "what_it_does": "Configures sudo access for devuser and dbadmin.",
+      "next_step": "Sudo configured. Test sudo access."
+    },
+    {
+      "name": "Step 8: Test Sudo Access",
+      "command": "cd ansible-scenarios/03-user-management && ansible servers -i inventory/hosts.ini -m shell -a 'sudo -l -U devuser'",
+      "description": "List sudo privileges for devuser",
+      "explanation": "sudo -l -U lists what commands a user can run with sudo. Shows devuser can run all commands with password (ALL=(ALL) ALL).",
+      "what_it_does": "Displays sudo capabilities for devuser on both servers.",
+      "next_step": "Sudo working. Deploy user environment files."
+    },
+    {
+      "name": "Step 9: Deploy User Environments",
+      "command": "cd ansible-scenarios/03-user-management && ansible-playbook -i inventory/hosts.ini deploy-bashrc.yml",
+      "description": "Customize user shell environments",
+      "explanation": "Uses template module to deploy custom .bashrc files with aliases, environment variables, and prompts. Each user gets their configured environment.",
+      "what_it_does": "Deploys customized .bashrc to devuser and appuser home directories.",
+      "next_step": "Environments deployed. Test with file permissions."
+    },
+    {
+      "name": "Step 10: Set File Ownership",
+      "command": "cd ansible-scenarios/03-user-management && ansible servers -i inventory/hosts.ini -m file -a 'path=/tmp/devfile state=touch owner=devuser group=developers mode=0664'",
+      "description": "Create file with specific owner, group, and permissions",
+      "explanation": "file module creates /tmp/devfile owned by devuser:developers with permissions rw-rw-r-- (0664). Demonstrates ownership and permission management.",
+      "what_it_does": "Creates test file with specified ownership and permissions on both servers.",
+      "next_step": "File ownership set. Verify permissions."
+    },
+    {
+      "name": "Step 11: Verify File Permissions",
+      "command": "cd ansible-scenarios/03-user-management && ansible servers -i inventory/hosts.ini -m command -a 'ls -l /tmp/devfile'",
+      "description": "Display file ownership and permissions",
+      "explanation": "Shows file details: permissions (rw-rw-r--), owner (devuser), and group (developers). Confirms permission management worked.",
+      "what_it_does": "Lists /tmp/devfile details showing ownership and permissions.",
+      "next_step": "Permissions verified. User management complete! Clean up."
+    },
+    {
+      "name": "Cleanup 1: Remove Test File",
+      "command": "cd ansible-scenarios/03-user-management && ansible servers -i inventory/hosts.ini -m file -a 'path=/tmp/devfile state=absent'",
+      "description": "Delete test file from both servers",
+      "explanation": "file module with state=absent removes the file.",
+      "what_it_does": "Deletes /tmp/devfile from both servers.",
+      "next_step": "Test file removed. Stop containers.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup 2: Stop Containers",
+      "command": "docker stop server1 server2",
+      "description": "Stop all user management containers",
+      "explanation": "Stops the running containers.",
+      "what_it_does": "Stops server1 and server2 containers.",
+      "next_step": "Containers stopped. Remove them.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup 3: Remove Containers",
+      "command": "docker rm server1 server2",
+      "description": "Remove stopped containers",
+      "explanation": "Deletes containers and their filesystems.",
+      "what_it_does": "Removes server1 and server2 containers from Docker.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

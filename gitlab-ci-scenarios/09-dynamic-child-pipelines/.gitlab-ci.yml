@@ -1,0 +1,79 @@
+# .gitlab-ci.yml - Dynamic Child Pipelines (Monorepo)
+# Parent pipeline: detects changes, generates child, triggers it
+
+stages:
+  - detect
+  - generate
+  - trigger
+
+variables:
+  # Force build all services (override via pipeline variable or commit msg)
+  BUILD_ALL: "false"
+
+# Detect which services changed
+detect-changes:
+  stage: detect
+  image: alpine/git:latest
+  script:
+    - |
+      echo "=== Detecting changed services ==="
+
+      # For MR pipelines, compare against target branch
+      if [ -n "$CI_MERGE_REQUEST_DIFF_BASE_SHA" ]; then
+        BASE_SHA=$CI_MERGE_REQUEST_DIFF_BASE_SHA
+      else
+        BASE_SHA=$(git rev-parse HEAD~1)
+      fi
+
+      CHANGED_FILES=$(git diff --name-only $BASE_SHA HEAD)
+      echo "Changed files:"
+      echo "$CHANGED_FILES"
+
+      # Detect affected services
+      echo "API_CHANGED=false" > changes.env
+      echo "WEB_CHANGED=false" >> changes.env
+      echo "WORKER_CHANGED=false" >> changes.env
+      echo "INFRA_CHANGED=false" >> changes.env
+
+      # Check each service directory
+      echo "$CHANGED_FILES" | grep -q "^services/api/" && echo "API_CHANGED=true" >> changes.env || true
+      echo "$CHANGED_FILES" | grep -q "^services/web/" && echo "WEB_CHANGED=true" >> changes.env || true
+      echo "$CHANGED_FILES" | grep -q "^services/worker/" && echo "WORKER_CHANGED=true" >> changes.env || true
+      echo "$CHANGED_FILES" | grep -q "^infrastructure/" && echo "INFRA_CHANGED=true" >> changes.env || true
+
+      # Shared libs trigger ALL services
+      if echo "$CHANGED_FILES" | grep -q "^shared-libs/"; then
+        echo "Shared libs changed - rebuilding all services"
+        echo "API_CHANGED=true" >> changes.env
+        echo "WEB_CHANGED=true" >> changes.env
+        echo "WORKER_CHANGED=true" >> changes.env
+      fi
+
+      cat changes.env
+  artifacts:
+    reports:
+      dotenv: changes.env
+
+# Generate child pipeline based on changes
+generate-pipeline:
+  stage: generate
+  image: alpine:latest
+  needs: [detect-changes]
+  script:
+    - chmod +x gitlab-ci-scenarios/09-dynamic-child-pipelines/generate-pipeline.sh
+    - sh gitlab-ci-scenarios/09-dynamic-child-pipelines/generate-pipeline.sh > child-pipeline.yml
+    - echo "=== Generated Pipeline ==="
+    - cat child-pipeline.yml
+  artifacts:
+    paths:
+      - child-pipeline.yml
+
+# Trigger the generated child pipeline
+trigger-services:
+  stage: trigger
+  needs: [generate-pipeline]
+  trigger:
+    include:
+      - artifact: child-pipeline.yml
+        job: generate-pipeline
+    strategy: depend

@@ -1,0 +1,10 @@
+---
+- name: Deploy environment-specific configuration
+  hosts: webservers
+  become: yes
+  tasks:
+    - name: Deploy conditional config
+      template:
+        src: templates/app-config.yml.j2
+        dest: /etc/myapp/conditional-config.yml
+        mode: '0644'

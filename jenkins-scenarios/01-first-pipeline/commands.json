@@ -1,0 +1,72 @@
+{
+  "scenario_id": "01-first-pipeline",
+  "difficulty": "easy",
+  "duration": "10 min",
+  "commands": [
+    {
+      "name": "Step 1: Review Jenkinsfile Structure",
+      "command": "cat << 'JENKINSFILE'\npipeline {\n    agent any\n\n    environment {\n        APP_NAME = 'my-web-app'\n        IMAGE_TAG = \"${BUILD_NUMBER}\"\n    }\n\n    stages {\n        stage('Build') {\n            steps {\n                echo 'Building application...'\n                sh 'npm install'\n                sh 'npm run build'\n            }\n        }\n        stage('Test') {\n            steps {\n                echo 'Running tests...'\n                sh 'npm test'\n            }\n        }\n        stage('Deploy') {\n            steps {\n                echo 'Deploying to Kubernetes...'\n                sh 'kubectl apply -f k8s/deployment.yaml'\n                sh 'kubectl set image deployment/my-web-app app=my-web-app:${IMAGE_TAG}'\n            }\n        }\n    }\n\n    post {\n        success {\n            echo 'Pipeline completed successfully!'\n        }\n        failure {\n            echo 'Pipeline failed. Check logs above.'\n        }\n        always {\n            echo 'Cleaning up workspace...'\n            cleanWs()\n        }\n    }\n}\nJENKINSFILE",
+      "description": "Display a complete declarative Jenkinsfile with Build, Test, and Deploy stages",
+      "explanation": "A declarative Jenkinsfile defines your entire CI/CD pipeline as code. The 'pipeline' block is the top-level wrapper. 'agent any' means Jenkins can run this on any available executor node. The 'environment' block sets variables available to all stages. The 'stages' block contains the ordered sequence of work to perform.",
+      "what_it_does": "Prints a full declarative Jenkinsfile to the terminal so you can study its structure: pipeline > agent > environment > stages > post.",
+      "next_step": "Now let's break down each stage to understand what it does."
+    },
+    {
+      "name": "Step 2: Understand Stages",
+      "command": "echo '=== JENKINS PIPELINE STAGES ==='\necho ''\necho 'A pipeline is divided into STAGES, each representing a phase of your CI/CD process:'\necho ''\necho '  stage(\"Build\")  --> Compile code, install dependencies, create artifacts'\necho '  stage(\"Test\")   --> Run unit tests, integration tests, linting'\necho '  stage(\"Deploy\") --> Push to registry, deploy to K8s, update services'\necho ''\necho 'KEY RULES:'\necho '  - Stages run sequentially (Build -> Test -> Deploy)'\necho '  - If any stage fails, subsequent stages are SKIPPED'\necho '  - Each stage appears as a separate column in the Jenkins Blue Ocean UI'\necho '  - Stages can have their own agent, environment, and conditions'\necho ''\necho 'PIPELINE FLOW:'\necho '  [Build] ---success---> [Test] ---success---> [Deploy]'\necho '     |                     |                      |'\necho '     +---failure---> [SKIP Test] [SKIP Deploy] [post.failure]'",
+      "description": "Explain how pipeline stages work and their sequential execution model",
+      "explanation": "Stages are the backbone of a Jenkins pipeline. They provide logical separation of concerns and visual progress tracking. Jenkins executes stages in order and stops the pipeline on the first failure. This fail-fast behavior prevents deploying broken code.",
+      "what_it_does": "Displays a visual explanation of how stages flow sequentially and what happens when a stage fails.",
+      "next_step": "Next, let's look at what goes inside stages - the steps and sh blocks."
+    },
+    {
+      "name": "Step 3: Understand Steps and Shell Blocks",
+      "command": "echo '=== STEPS & SHELL BLOCKS ==='\necho ''\necho 'Inside each stage, STEPS define the actual work:'\necho ''\necho '  steps {'\necho '      echo \"Message\"              // Print to console log'\necho '      sh \"shell command\"           // Run shell command'\necho '      sh \"\"\"                       // Multi-line shell block'\necho '          cd /app'\necho '          npm install'\necho '          npm run build'\necho '      \"\"\"'\necho '  }'\necho ''\necho 'COMMON STEP TYPES:'\necho '  echo       - Print messages to build log'\necho '  sh         - Execute shell commands (Linux/Mac)'\necho '  bat        - Execute batch commands (Windows)'\necho '  script     - Run arbitrary Groovy code'\necho '  dir        - Change working directory'\necho '  timeout    - Set max execution time'\necho '  retry      - Retry on failure'\necho '  sleep      - Wait between operations'\necho ''\necho 'EXAMPLE with error handling:'\necho '  steps {'\necho '      retry(3) {'\necho '          sh \"npm install\"'\necho '      }'\necho '      timeout(time: 5, unit: \"MINUTES\") {'\necho '          sh \"npm test\"'\necho '      }'\necho '  }'",
+      "description": "Explore the different step types available inside pipeline stages",
+      "explanation": "Steps are the individual actions Jenkins performs within a stage. The 'sh' step is the most common -- it runs shell commands on the build agent. Steps like retry() and timeout() add resilience to your pipeline. Each step's output is captured in the Jenkins console log for debugging.",
+      "what_it_does": "Shows all common step types with examples, including error handling patterns like retry and timeout.",
+      "next_step": "Let's examine the post section that runs after all stages complete."
+    },
+    {
+      "name": "Step 4: Understand Post Actions",
+      "command": "echo '=== POST ACTIONS ==='\necho ''\necho 'The post{} block runs AFTER all stages, regardless of outcome:'\necho ''\necho '  post {'\necho '      always {'\necho '          // Runs no matter what (cleanup, notifications)'\necho '          cleanWs()'\necho '          echo \"Build #${BUILD_NUMBER} finished\"'\necho '      }'\necho '      success {'\necho '          // Only runs if pipeline SUCCEEDED'\necho '          slackSend message: \"Build passed!\"'\necho '      }'\necho '      failure {'\necho '          // Only runs if pipeline FAILED'\necho '          mail to: \"team@company.com\", subject: \"Build Failed\"'\necho '      }'\necho '      unstable {'\necho '          // Runs if marked unstable (e.g., test warnings)'\necho '          echo \"Build unstable - check test results\"'\necho '      }'\necho '      changed {'\necho '          // Runs if status changed from previous build'\necho '          echo \"Build status changed!\"'\necho '      }'\necho '  }'\necho ''\necho 'EXECUTION ORDER: always runs LAST, after success/failure/unstable'\necho 'USE CASES: cleanup temp files, send Slack alerts, archive artifacts'",
+      "description": "Understand the post block conditions: always, success, failure, unstable, changed",
+      "explanation": "Post actions are critical for pipeline hygiene. The 'always' block ensures cleanup happens even on failure (like a finally block in programming). The 'success' and 'failure' blocks enable conditional notifications. Without post actions, failed builds could leave stale resources or go unnoticed.",
+      "what_it_does": "Displays all post condition types with practical examples showing when each one triggers.",
+      "next_step": "Now let's simulate the Deploy stage by deploying a real app to Kubernetes."
+    },
+    {
+      "name": "Step 5: Deploy a Sample App to Kubernetes",
+      "command": "kubectl create namespace jenkins-scenarios --dry-run=client -o yaml | kubectl apply -f - && cat <<'EOF' | kubectl apply -n jenkins-scenarios -f -\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: my-web-app\n  labels:\n    app: my-web-app\n    deployed-by: jenkins-pipeline\nspec:\n  replicas: 2\n  selector:\n    matchLabels:\n      app: my-web-app\n  template:\n    metadata:\n      labels:\n        app: my-web-app\n        deployed-by: jenkins-pipeline\n    spec:\n      containers:\n      - name: app\n        image: nginx:1.25-alpine\n        ports:\n        - containerPort: 80\n        resources:\n          requests:\n            cpu: 50m\n            memory: 64Mi\n          limits:\n            cpu: 100m\n            memory: 128Mi\n---\napiVersion: v1\nkind: Service\nmetadata:\n  name: my-web-app-svc\n  labels:\n    app: my-web-app\nspec:\n  selector:\n    app: my-web-app\n  ports:\n  - port: 80\n    targetPort: 80\n  type: ClusterIP\nEOF",
+      "description": "Simulate the Deploy stage by deploying an nginx app to Kubernetes",
+      "explanation": "This is what a Jenkins Deploy stage actually does behind the scenes: it applies Kubernetes manifests to create or update resources. In a real pipeline, the image tag would come from the Build stage (e.g., my-web-app:${BUILD_NUMBER}). The deployment uses 2 replicas for availability and resource limits to prevent runaway containers.",
+      "what_it_does": "Creates the jenkins-scenarios namespace, deploys a 2-replica nginx deployment, and creates a ClusterIP service -- simulating what the Deploy stage would do.",
+      "next_step": "Let's verify the deployment succeeded, just like Jenkins would in a post-deploy check."
+    },
+    {
+      "name": "Step 6: Verify Deployment",
+      "command": "echo '=== Simulating Jenkins Post-Deploy Verification ==='\necho ''\nkubectl get deployment my-web-app -n jenkins-scenarios\necho ''\nkubectl get pods -n jenkins-scenarios -l app=my-web-app\necho ''\nkubectl get svc my-web-app-svc -n jenkins-scenarios\necho ''\necho 'In a real Jenkins pipeline, this verification step would:'\necho '  1. Check deployment rollout status: kubectl rollout status deployment/my-web-app'\necho '  2. Run smoke tests against the service endpoint'\necho '  3. Fail the pipeline if health checks do not pass'",
+      "description": "Verify the deployed resources are healthy, as Jenkins would after deployment",
+      "explanation": "Post-deploy verification is a best practice in CI/CD. A pipeline that deploys without verifying is dangerous -- it could push broken code without anyone knowing. Production pipelines typically include health checks, smoke tests, and rollout status monitoring before marking the build as successful.",
+      "what_it_does": "Shows the deployment status, running pods, and service, then explains what additional checks a production pipeline would include.",
+      "next_step": "Let's review everything we learned in this scenario."
+    },
+    {
+      "name": "Step 7: Summary",
+      "command": "echo '=== SCENARIO COMPLETE: Your First Jenkins Pipeline ==='\necho ''\necho 'WHAT YOU LEARNED:'\necho '  1. Declarative Jenkinsfile structure: pipeline > agent > stages > post'\necho '  2. Stages run sequentially and fail fast on errors'\necho '  3. Steps (echo, sh, retry, timeout) do the actual work inside stages'\necho '  4. Post actions handle cleanup and notifications after all stages'\necho '  5. The Deploy stage applies K8s manifests to your cluster'\necho ''\necho 'JENKINSFILE SKELETON:'\necho '  pipeline {'\necho '      agent any'\necho '      stages {'\necho '          stage(\"Build\")  { steps { sh \"make build\" } }'\necho '          stage(\"Test\")   { steps { sh \"make test\"  } }'\necho '          stage(\"Deploy\") { steps { sh \"kubectl apply -f k8s/\" } }'\necho '      }'\necho '      post {'\necho '          always  { cleanWs() }'\necho '          failure { mail to: \"team@co.com\" }'\necho '      }'\necho '  }'\necho ''\necho 'NEXT SCENARIO: 02-pipeline-failure-debugging'\necho '  Learn how to read Jenkins console logs and debug failing pipelines.'",
+      "description": "Review everything learned about declarative Jenkins pipelines",
+      "explanation": "This summary reinforces the key concepts: pipeline structure, stage sequencing, step types, and post actions. The skeleton Jenkinsfile serves as a quick-start template for creating new pipelines.",
+      "what_it_does": "Prints a complete summary of what was learned and provides a minimal Jenkinsfile template for reference.",
+      "next_step": "Run the cleanup step to remove all Kubernetes resources created in this scenario."
+    },
+    {
+      "name": "Step 8: Cleanup",
+      "command": "kubectl delete deployment my-web-app -n jenkins-scenarios --ignore-not-found && kubectl delete svc my-web-app-svc -n jenkins-scenarios --ignore-not-found && echo '' && echo 'Cleanup complete. All resources from 01-first-pipeline have been removed.'",
+      "description": "Remove all Kubernetes resources created during this scenario",
+      "explanation": "Always clean up after a scenario to free cluster resources and avoid conflicts with other scenarios. The --ignore-not-found flag prevents errors if resources were already deleted.",
+      "what_it_does": "Deletes the my-web-app deployment and my-web-app-svc service from the jenkins-scenarios namespace.",
+      "next_step": "Scenario complete. Move on to 02-pipeline-failure-debugging to learn debugging techniques.",
+      "cleanup": true
+    }
+  ]
+}

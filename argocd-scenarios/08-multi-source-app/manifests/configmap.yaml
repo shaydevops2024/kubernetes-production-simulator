@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: multi-source-content
+  namespace: argocd-sc-08
+  labels:
+    app: multi-source-app
+    source: secondary
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head><title>Multi-Source App</title></head>
+    <body>
+      <h1>Multi-Source Application</h1>
+      <p>This content comes from a secondary source (ConfigMap).</p>
+      <p>The deployment comes from the primary source.</p>
+      <p>In production, these would be separate Git repositories.</p>
+    </body>
+    </html>

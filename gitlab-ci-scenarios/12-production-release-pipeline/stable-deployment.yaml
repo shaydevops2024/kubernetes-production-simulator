@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: release-demo
+  namespace: gitlab-ci-scenarios
+  labels:
+    app: release-demo
+    version: v1.0.0
+    scenario: release-pipeline
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: release-demo
+      track: stable
+  template:
+    metadata:
+      labels:
+        app: release-demo
+        track: stable
+        version: v1.0.0
+        scenario: release-pipeline
+    spec:
+      containers:
+        - name: app
+          image: nginx:1.25-alpine
+          ports:
+            - containerPort: 80
+          env:
+            - name: VERSION
+              value: "v1.0.0"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: release-demo
+  namespace: gitlab-ci-scenarios
+  labels:
+    app: release-demo
+spec:
+  selector:
+    app: release-demo
+  ports:
+    - port: 80
+      targetPort: 80

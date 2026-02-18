@@ -1,0 +1,25 @@
+---
+application:
+  name: myapp
+  environment: {{ app_env }}
+  hostname: {{ ansible_hostname }}
+  ip_address: {{ ansible_default_ipv4.address | default('unknown') }}
+
+logging:
+  level: {{ log_level }}
+  file: /var/log/myapp/app.log
+
+server:
+  port: {{ nginx_port }}
+  workers: {{ nginx_worker_processes }}
+
+{% if app_env == 'production' %}
+security:
+  ssl_enabled: true
+  strict_mode: true
+{% else %}
+security:
+  ssl_enabled: false
+  strict_mode: false
+  debug: true
+{% endif %}

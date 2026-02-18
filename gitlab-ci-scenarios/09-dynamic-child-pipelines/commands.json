@@ -1,0 +1,61 @@
+{
+  "scenario_id": "09-dynamic-child-pipelines",
+  "difficulty": "hard",
+  "duration": "20 min",
+  "commands": [
+    {
+      "name": "Step 1: Review Monorepo Pipeline",
+      "command": "cat gitlab-ci-scenarios/09-dynamic-child-pipelines/.gitlab-ci.yml",
+      "description": "Examine a monorepo pipeline that detects changes and triggers child pipelines",
+      "explanation": "This pipeline solves the monorepo problem: a repo with services/api/, services/web/, and services/worker/. When you change only the API service, you should not rebuild the web and worker services. The pipeline detects changes, generates a child pipeline YAML that only includes the affected services, and triggers it.",
+      "what_it_does": "Displays a parent pipeline that generates and triggers dynamic child pipelines based on detected changes.",
+      "next_step": "Understand change detection strategies.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 2: Change Detection Strategies",
+      "command": "echo '=== Detecting Changes in a Monorepo ===' && echo '' && echo '1. rules:changes (simplest):' && echo '  build-api:' && echo '    rules:' && echo '      - changes:' && echo '          - services/api/**/*' && echo '          - shared-libs/**/*  # Shared code affects all' && echo '  Pros: Simple, built-in' && echo '  Cons: Cannot generate dynamic pipelines' && echo '' && echo '2. git diff (most flexible):' && echo '  detect-changes:' && echo '    script:' && echo '      - CHANGED=$(git diff --name-only $CI_MERGE_REQUEST_DIFF_BASE_SHA HEAD)' && echo '      - echo $CHANGED' && echo '      - if echo \"$CHANGED\" | grep -q \"^services/api/\"; then' && echo '          echo \"API_CHANGED=true\" >> changes.env; fi' && echo '      - if echo \"$CHANGED\" | grep -q \"^services/web/\"; then' && echo '          echo \"WEB_CHANGED=true\" >> changes.env; fi' && echo '    artifacts:' && echo '      reports:' && echo '        dotenv: changes.env  # Variables available to later jobs' && echo '' && echo '3. Dynamic pipeline generation (most powerful):' && echo '  generate-pipeline:' && echo '    script:' && echo '      - python scripts/generate-pipeline.py > child-pipeline.yml' && echo '    artifacts:' && echo '      paths: [child-pipeline.yml]' && echo '  trigger-child:' && echo '    trigger:' && echo '      include:' && echo '        - artifact: child-pipeline.yml' && echo '          job: generate-pipeline'",
+      "description": "Learn three strategies for detecting which services changed in a monorepo",
+      "explanation": "rules:changes is the simplest but least flexible - it can only include/exclude entire jobs. git diff with dotenv artifacts lets you set variables that downstream jobs can check. Dynamic pipeline generation is the most powerful: you generate the exact pipeline YAML at runtime, so only affected services appear in the pipeline at all.",
+      "what_it_does": "Shows three change detection strategies from simplest to most powerful.",
+      "next_step": "See dynamic pipeline generation in detail.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 3: Dynamic Pipeline Generation",
+      "command": "cat gitlab-ci-scenarios/09-dynamic-child-pipelines/generate-pipeline.sh",
+      "description": "Examine the script that generates child pipeline YAML based on detected changes",
+      "explanation": "This script is the core of the dynamic pipeline pattern. It checks which directories changed, then generates a .gitlab-ci.yml with only the relevant jobs. If only services/api/ changed, the generated pipeline only has API build/test/deploy jobs. This means the pipeline is literally smaller and faster when fewer services change.",
+      "what_it_does": "Displays a shell script that generates child pipeline YAML dynamically.",
+      "next_step": "Understand the trigger mechanism.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 4: Parent-Child Pipeline Trigger",
+      "command": "echo '=== Trigger: Parent-Child Pipelines ===' && echo '' && echo '# Parent pipeline generates config, then triggers child' && echo '' && echo 'generate-config:' && echo '  stage: prepare' && echo '  script:' && echo '    - ./scripts/generate-pipeline.sh > child-pipeline.yml' && echo '  artifacts:' && echo '    paths:' && echo '      - child-pipeline.yml' && echo '' && echo 'trigger-services:' && echo '  stage: trigger' && echo '  trigger:' && echo '    include:' && echo '      - artifact: child-pipeline.yml  # Use generated YAML' && echo '        job: generate-config           # From this job' && echo '    strategy: depend  # Parent waits for child to complete' && echo '' && echo '=== Parent-Child Relationship ===' && echo '' && echo 'Parent Pipeline:  [generate] → [trigger] ──→ waits...' && echo '                                    │' && echo 'Child Pipeline:                     └──→ [build-api] → [test-api] → [deploy-api]' && echo '                                         [build-web] → [test-web] → [deploy-web]' && echo '' && echo 'Benefits:' && echo '  - Child pipeline is a SEPARATE pipeline (own URL, own status)' && echo '  - Child can have its own stages and parallel jobs' && echo '  - strategy: depend → parent fails if child fails' && echo '  - Max 2 levels of child pipelines (parent → child → grandchild)'",
+      "description": "Understand how parent pipelines trigger child pipelines with generated config",
+      "explanation": "The trigger:include:artifact mechanism is the key. The parent pipeline runs a job that generates YAML and saves it as an artifact. The trigger job then uses that artifact as the pipeline configuration for a new child pipeline. With strategy: depend, the parent pipeline's status reflects the child's outcome - if the child fails, the parent fails too.",
+      "what_it_does": "Explains the parent-child pipeline trigger mechanism with a visual diagram.",
+      "next_step": "See the monorepo directory structure.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 5: Monorepo Best Practices",
+      "command": "echo '=== Monorepo Directory Structure ===' && echo '' && echo 'my-monorepo/' && echo '├── .gitlab-ci.yml           # Parent pipeline' && echo '├── scripts/' && echo '│   └── generate-pipeline.sh # Dynamic config generator' && echo '├── shared-libs/             # Shared code (triggers ALL services)' && echo '│   └── auth/' && echo '├── services/' && echo '│   ├── api/                 # Independent service' && echo '│   │   ├── Dockerfile' && echo '│   │   ├── src/' && echo '│   │   └── tests/' && echo '│   ├── web/                 # Independent service' && echo '│   │   ├── Dockerfile' && echo '│   │   ├── src/' && echo '│   │   └── tests/' && echo '│   └── worker/              # Independent service' && echo '│       ├── Dockerfile' && echo '│       ├── src/' && echo '│       └── tests/' && echo '└── infrastructure/          # Terraform, K8s manifests' && echo '' && echo '=== Dependency Graph ===' && echo '  shared-libs/auth → api, web, worker (changes trigger all)' && echo '  services/api     → only api pipeline' && echo '  services/web     → only web pipeline' && echo '  infrastructure   → deploy-only pipeline' && echo '' && echo 'Rule: If shared-libs changes → rebuild EVERYTHING' && echo '      If services/X changes → rebuild ONLY X'",
+      "description": "See the recommended monorepo structure and dependency patterns",
+      "explanation": "The monorepo structure separates independent services into their own directories. The key architectural decision is shared-libs: code shared across services. When shared code changes, all dependent services must be rebuilt. The generate-pipeline script must understand this dependency graph to generate correct child pipelines.",
+      "what_it_does": "Shows the recommended monorepo structure with dependency relationships between services.",
+      "next_step": "Review the dynamic pipelines summary.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 6: Dynamic Pipelines Summary",
+      "command": "echo '============================================' && echo '  Dynamic Child Pipelines Summary' && echo '============================================' && echo '' && echo 'When to use:' && echo '  ✅ Monorepo with 3+ independent services' && echo '  ✅ Pipeline takes too long building everything' && echo '  ✅ Services have different build/deploy requirements' && echo '' && echo 'Pattern:' && echo '  1. Detect changes (git diff or rules:changes)' && echo '  2. Generate child pipeline YAML dynamically' && echo '  3. Trigger child with trigger:include:artifact' && echo '  4. Use strategy: depend to link parent-child status' && echo '' && echo 'Best practices:' && echo '  ✅ Always rebuild when shared-libs change' && echo '  ✅ Include dependency graph in generator script' && echo '  ✅ Test the generator script itself' && echo '  ✅ Log which services were detected as changed' && echo '  ✅ Have a \"build-all\" escape hatch ([ci build-all] in commit msg)' && echo '' && echo 'Scale impact:' && echo '  Before: 10 services × 5 min each = 50 min pipeline' && echo '  After:  2 changed services × 5 min = 10 min pipeline' && echo '  Savings: 80% CI time reduction'",
+      "description": "Review the complete dynamic child pipelines strategy",
+      "explanation": "Dynamic child pipelines are the production solution for monorepo CI. They dramatically reduce pipeline time by only building what changed. The key is a robust change detection and dependency resolution system. Always include an escape hatch (like a commit message flag) to force building everything when needed.",
+      "what_it_does": "Prints a comprehensive dynamic child pipelines checklist with scale impact.",
+      "next_step": "Scenario complete!",
+      "cleanup": false
+    }
+  ]
+}

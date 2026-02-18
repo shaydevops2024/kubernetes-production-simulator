@@ -1,0 +1,44 @@
+user www-data;
+worker_processes {{ nginx_worker_processes }};
+pid /run/nginx.pid;
+
+events {
+    worker_connections 768;
+}
+
+http {
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout 65;
+    types_hash_max_size 2048;
+
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    access_log /var/log/nginx/access.log;
+    error_log /var/log/nginx/error.log;
+
+    server {
+        listen {{ nginx_port }};
+        server_name {{ server_name }};
+
+        client_max_body_size {{ max_upload_size }};
+
+        location / {
+            root /var/www/html;
+            index index.html index.htm;
+        }
+
+        {% if app_env == 'production' %}
+        # Production-specific settings
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        {% endif %}
+
+        # Backend upstreams
+        {% for backend in backend_servers %}
+        # Upstream: {{ backend }}
+        {% endfor %}
+    }
+}

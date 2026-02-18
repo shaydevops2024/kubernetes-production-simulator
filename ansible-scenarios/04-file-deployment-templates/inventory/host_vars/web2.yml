@@ -1,0 +1,5 @@
+---
+nginx_port: 80
+nginx_worker_processes: 4
+server_name: web2.example.com
+app_env: development

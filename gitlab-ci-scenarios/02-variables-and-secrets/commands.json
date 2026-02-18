@@ -1,0 +1,61 @@
+{
+  "scenario_id": "02-variables-and-secrets",
+  "difficulty": "easy",
+  "duration": "10 min",
+  "commands": [
+    {
+      "name": "Step 1: Review Variable Types in Pipeline",
+      "command": "cat gitlab-ci-scenarios/02-variables-and-secrets/.gitlab-ci.yml",
+      "description": "Examine how variables are defined and used in a GitLab CI pipeline",
+      "explanation": "Variables in GitLab CI can be defined at multiple levels: in the .gitlab-ci.yml file (inline), in the GitLab UI (project settings), at the group level, or passed at pipeline trigger time. Each level has different security implications. Inline variables are visible in the repo. UI variables can be protected and masked.",
+      "what_it_does": "Displays a pipeline configuration demonstrating different variable types and usage patterns.",
+      "next_step": "Understand variable precedence rules.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 2: Variable Precedence Rules",
+      "command": "echo '=== GitLab CI Variable Precedence (highest to lowest) ===' && echo '' && echo '1. Trigger variables       (API/webhook trigger)' && echo '2. Pipeline-level variables (Run Pipeline UI)' && echo '3. Project-level variables  (Settings > CI/CD > Variables)' && echo '4. Group-level variables    (Group > Settings > CI/CD)' && echo '5. Instance-level variables (Admin > CI/CD > Variables)' && echo '6. .gitlab-ci.yml variables (inline in the file)' && echo '' && echo 'Higher precedence OVERRIDES lower precedence.' && echo '' && echo 'Example:' && echo '  .gitlab-ci.yml: DATABASE_URL=sqlite:///test.db' && echo '  Project var:    DATABASE_URL=postgres://prod-db:5432/app' && echo '  → Job gets:     DATABASE_URL=postgres://prod-db:5432/app' && echo '' && echo 'This lets you set safe defaults in code and override' && echo 'with real credentials in the GitLab UI.'",
+      "description": "Understand which variable definition takes priority when the same variable is defined in multiple places",
+      "explanation": "Variable precedence is critical for security. You define safe defaults in .gitlab-ci.yml (which is committed to Git and visible to everyone), then override with real credentials in the GitLab UI (which are encrypted and access-controlled). Trigger variables have highest precedence, allowing external systems to customize pipeline behavior.",
+      "what_it_does": "Prints the variable precedence hierarchy from highest to lowest priority.",
+      "next_step": "Learn about protected and masked variables.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 3: Protected and Masked Variables",
+      "command": "echo '=== Protected Variables ===' && echo 'Only available on PROTECTED branches and tags.' && echo '' && echo 'Use case: Production database credentials should only' && echo 'be accessible from the main branch, not from feature branches.' && echo '' && echo 'Settings > CI/CD > Variables > Add variable:' && echo '  Key:        PROD_DB_PASSWORD' && echo '  Value:      s3cur3-p@ssw0rd' && echo '  Protected:  ✅ (only on protected branches)' && echo '  Masked:     ✅ (hidden in job logs)' && echo '' && echo '=== Masked Variables ===' && echo 'The value is replaced with [MASKED] in job logs.' && echo '' && echo 'Requirements for masking:' && echo '  - At least 8 characters' && echo '  - No newlines' && echo '  - Only uses characters from Base64 alphabet' && echo '' && echo '=== File Variables ===' && echo 'Written to a temp file. Variable contains the FILE PATH.' && echo '' && echo 'Use case: Kubeconfig, TLS certificates, service account keys' && echo '  Type: File' && echo '  Key:  KUBECONFIG' && echo '  Value: (paste your kubeconfig content)' && echo '  → Runner creates /tmp/KUBECONFIG_xxx with the content' && echo '  → $KUBECONFIG points to that file path'",
+      "description": "Learn the security features of GitLab CI variables",
+      "explanation": "Protected variables prevent secrets from being exposed in merge request pipelines from forks. If someone forks your repo and creates an MR, they cannot access your production credentials. Masked variables prevent accidental exposure in logs - if your script prints $DB_PASSWORD, the log shows [MASKED]. File variables are essential for configs that expect file paths (like KUBECONFIG).",
+      "what_it_does": "Explains protected, masked, and file variable types with practical use cases.",
+      "next_step": "See predefined CI variables in action.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 4: Predefined CI Variables",
+      "command": "echo '=== Most Useful Predefined CI Variables ===' && echo '' && echo 'Commit Info:' && echo '  $CI_COMMIT_SHA          → Full commit hash (40 chars)' && echo '  $CI_COMMIT_SHORT_SHA    → Short commit hash (8 chars)' && echo '  $CI_COMMIT_BRANCH       → Branch name (null for tags)' && echo '  $CI_COMMIT_TAG          → Tag name (null for branches)' && echo '  $CI_COMMIT_MESSAGE      → Full commit message' && echo '' && echo 'Pipeline Info:' && echo '  $CI_PIPELINE_ID         → Unique pipeline ID' && echo '  $CI_PIPELINE_SOURCE     → push, merge_request_event, schedule, api' && echo '  $CI_JOB_ID              → Unique job ID' && echo '  $CI_JOB_NAME            → Name of the job' && echo '' && echo 'Project Info:' && echo '  $CI_PROJECT_NAME        → Project name' && echo '  $CI_PROJECT_PATH        → group/project' && echo '  $CI_REGISTRY_IMAGE      → Registry path for Docker images' && echo '' && echo 'Merge Request:' && echo '  $CI_MERGE_REQUEST_IID   → MR number (only in MR pipelines)' && echo '  $CI_MERGE_REQUEST_TITLE → MR title' && echo '' && echo 'These are automatically set by GitLab - no configuration needed.'",
+      "description": "Explore the built-in variables GitLab provides in every pipeline",
+      "explanation": "Predefined variables are automatically available in every job. $CI_COMMIT_SHA is commonly used to tag Docker images (guaranteeing unique, traceable tags). $CI_PIPELINE_SOURCE controls job behavior based on how the pipeline was triggered. $CI_REGISTRY_IMAGE simplifies Docker image paths. Knowing these variables eliminates the need for many custom scripts.",
+      "what_it_does": "Lists the most commonly used predefined GitLab CI variables grouped by category.",
+      "next_step": "Practice with environment-scoped variables.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 5: Environment-Scoped Variables",
+      "command": "echo '=== Environment-Scoped Variables ===' && echo '' && echo 'Same variable name, different values per environment:' && echo '' && echo 'Project Settings > CI/CD > Variables:' && echo '' && echo '  Key: DATABASE_URL' && echo '  Value: postgres://staging-db:5432/app' && echo '  Environment scope: staging' && echo '' && echo '  Key: DATABASE_URL' && echo '  Value: postgres://prod-db:5432/app' && echo '  Environment scope: production' && echo '' && echo '.gitlab-ci.yml:' && echo '  deploy-staging:' && echo '    environment:' && echo '      name: staging' && echo '    script:' && echo '      - echo $DATABASE_URL  # → postgres://staging-db:5432/app' && echo '' && echo '  deploy-production:' && echo '    environment:' && echo '      name: production' && echo '    script:' && echo '      - echo $DATABASE_URL  # → postgres://prod-db:5432/app' && echo '' && echo 'Same code, same variable name, different values.' && echo 'This is how you avoid hardcoding environment-specific config.'",
+      "description": "Learn how to use different variable values for different deployment environments",
+      "explanation": "Environment scoping is a killer feature. Instead of having STAGING_DB_URL and PROD_DB_URL (which leak environment names into code), you define DATABASE_URL twice with different scopes. The job's 'environment' field determines which value it receives. This keeps your pipeline code clean and environment-agnostic.",
+      "what_it_does": "Demonstrates how environment-scoped variables provide different values for staging and production.",
+      "next_step": "Review the variables summary.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 6: Variables Best Practices Summary",
+      "command": "echo '============================================' && echo '  GitLab CI Variables Best Practices' && echo '============================================' && echo '' && echo 'Security:' && echo '  ✅ Store secrets in GitLab UI, NOT in .gitlab-ci.yml' && echo '  ✅ Mark secrets as Protected AND Masked' && echo '  ✅ Use environment scoping for per-env credentials' && echo '  ✅ Use File type for certificates and kubeconfigs' && echo '  ❌ Never echo/print secret values in scripts' && echo '  ❌ Never commit .env files with real credentials' && echo '' && echo 'Organization:' && echo '  ✅ Group-level vars for shared secrets (registry creds)' && echo '  ✅ Project-level vars for project-specific secrets' && echo '  ✅ .gitlab-ci.yml vars for non-sensitive defaults' && echo '  ✅ Use clear naming: DEPLOY_TOKEN, not DT' && echo '' && echo 'Production patterns:' && echo '  ✅ Rotate secrets regularly via UI (no code change needed)' && echo '  ✅ Audit variable access via project access logs' && echo '  ✅ Use vault integration for enterprise secret management' && echo '  ✅ Test with dummy values in .gitlab-ci.yml defaults'",
+      "description": "Review best practices for variable management in production",
+      "explanation": "These best practices come from real production incidents. Secrets in Git repos get leaked. Unmasked variables appear in logs that get stored, shared, and forwarded. Unprotected variables get exposed through fork MR pipelines. Following these practices prevents security incidents before they happen.",
+      "what_it_does": "Prints a comprehensive checklist of variable management best practices.",
+      "next_step": "Scenario complete!",
+      "cleanup": false
+    }
+  ]
+}

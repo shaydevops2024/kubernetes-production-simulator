@@ -1,0 +1,17 @@
+---
+- name: Install and manage packages
+  hosts: pkg_servers
+  become: yes
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install nginx, curl, and htop
+      apt:
+        name:
+          - nginx
+          - curl
+          - htop
+        state: present

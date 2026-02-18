@@ -1,0 +1,88 @@
+{
+  "scenario_id": "11-deploy-to-kubernetes",
+  "difficulty": "hard",
+  "duration": "20 min",
+  "commands": [
+    {
+      "name": "Step 1: Review Full CI/CD Jenkinsfile",
+      "command": "echo '=== Production CI/CD Jenkinsfile for Kubernetes ===' && echo '' && echo 'pipeline {' && echo '    agent any' && echo '    environment {' && echo '        REGISTRY = \"registry.example.com\"' && echo '        IMAGE    = \"myapp\"' && echo '        K8S_NS   = \"production\"' && echo '    }' && echo '    stages {' && echo '        stage(\"Checkout\")    { steps { checkout scm } }' && echo '        stage(\"Unit Tests\") { steps { sh \"pytest tests/\" } }' && echo '        stage(\"Build Image\") {' && echo '            steps {' && echo '                sh \"docker build -t $REGISTRY/$IMAGE:$BUILD_NUMBER .\"' && echo '                withCredentials([usernamePassword(credentialsId: \"registry\", ...)]) {' && echo '                    sh \"docker push $REGISTRY/$IMAGE:$BUILD_NUMBER\"' && echo '                }' && echo '            }' && echo '        }' && echo '        stage(\"Deploy to K8s\") {' && echo '            steps {' && echo '                sh \"kubectl set image deployment/$IMAGE $IMAGE=$REGISTRY/$IMAGE:$BUILD_NUMBER -n $K8S_NS\"' && echo '                sh \"kubectl rollout status deployment/$IMAGE -n $K8S_NS --timeout=300s\"' && echo '            }' && echo '        }' && echo '        stage(\"Verify\") {' && echo '            steps {' && echo '                sh \"curl -f http://$IMAGE.$K8S_NS.svc/health || exit 1\"' && echo '            }' && echo '        }' && echo '    }' && echo '    post {' && echo '        failure {' && echo '            sh \"kubectl rollout undo deployment/$IMAGE -n $K8S_NS\"' && echo '            slackSend channel: \"#deploys\", message: \"ROLLBACK: Build #${BUILD_NUMBER} failed\"' && echo '        }' && echo '        success {' && echo '            slackSend channel: \"#deploys\", message: \"Deployed build #${BUILD_NUMBER} to production\"' && echo '        }' && echo '    }' && echo '}'",
+      "description": "Review a production-grade Jenkins pipeline for Kubernetes deployment",
+      "explanation": "This Jenkinsfile represents the standard production CI/CD pattern: checkout code, run tests, build and push a Docker image tagged with BUILD_NUMBER, deploy to Kubernetes using kubectl set image (which triggers a rolling update), verify the deployment health, and automatically rollback on failure. The post section handles notifications and disaster recovery.",
+      "what_it_does": "Displays a complete production Jenkinsfile with all stages from checkout to deploy with rollback.",
+      "next_step": "Understand the Kubernetes deployment strategy.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 2: Understand K8s Deployment Strategy",
+      "command": "echo '=== Kubernetes Rolling Update Strategy ===' && echo '' && echo 'spec:' && echo '  strategy:' && echo '    type: RollingUpdate' && echo '    rollingUpdate:' && echo '      maxSurge: 1        # Max pods ABOVE desired count during update' && echo '      maxUnavailable: 0  # Zero downtime - never kill old before new is ready' && echo '' && echo 'Update Flow:' && echo '  1. Jenkins runs: kubectl set image deployment/app app=myapp:42' && echo '  2. K8s creates NEW pod with image myapp:42' && echo '  3. K8s waits for new pod to pass readinessProbe' && echo '  4. K8s routes traffic to new pod' && echo '  5. K8s terminates OLD pod' && echo '  6. Repeat until all pods are updated' && echo '' && echo 'maxUnavailable: 0 guarantees:' && echo '  - At least N pods always serving traffic' && echo '  - No dropped requests during deploy' && echo '  - If new pod fails readiness, rollout stalls (no damage)' && echo '' && echo 'Jenkins monitors with: kubectl rollout status' && echo '  - Returns 0 when rollout completes successfully' && echo '  - Returns non-zero on timeout/failure, triggering post{failure}'",
+      "description": "Learn how rolling updates provide zero-downtime deployments",
+      "explanation": "The combination of maxSurge:1 and maxUnavailable:0 is the safest rolling update config. It means Kubernetes will only add new pods (never remove old ones first), and only routes traffic once the new pod passes health checks. If the new pod crashes or fails readiness, the rollout stalls and Jenkins' timeout triggers the post{failure} block which runs kubectl rollout undo.",
+      "what_it_does": "Shows the rolling update configuration and step-by-step flow during a zero-downtime deployment.",
+      "next_step": "Create the K8s namespace and deploy v1.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 3: Create Namespace and Deploy v1",
+      "command": "kubectl create namespace jenkins-scenarios --dry-run=client -o yaml | kubectl apply -f - && cat <<'YAML' | kubectl apply -f -\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: jenkins-k8s-app\n  namespace: jenkins-scenarios\n  labels:\n    app: jenkins-k8s-app\nspec:\n  replicas: 2\n  strategy:\n    type: RollingUpdate\n    rollingUpdate:\n      maxSurge: 1\n      maxUnavailable: 0\n  selector:\n    matchLabels:\n      app: jenkins-k8s-app\n  template:\n    metadata:\n      labels:\n        app: jenkins-k8s-app\n        version: v1\n    spec:\n      containers:\n      - name: app\n        image: nginx:1.24-alpine\n        ports:\n        - containerPort: 80\n        readinessProbe:\n          httpGet:\n            path: /\n            port: 80\n          initialDelaySeconds: 2\n          periodSeconds: 3\n---\napiVersion: v1\nkind: Service\nmetadata:\n  name: jenkins-k8s-app-svc\n  namespace: jenkins-scenarios\nspec:\n  selector:\n    app: jenkins-k8s-app\n  ports:\n  - port: 80\n    targetPort: 80\nYAML\necho '' && echo '=== v1 deployed (simulating Jenkins build #1) ===' && kubectl rollout status deployment/jenkins-k8s-app -n jenkins-scenarios --timeout=60s",
+      "description": "Deploy the initial version of the application (simulating Jenkins build #1)",
+      "explanation": "This simulates what Jenkins build #1 would do: deploy the initial version with 2 replicas, a rolling update strategy, and readiness probes. The readinessProbe ensures Kubernetes only routes traffic to healthy pods. kubectl rollout status waits for the deployment to complete - this is what Jenkins would monitor.",
+      "what_it_does": "Creates a 2-replica deployment with nginx:1.24-alpine (v1), a service, and waits for all pods to be ready.",
+      "next_step": "Perform a rolling update to v2.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 4: Rolling Update to v2",
+      "command": "echo '=== Simulating Jenkins Build #2: Update to v2 ===' && echo '' && echo '$ kubectl set image deployment/jenkins-k8s-app app=nginx:1.25-alpine' && kubectl set image deployment/jenkins-k8s-app app=nginx:1.25-alpine -n jenkins-scenarios && echo '' && echo '=== Monitoring rollout (this is what Jenkins watches) ===' && kubectl rollout status deployment/jenkins-k8s-app -n jenkins-scenarios --timeout=60s && echo '' && echo '=== Rollout complete! ===' && kubectl get pods -n jenkins-scenarios -l app=jenkins-k8s-app -o wide",
+      "description": "Perform a rolling update simulating Jenkins build #2",
+      "explanation": "kubectl set image is the simplest way to trigger a rolling update. In a real Jenkins pipeline, this would use the BUILD_NUMBER as the image tag. kubectl rollout status blocks until the update completes or times out. If it times out, the exit code is non-zero, which causes the Jenkins stage to fail and triggers the post{failure} rollback.",
+      "what_it_does": "Updates the deployment from nginx:1.24-alpine to nginx:1.25-alpine and monitors the rolling update progress.",
+      "next_step": "Verify deployment health.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 5: Verify Deployment Health",
+      "command": "echo '=== Post-Deploy Verification (Jenkins verify stage) ===' && echo '' && echo 'Deployment status:' && kubectl get deployment jenkins-k8s-app -n jenkins-scenarios && echo '' && echo 'Pod versions:' && kubectl get pods -n jenkins-scenarios -l app=jenkins-k8s-app -o jsonpath='{range .items[*]}{.metadata.name}: {.spec.containers[0].image}{\"\\n\"}{end}' && echo '' && echo 'Rollout history:' && kubectl rollout history deployment/jenkins-k8s-app -n jenkins-scenarios && echo '' && echo '=== In Jenkins, this stage would also run:' && echo '  - curl -f http://jenkins-k8s-app-svc/health' && echo '  - Integration tests against the deployed service' && echo '  - Response time checks'",
+      "description": "Verify the deployment is healthy after rolling update",
+      "explanation": "Post-deployment verification is critical. Jenkins should check that all pods are running the new image, the health endpoint responds, and basic smoke tests pass. The rollout history shows all revisions, which is important for knowing which version to rollback to. Production pipelines typically wait 2-5 minutes after deploy before marking success.",
+      "what_it_does": "Shows deployment status, confirms all pods run the updated image, and displays rollout history.",
+      "next_step": "Simulate a failed deployment and automatic rollback.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 6: Simulate Failed Deploy and Rollback",
+      "command": "echo '=== Simulating Jenkins Build #3: BAD deployment ===' && echo '' && echo 'Deploying a broken image (nonexistent tag)...' && kubectl set image deployment/jenkins-k8s-app app=nginx:THIS-TAG-DOES-NOT-EXIST -n jenkins-scenarios && echo '' && echo 'Waiting 15 seconds for rollout to stall...' && sleep 15 && echo '' && echo 'Rollout status (will show stuck):' && kubectl rollout status deployment/jenkins-k8s-app -n jenkins-scenarios --timeout=5s 2>&1 || true && echo '' && echo '=== Jenkins post{failure} triggers: kubectl rollout undo ===' && kubectl rollout undo deployment/jenkins-k8s-app -n jenkins-scenarios && echo '' && echo 'Waiting for rollback to complete...' && kubectl rollout status deployment/jenkins-k8s-app -n jenkins-scenarios --timeout=60s && echo '' && echo '=== Rollback successful! Running version:' && kubectl get pods -n jenkins-scenarios -l app=jenkins-k8s-app -o jsonpath='{range .items[*]}{.spec.containers[0].image}{\"\\n\"}{end}'",
+      "description": "Simulate a bad deployment and automatic rollback triggered by Jenkins",
+      "explanation": "This is the most important production pattern. When a bad image is deployed, the new pods fail to start (ImagePullBackOff). kubectl rollout status times out, causing the Jenkins stage to fail. The post{failure} block runs kubectl rollout undo, which reverts to the last working revision. Because maxUnavailable:0 was set, the old pods were never terminated - users experienced zero downtime even during the failed deploy.",
+      "what_it_does": "Deploys a broken image, watches it fail, then automatically rolls back to the last working version (nginx:1.25-alpine).",
+      "next_step": "Learn production readiness patterns.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 7: Production Readiness Patterns",
+      "command": "echo '=== Production CI/CD Readiness Checklist ===' && echo '' && echo '1. Deployment Strategy' && echo '   [x] Rolling update with maxUnavailable: 0' && echo '   [x] Readiness probes on all containers' && echo '   [x] Resource requests and limits set' && echo '' && echo '2. Pipeline Safety' && echo '   [x] Automatic rollback in post{failure}' && echo '   [x] Deployment timeout (--timeout=300s)' && echo '   [x] Health check verification stage' && echo '   [x] Smoke tests after deploy' && echo '' && echo '3. Observability' && echo '   [x] Build number as image tag (traceability)' && echo '   [x] Slack/Teams notifications on deploy' && echo '   [x] Deployment events in monitoring system' && echo '' && echo '4. Advanced Patterns' && echo '   [ ] Blue/Green: Deploy v2 alongside v1, switch traffic at once' && echo '   [ ] Canary: Route 5% traffic to v2, gradually increase' && echo '   [ ] Feature flags: Deploy code dark, enable via config' && echo '' && echo '5. GitOps Alternative' && echo '   [ ] ArgoCD watches Git for manifest changes' && echo '   [ ] Jenkins updates manifests in Git (not K8s directly)' && echo '   [ ] Separation of CI (Jenkins) and CD (ArgoCD)'",
+      "description": "Review production readiness patterns for Jenkins + Kubernetes CI/CD",
+      "explanation": "Production-grade CI/CD goes beyond basic deploy. Resource limits prevent runaway pods. Readiness probes ensure traffic only hits healthy pods. Observability (tracing build numbers, notifications) is essential for debugging production issues. Advanced patterns like canary deployments and GitOps represent the next level of deployment sophistication.",
+      "what_it_does": "Displays a comprehensive production readiness checklist covering deployment, pipeline safety, observability, and advanced patterns.",
+      "next_step": "Review the scenario summary.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 8: Scenario Summary",
+      "command": "echo '============================================' && echo '  Deploy to Kubernetes - Summary' && echo '============================================' && echo '' && echo 'What we covered:' && echo '  1. Full CI/CD Jenkinsfile: test → build → push → deploy → verify' && echo '  2. Rolling update strategy with zero downtime' && echo '  3. Deployed v1 (build #1) and updated to v2 (build #2)' && echo '  4. Post-deploy health verification' && echo '  5. Automatic rollback on failed deployment (build #3)' && echo '  6. Production readiness patterns' && echo '' && echo 'Key commands used in production Jenkins pipelines:' && echo '  kubectl set image deployment/APP APP=IMAGE:TAG  → trigger update' && echo '  kubectl rollout status deployment/APP            → monitor rollout' && echo '  kubectl rollout undo deployment/APP              → emergency rollback' && echo '  kubectl rollout history deployment/APP           → audit trail' && echo '' && echo 'Golden rule: If kubectl rollout status returns non-zero,' && echo 'Jenkins post{failure} should ALWAYS run kubectl rollout undo.'",
+      "description": "Review everything learned about Jenkins + Kubernetes CI/CD",
+      "explanation": "This scenario covered the complete lifecycle of a Jenkins-to-Kubernetes deployment pipeline. The key takeaway is the safety net: rolling updates with maxUnavailable:0 + automatic rollback in post{failure} means deployments can never cause downtime, even when things go wrong.",
+      "what_it_does": "Prints a comprehensive summary of the CI/CD pipeline patterns covered in this scenario.",
+      "next_step": "Clean up resources.",
+      "cleanup": false
+    },
+    {
+      "name": "Cleanup: Remove Resources",
+      "command": "kubectl delete namespace jenkins-scenarios --ignore-not-found && echo 'Cleanup complete!'",
+      "description": "Remove all resources created by this scenario",
+      "explanation": "Deletes the namespace and all resources within it.",
+      "what_it_does": "Removes the jenkins-scenarios namespace, the deployment, and the service.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

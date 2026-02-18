@@ -1,0 +1,105 @@
+{
+  "scenario_id": "01-ansible-basics-inventory",
+  "difficulty": "easy",
+  "duration": "15 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Docker Target Hosts",
+      "command": "docker run -d --name web1 --hostname web1 -p 2221:22 rastasheep/ubuntu-sshd && docker run -d --name web2 --hostname web2 -p 2222:22 rastasheep/ubuntu-sshd && docker run -d --name db1 --hostname db1 -p 2223:22 rastasheep/ubuntu-sshd",
+      "description": "Launch 3 Ubuntu containers with SSH for Ansible targets",
+      "explanation": "Creates 3 containers (web1, web2, db1) running SSH on ports 2221-2223. These simulate remote servers. Default credentials: root/root. In production, you'd use real servers or VMs.",
+      "what_it_does": "Creates 3 running Docker containers accessible via SSH that Ansible can manage.",
+      "next_step": "Containers ready. Now create the inventory file."
+    },
+    {
+      "name": "Step 2: View Static Inventory",
+      "command": "cat ansible-scenarios/01-ansible-basics-inventory/inventory/hosts.ini",
+      "description": "Display the inventory file with hosts and groups",
+      "explanation": "Shows INI-format inventory with [webservers] and [databases] groups. Defines connection details (ansible_port, ansible_user, ansible_password). Groups allow targeting multiple hosts.",
+      "what_it_does": "Displays inventory structure showing how hosts are organized into groups.",
+      "next_step": "Review the inventory structure, then test connectivity."
+    },
+    {
+      "name": "Step 3: Test Connectivity with Ping",
+      "command": "cd ansible-scenarios/01-ansible-basics-inventory && ansible all -i inventory/hosts.ini -m ping",
+      "description": "Ping all hosts in inventory to verify connectivity",
+      "explanation": "The 'all' pattern targets every host. The ping module tests Python+SSH connectivity (not ICMP). SUCCESS means Ansible can execute tasks on that host.",
+      "what_it_does": "Tests connectivity to all 4 hosts (localhost + 3 containers). Each should return pong.",
+      "next_step": "All hosts reachable. Now try host patterns."
+    },
+    {
+      "name": "Step 4: Target Specific Group",
+      "command": "cd ansible-scenarios/01-ansible-basics-inventory && ansible webservers -i inventory/hosts.ini -m command -a 'hostname'",
+      "description": "Run command only on webservers group",
+      "explanation": "Uses 'webservers' pattern to target only web1 and web2. The command module executes shell commands. You'll see each host's hostname.",
+      "what_it_does": "Runs 'hostname' command on web1 and web2, skipping localhost and db1.",
+      "next_step": "Group targeting works. Now use pattern matching."
+    },
+    {
+      "name": "Step 5: Use Pattern Matching",
+      "command": "cd ansible-scenarios/01-ansible-basics-inventory && ansible 'web*' -i inventory/hosts.ini -m setup -a 'filter=ansible_distribution*'",
+      "description": "Use wildcard pattern to target hosts starting with 'web'",
+      "explanation": "Pattern 'web*' matches web1 and web2. The setup module gathers facts (system info). Filter reduces output to distribution-related facts only.",
+      "what_it_does": "Collects OS distribution facts from web1 and web2 using pattern matching.",
+      "next_step": "Patterns work. Now view group variables."
+    },
+    {
+      "name": "Step 6: View Group Variables",
+      "command": "cat ansible-scenarios/01-ansible-basics-inventory/inventory/group_vars/webservers.yml",
+      "description": "Display variables applied to webservers group",
+      "explanation": "Group variables in group_vars/ apply to all hosts in that group. These vars can be used in playbooks (e.g., {{ http_port }}).",
+      "what_it_does": "Shows http_port and app_env variables that apply to all webservers.",
+      "next_step": "Variables defined. Now use them in an ad-hoc command."
+    },
+    {
+      "name": "Step 7: Use Variables in Commands",
+      "command": "cd ansible-scenarios/01-ansible-basics-inventory && ansible webservers -i inventory/hosts.ini -m debug -a 'msg=\"Port: {{ http_port }}, Env: {{ app_env }}\"'",
+      "description": "Display variables using debug module",
+      "explanation": "The debug module prints messages/variables. Jinja2 templates {{ }} access variables. Each webserver sees the group_vars values.",
+      "what_it_does": "Prints variable values for each webserver, demonstrating variable usage.",
+      "next_step": "Variables working. Check host-specific variables."
+    },
+    {
+      "name": "Step 8: View Host Variables",
+      "command": "cat ansible-scenarios/01-ansible-basics-inventory/inventory/host_vars/db1.yml",
+      "description": "Display host-specific variables for db1",
+      "explanation": "Host variables in host_vars/ override group variables and apply only to that specific host. Useful for per-host configuration.",
+      "what_it_does": "Shows database-specific variables for db1 (db_port, max_connections).",
+      "next_step": "Host vars reviewed. Test combining patterns."
+    },
+    {
+      "name": "Step 9: Complex Pattern - Multiple Groups",
+      "command": "cd ansible-scenarios/01-ansible-basics-inventory && ansible 'webservers:databases' -i inventory/hosts.ini -m command -a 'uptime'",
+      "description": "Target multiple groups with ':' (OR operator)",
+      "explanation": "Pattern 'webservers:databases' matches hosts in either group. The colon (:) means OR. You'll see uptime for web1, web2, and db1.",
+      "what_it_does": "Runs uptime command on all hosts in webservers OR databases groups.",
+      "next_step": "Multiple groups targeted. Try limit patterns."
+    },
+    {
+      "name": "Step 10: Limit Execution",
+      "command": "cd ansible-scenarios/01-ansible-basics-inventory && ansible all -i inventory/hosts.ini --limit web1 -m command -a 'echo \"Limited to web1\"'",
+      "description": "Use --limit to narrow down host selection",
+      "explanation": "Even though 'all' targets everything, --limit restricts execution to web1 only. Useful for testing playbooks on subset of hosts.",
+      "what_it_does": "Executes command only on web1, ignoring other hosts.",
+      "next_step": "Limits work. Scenario complete! Clean up resources."
+    },
+    {
+      "name": "Cleanup 1: Stop Docker Containers",
+      "command": "docker stop web1 web2 db1",
+      "description": "Stop all SSH containers",
+      "explanation": "Stops the running containers. They can be restarted with 'docker start' if needed.",
+      "what_it_does": "Stops web1, web2, and db1 containers.",
+      "next_step": "Containers stopped. Now remove them.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup 2: Remove Docker Containers",
+      "command": "docker rm web1 web2 db1",
+      "description": "Remove stopped containers completely",
+      "explanation": "Deletes the containers and their filesystems. All changes made during the scenario are lost.",
+      "what_it_does": "Removes web1, web2, and db1 containers from Docker.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

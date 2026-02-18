@@ -1,0 +1,403 @@
+<!-- app/src/static/argocd-scenarios.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArgoCD Learning Scenarios</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #f97316 0%, #dc2626 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            padding: 40px 20px;
+        }
+
+        .header h1 {
+            font-size: 48px;
+            margin: 0 0 15px 0;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 20px;
+            opacity: 0.95;
+            margin: 0;
+        }
+
+        .header-actions {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .scenarios-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 25px;
+            margin-top: 40px;
+        }
+
+        .scenario-card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .scenario-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .scenario-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .scenario-number {
+            font-size: 14px;
+            font-weight: 700;
+            color: #ea580c;
+            background: #fff7ed;
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        .difficulty-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .difficulty-easy {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .difficulty-medium {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .difficulty-hard {
+            background: #fecaca;
+            color: #991b1b;
+        }
+
+        .scenario-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1a202c;
+            margin: 15px 0 10px 0;
+            line-height: 1.3;
+        }
+
+        .scenario-description {
+            color: #4b5563;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            min-height: 60px;
+        }
+
+        .scenario-meta {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #e5e7eb;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: white;
+            font-size: 18px;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 24px;
+            background: white;
+            color: #ea580c;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .argocd-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 24px;
+            background: #1f2937;
+            color: white;
+            border: 2px solid white;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .argocd-button:hover {
+            background: white;
+            color: #1f2937;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .namespace-badge {
+            display: inline-block;
+            background: #f3f4f6;
+            color: #4b5563;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-family: monospace;
+            margin-top: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .scenarios-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 32px;
+            }
+
+            .header p {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Play ArgoCD</h1>
+            <p>Hands-on ArgoCD GitOps scenarios - Deploy, sync, rollback, and manage like a pro</p>
+            <div class="header-actions">
+                <a href="/" class="back-button">
+                    <span>&larr;</span>
+                    <span>Back to Dashboard</span>
+                </a>
+                <a href="#" class="argocd-button" onclick="openArgoCD(); return false;">
+                    <span>&#9654;</span>
+                    <span>Open ArgoCD UI</span>
+                </a>
+                <button class="argocd-button" onclick="showArgoPassword()" title="Get ArgoCD admin password">
+                    <span>&#128274;</span>
+                    <span>Get Password</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="scenarios-content" class="loading">
+            <div class="spinner"></div>
+            <div>Loading ArgoCD scenarios...</div>
+        </div>
+    </div>
+
+    <script>
+        function openArgoCD() {
+            fetch('/api/argocd/url')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    window.open(data.url || 'http://localhost:30800', '_blank');
+                })
+                .catch(function() {
+                    window.open('http://localhost:30800', '_blank');
+                });
+        }
+
+        function copyToClipboard(text, btn) {
+            function onSuccess() {
+                btn.textContent = 'Copied!';
+                setTimeout(function() { btn.textContent = 'Copy'; }, 1500);
+            }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(onSuccess).catch(function() {
+                    fallbackCopy(text, btn, onSuccess);
+                });
+            } else {
+                fallbackCopy(text, btn, onSuccess);
+            }
+        }
+
+        function fallbackCopy(text, btn, onSuccess) {
+            var textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.cssText = 'position:fixed;opacity:0;left:-9999px;';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                onSuccess();
+            } catch (e) {
+                btn.textContent = 'Failed';
+                setTimeout(function() { btn.textContent = 'Copy'; }, 1500);
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function showArgoPassword() {
+            var cmd = "kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d";
+            var overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:9999;';
+            overlay.onclick = function(e) { if (e.target === overlay) document.body.removeChild(overlay); };
+            var box = document.createElement('div');
+            box.style.cssText = 'background:white;border-radius:16px;padding:30px;max-width:620px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);';
+            box.innerHTML = '<h3 style="margin:0 0 8px;color:#0d9488;">ArgoCD Admin Password</h3>'
+                + '<p style="color:#666;margin:0 0 16px;font-size:14px;">Run this command to get the ArgoCD admin password:</p>'
+                + '<div style="background:#1e293b;color:#e2e8f0;padding:14px 18px;border-radius:10px;font-family:monospace;font-size:13px;text-align:left;word-break:break-all;position:relative;">'
+                + '<span>' + cmd + '</span>'
+                + '<button id="argo-copy-btn" style="position:absolute;top:8px;right:8px;background:#0d9488;color:white;border:none;border-radius:6px;padding:4px 12px;cursor:pointer;font-size:12px;">Copy</button>'
+                + '</div>'
+                + '<p style="color:#888;margin:12px 0 0;font-size:13px;">Default username: <strong>admin</strong></p>';
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+            document.getElementById('argo-copy-btn').onclick = function() {
+                copyToClipboard(cmd, this);
+            };
+        }
+
+        async function loadScenarios() {
+            try {
+                const response = await fetch('/api/argocd-scenarios');
+                const data = await response.json();
+
+                if (data.scenarios && data.scenarios.length > 0) {
+                    renderScenarios(data.scenarios);
+                } else {
+                    document.getElementById('scenarios-content').innerHTML = '<div class="error-message"><h3>No ArgoCD Scenarios Found</h3><p>No ArgoCD scenarios are currently available.</p></div>';
+                }
+            } catch (error) {
+                document.getElementById('scenarios-content').innerHTML = '<div class="error-message"><h3>Error Loading Scenarios</h3><p>' + error.message + '</p></div>';
+            }
+        }
+
+        function renderScenarios(scenarios) {
+            var difficultyOrder = { 'easy': 1, 'medium': 2, 'hard': 3 };
+
+            var sortedScenarios = scenarios.sort(function(a, b) {
+                return a.id.localeCompare(b.id);
+            });
+
+            var grid = document.createElement('div');
+            grid.className = 'scenarios-grid';
+
+            sortedScenarios.forEach(function(scenario, index) {
+                var card = createScenarioCard(scenario, index + 1);
+                grid.appendChild(card);
+            });
+
+            document.getElementById('scenarios-content').innerHTML = '';
+            document.getElementById('scenarios-content').appendChild(grid);
+        }
+
+        function createScenarioCard(scenario, number) {
+            var link = document.createElement('a');
+            link.href = '/argocd-scenario/' + scenario.id;
+            link.className = 'scenario-card';
+
+            var difficultyClass = 'difficulty-' + (scenario.difficulty || 'medium');
+
+            link.innerHTML = '<div class="scenario-header">'
+                + '<span class="scenario-number">#' + number + '</span>'
+                + '<span class="difficulty-badge ' + difficultyClass + '">'
+                + (scenario.difficulty || 'medium').toUpperCase()
+                + '</span>'
+                + '</div>'
+                + '<h3 class="scenario-title">' + scenario.name + '</h3>'
+                + '<p class="scenario-description">'
+                + (scenario.description || 'A hands-on ArgoCD learning scenario')
+                + '</p>'
+                + '<div class="scenario-meta">'
+                + '<div class="meta-item"><span>&#9202;</span><span>' + (scenario.duration || '15 min') + '</span></div>'
+                + '<div class="meta-item"><span>&#128221;</span><span>' + (scenario.command_count || 0) + ' commands</span></div>'
+                + '</div>';
+
+            return link;
+        }
+
+        loadScenarios();
+    </script>
+</body>
+</html>

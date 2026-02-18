@@ -1,0 +1,146 @@
+{
+  "scenario_id": "04-file-deployment-templates",
+  "difficulty": "easy",
+  "duration": "25 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Web Servers",
+      "command": "docker run -d --name web1 --hostname web1 -p 2251:22 -p 8081:80 rastasheep/ubuntu-sshd && docker run -d --name web2 --hostname web2 -p 2252:22 -p 8082:80 rastasheep/ubuntu-sshd",
+      "description": "Launch Ubuntu containers for web servers",
+      "explanation": "Creates 2 containers with SSH (ports 2251-2252) and HTTP (ports 8081-8082). These will run nginx with templated configurations.",
+      "what_it_does": "Creates 2 web server containers accessible via SSH and HTTP.",
+      "next_step": "Containers ready. Install nginx."
+    },
+    {
+      "name": "Step 2: Install Nginx",
+      "command": "cd ansible-scenarios/04-file-deployment-templates && ansible-playbook -i inventory/hosts.ini install-nginx.yml",
+      "description": "Install nginx on both web servers",
+      "explanation": "Installs nginx package and ensures service is stopped before configuration. We'll deploy custom config before starting.",
+      "what_it_does": "Installs nginx on web1 and web2, leaves service stopped.",
+      "next_step": "Nginx installed. View the template file."
+    },
+    {
+      "name": "Step 3: View Nginx Template",
+      "command": "cat ansible-scenarios/04-file-deployment-templates/templates/nginx.conf.j2",
+      "description": "Display nginx configuration template",
+      "explanation": "Shows Jinja2 template with variables {{ nginx_worker_processes }}, {{ nginx_port }}, conditionals {% if %}, and loops {% for %}. Variables come from inventory.",
+      "what_it_does": "Shows template using Ansible variables and facts.",
+      "next_step": "Template reviewed. View host-specific variables."
+    },
+    {
+      "name": "Step 4: View Host Variables",
+      "command": "cat ansible-scenarios/04-file-deployment-templates/inventory/host_vars/web1.yml",
+      "description": "Display web1-specific variables",
+      "explanation": "Shows variables used in templates: nginx_port, worker_processes, server_name, etc. Each host can have different values.",
+      "what_it_does": "Displays variables specific to web1.",
+      "next_step": "Variables reviewed. Deploy templated configs."
+    },
+    {
+      "name": "Step 5: Deploy Nginx Configuration",
+      "command": "cd ansible-scenarios/04-file-deployment-templates && ansible-playbook -i inventory/hosts.ini deploy-nginx-config.yml",
+      "description": "Render and deploy nginx configs from templates",
+      "explanation": "template module processes nginx.conf.j2, substituting variables and evaluating conditionals. Each host gets customized config based on its variables.",
+      "what_it_does": "Deploys rendered nginx.conf to both servers with host-specific values.",
+      "next_step": "Config deployed. Validate syntax."
+    },
+    {
+      "name": "Step 6: Validate Nginx Configuration",
+      "command": "cd ansible-scenarios/04-file-deployment-templates && ansible webservers -i inventory/hosts.ini -m command -a 'nginx -t'",
+      "description": "Test nginx configuration syntax",
+      "explanation": "nginx -t validates config without starting service. Returns 'syntax is ok' if valid. Should always validate before starting/reloading.",
+      "what_it_does": "Tests nginx configuration syntax on both servers.",
+      "next_step": "Config valid. Start nginx service."
+    },
+    {
+      "name": "Step 7: Start Nginx Service",
+      "command": "cd ansible-scenarios/04-file-deployment-templates && ansible webservers -i inventory/hosts.ini -m service -a 'name=nginx state=started'",
+      "description": "Start nginx with new configuration",
+      "explanation": "Starts nginx service now that config is validated. Service will use the templated configuration.",
+      "what_it_does": "Starts nginx service on web1 and web2.",
+      "next_step": "Nginx running. Test web response."
+    },
+    {
+      "name": "Step 8: Test Web Server Response",
+      "command": "curl -s http://localhost:8081 | head -5 && echo '---' && curl -s http://localhost:8082 | head -5",
+      "description": "Verify nginx is serving content on both servers",
+      "explanation": "Curls both servers (ports 8081, 8082). Should return nginx default page. Confirms nginx is running and accessible.",
+      "what_it_does": "Tests HTTP response from both web servers.",
+      "next_step": "Web servers responding. Deploy app config template."
+    },
+    {
+      "name": "Step 9: View App Config Template",
+      "command": "cat ansible-scenarios/04-file-deployment-templates/templates/app-config.yml.j2",
+      "description": "Display application configuration template",
+      "explanation": "Shows template using Ansible facts like {{ ansible_hostname }}, {{ ansible_default_ipv4.address }}. Facts are automatically gathered about target hosts.",
+      "what_it_does": "Shows template using gathered facts and variables.",
+      "next_step": "Template reviewed. Deploy app configs."
+    },
+    {
+      "name": "Step 10: Deploy Application Configs",
+      "command": "cd ansible-scenarios/04-file-deployment-templates && ansible-playbook -i inventory/hosts.ini deploy-app-config.yml",
+      "description": "Deploy application configs using facts and variables",
+      "explanation": "Gathers facts, then renders app-config.yml.j2 with host-specific facts (hostname, IP, etc.) and group variables (environment, log_level).",
+      "what_it_does": "Deploys /etc/myapp/config.yml on both servers with unique values.",
+      "next_step": "App configs deployed. View rendered config."
+    },
+    {
+      "name": "Step 11: View Rendered Config on web1",
+      "command": "cd ansible-scenarios/04-file-deployment-templates && ansible web1 -i inventory/hosts.ini -m command -a 'cat /etc/myapp/config.yml'",
+      "description": "Display final rendered configuration",
+      "explanation": "Shows how template was rendered with web1's specific values. Compare to web2 - same template, different values.",
+      "what_it_does": "Displays rendered config file showing substituted variables and facts.",
+      "next_step": "Config rendered correctly. Try conditional templates."
+    },
+    {
+      "name": "Step 12: Deploy Conditional Template",
+      "command": "cd ansible-scenarios/04-file-deployment-templates && ansible-playbook -i inventory/hosts.ini deploy-conditional.yml",
+      "description": "Deploy template with conditional blocks",
+      "explanation": "Template uses {% if app_env == 'production' %} to include/exclude sections. Production hosts get extra config, dev hosts don't.",
+      "what_it_does": "Deploys environment-specific config using conditionals.",
+      "next_step": "Conditionals work. View group variables template."
+    },
+    {
+      "name": "Step 13: Deploy Template with Loops",
+      "command": "cd ansible-scenarios/04-file-deployment-templates && ansible-playbook -i inventory/hosts.ini deploy-with-loops.yml",
+      "description": "Deploy template using Jinja2 loops",
+      "explanation": "Template uses {% for server in backend_servers %} to generate config for multiple backends. List comes from group variables.",
+      "what_it_does": "Deploys config with dynamically generated sections from list variables.",
+      "next_step": "Loops working. Reload nginx with new config."
+    },
+    {
+      "name": "Step 14: Reload Nginx",
+      "command": "cd ansible-scenarios/04-file-deployment-templates && ansible webservers -i inventory/hosts.ini -m service -a 'name=nginx state=reloaded'",
+      "description": "Reload nginx to apply configuration changes",
+      "explanation": "state=reloaded does graceful reload without dropping connections. Use after config changes instead of restart.",
+      "what_it_does": "Reloads nginx configuration on both servers without downtime.",
+      "next_step": "Configuration management complete! Clean up."
+    },
+    {
+      "name": "Cleanup 1: Stop Nginx",
+      "command": "cd ansible-scenarios/04-file-deployment-templates && ansible webservers -i inventory/hosts.ini -m service -a 'name=nginx state=stopped'",
+      "description": "Stop nginx service",
+      "explanation": "Gracefully stops nginx before container removal.",
+      "what_it_does": "Stops nginx on both servers.",
+      "next_step": "Service stopped. Remove containers.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup 2: Stop Containers",
+      "command": "docker stop web1 web2",
+      "description": "Stop web server containers",
+      "explanation": "Stops the running containers.",
+      "what_it_does": "Stops web1 and web2 containers.",
+      "next_step": "Containers stopped. Remove them.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup 3: Remove Containers",
+      "command": "docker rm web1 web2",
+      "description": "Remove stopped containers",
+      "explanation": "Deletes containers and their filesystems.",
+      "what_it_does": "Removes web1 and web2 containers from Docker.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

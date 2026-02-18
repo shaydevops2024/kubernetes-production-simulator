@@ -1,0 +1,19 @@
+---
+- name: Deploy application configuration
+  hosts: webservers
+  become: yes
+  gather_facts: yes
+  tasks:
+    - name: Create app config directory
+      file:
+        path: /etc/myapp
+        state: directory
+        mode: '0755'
+
+    - name: Deploy app config from template
+      template:
+        src: templates/app-config.yml.j2
+        dest: /etc/myapp/config.yml
+        owner: root
+        group: root
+        mode: '0644'

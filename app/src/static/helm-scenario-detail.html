@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Helm Scenario - Learn by Doing</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .top-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: white;
+            color: #1e40af;
+            border: none;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .wizard-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        /* Header Section */
+        .wizard-header {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            padding: 30px 40px;
+            color: white;
+        }
+
+        .scenario-badges {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge-easy {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-medium {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-hard {
+            background: #fecaca;
+            color: #991b1b;
+        }
+
+        .badge-duration {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-commands {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-helm {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-yaml {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .scenario-title {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        .scenario-subtitle {
+            color: #94a3b8;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        /* Progress Section */
+        .progress-section {
+            background: #f8fafc;
+            padding: 20px 40px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .step-text {
+            font-size: 14px;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .step-text span {
+            color: #2563eb;
+            font-size: 18px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .nav-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 2px solid #e2e8f0;
+            background: white;
+            color: #64748b;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            border-color: #2563eb;
+            color: #2563eb;
+            background: #eff6ff;
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #1e40af, #3b82f6);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-dots {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 12px;
+            padding: 0 2px;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .dot:hover {
+            background: #cbd5e1;
+        }
+
+        .dot.completed {
+            background: #2563eb;
+        }
+
+        .dot.current {
+            background: #2563eb;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.3);
+        }
+
+        /* Main Content */
+        .wizard-content {
+            padding: 40px;
+            min-height: 400px;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .step-number {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #1e40af, #3b82f6);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 22px;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+
+        .step-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        /* Command Box */
+        .command-box {
+            background: #1e293b;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 25px;
+        }
+
+        .command-box-header {
+            background: #334155;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .terminal-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .terminal-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .terminal-dot.red { background: #ef4444; }
+        .terminal-dot.yellow { background: #eab308; }
+        .terminal-dot.green { background: #22c55e; }
+
+        .copy-btn {
+            padding: 8px 16px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #3b82f6;
+            transform: translateY(-1px);
+        }
+
+        .copy-btn.copied {
+            background: #22c55e;
+        }
+
+        .command-code {
+            padding: 25px;
+            color: #e2e8f0;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 15px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .command-code .prompt {
+            color: #22c55e;
+        }
+
+        /* Info Cards */
+        .info-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .info-card {
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid;
+        }
+
+        .info-card.what {
+            background: #eff6ff;
+            border-color: #3b82f6;
+        }
+
+        .info-card.expect {
+            background: #f0fdf4;
+            border-color: #22c55e;
+        }
+
+        .info-card.why {
+            background: #eff6ff;
+            border-color: #3b82f6;
+        }
+
+        .info-card.next {
+            background: #fffbeb;
+            border-color: #f59e0b;
+        }
+
+        .info-card h4 {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-card.what h4 { color: #1e40af; }
+        .info-card.expect h4 { color: #15803d; }
+        .info-card.why h4 { color: #1e40af; }
+        .info-card.next h4 { color: #b45309; }
+
+        .info-card p {
+            color: #475569;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* Tip Box */
+        .tip-box {
+            background: #fefce8;
+            border: 1px solid #fde047;
+            border-radius: 12px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .tip-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .tip-content {
+            flex: 1;
+        }
+
+        .tip-content strong {
+            color: #854d0e;
+            font-size: 13px;
+        }
+
+        .tip-content p {
+            color: #713f12;
+            font-size: 14px;
+            margin-top: 4px;
+            line-height: 1.5;
+        }
+
+        /* Cleanup Badge */
+        .cleanup-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-left: 10px;
+        }
+
+        /* YAML Section */
+        .yaml-section {
+            margin-top: 30px;
+            padding-top: 25px;
+            border-top: 2px dashed #e2e8f0;
+        }
+
+        .yaml-section h3 {
+            font-size: 18px;
+            color: #1e293b;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .yaml-box {
+            background: #1e293b;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .yaml-header {
+            background: #334155;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .yaml-filename {
+            color: #e2e8f0;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .yaml-content {
+            padding: 20px;
+            color: #e2e8f0;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+            text-align: left;
+        }
+
+        /* Footer Navigation */
+        .wizard-footer {
+            background: #f8fafc;
+            padding: 25px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .footer-btn {
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary {
+            background: white;
+            border: 2px solid #e2e8f0;
+            color: #64748b;
+        }
+
+        .btn-secondary:hover {
+            border-color: #2563eb;
+            color: #2563eb;
+        }
+
+        .btn-secondary:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #1e40af, #3b82f6);
+            border: none;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+        }
+
+        .step-counter {
+            color: #94a3b8;
+            font-size: 14px;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: white;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Error State */
+        .error-message {
+            background: #fee2e2;
+            padding: 30px;
+            border-radius: 12px;
+            color: #7f1d1d;
+            text-align: center;
+        }
+
+        .error-message h3 {
+            margin-bottom: 10px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .info-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .wizard-header, .wizard-content, .wizard-footer, .progress-section {
+                padding-left: 20px;
+                padding-right: 20px;
+            }
+
+            .scenario-title {
+                font-size: 22px;
+            }
+
+            .step-title {
+                font-size: 18px;
+            }
+
+            .footer-btn {
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+        }
+
+        /* Keyboard hint */
+        .keyboard-hint {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 12px;
+            padding: 10px;
+            background: #f1f5f9;
+            border-radius: 0 0 20px 20px;
+        }
+
+        .keyboard-hint kbd {
+            background: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+            font-family: monospace;
+            margin: 0 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="top-buttons">
+            <a href="/static/helm-scenarios.html" class="back-button">
+                <span>←</span>
+                <span>Back to Helm Scenarios</span>
+            </a>
+        </div>
+
+        <div id="scenario-content" class="loading">
+            <div class="spinner"></div>
+            <div>Loading scenario...</div>
+        </div>
+    </div>
+
+    <script>
+        var scenarioId = window.location.pathname.split('/').pop();
+        var currentStep = 1;
+        var totalSteps = 0;
+        var scenarioData = null;
+        var allCommands = [];
+        var hasYamlExplanation = false;
+
+        async function loadScenario() {
+            try {
+                var response = await fetch('/api/helm-scenarios/' + scenarioId);
+                var data = await response.json();
+                scenarioData = data;
+
+                // Check if YAML explanation exists
+                hasYamlExplanation = data.yaml_explanation && data.yaml_explanation.trim().length > 0;
+
+                var regularCommands = data.commands.filter(function(cmd) { return !cmd.cleanup; });
+                var cleanupCommands = data.commands.filter(function(cmd) { return cmd.cleanup; });
+                allCommands = regularCommands.concat(cleanupCommands);
+
+                // Total steps = yaml explanation (if exists) + all commands
+                totalSteps = allCommands.length + (hasYamlExplanation ? 1 : 0);
+
+                renderScenario(data);
+            } catch (error) {
+                document.getElementById('scenario-content').innerHTML =
+                    '<div class="error-message"><h3>Error Loading Scenario</h3><p>' + error.message + '</p></div>';
+            }
+        }
+
+        function renderScenario(scenario) {
+            var difficultyClass = 'badge-' + (scenario.difficulty || 'medium');
+
+            var html = '<div class="wizard-card">';
+
+            // Header
+            html += '<div class="wizard-header">';
+            html += '<div class="scenario-badges">';
+            html += '<span class="badge badge-helm">Helm</span>';
+            html += '<span class="badge ' + difficultyClass + '">' + (scenario.difficulty || 'medium').toUpperCase() + '</span>';
+            html += '<span class="badge badge-duration">' + (scenario.duration || '20 min') + '</span>';
+            html += '<span class="badge badge-commands">' + allCommands.length + ' Commands</span>';
+            if (scenario.yaml_files && scenario.yaml_files.length > 0) {
+                html += '<span class="badge badge-yaml">' + scenario.yaml_files.length + ' Files</span>';
+            }
+            html += '</div>';
+            html += '<h1 class="scenario-title">' + escapeHtml(scenario.name) + '</h1>';
+            html += '<p class="scenario-subtitle">' + escapeHtml(scenario.description || 'Hands-on Helm learning scenario') + '</p>';
+            html += '</div>';
+
+            // Progress Section
+            html += '<div class="progress-section">';
+            html += '<div class="step-indicator">';
+            html += '<div class="step-text">Step <span id="current-step">1</span> of <span>' + totalSteps + '</span></div>';
+            html += '<div class="nav-buttons">';
+            html += '<button class="nav-btn" id="prev-btn" onclick="prevStep()" disabled>←</button>';
+            html += '<button class="nav-btn" id="next-btn" onclick="nextStep()">→</button>';
+            html += '</div>';
+            html += '</div>';
+            html += '<div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width: ' + (100/totalSteps) + '%"></div></div>';
+            html += '<div class="progress-dots" id="progress-dots"></div>';
+            html += '</div>';
+
+            // Main Content
+            html += '<div class="wizard-content" id="wizard-content"></div>';
+
+            // Footer
+            html += '<div class="wizard-footer">';
+            html += '<button class="footer-btn btn-secondary" id="footer-prev" onclick="prevStep()" disabled>← Previous</button>';
+            html += '<span class="step-counter" id="step-counter">Step 1 of ' + totalSteps + '</span>';
+            html += '<button class="footer-btn btn-primary" id="footer-next" onclick="nextStep()">Next Step →</button>';
+            html += '</div>';
+
+            // Keyboard hint
+            html += '<div class="keyboard-hint">Use <kbd>←</kbd> <kbd>→</kbd> arrow keys to navigate</div>';
+
+            html += '</div>';
+
+            document.getElementById('scenario-content').innerHTML = html;
+
+            renderProgressDots();
+            renderStep(1);
+        }
+
+        function renderProgressDots() {
+            var dotsContainer = document.getElementById('progress-dots');
+            var html = '';
+            for (var i = 1; i <= totalSteps; i++) {
+                var className = 'dot';
+                if (i === 1) className += ' current';
+                html += '<div class="' + className + '" data-step="' + i + '" onclick="goToStep(' + i + ')"></div>';
+            }
+            dotsContainer.innerHTML = html;
+        }
+
+        function renderStep(step) {
+            var contentEl = document.getElementById('wizard-content');
+            var html = '';
+
+            // Special handling for Step 1 if YAML explanation exists
+            if (step === 1 && hasYamlExplanation) {
+                html += '<div class="step-header">';
+                html += '<div class="step-number">📚</div>';
+                html += '<h2 class="step-title">Helm YAML Configuration Guide</h2>';
+                html += '</div>';
+
+                html += '<div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 2px solid #0ea5e9; border-radius: 15px; padding: 20px; margin-bottom: 20px;">';
+                html += '<p style="color: #0369a1; font-size: 15px; margin: 0; line-height: 1.6;">📖 <strong>Before you begin:</strong> This guide explains all the Helm and YAML configuration files used in this scenario. Understanding these files will help you grasp what each helm command does and why. Scroll down to read the full guide, then click "Next Step" to start the hands-on commands.</p>';
+                html += '</div>';
+
+                // Render markdown content with max height and scroll
+                html += '<div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-height: 600px; overflow-y: auto; text-align: left; word-wrap: break-word; overflow-wrap: break-word;">';
+                html += parseMarkdownToHtml(scenarioData.yaml_explanation);
+                html += '</div>';
+
+                html += '<div style="text-align: center; margin-top: 20px; padding: 15px; background: #fef3c7; border-radius: 10px; border: 1px solid #fde047;">';
+                html += '<p style="color: #92400e; margin: 0; font-size: 14px;">💡 <strong>Tip:</strong> Take your time reading through this guide. You can always return to this step using the navigation buttons or progress dots below.</p>';
+                html += '</div>';
+
+                // Back to Top button
+                html += '<div style="text-align: center; margin-top: 20px;">';
+                html += '<button onclick="window.scrollTo({ top: 0, behavior: \'smooth\' })" style="padding: 12px 24px; background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 6px 12px rgba(0,0,0,0.15)\';" onmouseout="this.style.transform=\'translateY(0)\'; this.style.boxShadow=\'0 4px 6px rgba(0,0,0,0.1)\';">';
+                html += '⬆️ Back to Top';
+                html += '</button>';
+                html += '</div>';
+
+                contentEl.innerHTML = html;
+
+                // Auto-scroll to bottom (skip first step)
+                if (step > 1) {
+                    setTimeout(function() {
+                        window.scrollTo({
+                            top: document.body.scrollHeight,
+                            behavior: 'smooth'
+                        });
+                    }, 300);
+                }
+                return;
+            }
+
+            // Regular command steps
+            var cmdIndex = hasYamlExplanation ? step - 2 : step - 1;
+            var cmd = allCommands[cmdIndex];
+
+            html = '<div class="step-header">';
+            html += '<div class="step-number">' + step + '</div>';
+            html += '<h2 class="step-title">' + escapeHtml(cmd.name || 'Step ' + step) + '</h2>';
+            if (cmd.cleanup) {
+                html += '<span class="cleanup-badge">Cleanup</span>';
+            }
+            html += '</div>';
+
+            // Command Box
+            html += '<div class="command-box">';
+            html += '<div class="command-box-header">';
+            html += '<div class="terminal-dots">';
+            html += '<div class="terminal-dot red"></div>';
+            html += '<div class="terminal-dot yellow"></div>';
+            html += '<div class="terminal-dot green"></div>';
+            html += '</div>';
+            html += '<button class="copy-btn" onclick="copyCommand(this, \'' + btoa(cmd.command) + '\')">';
+            html += '<span>📋</span><span>Copy Command</span>';
+            html += '</button>';
+            html += '</div>';
+            html += '<div class="command-code"><span class="prompt">$</span> ' + escapeHtml(cmd.command) + '</div>';
+            html += '</div>';
+
+            // Info Cards
+            html += '<div class="info-cards">';
+
+            html += '<div class="info-card what">';
+            html += '<h4><span>🔍</span> What this does</h4>';
+            html += '<p>' + escapeHtml(cmd.description || 'Execute this command in your terminal') + '</p>';
+            html += '</div>';
+
+            if (cmd.what_it_does) {
+                html += '<div class="info-card expect">';
+                html += '<h4><span>✅</span> Expected Result</h4>';
+                html += '<p>' + escapeHtml(cmd.what_it_does) + '</p>';
+                html += '</div>';
+            }
+
+            html += '</div>';
+
+            if (cmd.explanation || cmd.next_step) {
+                html += '<div class="info-cards">';
+
+                if (cmd.explanation) {
+                    html += '<div class="info-card why">';
+                    html += '<h4><span>💡</span> Why this command</h4>';
+                    html += '<p>' + escapeHtml(cmd.explanation) + '</p>';
+                    html += '</div>';
+                }
+
+                if (cmd.next_step) {
+                    html += '<div class="info-card next">';
+                    html += '<h4><span>➡️</span> What\'s next</h4>';
+                    html += '<p>' + escapeHtml(cmd.next_step) + '</p>';
+                    html += '</div>';
+                }
+
+                html += '</div>';
+            }
+
+            if (cmd.cleanup) {
+                html += '<div class="tip-box">';
+                html += '<span class="tip-icon">🧹</span>';
+                html += '<div class="tip-content">';
+                html += '<strong>Cleanup Command</strong>';
+                html += '<p>This is an optional cleanup command to reset the environment after completing the scenario.</p>';
+                html += '</div>';
+                html += '</div>';
+            }
+
+            // YAML files on last step
+            if (step === totalSteps && scenarioData.yaml_files && scenarioData.yaml_files.length > 0) {
+                html += '<div class="yaml-section">';
+                html += '<h3 onclick="toggleYamlSection()" style="cursor: pointer; user-select: none; display: flex; align-items: center; gap: 8px;">';
+                html += '<span id="yaml-toggle-icon">▶</span> 📄 Scenario Files <span style="font-size: 14px; color: #94a3b8; font-weight: normal;">(Click to expand)</span>';
+                html += '</h3>';
+                html += '<div id="yaml-files-container" style="display: none; margin-top: 15px;">';
+
+                scenarioData.yaml_files.forEach(function(file) {
+                    html += '<div class="yaml-box" style="margin-bottom: 15px;">';
+                    html += '<div class="yaml-header">';
+                    html += '<span class="yaml-filename">' + escapeHtml(file.name) + '</span>';
+                    html += '<button class="copy-btn" onclick="copyYaml(this, \'' + btoa(unescape(encodeURIComponent(file.content))) + '\')">';
+                    html += '<span>📋</span><span>Copy</span>';
+                    html += '</button>';
+                    html += '</div>';
+                    html += '<div class="yaml-content">' + escapeHtml(file.content) + '</div>';
+                    html += '</div>';
+                });
+
+                html += '</div>';
+                html += '</div>';
+            }
+
+            contentEl.innerHTML = html;
+
+            // Auto-scroll to bottom (skip first step)
+            if (step > 1) {
+                setTimeout(function() {
+                    window.scrollTo({
+                        top: document.body.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                }, 300);
+            }
+        }
+
+        function goToStep(step) {
+            if (step < 1 || step > totalSteps) return;
+            currentStep = step;
+            updateUI();
+            renderStep(step);
+        }
+
+        function nextStep() {
+            if (currentStep < totalSteps) {
+                currentStep++;
+                updateUI();
+                renderStep(currentStep);
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateUI();
+                renderStep(currentStep);
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('current-step').textContent = currentStep;
+            document.getElementById('step-counter').textContent = 'Step ' + currentStep + ' of ' + totalSteps;
+
+            var progress = (currentStep / totalSteps) * 100;
+            document.getElementById('progress-fill').style.width = progress + '%';
+
+            var dots = document.querySelectorAll('.dot');
+            dots.forEach(function(dot, index) {
+                dot.classList.remove('current', 'completed');
+                if (index + 1 < currentStep) {
+                    dot.classList.add('completed');
+                } else if (index + 1 === currentStep) {
+                    dot.classList.add('current');
+                }
+            });
+
+            document.getElementById('prev-btn').disabled = currentStep === 1;
+            document.getElementById('next-btn').disabled = currentStep === totalSteps;
+            document.getElementById('footer-prev').disabled = currentStep === 1;
+
+            var footerNext = document.getElementById('footer-next');
+            if (currentStep === totalSteps) {
+                footerNext.innerHTML = 'Complete ✓';
+                footerNext.onclick = function() {
+                    window.location.href = '/static/helm-scenarios.html';
+                };
+            } else {
+                footerNext.innerHTML = 'Next Step →';
+                footerNext.onclick = nextStep;
+            }
+        }
+
+        function fallbackCopy(text, onSuccess, onError) {
+            var textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                var successful = document.execCommand('copy');
+                if (successful) {
+                    onSuccess();
+                } else {
+                    onError('execCommand returned false');
+                }
+            } catch (err) {
+                onError(err);
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function copyCommand(btn, encodedCommand) {
+            var command = atob(encodedCommand);
+
+            function showSuccess() {
+                btn.classList.add('copied');
+                btn.innerHTML = '<span>✓</span><span>Copied!</span>';
+                setTimeout(function() {
+                    btn.classList.remove('copied');
+                    btn.innerHTML = '<span>📋</span><span>Copy Command</span>';
+                }, 2000);
+            }
+
+            function showError(err) {
+                console.error('Copy failed:', err);
+                alert('Failed to copy. Please copy manually: ' + command);
+            }
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(command).then(showSuccess).catch(function(err) {
+                    fallbackCopy(command, showSuccess, showError);
+                });
+            } else {
+                fallbackCopy(command, showSuccess, showError);
+            }
+        }
+
+        function copyYaml(btn, encodedContent) {
+            var content = decodeURIComponent(escape(atob(encodedContent)));
+
+            function showSuccess() {
+                btn.classList.add('copied');
+                btn.innerHTML = '<span>✓</span><span>Copied!</span>';
+                setTimeout(function() {
+                    btn.classList.remove('copied');
+                    btn.innerHTML = '<span>📋</span><span>Copy</span>';
+                }, 2000);
+            }
+
+            function showError(err) {
+                console.error('Copy failed:', err);
+                alert('Failed to copy. Please copy manually.');
+            }
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(content).then(showSuccess).catch(function(err) {
+                    fallbackCopy(content, showSuccess, showError);
+                });
+            } else {
+                fallbackCopy(content, showSuccess, showError);
+            }
+        }
+
+        function toggleYamlSection() {
+            var container = document.getElementById('yaml-files-container');
+            var icon = document.getElementById('yaml-toggle-icon');
+            if (container && icon) {
+                if (container.style.display === 'none') {
+                    container.style.display = 'block';
+                    icon.textContent = '▼';
+                } else {
+                    container.style.display = 'none';
+                    icon.textContent = '▶';
+                }
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            var div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function parseMarkdownToHtml(markdown) {
+            if (!markdown) return '<p style="text-align: center; color: #94a3b8;">No explanation available for this scenario.</p>';
+
+            var html = '';
+            var lines = markdown.split('\n');
+            var inCodeBlock = false;
+            var codeContent = '';
+            var inList = false;
+
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i];
+                var trimmedLine = line.trim();
+
+                // Code blocks
+                if (trimmedLine.startsWith('```')) {
+                    if (inCodeBlock) {
+                        html += '<pre style="background: #1e293b; color: #e2e8f0; padding: 15px; border-radius: 8px; overflow-x: auto; font-size: 13px; margin: 15px 0; white-space: pre-wrap; word-wrap: break-word;">' + escapeHtml(codeContent.trim()) + '</pre>';
+                        codeContent = '';
+                        inCodeBlock = false;
+                    } else {
+                        inCodeBlock = true;
+                    }
+                    continue;
+                }
+
+                if (inCodeBlock) {
+                    codeContent += line + '\n';
+                    continue;
+                }
+
+                // Headings
+                if (trimmedLine.startsWith('# ')) {
+                    html += '<h2 style="color: #1e293b; margin: 25px 0 15px 0; font-size: 24px; text-align: left; font-weight: 700;">' + escapeHtml(trimmedLine.substring(2)) + '</h2>';
+                } else if (trimmedLine.startsWith('## ')) {
+                    html += '<div class="yaml-explain-section"><h4 style="text-align: left; color: #1e293b; font-size: 18px; font-weight: 600; margin-bottom: 10px;">' + escapeHtml(trimmedLine.substring(3)) + '</h4>';
+                } else if (trimmedLine.startsWith('### ')) {
+                    html += '<h5 style="color: #475569; margin: 15px 0 10px 0; font-size: 15px; font-weight: 600; text-align: left;">' + escapeHtml(trimmedLine.substring(4)) + '</h5>';
+                } else if (trimmedLine.startsWith('---')) {
+                    html += '</div>';
+                } else if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
+                    if (!inList) {
+                        html += '<ul style="padding-left: 20px; margin: 10px 0; text-align: left; color: #475569;">';
+                        inList = true;
+                    }
+                    html += '<li style="margin: 5px 0; text-align: left; color: #475569; font-size: 14px; line-height: 1.6;">' + parseInlineMarkdown(trimmedLine.substring(2)) + '</li>';
+                } else if (trimmedLine.startsWith('| ')) {
+                    // Simple table support
+                    html += '<div style="font-family: monospace; font-size: 12px; color: #64748b; margin: 5px 0; text-align: left;">' + escapeHtml(trimmedLine) + '</div>';
+                } else if (trimmedLine === '') {
+                    if (inList) {
+                        html += '</ul>';
+                        inList = false;
+                    }
+                    html += '<br>';
+                } else {
+                    if (inList) {
+                        html += '</ul>';
+                        inList = false;
+                    }
+                    html += '<p style="margin: 10px 0; text-align: left; color: #475569; font-size: 14px; line-height: 1.6;">' + parseInlineMarkdown(trimmedLine) + '</p>';
+                }
+            }
+
+            if (inList) {
+                html += '</ul>';
+            }
+
+            return html;
+        }
+
+        function parseInlineMarkdown(text) {
+            // Escape HTML first to prevent XSS
+            text = escapeHtml(text);
+
+            // Bold
+            text = text.replace(/\*\*(.+?)\*\*/g, '<strong style="color: #1e293b; font-weight: 700;">$1</strong>');
+            // Italic
+            text = text.replace(/\*(.+?)\*/g, '<em style="color: #475569;">$1</em>');
+            // Inline code
+            text = text.replace(/`(.+?)`/g, '<code style="background: #f1f5f9; color: #1e293b; padding: 2px 6px; border-radius: 3px; font-size: 13px;">$1</code>');
+            // Links
+            text = text.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" style="color: #3b82f6; text-decoration: underline;">$1</a>');
+
+            return text;
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowRight') nextStep();
+            if (e.key === 'ArrowLeft') prevStep();
+        });
+
+        loadScenario();
+    </script>
+</body>
+</html>

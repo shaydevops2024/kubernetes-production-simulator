@@ -1,0 +1,6 @@
+apiVersion: v2
+name: hooks-demo
+description: A Helm chart demonstrating lifecycle hooks (pre-install, post-install, pre-delete)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

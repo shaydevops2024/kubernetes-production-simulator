@@ -1,0 +1,7 @@
+---
+log_level: info
+max_upload_size: 10M
+backend_servers:
+  - app1.backend.local:8080
+  - app2.backend.local:8080
+  - app3.backend.local:8080

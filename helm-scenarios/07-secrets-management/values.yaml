@@ -1,0 +1,37 @@
+# Default values for secrets-demo chart
+
+replicaCount: 1
+
+image:
+  repository: nginx
+  tag: "1.24"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+# Secrets configuration
+# WARNING: In production, NEVER store real secrets in values.yaml!
+# This is for demonstration purposes only.
+secrets:
+  # Database credentials
+  dbUsername: "app_user"
+  dbPassword: "CHANGE_ME"
+  # API key
+  apiKey: "CHANGE_ME"
+  # Whether to use the lookup function to preserve existing secrets
+  useLookup: false
+
+# External secret reference (for sealed-secrets approach)
+externalSecret:
+  enabled: false
+  secretName: "app-sealed-secret"
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi

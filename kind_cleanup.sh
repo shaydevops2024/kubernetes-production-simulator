@@ -61,10 +61,11 @@ echo -e "${YELLOW}⚠️  WARNING: This script will DELETE:${NC}"
 echo ""
 echo "  1. Kind cluster: '${CLUSTER_NAME}'"
 echo "  2. All Kubernetes resources in namespace: '${NAMESPACE}'"
-echo "  3. Docker image: '${APP_IMAGE}' (optional)"
-echo "  4. All running port-forwards"
-echo "  5. Temporary configuration files"
-echo "  6. All scenarios copied to pods"
+echo "  3. Scenarios namespace 'scenarios' and all practice resources"
+echo "  4. Docker image: '${APP_IMAGE}' (optional)"
+echo "  5. All running port-forwards"
+echo "  6. Temporary configuration files"
+echo "  7. All scenarios copied to pods"
 echo ""
 echo -e "${RED}This action CANNOT be undone!${NC}"
 echo ""
@@ -116,9 +117,51 @@ pkill -f "port-forward" 2>/dev/null || true
 print_success "All port-forwards stopped"
 
 # ============================================
-# STEP 2: DELETE KUBERNETES NAMESPACE
+# STEP 2: DELETE SCENARIOS NAMESPACE
 # ============================================
-print_header "STEP 2/6: DELETING KUBERNETES NAMESPACE"
+print_header "STEP 2/7: CHECKING SCENARIOS NAMESPACE"
+
+SCENARIOS_NAMESPACE="scenarios"
+print_step "Checking if 'scenarios' namespace exists..."
+if kubectl get namespace ${SCENARIOS_NAMESPACE} &>/dev/null; then
+    print_warning "Found 'scenarios' namespace (created during practice scenarios)"
+
+    # Check if there are any resources
+    echo ""
+    echo -e "${YELLOW}Resources in 'scenarios' namespace:${NC}"
+    RESOURCE_COUNT=$(kubectl get all -n ${SCENARIOS_NAMESPACE} --no-headers 2>/dev/null | wc -l)
+
+    if [ "$RESOURCE_COUNT" -gt 0 ]; then
+        kubectl get all,pvc,pdb,networkpolicy,ingress,hpa -n ${SCENARIOS_NAMESPACE} 2>/dev/null || true
+        echo ""
+        print_warning "Found $RESOURCE_COUNT resources in 'scenarios' namespace"
+
+        print_step "Deleting all resources in 'scenarios' namespace..."
+        kubectl delete all --all -n ${SCENARIOS_NAMESPACE} --timeout=60s 2>/dev/null || true
+        kubectl delete pvc --all -n ${SCENARIOS_NAMESPACE} --timeout=60s 2>/dev/null || true
+        kubectl delete pdb --all -n ${SCENARIOS_NAMESPACE} --timeout=60s 2>/dev/null || true
+        kubectl delete networkpolicy --all -n ${SCENARIOS_NAMESPACE} --timeout=60s 2>/dev/null || true
+        kubectl delete ingress --all -n ${SCENARIOS_NAMESPACE} --timeout=60s 2>/dev/null || true
+        kubectl delete hpa --all -n ${SCENARIOS_NAMESPACE} --timeout=60s 2>/dev/null || true
+
+        print_step "Deleting 'scenarios' namespace..."
+        kubectl delete namespace ${SCENARIOS_NAMESPACE} --wait=false
+        kubectl wait --for=delete namespace/${SCENARIOS_NAMESPACE} --timeout=60s 2>/dev/null || true
+
+        print_success "'scenarios' namespace and all resources deleted"
+    else
+        print_step "Deleting empty 'scenarios' namespace..."
+        kubectl delete namespace ${SCENARIOS_NAMESPACE}
+        print_success "'scenarios' namespace deleted"
+    fi
+else
+    print_info "'scenarios' namespace not found (no practice scenarios were run)"
+fi
+
+# ============================================
+# STEP 3: DELETE KUBERNETES NAMESPACE
+# ============================================
+print_header "STEP 3/7: DELETING MAIN KUBERNETES NAMESPACE"
 
 print_step "Checking if namespace exists..."
 if kubectl get namespace ${NAMESPACE} &>/dev/null; then
@@ -144,7 +187,7 @@ fi
 # ============================================
 # STEP 3: DELETE KIND CLUSTER
 # ============================================
-print_header "STEP 3/6: DELETING KIND CLUSTER"
+print_header "STEP 4/7: DELETING KIND CLUSTER"
 
 print_step "Checking for kind cluster..."
 if kind get clusters 2>/dev/null | grep -q "^${CLUSTER_NAME}$"; then
@@ -174,7 +217,7 @@ fi
 # ============================================
 # STEP 4: DELETE DOCKER IMAGE (OPTIONAL)
 # ============================================
-print_header "STEP 4/6: DOCKER IMAGE CLEANUP"
+print_header "STEP 5/7: DOCKER IMAGE CLEANUP"
 
 print_step "Checking for Docker image..."
 if docker images | grep -q "k8s-demo-app"; then
@@ -201,7 +244,7 @@ fi
 # ============================================
 # STEP 5: CLEANUP TEMPORARY FILES
 # ============================================
-print_header "STEP 5/6: CLEANING TEMPORARY FILES"
+print_header "STEP 6/7: CLEANING TEMPORARY FILES"
 
 print_step "Removing temporary configuration files..."
 TEMP_FILES=(
@@ -226,7 +269,7 @@ fi
 # ============================================
 # STEP 6: KUBECTL CONTEXT CLEANUP
 # ============================================
-print_header "STEP 6/6: KUBECTL CONTEXT CLEANUP"
+print_header "STEP 7/7: KUBECTL CONTEXT CLEANUP"
 
 print_step "Checking kubectl contexts..."
 if kubectl config get-contexts | grep -q "kind-${CLUSTER_NAME}"; then
@@ -253,7 +296,9 @@ echo ""
 echo -e "${CYAN}✅ REMOVED:${NC}"
 echo "  ✓ Kind cluster: ${CLUSTER_NAME}"
 echo "  ✓ Kubernetes namespace: ${NAMESPACE}"
+echo "  ✓ Scenarios namespace (if existed): scenarios"
 echo "  ✓ All pods, services, deployments"
+echo "  ✓ All scenario resources (PVCs, PDBs, NetworkPolicies, etc.)"
 echo "  ✓ All 18 scenarios (removed from pods)"
 echo "  ✓ HPA, Ingress, ConfigMaps, Secrets"
 echo "  ✓ Port-forward processes"

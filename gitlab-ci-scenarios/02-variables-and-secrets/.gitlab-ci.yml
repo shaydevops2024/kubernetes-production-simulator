@@ -1,0 +1,60 @@
+# .gitlab-ci.yml - Variables and Secrets Example
+# Demonstrates different variable types and patterns
+
+stages:
+  - validate
+  - build
+  - deploy
+
+# Inline variables (visible in repo - NON-SENSITIVE only)
+variables:
+  APP_NAME: "my-service"
+  DEPLOY_REPLICAS: "3"
+  # Default database for local/CI testing
+  DATABASE_URL: "sqlite:///test.db"
+
+# Validate stage uses predefined variables
+validate-commit:
+  stage: validate
+  script:
+    - echo "Pipeline ID $CI_PIPELINE_ID"
+    - echo "Commit $CI_COMMIT_SHORT_SHA by $CI_COMMIT_AUTHOR"
+    - echo "Source $CI_PIPELINE_SOURCE"
+    - echo "Branch $CI_COMMIT_BRANCH"
+
+# Build uses CI_REGISTRY_IMAGE (predefined) for Docker
+build-image:
+  stage: build
+  script:
+    # CI_REGISTRY_IMAGE is auto-set to registry.gitlab.com/group/project
+    - echo "Building $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+    - echo "This would run docker build + push"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# Deploy uses environment-scoped variables
+# DATABASE_URL, API_KEY come from GitLab UI (masked + protected)
+deploy-staging:
+  stage: deploy
+  script:
+    - echo "Deploying $APP_NAME to staging"
+    - echo "Database $DATABASE_URL"  # Gets staging-scoped value
+    - echo "Replicas $DEPLOY_REPLICAS"
+  environment:
+    name: staging
+    url: https://staging.example.com
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+deploy-production:
+  stage: deploy
+  script:
+    - echo "Deploying $APP_NAME to production"
+    - echo "Database $DATABASE_URL"  # Gets production-scoped value
+    - echo "Replicas $DEPLOY_REPLICAS"
+  environment:
+    name: production
+    url: https://app.example.com
+  when: manual  # Requires manual click to deploy to production
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"

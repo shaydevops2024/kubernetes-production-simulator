@@ -1,0 +1,97 @@
+{
+  "scenario_id": "12-disaster-recovery",
+  "difficulty": "hard",
+  "duration": "20 min",
+  "commands": [
+    {
+      "name": "Step 1: Understand JENKINS_HOME Structure",
+      "command": "echo '=== JENKINS_HOME Directory Structure ===' && echo '' && echo 'JENKINS_HOME/                    # Typically /var/jenkins_home' && echo '  config.xml                     # Global Jenkins configuration' && echo '  credentials.xml                # Encrypted credentials store' && echo '  secrets/                       # Encryption keys (CRITICAL)' && echo '    master.key                   # Master encryption key' && echo '    hudson.util.Secret            # Secret encryption key' && echo '    org.jenkinsci.main.modules... # Module signing key' && echo '  users/                         # User accounts and API tokens' && echo '    admin/config.xml             # User-specific settings' && echo '  jobs/                          # All job configurations' && echo '    my-pipeline/' && echo '      config.xml                 # Job/pipeline definition' && echo '      builds/                    # Build history' && echo '        1/                       # Build #1' && echo '          build.xml              # Build metadata' && echo '          log                    # Console output' && echo '          changelog.xml          # SCM changes' && echo '  plugins/                       # Installed plugins (.jpi files)' && echo '  nodes/                         # Agent configurations' && echo '  workspace/                     # Build workspaces (can be rebuilt)' && echo '  logs/                          # Jenkins system logs' && echo '' && echo 'CRITICAL to back up: config.xml, credentials.xml, secrets/, users/, jobs/, plugins/' && echo 'SKIP in backups:     workspace/ (large, can be rebuilt), logs/ (optional)'",
+      "description": "Learn the anatomy of JENKINS_HOME and what each directory contains",
+      "explanation": "JENKINS_HOME is the single most important directory in a Jenkins installation. Everything - configuration, credentials, job definitions, build history - lives here. Understanding this structure is essential for backup, migration, and troubleshooting. The secrets/ directory is especially critical: without master.key, all encrypted credentials become unrecoverable.",
+      "what_it_does": "Displays the complete JENKINS_HOME directory tree with explanations of what each file and directory contains.",
+      "next_step": "Identify which files are critical for backup.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 2: Review Critical Backup Files",
+      "command": "echo '=== Backup Priority Matrix ===' && echo '' && echo 'PRIORITY 1 - Cannot Recover Without These:' && echo '  secrets/master.key           → Decrypts ALL credentials' && echo '  secrets/hudson.util.Secret    → Secondary encryption key' && echo '  credentials.xml              → All stored credentials (encrypted)' && echo '  config.xml                   → Global configuration, security realm' && echo '' && echo 'PRIORITY 2 - Job Definitions:' && echo '  jobs/*/config.xml            → Pipeline/job configurations' && echo '  jobs/*/builds/*/build.xml    → Build metadata and results' && echo '  users/                       → User accounts, permissions, API tokens' && echo '' && echo 'PRIORITY 3 - Reproducible but Time-Saving:' && echo '  plugins/*.jpi                → Installed plugins (can reinstall)' && echo '  nodes/*/config.xml           → Agent configurations' && echo '  nodeMonitors.xml             → Node monitoring settings' && echo '' && echo 'DO NOT BACKUP (waste of space):' && echo '  workspace/                   → Rebuilt on next build (often GBs)' && echo '  caches/                      → Plugin caches, auto-rebuilt' && echo '  war/                         → Jenkins WAR file, comes with install' && echo '' && echo 'Backup size optimization:' && echo '  Full JENKINS_HOME:   ~5-50 GB (with workspaces)' && echo '  Priority 1+2 only:  ~100 MB - 1 GB' && echo '  Compression:         ~60-80% reduction with gzip'",
+      "description": "Learn which files are critical, important, or skippable in backups",
+      "explanation": "Not everything in JENKINS_HOME needs to be backed up. The secrets/ directory is irreplaceable - losing master.key means all encrypted credentials are gone forever. Job configs can be recreated from Jenkinsfiles in Git, but build history is lost without backup. Plugins can be reinstalled, but having the exact versions saves time. Workspaces should always be excluded - they are large and fully reproducible.",
+      "what_it_does": "Shows a priority matrix for Jenkins backup files, from critical (encryption keys) to skippable (workspaces).",
+      "next_step": "Create a simulated JENKINS_HOME and perform a backup.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 3: Simulate JENKINS_HOME and Create Backup",
+      "command": "echo '=== Creating simulated JENKINS_HOME ===' && mkdir -p /tmp/jenkins_home/{secrets,users/admin,jobs/my-pipeline/builds/1,plugins,workspace/my-pipeline,nodes/agent-1} && echo 'jenkins-master-key-abc123' > /tmp/jenkins_home/secrets/master.key && echo 'hudson-secret-key-xyz789' > /tmp/jenkins_home/secrets/hudson.util.Secret && echo '<credentials><entry><id>docker-hub</id><user>admin</user></entry></credentials>' > /tmp/jenkins_home/credentials.xml && echo '<jenkins><systemMessage>Production Jenkins</systemMessage><numExecutors>2</numExecutors></jenkins>' > /tmp/jenkins_home/config.xml && echo '<user><fullName>Admin</fullName><email>admin@company.com</email></user>' > /tmp/jenkins_home/users/admin/config.xml && echo '<flow-definition><script>pipeline { agent any; stages { stage(\"Build\") { steps { sh \"make\" } } } }</script></flow-definition>' > /tmp/jenkins_home/jobs/my-pipeline/config.xml && echo '<build><number>1</number><result>SUCCESS</result><timestamp>1707000000</timestamp></build>' > /tmp/jenkins_home/jobs/my-pipeline/builds/1/build.xml && echo 'Build log output here...' > /tmp/jenkins_home/jobs/my-pipeline/builds/1/log && dd if=/dev/zero of=/tmp/jenkins_home/workspace/my-pipeline/large-file bs=1M count=5 2>/dev/null && echo '' && echo '=== JENKINS_HOME created. Running backup... ===' && echo '' && tar czf /tmp/jenkins_backup_$(date +%Y%m%d).tar.gz -C /tmp/jenkins_home --exclude='workspace' --exclude='caches' --exclude='war' . && echo \"Backup created: /tmp/jenkins_backup_$(date +%Y%m%d).tar.gz\" && echo \"Backup size: $(du -h /tmp/jenkins_backup_$(date +%Y%m%d).tar.gz | cut -f1)\" && echo \"Full JENKINS_HOME size: $(du -sh /tmp/jenkins_home | cut -f1)\" && echo '' && echo 'Note: workspace/ excluded - saved significant space'",
+      "description": "Create a simulated JENKINS_HOME directory and perform a backup",
+      "explanation": "We create a realistic JENKINS_HOME structure with all critical files. The backup uses tar with gzip compression and excludes workspace/ (which would be the largest directory in a real installation). The --exclude flags are critical in production - workspace directories can be tens of GBs and are fully reproducible from source control.",
+      "what_it_does": "Creates a simulated JENKINS_HOME with config files, credentials, jobs, and workspaces, then creates a compressed backup excluding non-essential directories.",
+      "next_step": "Examine backup contents.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 4: Examine Backup Contents",
+      "command": "echo '=== Backup Contents ===' && tar tzf /tmp/jenkins_backup_$(date +%Y%m%d).tar.gz | head -20 && echo '' && echo '=== Verifying critical files are included ===' && echo '' && for f in './secrets/master.key' './secrets/hudson.util.Secret' './credentials.xml' './config.xml' './jobs/my-pipeline/config.xml' './users/admin/config.xml'; do if tar tzf /tmp/jenkins_backup_$(date +%Y%m%d).tar.gz | grep -q \"$f\"; then echo \"[OK] $f\"; else echo \"[MISSING] $f\"; fi; done && echo '' && echo '=== Verifying workspace is excluded ===' && if tar tzf /tmp/jenkins_backup_$(date +%Y%m%d).tar.gz | grep -q 'workspace'; then echo '[FAIL] workspace/ found in backup!'; else echo '[OK] workspace/ correctly excluded'; fi",
+      "description": "Verify the backup contains all critical files and excludes non-essential ones",
+      "explanation": "Always verify backups after creation. A backup that is missing the secrets/ directory is essentially worthless - all credentials will be unrecoverable. In production, automated backup scripts should include verification steps that check for critical files and alert if any are missing.",
+      "what_it_does": "Lists backup contents and verifies that all critical files (master.key, credentials.xml, config.xml) are included while workspace/ is excluded.",
+      "next_step": "Simulate Jenkins failure.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 5: Simulate Jenkins Failure",
+      "command": "echo '=== DISASTER SCENARIO: Jenkins Server Lost ===' && echo '' && echo 'Simulating: The Jenkins server disk has failed!' && rm -rf /tmp/jenkins_home && echo '' && if [ ! -d /tmp/jenkins_home ]; then echo '[CONFIRMED] JENKINS_HOME is gone!'; echo '  - All job configurations: LOST'; echo '  - All credentials: LOST'; echo '  - All build history: LOST'; echo '  - All plugin configs: LOST'; else echo 'Error: JENKINS_HOME still exists'; fi && echo '' && echo '=== In production, this could happen due to: ===' && echo '  - Disk failure on Jenkins master' && echo '  - Accidental deletion (rm -rf, bad automation)' && echo '  - Ransomware attack encrypting the volume' && echo '  - Cloud provider AZ outage' && echo '  - Kubernetes PVC corruption' && echo '' && echo 'Without a backup, recovery options:' && echo '  - Reinstall Jenkins from scratch' && echo '  - Recreate ALL jobs manually' && echo '  - ALL credentials permanently lost' && echo '  - ALL build history permanently lost' && echo '  - Estimated recovery time: DAYS to WEEKS' && echo '' && echo 'With a backup, recovery time: 10-30 MINUTES'",
+      "description": "Simulate complete loss of Jenkins data",
+      "explanation": "This dramatic step demonstrates why backups matter. When JENKINS_HOME is lost, everything is gone - credentials, job definitions, build history, user accounts. Without a backup, rebuilding Jenkins from scratch is a multi-day effort. With a good backup, you can be back in minutes. This is why the secrets/master.key file is so critical - without it, encrypted credentials cannot be decrypted even if you have credentials.xml.",
+      "what_it_does": "Deletes the simulated JENKINS_HOME completely and shows what would be lost without a backup.",
+      "next_step": "Restore from backup.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 6: Restore from Backup",
+      "command": "echo '=== RESTORING JENKINS FROM BACKUP ===' && echo '' && echo 'Step 1: Create new JENKINS_HOME directory' && mkdir -p /tmp/jenkins_home && echo '' && echo 'Step 2: Extract backup' && tar xzf /tmp/jenkins_backup_$(date +%Y%m%d).tar.gz -C /tmp/jenkins_home && echo '' && echo 'Step 3: Verify restoration' && echo '' && echo '=== Restored directory structure ===' && find /tmp/jenkins_home -type f | sort && echo '' && echo '=== Verifying critical files ===' && echo \"master.key: $(cat /tmp/jenkins_home/secrets/master.key)\" && echo \"config.xml system message: $(grep -o '<systemMessage>.*</systemMessage>' /tmp/jenkins_home/config.xml)\" && echo \"Job config exists: $(test -f /tmp/jenkins_home/jobs/my-pipeline/config.xml && echo 'YES' || echo 'NO')\" && echo \"Credentials exist: $(test -f /tmp/jenkins_home/credentials.xml && echo 'YES' || echo 'NO')\" && echo '' && echo '=== RESTORATION COMPLETE ===' && echo 'In production, next steps would be:' && echo '  1. Set correct file permissions (chown -R jenkins:jenkins)' && echo '  2. Start Jenkins service' && echo '  3. Verify all jobs appear in dashboard' && echo '  4. Verify credentials can decrypt (test a pipeline)' && echo '  5. Verify build history is intact'",
+      "description": "Restore Jenkins from the backup archive",
+      "explanation": "Restoration is straightforward: extract the archive into a new JENKINS_HOME directory. The critical verification step is ensuring master.key was restored - without it, Jenkins will start but all credentials will show as corrupted. In production, you would also need to set correct file ownership (jenkins:jenkins) before starting the Jenkins service.",
+      "what_it_does": "Creates a new JENKINS_HOME, extracts the backup, and verifies all critical files were restored correctly.",
+      "next_step": "Verify the restored configuration in detail.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 7: Verify Restored Configuration",
+      "command": "echo '=== Detailed Restoration Verification ===' && echo '' && echo '--- Global Config ---' && cat /tmp/jenkins_home/config.xml && echo '' && echo '--- Credentials Store ---' && cat /tmp/jenkins_home/credentials.xml && echo '' && echo '--- Pipeline Job Config ---' && cat /tmp/jenkins_home/jobs/my-pipeline/config.xml && echo '' && echo '--- Build #1 Result ---' && cat /tmp/jenkins_home/jobs/my-pipeline/builds/1/build.xml && echo '' && echo '--- Users ---' && cat /tmp/jenkins_home/users/admin/config.xml && echo '' && echo '=== Workspace correctly NOT restored (will rebuild on next build) ===' && ls /tmp/jenkins_home/workspace/ 2>&1 || echo '(workspace/ empty or missing - this is expected and correct)'",
+      "description": "Deep-verify the restored Jenkins configuration files",
+      "explanation": "After restoration, you should verify each critical component: global config (security settings, executors), credentials (can Jenkins decrypt them), job definitions (are pipelines intact), build history (audit trail preserved), and user accounts. The absence of workspace/ is correct and expected - it will be recreated when builds run.",
+      "what_it_does": "Displays the content of all restored configuration files to verify data integrity.",
+      "next_step": "Learn backup automation strategies.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 8: Backup Automation Strategy",
+      "command": "echo '=== Automated Backup Strategies ===' && echo '' && echo '1. Jenkins Pipeline Backup (Self-Backup):' && echo '   pipeline {' && echo '       triggers { cron(\"H 2 * * *\") }  // Daily at 2 AM' && echo '       stages {' && echo '           stage(\"Backup\") {' && echo '               steps {' && echo '                   sh \"tar czf /backups/jenkins_\\$(date +%Y%m%d).tar.gz \\\\' && echo '                       --exclude=workspace --exclude=caches \\\\' && echo '                       -C \\$JENKINS_HOME .\"' && echo '                   sh \"aws s3 cp /backups/jenkins_\\$(date +%Y%m%d).tar.gz \\\\' && echo '                       s3://company-backups/jenkins/\"' && echo '                   sh \"find /backups -name \\\"jenkins_*.tar.gz\\\" -mtime +7 -delete\"' && echo '               }' && echo '           }' && echo '       }' && echo '   }' && echo '' && echo '2. Kubernetes CronJob (External):' && echo '   - Mount Jenkins PVC as read-only in a CronJob pod' && echo '   - Run tar + upload to S3/GCS on schedule' && echo '   - Does not depend on Jenkins being healthy' && echo '' && echo '3. Volume Snapshots (Cloud):' && echo '   - AWS EBS / GCP PD / Azure Disk snapshots' && echo '   - Near-instant, block-level backup' && echo '   - Can be triggered by Jenkins or externally' && echo '' && echo 'Retention Policy (example):' && echo '  Daily backups:   keep 7 days' && echo '  Weekly backups:  keep 4 weeks' && echo '  Monthly backups: keep 12 months' && echo '' && echo 'GOLDEN RULE: Store backups in a DIFFERENT location than Jenkins.' && echo '  If Jenkins server dies, backups on the same server are useless.'",
+      "description": "Learn strategies for automating Jenkins backups",
+      "explanation": "Manual backups are unreliable - automate them. The three approaches offer different trade-offs: Jenkins self-backup is simplest but fails if Jenkins is down; Kubernetes CronJobs are independent of Jenkins health; cloud volume snapshots are fastest but cloud-provider specific. The retention policy balances storage cost with recovery flexibility. Always store backups off-site.",
+      "what_it_does": "Shows three automated backup approaches (Jenkins pipeline, K8s CronJob, cloud snapshots) with retention policies.",
+      "next_step": "Review the disaster recovery summary.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 9: Disaster Recovery Summary",
+      "command": "echo '============================================' && echo '  Disaster Recovery - Summary' && echo '============================================' && echo '' && echo 'JENKINS_HOME critical files:' && echo '  secrets/master.key     → #1 most important file' && echo '  credentials.xml        → All encrypted credentials' && echo '  config.xml             → Global configuration' && echo '  jobs/*/config.xml      → Pipeline definitions' && echo '' && echo 'Backup command:' && echo '  tar czf backup.tar.gz --exclude=workspace --exclude=caches -C $JENKINS_HOME .' && echo '' && echo 'Restore command:' && echo '  mkdir -p $JENKINS_HOME && tar xzf backup.tar.gz -C $JENKINS_HOME' && echo '' && echo 'Recovery Time Objectives:' && echo '  With automated backup + runbook:  15-30 minutes' && echo '  With manual backup:               1-4 hours' && echo '  Without any backup:               DAYS (rebuild from scratch)' && echo '' && echo 'Disaster Recovery Checklist:' && echo '  [x] Automated daily backups' && echo '  [x] Backups stored off-site (S3, GCS, different datacenter)' && echo '  [x] Backup verification (test restore monthly)' && echo '  [x] Documented runbook for restoration' && echo '  [x] Alerting if backup job fails' && echo '  [x] Encryption of backup archives' && echo '' && echo 'Remember: A backup you have never tested is NOT a backup.'",
+      "description": "Review everything learned about Jenkins disaster recovery",
+      "explanation": "Disaster recovery is not just about having backups - it is about having tested, verified, automated, off-site backups with a documented restoration procedure. The difference between a 30-minute recovery and a multi-day outage is preparation. Regular restore drills ensure your backup process actually works when you need it.",
+      "what_it_does": "Prints a comprehensive disaster recovery summary with critical files, commands, time objectives, and a checklist.",
+      "next_step": "Clean up resources.",
+      "cleanup": false
+    },
+    {
+      "name": "Cleanup: Remove Resources",
+      "command": "rm -rf /tmp/jenkins_home /tmp/jenkins_backup_*.tar.gz && kubectl delete namespace jenkins-scenarios --ignore-not-found && echo 'Cleanup complete!'",
+      "description": "Remove all resources created by this scenario",
+      "explanation": "Removes the simulated JENKINS_HOME, backup archives, and the Kubernetes namespace.",
+      "what_it_does": "Deletes all temporary files and the jenkins-scenarios namespace.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

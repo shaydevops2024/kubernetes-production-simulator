@@ -1,0 +1,106 @@
+{
+  "scenario_id": "12-version-pinning",
+  "difficulty": "medium",
+  "duration": "15 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Namespace",
+      "command": "kubectl create namespace helm-scenarios --dry-run=client -o yaml | kubectl apply -f -",
+      "description": "Create the helm-scenarios namespace",
+      "explanation": "Creates the helm-scenarios namespace if it does not already exist. This namespace is shared across all Helm scenarios.",
+      "what_it_does": "Creates 'helm-scenarios' namespace if needed.",
+      "next_step": "Add the Bitnami repository.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 2: Add Bitnami Repo",
+      "command": "helm repo add bitnami https://charts.bitnami.com/bitnami 2>/dev/null; helm repo update",
+      "description": "Add the Bitnami Helm repository and update the local cache",
+      "explanation": "Bitnami maintains a large collection of production-ready Helm charts with frequent version releases. Adding the repo and updating the index gives us access to all available chart versions for searching and installation.",
+      "what_it_does": "Registers the Bitnami chart repository and refreshes chart metadata.",
+      "next_step": "Search for all available versions of the nginx chart.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 3: Search Available Versions",
+      "command": "helm search repo bitnami/nginx --versions | head -20",
+      "description": "List all available versions of the bitnami/nginx chart (showing top 20)",
+      "explanation": "The --versions flag shows ALL available versions, not just the latest. Each row shows the chart version (e.g., 15.0.0), the app version (e.g., 1.25.0), and a description. Notice how chart versions and app versions are independent -- chart version 15.0.0 might package nginx 1.25.0, while chart version 14.0.0 packages nginx 1.24.0.",
+      "what_it_does": "Displays the 20 most recent versions of bitnami/nginx with chart and app versions.",
+      "next_step": "Install a specific pinned version.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 4: Install Specific Chart Version",
+      "command": "CHART_VERSION=$(helm search repo bitnami/nginx --versions -o json | python3 -c \"import sys,json; versions=json.load(sys.stdin); print(versions[2]['version'] if len(versions)>2 else versions[0]['version'])\") && echo \"Installing chart version: $CHART_VERSION\" && helm install pinned-nginx bitnami/nginx --version $CHART_VERSION -n helm-scenarios --set replicaCount=1 --set resources.requests.cpu=25m --set resources.requests.memory=32Mi --set resources.limits.cpu=100m --set resources.limits.memory=128Mi",
+      "description": "Install a specific (not latest) version of the nginx chart using --version",
+      "explanation": "The --version flag pins the exact chart version to install. We deliberately choose the 3rd most recent version (not the latest) so there are newer versions available for the upgrade steps later. This mimics a production pattern: you deploy a tested version and upgrade deliberately, not automatically. Without --version, Helm would install the latest, which is unpredictable.",
+      "what_it_does": "Installs a pinned chart version of bitnami/nginx as 'pinned-nginx'.",
+      "next_step": "Verify which version was installed.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 5: Verify Installed Version",
+      "command": "helm list -n helm-scenarios -o json | python3 -c \"import sys,json; releases=json.load(sys.stdin); [print(f'Release: {r[\\\"name\\\"]}, Chart: {r[\\\"chart\\\"]}, App Version: {r[\\\"app_version\\\"]}, Status: {r[\\\"status\\\"]}') for r in releases if r['name']=='pinned-nginx']\"",
+      "description": "Check exactly which chart version and app version are deployed",
+      "explanation": "This extracts the precise chart version and app version from the release metadata. The 'chart' field shows the chart name and version (e.g., nginx-15.0.0), while 'app_version' shows the application version (e.g., 1.25.0). These two versions together fully describe what is running.",
+      "what_it_does": "Displays the exact chart version and app version of the deployed release.",
+      "next_step": "Check what newer versions are available.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 6: Find Newer Versions",
+      "command": "CURRENT=$(helm list -n helm-scenarios -o json | python3 -c \"import sys,json; releases=json.load(sys.stdin); [print(r['chart'].split('-')[-1]) for r in releases if r['name']=='pinned-nginx']\") && echo \"Current chart version: $CURRENT\" && echo '---' && echo 'Available newer versions:' && helm search repo bitnami/nginx --versions | head -5",
+      "description": "Compare the installed version against the latest available versions",
+      "explanation": "This shows your current version alongside the newest available versions. In production, this check would be part of a regular maintenance cycle: comparing what is deployed against what is available, then planning upgrades. The gap between your version and the latest tells you how far behind you are.",
+      "what_it_does": "Shows current version and lists the most recent available versions for comparison.",
+      "next_step": "Upgrade to a specific newer version.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 7: Upgrade to Specific Newer Version",
+      "command": "TARGET_VERSION=$(helm search repo bitnami/nginx --versions -o json | python3 -c \"import sys,json; versions=json.load(sys.stdin); print(versions[0]['version'])\") && echo \"Upgrading to chart version: $TARGET_VERSION\" && helm upgrade pinned-nginx bitnami/nginx --version $TARGET_VERSION -n helm-scenarios --set replicaCount=1 --set resources.requests.cpu=25m --set resources.requests.memory=32Mi --set resources.limits.cpu=100m --set resources.limits.memory=128Mi",
+      "description": "Upgrade to the latest available version using --version for explicit control",
+      "explanation": "Even when upgrading, we use --version to specify the exact target version. This is intentional: 'helm upgrade' without --version would grab the latest, but by pinning explicitly we ensure the upgrade is deliberate and auditable. In a CI/CD pipeline, the version would come from a configuration file that gets reviewed in a pull request.",
+      "what_it_does": "Upgrades the release to the latest chart version with explicit version pinning.",
+      "next_step": "Verify the upgrade and compare versions.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 8: Compare Versions via History",
+      "command": "helm history pinned-nginx -n helm-scenarios",
+      "description": "View the release history showing the version progression",
+      "explanation": "The history shows both revisions with their chart versions: revision 1 (the original pinned version) and revision 2 (the upgraded version). Each revision records the exact chart version used, creating a complete audit trail. If the new version causes problems, you know exactly which version to roll back to.",
+      "what_it_does": "Shows the version upgrade history for the release.",
+      "next_step": "Inspect what changed between the two chart versions.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 9: Compare Chart Version Differences",
+      "command": "OLD_VERSION=$(helm history pinned-nginx -n helm-scenarios -o json | python3 -c \"import sys,json; revs=json.load(sys.stdin); print(revs[0]['chart'].split('-')[-1])\") && NEW_VERSION=$(helm history pinned-nginx -n helm-scenarios -o json | python3 -c \"import sys,json; revs=json.load(sys.stdin); print(revs[-1]['chart'].split('-')[-1])\") && echo \"Version change: $OLD_VERSION -> $NEW_VERSION\" && echo '---' && echo 'Old version details:' && helm search repo bitnami/nginx --version $OLD_VERSION -o json | python3 -c \"import sys,json; v=json.load(sys.stdin); print(f'  Chart: {v[0][\\\"version\\\"]}, App: {v[0][\\\"app_version\\\"]}, Description: {v[0][\\\"description\\\"]}')\" 2>/dev/null && echo 'New version details:' && helm search repo bitnami/nginx --version $NEW_VERSION -o json | python3 -c \"import sys,json; v=json.load(sys.stdin); print(f'  Chart: {v[0][\\\"version\\\"]}, App: {v[0][\\\"app_version\\\"]}, Description: {v[0][\\\"description\\\"]}')\" 2>/dev/null",
+      "description": "Show the differences between the old and new chart versions",
+      "explanation": "This compares the metadata of both chart versions side by side. In a real production workflow, you would also check the chart's CHANGELOG, the upstream application release notes, and possibly use 'helm diff' (from scenario 09) to preview resource changes before upgrading. The key takeaway is that version upgrades should be researched and deliberate.",
+      "what_it_does": "Compares chart and app version metadata between the old and new versions.",
+      "next_step": "Verify version consistency across the release.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 10: Verify Version Consistency",
+      "command": "echo '=== Helm Release ===' && helm list -n helm-scenarios -f pinned-nginx && echo '' && echo '=== Deployed Resources ===' && kubectl get deployment -n helm-scenarios -l app.kubernetes.io/instance=pinned-nginx -o jsonpath='Deployment image: {.items[0].spec.template.spec.containers[0].image}' 2>/dev/null && echo '' && kubectl get pods -n helm-scenarios -l app.kubernetes.io/instance=pinned-nginx -o jsonpath='Pod image: {.items[0].spec.containers[0].image}' 2>/dev/null && echo '' && echo '' && echo '=== Version Consistency Check ===' && echo 'Release chart version, deployed image, and pod image should all align with the pinned version.'",
+      "description": "Verify the deployed resources match the expected pinned version",
+      "explanation": "This final verification checks that the Helm release metadata, the deployment spec, and the running pods all reflect the same version. Version drift (where different components run different versions) is a common source of production issues. Regular consistency checks catch drift early.",
+      "what_it_does": "Cross-checks Helm release version, deployment spec, and running pod images for consistency.",
+      "next_step": "Scenario complete! Clean up when ready.",
+      "cleanup": false
+    },
+    {
+      "name": "Cleanup: Remove Release",
+      "command": "helm uninstall pinned-nginx -n helm-scenarios",
+      "description": "Remove the pinned-nginx release and all its resources",
+      "explanation": "Uninstalls the Helm release and deletes all Kubernetes resources it created. The namespace is left intact for other scenarios.",
+      "what_it_does": "Removes the 'pinned-nginx' release and all associated resources.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

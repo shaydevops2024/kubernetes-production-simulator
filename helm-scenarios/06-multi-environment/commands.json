@@ -1,0 +1,124 @@
+{
+  "scenario_id": "06-multi-environment",
+  "difficulty": "medium",
+  "duration": "20 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Namespaces",
+      "command": "kubectl create namespace helm-scenarios --dry-run=client -o yaml | kubectl apply -f - && kubectl create namespace helm-scenarios-staging --dry-run=client -o yaml | kubectl apply -f - && kubectl create namespace helm-scenarios-prod --dry-run=client -o yaml | kubectl apply -f -",
+      "description": "Create separate namespaces for dev, staging, and prod",
+      "explanation": "Each environment gets its own namespace for isolation. In production, you would typically have separate clusters per environment, but namespaces work well for learning. Dev uses 'helm-scenarios', staging uses 'helm-scenarios-staging', and prod uses 'helm-scenarios-prod'.",
+      "what_it_does": "Creates three namespaces: helm-scenarios, helm-scenarios-staging, helm-scenarios-prod.",
+      "next_step": "Compare the values files for each environment.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 2: Compare Values Files",
+      "command": "echo '=== DEFAULT VALUES ===' && head -15 helm-scenarios/06-multi-environment/values.yaml && echo '' && echo '=== DEV VALUES ===' && cat helm-scenarios/06-multi-environment/values-dev.yaml && echo '' && echo '=== STAGING VALUES ===' && cat helm-scenarios/06-multi-environment/values-staging.yaml && echo '' && echo '=== PROD VALUES ===' && cat helm-scenarios/06-multi-environment/values-prod.yaml",
+      "description": "Review how each environment overrides the base values",
+      "explanation": "The base values.yaml defines defaults. Each environment file only overrides what it needs to change. Dev has 1 replica with debug logging and no resource limits. Staging has 2 replicas with warn logging and moderate resources. Prod has 3 replicas with info logging, strict resources, and pod anti-affinity for HA.",
+      "what_it_does": "Displays all four values files side-by-side for comparison.",
+      "next_step": "Install the dev environment.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 3: Install Dev Environment",
+      "command": "helm install app-dev helm-scenarios/06-multi-environment/ -f helm-scenarios/06-multi-environment/values-dev.yaml --namespace helm-scenarios --wait",
+      "description": "Deploy the app with dev configuration",
+      "explanation": "The -f flag loads values-dev.yaml which overrides the defaults in values.yaml. Helm merges them: values.yaml provides the base, then values-dev.yaml overrides specific keys like replicaCount (1), logLevel (debug), and debugMode (true). The result is a minimal dev deployment.",
+      "what_it_does": "Installs the chart with dev values: 1 replica, debug logging, no resource limits.",
+      "next_step": "Verify the dev configuration.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 4: Check Dev Configuration",
+      "command": "echo '=== Dev Deployment ===' && kubectl get deployment -n helm-scenarios -o wide && echo '' && echo '=== Dev ConfigMap ===' && kubectl get configmap app-dev-multi-env-app-config -n helm-scenarios -o yaml | grep -A 20 'data:'",
+      "description": "Verify dev has 1 replica, debug logging, and no resource limits",
+      "explanation": "The Deployment should show 1/1 replicas. The ConfigMap should show LOG_LEVEL=debug, DEBUG_MODE=true, and dev database settings. There should be no resource limits set on the pods since dev values leave resources empty.",
+      "what_it_does": "Shows the dev Deployment replicas and ConfigMap with environment-specific settings.",
+      "next_step": "Install the staging environment.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 5: Install Staging Environment",
+      "command": "helm install app-staging helm-scenarios/06-multi-environment/ -f helm-scenarios/06-multi-environment/values-staging.yaml --namespace helm-scenarios-staging --wait",
+      "description": "Deploy the app with staging configuration in a separate namespace",
+      "explanation": "Same chart, different values file, different namespace. Staging gets 2 replicas, warn-level logging, and moderate resource limits (200m CPU, 256Mi memory). This pattern is the foundation of multi-environment Helm workflows.",
+      "what_it_does": "Installs the chart with staging values: 2 replicas, warn logging, moderate resources.",
+      "next_step": "Install the prod environment.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 6: Install Prod Environment",
+      "command": "helm install app-prod helm-scenarios/06-multi-environment/ -f helm-scenarios/06-multi-environment/values-prod.yaml --namespace helm-scenarios-prod --wait",
+      "description": "Deploy the app with production configuration",
+      "explanation": "Production gets the strictest configuration: 3 replicas, info-level logging (not debug!), strict resource limits (500m CPU, 512Mi memory), and pod anti-affinity to spread replicas across nodes. Anti-affinity ensures that if one node fails, not all replicas go down.",
+      "what_it_does": "Installs the chart with prod values: 3 replicas, info logging, strict resources, anti-affinity.",
+      "next_step": "Compare all three environments.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 7: Compare All Environments",
+      "command": "echo '=== DEV (helm-scenarios) ===' && kubectl get pods -n helm-scenarios -l app.kubernetes.io/instance=app-dev -o wide && echo '' && echo '=== STAGING (helm-scenarios-staging) ===' && kubectl get pods -n helm-scenarios-staging -l app.kubernetes.io/instance=app-staging -o wide && echo '' && echo '=== PROD (helm-scenarios-prod) ===' && kubectl get pods -n helm-scenarios-prod -l app.kubernetes.io/instance=app-prod -o wide",
+      "description": "See all three environments running simultaneously",
+      "explanation": "You should see: Dev with 1 pod, Staging with 2 pods, Prod with 3 pods spread across different nodes (thanks to anti-affinity). All from the exact same chart, just different values files. This is the power of Helm's values system.",
+      "what_it_does": "Lists pods in all three namespaces showing replica counts and node placement.",
+      "next_step": "Compare the resource limits across environments.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 8: Compare Resource Limits",
+      "command": "echo '=== DEV Resources ===' && kubectl get pods -n helm-scenarios -l app.kubernetes.io/instance=app-dev -o jsonpath='{range .items[*]}{.metadata.name}: cpu={.spec.containers[0].resources.limits.cpu}, mem={.spec.containers[0].resources.limits.memory}{\"\\n\"}{end}' && echo '(no limits set)' && echo '' && echo '=== STAGING Resources ===' && kubectl get pods -n helm-scenarios-staging -l app.kubernetes.io/instance=app-staging -o jsonpath='{range .items[*]}{.metadata.name}: cpu={.spec.containers[0].resources.limits.cpu}, mem={.spec.containers[0].resources.limits.memory}{\"\\n\"}{end}' && echo '' && echo '=== PROD Resources ===' && kubectl get pods -n helm-scenarios-prod -l app.kubernetes.io/instance=app-prod -o jsonpath='{range .items[*]}{.metadata.name}: cpu={.spec.containers[0].resources.limits.cpu}, mem={.spec.containers[0].resources.limits.memory}{\"\\n\"}{end}'",
+      "description": "Compare resource limits set on pods in each environment",
+      "explanation": "Dev has no resource limits (free for development). Staging has moderate limits (200m CPU, 256Mi memory). Prod has strict limits (500m CPU, 512Mi memory). This progression is typical: developers need flexibility, staging mirrors prod loosely, prod enforces strict limits to prevent resource contention.",
+      "what_it_does": "Shows the CPU and memory limits for pods in each environment.",
+      "next_step": "Compare the ConfigMaps across environments.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 9: Compare ConfigMaps",
+      "command": "echo '=== DEV Config ===' && kubectl get configmap app-dev-multi-env-app-config -n helm-scenarios -o jsonpath='{.data}' | python3 -m json.tool 2>/dev/null || kubectl get configmap app-dev-multi-env-app-config -n helm-scenarios -o jsonpath='{.data}' && echo '' && echo '' && echo '=== STAGING Config ===' && kubectl get configmap app-staging-multi-env-app-config -n helm-scenarios-staging -o jsonpath='{.data}' | python3 -m json.tool 2>/dev/null || kubectl get configmap app-staging-multi-env-app-config -n helm-scenarios-staging -o jsonpath='{.data}' && echo '' && echo '' && echo '=== PROD Config ===' && kubectl get configmap app-prod-multi-env-app-config -n helm-scenarios-prod -o jsonpath='{.data}' | python3 -m json.tool 2>/dev/null || kubectl get configmap app-prod-multi-env-app-config -n helm-scenarios-prod -o jsonpath='{.data}'",
+      "description": "Compare application configuration across all environments",
+      "explanation": "Each environment has different: LOG_LEVEL (debug/warn/info), DEBUG_MODE (true/false), DB_HOST (different databases), DB_MAX_CONNECTIONS (5/20/50), and feature flags. This is exactly how real apps manage per-environment config through Helm values.",
+      "what_it_does": "Displays the ConfigMap data for all three environments for comparison.",
+      "next_step": "Use helm template to preview differences without deploying.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 10: Preview Template Differences",
+      "command": "echo '=== Diff between dev and prod templates ===' && diff <(helm template app-dev helm-scenarios/06-multi-environment/ -f helm-scenarios/06-multi-environment/values-dev.yaml --namespace helm-scenarios) <(helm template app-prod helm-scenarios/06-multi-environment/ -f helm-scenarios/06-multi-environment/values-prod.yaml --namespace helm-scenarios-prod) || true",
+      "description": "Use helm template and diff to see exactly what changes between environments",
+      "explanation": "The 'helm template' command renders templates locally without deploying. Diffing two rendered outputs shows exactly what changes between environments: replica count, resource blocks, anti-affinity rules, ConfigMap values. This is a powerful technique for reviewing environment configs in CI/CD pipelines.",
+      "what_it_does": "Renders dev and prod templates locally and shows the differences between them.",
+      "next_step": "List all Helm releases.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 11: List All Releases",
+      "command": "helm list --all-namespaces",
+      "description": "View all Helm releases across namespaces",
+      "explanation": "Shows all three releases (app-dev, app-staging, app-prod) in their respective namespaces. Each is an independent release that can be upgraded, rolled back, or deleted separately. This is the standard multi-environment pattern with Helm.",
+      "what_it_does": "Lists all Helm releases showing name, namespace, status, and chart version.",
+      "next_step": "Clean up all environments.",
+      "cleanup": false
+    },
+    {
+      "name": "Cleanup: Remove All Environments",
+      "command": "helm uninstall app-dev --namespace helm-scenarios && helm uninstall app-staging --namespace helm-scenarios-staging && helm uninstall app-prod --namespace helm-scenarios-prod",
+      "description": "Uninstall all three environment releases",
+      "explanation": "Removes all three Helm releases and their associated Kubernetes resources.",
+      "what_it_does": "Uninstalls app-dev, app-staging, and app-prod releases.",
+      "next_step": "Delete the namespaces.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup: Delete Namespaces",
+      "command": "kubectl delete namespace helm-scenarios helm-scenarios-staging helm-scenarios-prod --ignore-not-found",
+      "description": "Remove all environment namespaces",
+      "explanation": "Deletes the namespaces used for this scenario.",
+      "what_it_does": "Removes the helm-scenarios, helm-scenarios-staging, and helm-scenarios-prod namespaces.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

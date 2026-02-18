@@ -1,0 +1,64 @@
+{
+  "scenario_id": "09-health-checks",
+  "difficulty": "hard",
+  "duration": "15 min",
+  "commands": [
+    {
+      "name": "Step 1: Review Deployment with Init Container",
+      "command": "cat argocd-scenarios/09-health-checks/manifests/deployment.yaml",
+      "description": "Review deployment with slow init container and health probes",
+      "explanation": "This deployment has a 30-second init container delay and both readiness and liveness probes. ArgoCD tracks the health status of all resources. During init, the app will show as 'Progressing' in ArgoCD.",
+      "what_it_does": "Shows the deployment manifest with init container and probes.",
+      "next_step": "Deploy and watch ArgoCD health status change over time."
+    },
+    {
+      "name": "Step 2: Deploy the Application",
+      "command": "kubectl apply -f argocd-scenarios/09-health-checks/application.yaml",
+      "description": "Create the ArgoCD Application with slow-starting pods",
+      "explanation": "ArgoCD will deploy the resources and monitor their health. Because of the 30-second init container, pods will take time to become ready. ArgoCD shows this as 'Progressing' health status.",
+      "what_it_does": "Creates the Application - pods will take ~30 seconds to start.",
+      "next_step": "Immediately check ArgoCD to see health progression."
+    },
+    {
+      "name": "Step 3: Watch Health Progression in ArgoCD",
+      "command": "echo '>>> IMMEDIATELY open ArgoCD UI at http://localhost:30800 <<<\n>>> Click sc09-health-checks <<<\n>>> Watch pod health change: Progressing -> Healthy <<<' && kubectl get application sc09-health-checks -n argocd -o jsonpath='Health: {.status.health.status}'",
+      "description": "Watch ArgoCD track health status in real-time",
+      "explanation": "In the ArgoCD UI resource tree, you'll see pods in 'Progressing' state (yellow) while the init container runs. After ~30 seconds, they transition to 'Healthy' (green). ArgoCD understands Kubernetes health semantics natively.",
+      "what_it_does": "Shows real-time health status progression in ArgoCD.",
+      "next_step": "Wait for pods to become healthy, then inspect health details."
+    },
+    {
+      "name": "Step 4: Check Pod Health via kubectl",
+      "command": "sleep 35 && kubectl get pods -n argocd-sc-09 && echo '' && kubectl get application sc09-health-checks -n argocd -o jsonpath='Health: {.status.health.status}, Sync: {.status.sync.status}'",
+      "description": "Verify pods are healthy after init container completes",
+      "explanation": "After the 30-second init delay, pods should be Running with all containers ready. ArgoCD health should show 'Healthy'. ArgoCD derives health from Kubernetes resource conditions.",
+      "what_it_does": "Waits for init container and checks pod and app health.",
+      "next_step": "Simulate a health failure."
+    },
+    {
+      "name": "Step 5: Simulate Readiness Failure",
+      "command": "kubectl exec -n argocd-sc-09 $(kubectl get pods -n argocd-sc-09 -l app=health-app -o jsonpath='{.items[0].metadata.name}') -- rm /usr/share/nginx/html/index.html 2>/dev/null && echo 'Deleted index.html - readiness probe will fail!' && echo '>>> Check ArgoCD UI - app health will change to Degraded <<<'",
+      "description": "Break the readiness probe to trigger health change in ArgoCD",
+      "explanation": "Removing index.html causes the readiness probe (HTTP GET /) to fail with 404. Kubernetes marks the pod as not ready. ArgoCD detects this and changes the app health to 'Degraded'.",
+      "what_it_does": "Breaks readiness probe so ArgoCD detects degraded health.",
+      "next_step": "Check ArgoCD UI for the health change."
+    },
+    {
+      "name": "Step 6: Observe Degraded Health in ArgoCD",
+      "command": "echo '>>> Open ArgoCD UI at http://localhost:30800 <<<\n>>> sc09-health-checks should show Degraded (orange/yellow) <<<' && sleep 15 && kubectl get application sc09-health-checks -n argocd -o jsonpath='Health: {.status.health.status}'",
+      "description": "See ArgoCD reporting degraded application health",
+      "explanation": "ArgoCD now shows the application as 'Degraded' because one pod's readiness probe is failing. In the resource tree, you can see which specific pod is unhealthy. This gives operators instant visibility into application health.",
+      "what_it_does": "Shows how ArgoCD tracks and reports health degradation.",
+      "next_step": "Scenario complete! Clean up when ready."
+    },
+    {
+      "name": "Cleanup: Delete Application",
+      "command": "kubectl delete application sc09-health-checks -n argocd && kubectl delete namespace argocd-sc-09 --ignore-not-found",
+      "description": "Remove the application and namespace",
+      "explanation": "Cleans up all resources from this scenario.",
+      "what_it_does": "Removes the application and all resources.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

@@ -1,135 +1,184 @@
 # 🚀 Kubernetes Production Simulator
 
-A **production-grade Kubernetes learning project** demonstrating real-world DevOps practices with auto-scaling, monitoring, incident simulation, and a modern web interface.
+> **A comprehensive, hands-on DevOps learning platform** - Master Kubernetes, ArgoCD, Ansible, Helm, Jenkins, GitLab CI, and Terraform through interactive, real-world scenarios.
 
-![Kubernetes](https://img.shields.io/badge/kubernetes-1.28+-blue) ![Python](https://img.shields.io/badge/python-3.11-green) ![FastAPI](https://img.shields.io/badge/FastAPI-0.104-teal) ![Docker](https://img.shields.io/badge/docker-24.0+-blue)
+![Kubernetes](https://img.shields.io/badge/kubernetes-1.28+-blue) ![Python](https://img.shields.io/badge/python-3.11-green) ![FastAPI](https://img.shields.io/badge/FastAPI-0.104-teal) ![Docker](https://img.shields.io/badge/docker-24.0+-blue) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)
 
-**Portfolio Project** | **DevOps Engineer Demo** | **Production Best Practices**
+**Educational Platform** | **DevOps Training** | **Production Patterns** | **Portfolio Project**
 
 ---
 
 ## 📑 Table of Contents
 
 - [Overview](#-overview)
-- [What This Demonstrates](#-what-this-demonstrates)
+- [What's Inside](#-whats-inside)
+- [Features](#-features)
 - [Architecture](#-architecture)
 - [Prerequisites](#-prerequisites)
 - [Quick Start](#-quick-start)
-  - [Method 1: Automated Deployment (Recommended)](#method-1-automated-deployment-recommended)
-  - [Method 2: Manual Step-by-Step](#method-2-manual-step-by-step-deployment)
+- [Scenario Categories](#-scenario-categories)
+- [Using the Platform](#-using-the-platform)
 - [Access Methods](#-access-methods)
-  - [Port-Forward (WSL2/Ubuntu)](#1-port-forward-wsl2ubuntu---recommended-for-local)
-  - [Ingress with Custom Domain](#2-ingress-with-custom-domain)
-  - [NodePort Direct Access](#3-nodeport-direct-access)
-  - [kubectl Proxy](#4-kubectl-proxy)
-- [Testing Features](#-testing-features)
-  - [HPA Auto-Scaling](#1-horizontal-pod-autoscaler-hpa)
-  - [Health Probes](#2-health--readiness-probes)
-  - [Load Testing](#3-load-testing)
-  - [Live Monitoring](#4-live-monitoring)
-- [Monitoring & Debugging](#-monitoring--debugging)
-- [Updating the Application](#-updating-the-application)
-- [Troubleshooting](#-troubleshooting)
+- [Development](#-development)
 - [Project Structure](#-project-structure)
+- [Adding New Scenarios](#-adding-new-scenarios)
+- [Monitoring & Debugging](#-monitoring--debugging)
+- [Troubleshooting](#-troubleshooting)
 - [Cleanup](#-cleanup)
-- [Advanced Topics](#-advanced-topics)
+- [Learning Outcomes](#-learning-outcomes)
+- [Contributing](#-contributing)
 
 ---
 
 ## 🎯 Overview
 
-This project is a **complete Kubernetes production environment** simulator built to showcase DevOps engineering skills. It features:
+**Kubernetes Production Simulator** is a full-stack educational platform designed for learning DevOps technologies through hands-on practice. It provides an interactive web interface with **50+ real-world scenarios** covering the entire DevOps ecosystem.
 
-- **FastAPI web application** with professional UI dashboard
-- **Full Kubernetes orchestration** (Deployment, Service, Ingress, HPA)
-- **Production-ready configurations** (health probes, resource limits, secrets)
-- **Auto-scaling demonstration** with Horizontal Pod Autoscaler
-- **Monitoring & observability** with Prometheus metrics
-- **Incident simulation** for testing resilience
-- **Complete automation** with deployment scripts
+Unlike traditional tutorials, this platform:
+- ✅ **Runs locally** on your machine with Kind (no cloud costs)
+- ✅ **Interactive scenarios** with step-by-step guided commands
+- ✅ **Real Kubernetes cluster** - not simulated
+- ✅ **Production patterns** - actual configurations you'll use in production
+- ✅ **Self-paced learning** - complete scenarios at your own speed
+- ✅ **Validation scripts** - verify your work automatically
+- ✅ **Clean architecture** - easy to extend with new scenarios
 
-**Perfect for**: DevOps portfolios, technical interviews, learning Kubernetes production patterns
+**Perfect for:**
+- DevOps engineers building portfolios
+- Students learning Kubernetes and cloud-native technologies
+- Professionals preparing for CKA/CKAD certifications
+- Teams training on GitOps and CI/CD practices
+- Technical interviews and skill demonstrations
 
 ---
 
-## ✨ What This Demonstrates
+## 📦 What's Inside
 
-### Production Kubernetes Skills
-- ✅ Multi-replica deployments with rolling updates
-- ✅ Horizontal Pod Autoscaling (HPA) with CPU metrics
-- ✅ Health checks (liveness & readiness probes)
-- ✅ Resource management (requests & limits)
-- ✅ ConfigMaps and Secrets management
-- ✅ Ingress routing with NGINX
-- ✅ Service discovery and load balancing
+### 🎓 Learning Scenarios (50+)
 
-### DevOps Best Practices
-- ✅ Non-root container security
-- ✅ Multi-stage Docker builds
-- ✅ Infrastructure as Code (IaC)
-- ✅ Prometheus metrics integration
-- ✅ Comprehensive automation scripts
-- ✅ Professional documentation
+| Category | Count | Topics Covered |
+|----------|-------|----------------|
+| **Kubernetes** | 16 | HPA, VPA, Rolling Updates, StatefulSets, DaemonSets, Network Policies, RBAC, Pod Disruption Budgets, Blue-Green Deployments, Node Affinity |
+| **ArgoCD** | 12 | GitOps, Auto-sync, Self-healing, Sync Waves, Hooks, App of Apps, Kustomize, Helm, Multi-source Apps, Canary Deployments, Disaster Recovery |
+| **Ansible** | 12 | Inventory, Package Management, User Management, Templates, Multi-tier Apps, Vault, Rolling Updates, Hardening, Monitoring, Disaster Recovery, CI/CD Integration |
+| **Helm** | Multiple | Chart Creation, Dependencies, Values, Templates, Releases, Upgrades, Rollbacks |
+| **Jenkins** | Multiple | Pipeline Creation, Declarative Pipelines, Shared Libraries, Blue Ocean, Integration |
+| **GitLab CI** | Multiple | Pipeline Setup, Stages, Jobs, Artifacts, Caching, Multi-project Pipelines |
+| **Terraform** | Multiple | Infrastructure as Code, State Management, Modules, Providers, Workspaces |
 
-### Application Features
-- ✅ Modern web dashboard with real-time updates
-- ✅ Live log viewer with auto-scroll
-- ✅ Load testing capabilities
-- ✅ Incident simulation controls
-- ✅ CLI command reference
-- ✅ Status monitoring
+### 🛠️ Full-Stack Application
+
+- **Backend**: FastAPI (Python) - High-performance async API
+- **Frontend**: Vanilla JavaScript - No framework dependencies, fast and lightweight
+- **Database**: PostgreSQL - Persistent storage for progress tracking
+- **Container Runtime**: Docker - Consistent environments
+- **Kubernetes**: Kind - Local multi-node clusters
+- **Monitoring**: Prometheus metrics integration
+- **CI/CD Tools**: ArgoCD, Jenkins, GitLab CI integration ready
+
+---
+
+## ✨ Features
+
+### 🎮 Interactive Learning Experience
+
+- **Scenario Browser** - Browse all scenarios by category with difficulty ratings
+- **Step-by-Step Guides** - Each scenario includes detailed instructions
+- **Command Reference** - Copy-paste ready commands with explanations
+- **Live Validation** - Check your work with built-in validation scripts
+- **Progress Tracking** - Save your progress in PostgreSQL database
+- **Clean Playgrounds** - Each scenario runs in isolated namespaces
+
+### 🏗️ Production-Ready Architecture
+
+- **Multi-namespace Isolation** - Clean separation between scenarios
+- **Resource Management** - Proper requests/limits on all workloads
+- **Health Monitoring** - Liveness and readiness probes
+- **Auto-scaling** - HPA and VPA demonstrations
+- **Security Best Practices** - RBAC, Network Policies, Pod Security
+- **GitOps Workflows** - Full ArgoCD integration
+- **Infrastructure as Code** - All manifests versioned in Git
+
+### 🔧 Developer-Friendly
+
+- **Easy Setup** - One script deploys everything
+- **Hot Reload** - Update scenarios without redeploying
+- **Comprehensive Logging** - Debug with detailed logs
+- **API Documentation** - FastAPI auto-generated docs at `/docs`
+- **Extensible** - Add new scenarios easily
+- **Well-Documented** - Every scenario includes README and commands.json
 
 ---
 
 ## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Kubernetes Cluster                        │
-│                                                              │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐ │
-│  │   Ingress    │────│   Service    │────│  Deployment  │ │
-│  │   (NGINX)    │    │  (ClusterIP) │    │   (2-10      │ │
-│  │              │    │              │    │   replicas)  │ │
-│  └──────────────┘    └──────────────┘    └──────────────┘ │
-│         │                                        │          │
-│         │                                        │          │
-│  ┌──────▼─────────────────────────────────┐    │          │
-│  │           Pod (replicas: 2-10)          │◄───┤          │
-│  │  ┌────────────────────────────────┐    │    │          │
-│  │  │   FastAPI Application          │    │    │          │
-│  │  │   - Web Dashboard              │    │    │          │
-│  │  │   - /health (liveness)         │    │    │          │
-│  │  │   - /ready (readiness)         │    │    │          │
-│  │  │   - /metrics (Prometheus)      │    │    │          │
-│  │  │   - Load test controls         │    │    │          │
-│  │  └────────────────────────────────┘    │    │          │
-│  │  ┌────────────────────────────────┐    │    │          │
-│  │  │   ConfigMap (environment)      │    │    │          │
-│  │  │   Secret (tokens)              │    │    │          │
-│  │  └────────────────────────────────┘    │    │          │
-│  └──────────────────▲────────────────────┘    │          │
-│                     │                          │          │
-│              ┌──────┴──────┐                  │          │
-│              │     HPA     │──────────────────┘          │
-│              │  (CPU-based)│                             │
-│              │  2-10 pods  │                             │
-│              └─────────────┘                             │
-│                     ▲                                     │
-│              ┌──────┴──────┐                             │
-│              │metrics-server│                             │
-│              └─────────────┘                             │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        Kind Kubernetes Cluster (3 nodes)                 │
+│                                                                           │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │                      Ingress Controller (NGINX)                   │   │
+│  │                         Port 80 → NodePort 30080                  │   │
+│  └────────────────────┬──────────────────────────────────────────────┘   │
+│                       │                                                   │
+│  ┌────────────────────▼─────────────────────────────────────────────┐   │
+│  │                     k8s-multi-demo Namespace                       │   │
+│  │  ┌──────────────────────────────────────────────────────────────┐ │   │
+│  │  │  FastAPI Application (Deployment: 2 replicas)                │ │   │
+│  │  │  - REST API: /api/scenarios, /api/argocd-scenarios, etc.     │ │   │
+│  │  │  - Web UI: index.html, scenarios.html, scenario-detail.html  │ │   │
+│  │  │  - Database: PostgreSQL connection for progress tracking     │ │   │
+│  │  │  - Monitoring: /metrics (Prometheus), /health, /ready        │ │   │
+│  │  └──────────────────────────────────────────────────────────────┘ │   │
+│  │  ┌──────────────────────────────────────────────────────────────┐ │   │
+│  │  │  PostgreSQL StatefulSet (1 replica)                          │ │   │
+│  │  │  - PersistentVolume: 1Gi storage                             │ │   │
+│  │  │  - Database: k8s_demo (users, tasks tables)                  │ │   │
+│  │  └──────────────────────────────────────────────────────────────┘ │   │
+│  └────────────────────────────────────────────────────────────────────┘   │
+│                                                                           │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │                      Scenarios Namespace                          │   │
+│  │  Dynamic scenario workloads (HPA demos, StatefulSets, etc.)      │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                           │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │                    ArgoCD Namespace (Optional)                    │   │
+│  │  - ArgoCD Server (NodePort 30800)                                │   │
+│  │  - Application Controller                                         │   │
+│  │  - Repo Server                                                    │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                           │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │                    Jenkins Namespace (Optional)                   │   │
+│  │  - Jenkins Server (NodePort 30880)                               │   │
+│  │  - Build Agents                                                   │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                           │
+└─────────────────────────────────────────────────────────────────────────┘
+
+                            ↕ kubectl commands
+
+                    ┌─────────────────────┐
+                    │   User's Terminal   │
+                    │  - kubectl          │
+                    │  - helm             │
+                    │  - argocd CLI       │
+                    │  - ansible          │
+                    └─────────────────────┘
 ```
 
-**Key Components:**
-- **Deployment**: Manages 2-10 pod replicas with rolling updates
-- **Service**: ClusterIP for internal load balancing
-- **Ingress**: NGINX-based external routing
-- **HPA**: Auto-scales based on CPU (70% threshold)
-- **ConfigMap**: Environment variables (APP_ENV, APP_NAME)
-- **Secret**: Sensitive data (SECRET_TOKEN)
-- **Probes**: Health checks for automatic pod recovery
+### Key Components
+
+1. **Kind Cluster** - Local multi-node Kubernetes cluster
+2. **FastAPI Backend** - Serves scenarios, tracks progress, provides API
+3. **PostgreSQL Database** - Stores user data, tasks, progress
+4. **Frontend (Vanilla JS)** - Interactive scenario browser and detail views
+5. **Scenario Directories** - Self-contained scenarios with YAML, README, commands.json
+6. **NGINX Ingress** - Routes traffic to applications
+7. **Metrics Server** - Enables HPA with CPU/memory metrics
+8. **ArgoCD** (optional) - GitOps continuous delivery
+9. **Jenkins** (optional) - CI/CD pipeline automation
 
 ---
 
@@ -141,52 +190,47 @@ This project is a **complete Kubernetes production environment** simulator built
 |------|---------|-------------|
 | **Docker** | 24.0+ | [docs.docker.com/get-docker](https://docs.docker.com/get-docker/) |
 | **kubectl** | 1.28+ | [kubernetes.io/docs/tasks/tools](https://kubernetes.io/docs/tasks/tools/) |
-| **kind** | 0.20+ | See below |
+| **kind** | 0.20+ | [kind.sigs.k8s.io](https://kind.sigs.k8s.io/docs/user/quick-start/) |
+| **Helm** (optional) | 3.0+ | [helm.sh/docs/intro/install](https://helm.sh/docs/intro/install/) |
+| **ArgoCD CLI** (optional) | 2.8+ | [argo-cd.readthedocs.io](https://argo-cd.readthedocs.io/en/stable/cli_installation/) |
 
-### Install kind
+### System Requirements
 
-**On WSL2/Ubuntu:**
+- **CPU**: 4+ cores recommended (2 minimum)
+- **RAM**: 8GB+ available (4GB minimum)
+- **Disk**: 20GB+ free space
+- **OS**: Linux, macOS, or Windows with WSL2
+
+### Install kind (Quick Reference)
+
+**Linux/WSL2:**
 ```bash
-# Download and install kind
 curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
 chmod +x ./kind
 sudo mv ./kind /usr/local/bin/kind
-
-# Verify installation
 kind version
 ```
 
-**On macOS:**
+**macOS:**
 ```bash
-# Using Homebrew
 brew install kind
-
-# Verify installation
 kind version
 ```
 
-**On Windows (PowerShell):**
+**Windows (PowerShell):**
 ```powershell
-# Using Chocolatey
 choco install kind
-
-# Or using Scoop
+# or
 scoop install kind
 ```
-
-### System Requirements
-- **CPU**: 2+ cores
-- **RAM**: 4GB+ available
-- **Disk**: 10GB+ free space
-- **OS**: Linux, macOS, or Windows with WSL2
 
 ---
 
 ## 🚀 Quick Start
 
-### Method 1: Automated Deployment (Recommended)
+### Automated Deployment (Recommended)
 
-**Complete setup in one command:**
+**Complete setup in 3 commands:**
 
 ```bash
 # 1. Clone the repository
@@ -196,18 +240,23 @@ cd kubernetes-production-simulator
 # 2. Run the automated deployment script
 chmod +x kind_setup.sh
 ./kind_setup.sh
+
+# 3. Access the application
+# Browser: http://localhost:30080
+# Or port-forward: kubectl port-forward svc/k8s-demo-service 8080:80 -n k8s-multi-demo
 ```
 
-**What this script does:**
-1. ✅ Checks all prerequisites
-2. ✅ Deletes existing clusters (if any)
-3. ✅ Creates kind cluster with Ingress support
-4. ✅ Installs NGINX Ingress Controller
-5. ✅ Builds Docker image
-6. ✅ Deploys all Kubernetes resources
-7. ✅ Sets up metrics-server and HPA
-8. ✅ Runs comprehensive tests
-9. ✅ Displays access URLs
+**What the script does:**
+1. ✅ Validates prerequisites (Docker, kubectl, kind)
+2. ✅ Creates Kind cluster with 3 nodes and port mappings
+3. ✅ Installs NGINX Ingress Controller
+4. ✅ Deploys PostgreSQL database with persistent storage
+5. ✅ Builds and loads application Docker image
+6. ✅ Deploys FastAPI backend (2 replicas)
+7. ✅ Installs metrics-server for HPA support
+8. ✅ Creates namespaces for scenario isolation
+9. ✅ Runs health checks and verification
+10. ✅ Displays access URLs and next steps
 
 **Expected output:**
 ```
@@ -215,812 +264,307 @@ chmod +x kind_setup.sh
 DEPLOYMENT COMPLETE! 🎉
 ============================================
 
-✅ Cluster: k8s-demo
+✅ Cluster: k8s-demo (3 nodes)
 ✅ Namespace: k8s-multi-demo
-✅ Pods: 2/2 Running
-✅ Service: k8s-demo-service (80:8000/TCP)
-✅ Ingress: k8s-multi-demo.local
+✅ Pods: 3/3 Running (app: 2, db: 1)
+✅ Database: PostgreSQL ready
+✅ Ingress: NGINX Ingress Controller running
+✅ Metrics: metrics-server ready
 
-Access the application:
-  http://localhost:8080 (port-forward)
-  http://k8s-multi-demo.local (ingress)
+Access the platform:
+  🌐 http://localhost:30080 (NodePort)
+  🔧 http://localhost:8080 (port-forward)
+
+API Documentation:
+  📚 http://localhost:30080/docs (OpenAPI/Swagger)
+
+Scenario Namespaces:
+  - k8s-multi-demo (main app)
+  - scenarios (K8s scenarios)
+  - argocd (ArgoCD scenarios)
+
+Next Steps:
+  1. Open http://localhost:30080 in your browser
+  2. Browse scenarios by category
+  3. Follow step-by-step instructions
+  4. Verify your work with validation scripts
+
+Useful Commands:
+  kubectl get all -n k8s-multi-demo
+  kubectl get all -n scenarios
+  kubectl logs -f -l app=k8s-demo-app -n k8s-multi-demo
 ```
 
 ---
 
-### Method 2: Manual Step-by-Step Deployment
+## 🎓 Scenario Categories
 
-For learning purposes or custom configurations, follow these manual steps:
+### 1. Kubernetes Fundamentals (16 scenarios)
 
-#### **Step 1: Create kind Cluster**
+| # | Scenario | Difficulty | Duration | Key Concepts |
+|---|----------|-----------|----------|--------------|
+| 01 | HPA Autoscaling | Easy | 15 min | Horizontal Pod Autoscaler, metrics-server, CPU-based scaling |
+| 02 | Node Failure Simulation | Medium | 20 min | Node drain, cordon, pod rescheduling, resilience |
+| 03 | VPA Configuration | Medium | 20 min | Vertical Pod Autoscaler, resource recommendations |
+| 04 | ConfigMaps & Secrets | Easy | 15 min | Configuration management, environment variables |
+| 05 | Rolling Updates | Easy | 15 min | Zero-downtime deployments, rollout strategies |
+| 06 | Network Policies | Hard | 30 min | Network segmentation, ingress/egress rules |
+| 07 | Pod Disruption Budget | Medium | 20 min | High availability, controlled disruptions |
+| 08 | Self-Healing | Easy | 15 min | Automatic recovery, replica management |
+| 09 | Liveness & Readiness | Easy | 15 min | Health probes, traffic management |
+| 10 | StatefulSet Operations | Medium | 25 min | Stateful workloads, ordered deployment, persistent volumes |
+| 11 | DaemonSet Deployment | Medium | 20 min | Node-level services, system daemons |
+| 12 | Jobs & CronJobs | Easy | 15 min | Batch processing, scheduled tasks |
+| 13 | Blue-Green Deployment | Medium | 25 min | Deployment strategies, instant rollback |
+| 14 | Ingress Configuration | Medium | 20 min | HTTP routing, virtual hosts, path-based routing |
+| 15 | RBAC Setup | Hard | 30 min | Role-based access control, service accounts |
+| 16 | Node Affinity | Medium | 20 min | Pod scheduling, node selection, taints/tolerations |
 
-```bash
-# Create cluster with Ingress port mapping
-cat <<EOF | kind create cluster --name k8s-demo --config=-
-kind: Cluster
-apiVersion: kind.x-k8s.io/v1alpha4
-nodes:
-- role: control-plane
-  kubeadmConfigPatches:
-  - |
-    kind: InitConfiguration
-    nodeRegistration:
-      kubeletExtraArgs:
-        node-labels: "ingress-ready=true"
-  extraPortMappings:
-  - containerPort: 80
-    hostPort: 80
-    protocol: TCP
-  - containerPort: 30080
-    hostPort: 30080
-    protocol: TCP
-EOF
+### 2. ArgoCD & GitOps (12 scenarios)
 
-# Verify cluster creation
-kubectl cluster-info --context kind-k8s-demo
-```
+| # | Scenario | Difficulty | Duration | Key Concepts |
+|---|----------|-----------|----------|--------------|
+| 01 | Basic App Deploy | Easy | 15 min | ArgoCD application, Git repository sync |
+| 02 | Auto-Sync & Self-Heal | Medium | 20 min | Automated deployments, drift detection |
+| 03 | Sync Waves & Hooks | Hard | 30 min | Ordered deployments, pre/post hooks |
+| 04 | App of Apps Pattern | Medium | 25 min | Multi-app management, hierarchical apps |
+| 05 | Kustomize Environments | Medium | 25 min | Environment overlays, configuration variants |
+| 06 | Helm Deployment | Medium | 20 min | Helm charts via ArgoCD, values management |
+| 07 | GitOps Rollback | Medium | 20 min | Git-based rollback, history management |
+| 08 | Multi-Source App | Hard | 30 min | Multiple Git sources, combined deployments |
+| 09 | Health Checks | Medium | 20 min | Custom health checks, resource hooks |
+| 10 | Projects & RBAC | Hard | 30 min | Multi-tenancy, access control |
+| 11 | Canary Rollout | Hard | 35 min | Progressive delivery, traffic splitting |
+| 12 | Disaster Recovery | Hard | 30 min | Backup/restore, cluster migration |
 
-#### **Step 2: Install NGINX Ingress Controller**
+### 3. Ansible Automation (12 scenarios)
 
-```bash
-# Install NGINX Ingress (kind-specific version)
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+| # | Scenario | Difficulty | Duration | Key Concepts |
+|---|----------|-----------|----------|--------------|
+| 01 | Ansible Basics & Inventory | Easy | 15 min | Inventory files, ad-hoc commands, modules |
+| 02 | Package Management | Easy | 15 min | Package installation, system updates |
+| 03 | User Management | Easy | 15 min | User creation, SSH keys, sudo access |
+| 04 | File Deployment & Templates | Medium | 20 min | Jinja2 templates, file distribution |
+| 05 | Multi-Tier App Deployment | Medium | 25 min | Web/app/db tiers, orchestration |
+| 06 | Ansible Vault (Secrets) | Medium | 20 min | Encrypted variables, secure credential storage |
+| 07 | Rolling Updates (Zero Downtime) | Medium | 25 min | Serial execution, health checks |
+| 08 | System Hardening & Compliance | Hard | 30 min | Security baselines, CIS benchmarks |
+| 09 | Monitoring Stack Deployment | Hard | 35 min | Prometheus, Grafana, exporters |
+| 10 | Disaster Recovery Automation | Hard | 30 min | Backup automation, restore procedures |
+| 11 | Dynamic Infrastructure Orchestration | Hard | 35 min | Dynamic inventory, cloud provisioning |
+| 12 | CI/CD Pipeline Automation | Hard | 40 min | Jenkins/GitLab integration, deployment pipelines |
 
-# Wait for Ingress Controller to be ready
-kubectl wait --namespace ingress-nginx \
-  --for=condition=ready pod \
-  --selector=app.kubernetes.io/component=controller \
-  --timeout=90s
+### 4. Additional Modules
 
-# Verify Ingress Controller
-kubectl get pods -n ingress-nginx
-```
+- **Helm**: Chart authoring, dependency management, templating, release management
+- **Jenkins**: Pipeline as Code, Declarative/Scripted pipelines, Blue Ocean, integrations
+- **GitLab CI**: Pipeline configuration, stages, jobs, artifacts, multi-project pipelines
+- **Terraform**: Infrastructure as Code, state management, modules, workspaces
 
-#### **Step 3: Build and Load Docker Image**
+---
 
-```bash
-# Build the application image
-docker build -t k8s-demo-app:latest ./app
+## 💻 Using the Platform
 
-# Load image into kind cluster
-kind load docker-image k8s-demo-app:latest --name k8s-demo
+### Web Interface
 
-# Verify image is loaded
-docker exec -it k8s-demo-control-plane crictl images | grep k8s-demo-app
-```
+1. **Home Dashboard** (`index.html`)
+   - Overview of all scenario categories
+   - Quick access to documentation
+   - System status indicators
+   - Database connection status
 
-#### **Step 4: Deploy Application**
+2. **Scenario Browser** (`scenarios.html`, `argocd-scenarios.html`, etc.)
+   - Browse scenarios by category
+   - Filter by difficulty level
+   - See estimated completion time
+   - Track progress (coming soon)
 
-```bash
-# Create namespace
-kubectl apply -f k8s/base/namespace.yaml
+3. **Scenario Detail View** (`scenario-detail.html`)
+   - Full scenario description
+   - Learning objectives
+   - Step-by-step command guide
+   - Copy-paste ready commands
+   - Expected output examples
+   - Validation instructions
+   - Cleanup procedures
 
-# Deploy configuration
-kubectl apply -f k8s/base/configmap.yaml
-kubectl apply -f k8s/base/secret.yaml
+### REST API
 
-# Deploy application
-kubectl apply -f k8s/base/deployment.yaml
+Access the API documentation at `http://localhost:30080/docs`
 
-# Create service
-kubectl apply -f k8s/base/service.yaml
-
-# Deploy ingress
-kubectl apply -f k8s/ingress/ingress.yaml
-
-# Wait for pods to be ready
-kubectl wait --for=condition=ready pod \
-  -l app=k8s-demo-app \
-  -n k8s-multi-demo \
-  --timeout=120s
-
-# Verify deployment
-kubectl get all -n k8s-multi-demo
-```
-
-#### **Step 5: Setup Horizontal Pod Autoscaler**
-
-```bash
-# Install metrics-server
-kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
-
-# Patch metrics-server for kind (insecure TLS)
-kubectl patch -n kube-system deployment metrics-server --type=json \
-  -p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
-
-# Wait for metrics-server
-kubectl wait --for=condition=ready pod \
-  -l k8s-app=metrics-server \
-  -n kube-system \
-  --timeout=120s
-
-# Deploy HPA
-kubectl apply -f k8s/hpa/hpa.yaml
-
-# Verify HPA
-kubectl get hpa -n k8s-multi-demo
-```
-
-#### **Step 6: Verify Deployment**
+**Key Endpoints:**
 
 ```bash
-# Check all resources
-kubectl get all,configmap,secret,ingress,hpa -n k8s-multi-demo
+# Get all Kubernetes scenarios
+GET /api/scenarios
 
-# Check pod status
-kubectl get pods -n k8s-multi-demo -o wide
+# Get specific scenario
+GET /api/scenarios/{scenario_id}
 
-# View pod logs
-kubectl logs -l app=k8s-demo-app -n k8s-multi-demo --tail=50
+# Get ArgoCD scenarios
+GET /api/argocd-scenarios
+GET /api/argocd-scenarios/{scenario_id}
 
-# Check HPA metrics (may take 1-2 minutes)
-kubectl get hpa -n k8s-multi-demo -w
+# Get Ansible scenarios
+GET /api/ansible-scenarios
+GET /api/ansible-scenarios/{scenario_id}
+
+# Health checks
+GET /health
+GET /ready
+
+# Prometheus metrics
+GET /metrics
+
+# Database stats
+GET /api/db/stats
 ```
 
-**Expected output:**
-```
-NAME                               READY   STATUS    RESTARTS   AGE
-pod/k8s-demo-app-xxxxxxxxxx-xxxxx   1/1     Running   0          2m
-pod/k8s-demo-app-xxxxxxxxxx-xxxxx   1/1     Running   0          2m
+### Command-Line Workflow
 
-NAME                       TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
-service/k8s-demo-service   ClusterIP   10.96.xxx.xxx   <none>        80/TCP    2m
+**Typical scenario workflow:**
 
-NAME                           READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/k8s-demo-app   2/2     2            2           2m
+```bash
+# 1. Access the web UI to browse scenarios
+# http://localhost:30080
 
-NAME                                      DESIRED   CURRENT   READY   AGE
-replicaset.apps/k8s-demo-app-xxxxxxxxxx   2         2         2       2m
+# 2. Select a scenario (e.g., "01-hpa-autoscaling")
 
-NAME                                              REFERENCE                 TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
-horizontalpodautoscaler.autoscaling/k8s-demo-hpa   Deployment/k8s-demo-app   5%/70%    2         10        2          1m
+# 3. Follow the commands from the scenario detail page
+kubectl apply -f k8s-scenarios/01-hpa-autoscaling/deployment.yaml
+kubectl apply -f k8s-scenarios/01-hpa-autoscaling/hpa.yaml
+
+# 4. Verify the deployment
+kubectl get hpa -n scenarios
+
+# 5. Run validation script (if available)
+./k8s-scenarios/01-hpa-autoscaling/validate.sh
+
+# 6. Clean up when done
+kubectl delete -f k8s-scenarios/01-hpa-autoscaling/
 ```
 
 ---
 
 ## 🌐 Access Methods
 
-After deployment, you can access the application using multiple methods:
-
-### 1. Port-Forward (WSL2/Ubuntu) - **Recommended for Local**
-
-**Best for**: WSL2 users who want to access via Windows browser
+### 1. NodePort Access (Recommended - Simplest)
 
 ```bash
-# Start port-forward in the background
-kubectl port-forward svc/k8s-demo-service 8080:80 -n k8s-multi-demo > /dev/null 2>&1 &
+# Application is automatically exposed on port 30080
+# No additional commands needed
+open http://localhost:30080
 
-# For WSL2: Open in Windows browser
-explorer.exe http://localhost:8080
-
-# For Ubuntu Desktop: Open in browser
-google-chrome http://localhost:8080
-# or
-firefox http://localhost:8080
-
-# For headless servers: Use curl to test
-curl http://localhost:8080
+# For WSL2 users
+explorer.exe http://localhost:30080
 ```
 
 **Advantages:**
-- ✅ Works immediately without configuration
-- ✅ Perfect for WSL2 (Windows browser)
-- ✅ Simple and reliable
-- ✅ No hosts file modification needed
+- ✅ Works immediately after deployment
+- ✅ No additional configuration needed
+- ✅ Persistent connection
+- ✅ Fixed port (30080)
+- ✅ Perfect for WSL2 users
 
-**To stop port-forward:**
+### 2. Port-Forward (Alternative)
+
 ```bash
-# Find and kill port-forward process
-pkill -f "port-forward"
+# Start port-forward
+kubectl port-forward svc/k8s-demo-service 8080:80 -n k8s-multi-demo
 
-# Or find specific process
-ps aux | grep port-forward
-kill <PID>
+# Access application
+open http://localhost:8080
+
+# Stop port-forward
+pkill -f "port-forward"
 ```
 
----
+### 3. Ingress with Custom Domain (Advanced)
 
-### 2. Ingress with Custom Domain
-
-**Best for**: Production-like setup with custom domain
-
-#### **Configure /etc/hosts:**
-
-**On WSL2/Linux:**
 ```bash
-# Add entry to hosts file
+# Add to /etc/hosts (Linux/macOS/WSL2)
 echo "127.0.0.1 k8s-multi-demo.local" | sudo tee -a /etc/hosts
 
-# Verify
-cat /etc/hosts | grep k8s-multi-demo
-```
+# Access via Ingress
+open http://k8s-multi-demo.local
 
-**On Windows (if not using WSL2):**
-```powershell
-# Run PowerShell as Administrator
+# Windows (PowerShell as Administrator)
 Add-Content -Path C:\Windows\System32\drivers\etc\hosts -Value "127.0.0.1 k8s-multi-demo.local"
 ```
 
-**On macOS:**
+### 4. ArgoCD Access (If Installed)
+
 ```bash
-sudo echo "127.0.0.1 k8s-multi-demo.local" >> /etc/hosts
+# ArgoCD UI is exposed on NodePort 30800
+open http://localhost:30800
+
+# Get initial admin password
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
 ```
 
-#### **Access via Ingress:**
+### 5. Jenkins Access (If Installed)
 
 ```bash
-# The Ingress is already configured and running
-# Access the application
-curl http://k8s-multi-demo.local
+# Jenkins UI is exposed on NodePort 30880
+open http://localhost:30880
 
-# Or open in browser
-explorer.exe http://k8s-multi-demo.local   # WSL2
-google-chrome http://k8s-multi-demo.local  # Ubuntu Desktop
-```
-
-**Advantages:**
-- ✅ Production-like routing
-- ✅ Demonstrates Ingress knowledge
-- ✅ Multiple applications via different domains
-- ✅ Professional setup
-
-**Verify Ingress:**
-```bash
-# Check Ingress status
-kubectl get ingress -n k8s-multi-demo
-
-# Describe Ingress for details
-kubectl describe ingress k8s-demo-ingress -n k8s-multi-demo
-
-# Check NGINX Ingress logs
-kubectl logs -n ingress-nginx -l app.kubernetes.io/component=controller
+# Get initial admin password
+kubectl exec -n jenkins deployment/jenkins -- cat /var/jenkins_home/secrets/initialAdminPassword
 ```
 
 ---
 
-### 3. NodePort Direct Access
+## 🛠️ Development
 
-**Best for**: Direct cluster access without port-forward
+### Running Locally (Outside Kubernetes)
 
-#### **Option A: Use existing NodePort service (port 30080)**
-
-```bash
-# The cluster already has port 30080 mapped
-# Access directly via NodePort
-curl http://localhost:30080
-
-# Or deploy the NodePort service
-kubectl apply -f k8s/base/service-nodeport.yaml
-
-# Access via browser
-explorer.exe http://localhost:30080  # WSL2
-```
-
-**Advantages:**
-- ✅ No port-forward needed
-- ✅ Direct cluster access
-- ✅ Persistent connection
-- ✅ Fixed port (30080)
-
-**Verify NodePort:**
-```bash
-# Check NodePort service
-kubectl get svc k8s-demo-nodeport -n k8s-multi-demo
-
-# Should show: 80:30080/TCP
-```
-
----
-
-### 4. kubectl Proxy
-
-**Best for**: API-based access or testing
+For development and testing:
 
 ```bash
-# Start kubectl proxy
-kubectl proxy --port=8001 &
+# Install dependencies
+cd app
+pip install -r requirements.txt
 
-# Access via proxy URL
-curl http://localhost:8001/api/v1/namespaces/k8s-multi-demo/services/k8s-demo-service:80/proxy/
+# Set environment variables
+export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/k8s_demo"
 
-# Full URL for browser
-echo "http://localhost:8001/api/v1/namespaces/k8s-multi-demo/services/k8s-demo-service:80/proxy/"
+# Run the application
+uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+
+# Access at http://localhost:8000
 ```
 
----
-
-## 🧪 Testing Features
-
-### 1. Horizontal Pod Autoscaler (HPA)
-
-#### **Method A: Using the Web UI (Easiest)**
-
-1. **Access the application** (via any method above)
-2. **Click "🔥 Start Load Test"** button
-3. **Open a new terminal** and watch HPA:
-   ```bash
-   kubectl get hpa -n k8s-multi-demo -w
-   ```
-4. **Observe scaling:**
-   - CPU usage increases to ~100%
-   - Pods scale from 2 → 3 → 4 → up to 10
-   - Watch replicas increase in real-time
-
-5. **Click "🛑 Stop Load Test"**
-6. **Watch scale down** (takes ~5 minutes):
-   ```bash
-   kubectl get pods -n k8s-multi-demo -w
-   ```
-
-**Expected behavior:**
-```
-NAME                            REFERENCE                 TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
-k8s-demo-hpa   Deployment/k8s-demo-app   5%/70%    2         10        2          5m
-k8s-demo-hpa   Deployment/k8s-demo-app   95%/70%   2         10        2          6m
-k8s-demo-hpa   Deployment/k8s-demo-app   95%/70%   2         10        4          7m
-k8s-demo-hpa   Deployment/k8s-demo-app   88%/70%   2         10        6          8m
-```
-
-#### **Method B: CLI Load Test (Professional)**
+### Rebuilding After Code Changes
 
 ```bash
-# Terminal 1: Watch HPA continuously
-kubectl get hpa -n k8s-multi-demo -w
+# Rebuild Docker image
+docker build -t k8s-demo-app:latest ./app
 
-# Terminal 2: Generate load with curl
-for i in {1..50}; do 
-  (while true; do 
-    curl -s http://localhost:8080/ > /dev/null
-    sleep 0.1
-  done) &
-done
-
-# Wait 2-3 minutes to see scaling
-
-# Stop load test
-pkill curl
-
-# Terminal 1: Watch scale down (takes ~5 minutes)
-```
-
-#### **Method C: Using the load-test.sh script**
-
-```bash
-# Use the included script
-./load-test.sh
-
-# This sends 5000 requests in ~2 minutes
-# Watch scaling in another terminal
-```
-
----
-
-### 2. Health & Readiness Probes
-
-**Test liveness probe (automatic pod restart):**
-
-1. Access the UI
-2. Click **"💥 Simulate Crash"**
-3. Watch pod restart automatically:
-   ```bash
-   kubectl get pods -n k8s-multi-demo -w
-   ```
-4. Check events:
-   ```bash
-   kubectl describe pod <pod-name> -n k8s-multi-demo
-   # Look for: Liveness probe failed: HTTP probe failed
-   ```
-
-**Expected behavior:**
-- Pod becomes unhealthy
-- Kubernetes restarts the pod automatically
-- New pod comes up healthy
-- Zero downtime (other pods handle traffic)
-
-**Test readiness probe (stop receiving traffic):**
-
-1. Access the UI
-2. Click **"⚠️ Simulate Not Ready"**
-3. Watch pod status:
-   ```bash
-   kubectl get pods -n k8s-multi-demo -o wide
-   # Pod shows 0/1 in READY column
-   ```
-4. Pod stops receiving traffic (but doesn't restart)
-5. Click **"🔄 Reset"** to restore
-
-**Verify with endpoints:**
-```bash
-# Check which pods are receiving traffic
-kubectl get endpoints k8s-demo-service -n k8s-multi-demo
-
-# Healthy pods appear in endpoints
-# Unhealthy pods are removed
-```
-
----
-
-### 3. Load Testing
-
-#### **Built-in Load Test (Recommended)**
-
-Access the web UI and use the built-in load test controls:
-
-```
-1. Click "🔥 Start Load Test"
-   - Generates 20 concurrent requests per batch
-   - Runs for 2 minutes
-   - Targets the Kubernetes service (distributed load)
-
-2. Monitor in real-time:
-   - Live logs show request count
-   - CPU usage visible in HPA
-   - Pod scaling happens automatically
-
-3. Click "🛑 Stop Load Test"
-   - Graceful shutdown
-   - CPU drops within 30 seconds
-   - Pods scale down in ~5 minutes
-```
-
-#### **External Load Test Tools**
-
-**Using Apache Bench:**
-```bash
-# Install if needed
-sudo apt-get install apache2-utils  # Ubuntu
-brew install apache2                # macOS
-
-# Run load test
-ab -n 10000 -c 100 http://localhost:8080/
-```
-
-**Using hey (modern alternative):**
-```bash
-# Install
-go install github.com/rakyll/hey@latest
-
-# Run load test
-hey -z 2m -c 50 http://localhost:8080/
-```
-
-**Using wrk:**
-```bash
-# Install
-sudo apt-get install wrk  # Ubuntu
-
-# Run load test
-wrk -t4 -c50 -d2m http://localhost:8080/
-```
-
----
-
-### 4. Live Monitoring
-
-**From the Web UI:**
-1. Click **"📋 View Live Logs"**
-2. Logs refresh automatically every 30 seconds
-3. See all application events in real-time
-4. Scroll to bottom for latest entries
-
-**CLI Monitoring Commands:**
-
-```bash
-# Real-time logs from all pods
-kubectl logs -f -l app=k8s-demo-app -n k8s-multi-demo
-
-# Logs from specific pod
-kubectl logs -f <pod-name> -n k8s-multi-demo
-
-# Watch pods scale
-kubectl get pods -n k8s-multi-demo -w
-
-# Watch HPA metrics
-kubectl get hpa -n k8s-multi-demo -w
-
-# Live CPU/Memory usage
-watch kubectl top pods -n k8s-multi-demo
-
-# View all events
-kubectl get events -n k8s-multi-demo --sort-by='.lastTimestamp'
-```
-
----
-
-## 📊 Monitoring & Debugging
-
-### Essential Monitoring Commands
-
-```bash
-# Get all resources in namespace
-kubectl get all,configmap,secret,ingress,hpa -n k8s-multi-demo
-
-# Detailed pod information
-kubectl get pods -n k8s-multi-demo -o wide
-
-# Check resource usage (CPU/Memory)
-kubectl top pods -n k8s-multi-demo
-kubectl top nodes
-
-# Watch HPA in real-time
-kubectl get hpa -n k8s-multi-demo -w
-
-# View recent events
-kubectl get events -n k8s-multi-demo --sort-by='.lastTimestamp' | tail -20
-
-# Check service endpoints
-kubectl get endpoints -n k8s-multi-demo
-
-# Describe resources for debugging
-kubectl describe deployment k8s-demo-app -n k8s-multi-demo
-kubectl describe pod <pod-name> -n k8s-multi-demo
-kubectl describe hpa k8s-demo-hpa -n k8s-multi-demo
-```
-
-### Prometheus Metrics
-
-Access Prometheus metrics from any pod:
-
-```bash
-# Via port-forward
-kubectl port-forward svc/k8s-demo-service 8080:80 -n k8s-multi-demo
-curl http://localhost:8080/metrics
-
-# Via direct pod access
-kubectl exec -it <pod-name> -n k8s-multi-demo -- curl localhost:8000/metrics
-```
-
-**Available metrics:**
-- `app_requests_total` - Total HTTP requests by endpoint
-- `app_request_duration_seconds` - Request latency histogram
-- Standard Python/FastAPI metrics
-
-### Debugging Pods
-
-```bash
-# Get detailed pod information
-kubectl describe pod <pod-name> -n k8s-multi-demo
-
-# View container logs
-kubectl logs <pod-name> -n k8s-multi-demo
-kubectl logs <pod-name> -n k8s-multi-demo --previous  # Previous container
-
-# Execute commands in pod
-kubectl exec -it <pod-name> -n k8s-multi-demo -- /bin/bash
-
-# Check pod events
-kubectl get events --field-selector involvedObject.name=<pod-name> -n k8s-multi-demo
-
-# Port-forward to specific pod
-kubectl port-forward pod/<pod-name> 8080:8000 -n k8s-multi-demo
-```
-
----
-
-## 🔄 Updating the Application
-
-After making code changes to the application:
-
-### Method 1: Complete Rebuild
-
-```bash
-# 1. Rebuild Docker image with no cache
-docker build -t k8s-demo-app:latest ./app --no-cache
-
-# 2. Load image into kind cluster
+# Load into Kind cluster
 kind load docker-image k8s-demo-app:latest --name k8s-demo
 
-# 3. Restart deployment (rolling update)
+# Restart deployment (rolling update)
 kubectl rollout restart deployment/k8s-demo-app -n k8s-multi-demo
 
-# 4. Watch rollout progress
+# Watch rollout progress
 kubectl rollout status deployment/k8s-demo-app -n k8s-multi-demo
 
-# 5. Verify new pods
+# Verify new pods
 kubectl get pods -n k8s-multi-demo
-
-# 6. Check logs to confirm new code
-kubectl logs -l app=k8s-demo-app -n k8s-multi-demo --tail=20
 ```
 
-### Method 2: Version-Tagged Update
+### Database Migrations
 
 ```bash
-# 1. Build with version tag
-docker build -t k8s-demo-app:v2.0 ./app
+# Connect to PostgreSQL pod
+kubectl exec -it deployment/postgres -n k8s-multi-demo -- psql -U postgres -d k8s_demo
 
-# 2. Load into kind
-kind load docker-image k8s-demo-app:v2.0 --name k8s-demo
+# View tables
+\dt
 
-# 3. Update deployment image
-kubectl set image deployment/k8s-demo-app \
-  app=k8s-demo-app:v2.0 \
-  -n k8s-multi-demo
-
-# 4. Watch rollout
-kubectl rollout status deployment/k8s-demo-app -n k8s-multi-demo
-```
-
-### Rollback if Needed
-
-```bash
-# View rollout history
-kubectl rollout history deployment/k8s-demo-app -n k8s-multi-demo
-
-# Rollback to previous version
-kubectl rollout undo deployment/k8s-demo-app -n k8s-multi-demo
-
-# Rollback to specific revision
-kubectl rollout undo deployment/k8s-demo-app --to-revision=2 -n k8s-multi-demo
-
-# Check rollout status
-kubectl rollout status deployment/k8s-demo-app -n k8s-multi-demo
-```
-
-### Restart Port-Forward After Update
-
-```bash
-# Stop existing port-forward
-pkill -f "port-forward"
-
-# Start new port-forward
-kubectl port-forward svc/k8s-demo-service 8080:80 -n k8s-multi-demo > /dev/null 2>&1 &
-
-# Test connection
-curl http://localhost:8080/health
-```
-
----
-
-## 🐛 Troubleshooting
-
-### Pods Not Starting
-
-**Check pod status:**
-```bash
-kubectl get pods -n k8s-multi-demo
-kubectl describe pod <pod-name> -n k8s-multi-demo
-```
-
-**Common issues:**
-
-1. **ImagePullBackOff / ErrImagePull**
-   ```bash
-   # Image not loaded into kind cluster
-   docker images | grep k8s-demo-app
-   kind load docker-image k8s-demo-app:latest --name k8s-demo
-   ```
-
-2. **CrashLoopBackOff**
-   ```bash
-   # Check application logs
-   kubectl logs <pod-name> -n k8s-multi-demo
-   kubectl logs <pod-name> -n k8s-multi-demo --previous
-   
-   # Common causes:
-   # - Application crash on startup
-   # - Missing dependencies
-   # - Port conflicts
-   ```
-
-3. **Pending state**
-   ```bash
-   # Check node resources
-   kubectl describe node k8s-demo-control-plane
-   
-   # Check events
-   kubectl get events -n k8s-multi-demo
-   ```
-
-### Can't Access the Application
-
-1. **Port-forward not working:**
-   ```bash
-   # Check if port-forward is running
-   ps aux | grep port-forward
-   
-   # Kill and restart
-   pkill -f "port-forward"
-   kubectl port-forward svc/k8s-demo-service 8080:80 -n k8s-multi-demo &
-   
-   # Test locally
-   curl http://localhost:8080/health
-   ```
-
-2. **Ingress not working:**
-   ```bash
-   # Check Ingress status
-   kubectl get ingress -n k8s-multi-demo
-   kubectl describe ingress k8s-demo-ingress -n k8s-multi-demo
-   
-   # Check NGINX Ingress Controller
-   kubectl get pods -n ingress-nginx
-   kubectl logs -n ingress-nginx -l app.kubernetes.io/component=controller
-   
-   # Verify hosts file
-   cat /etc/hosts | grep k8s-multi-demo
-   
-   # Test Ingress Controller
-   curl -H "Host: k8s-multi-demo.local" http://localhost
-   ```
-
-3. **Service not routing traffic:**
-   ```bash
-   # Check service
-   kubectl get svc k8s-demo-service -n k8s-multi-demo
-   
-   # Check endpoints (should show pod IPs)
-   kubectl get endpoints k8s-demo-service -n k8s-multi-demo
-   
-   # If no endpoints, pods aren't ready
-   kubectl get pods -n k8s-multi-demo
-   ```
-
-### HPA Not Working
-
-```bash
-# Check HPA status
-kubectl get hpa -n k8s-multi-demo
-kubectl describe hpa k8s-demo-hpa -n k8s-multi-demo
-
-# Common issue: metrics-server not ready
-kubectl get pods -n kube-system | grep metrics-server
-
-# If metrics unavailable:
-kubectl top nodes  # Should show node metrics
-kubectl top pods -n k8s-multi-demo  # Should show pod metrics
-
-# Reinstall metrics-server
-kubectl delete -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
-kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
-kubectl patch -n kube-system deployment metrics-server --type=json \
-  -p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
-
-# Wait for metrics-server
-kubectl wait --for=condition=ready pod -l k8s-app=metrics-server -n kube-system --timeout=120s
-
-# Test metrics
-kubectl top pods -n k8s-multi-demo
-```
-
-### Load Test Not Scaling Pods
-
-```bash
-# Verify load test is running
-kubectl logs -l app=k8s-demo-app -n k8s-multi-demo --tail=50 | grep "Load test"
-
-# Check CPU usage
-kubectl top pods -n k8s-multi-demo
-
-# Check HPA targets
-kubectl get hpa -n k8s-multi-demo
-# Look at TARGETS column: should show actual/target (e.g., 95%/70%)
-
-# If CPU not increasing:
-# 1. Load test might not be running
-# 2. Not enough load being generated
-# 3. Resource limits too high
-
-# Manual load test to verify
-for i in {1..50}; do (while true; do curl -s http://localhost:8080/ > /dev/null; sleep 0.1; done) & done
-```
-
-### Cluster Issues
-
-```bash
-# Recreate cluster if corrupted
-kind delete cluster --name k8s-demo
-./kind_setup.sh  # Run automated setup
-
-# Check Docker
-docker ps | grep k8s-demo
-
-# Check kind
-kind get clusters
-
-# Verify kubectl context
-kubectl config get-contexts
-kubectl config use-context kind-k8s-demo
+# Query data
+SELECT * FROM users;
+SELECT * FROM tasks;
 ```
 
 ---
@@ -1029,461 +573,790 @@ kubectl config use-context kind-k8s-demo
 
 ```
 .
-├── README.md
-├── app
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   └── src
-│       └── main.py
-├── k8s
-│   ├── base
-│   │   ├── configmap.yaml
-│   │   ├── deployment.yaml
-│   │   ├── namespace.yaml
-│   │   ├── secret.yaml
-│   │   ├── service-nodeport-8080.yaml
-│   │   ├── service-nodeport.yaml
-│   │   └── service.yaml
-│   ├── hpa
-│   │   └── hpa.yaml
-│   └── ingress
-│       └── ingress.yaml
-├── k8s-tests
-│   └── nginx-service.yaml
-├── kind_cleanup.sh
-├── kind_setup.sh
-└── scenario-scripts
+├── README.md                          # This file
+├── kind_setup.sh                      # Automated deployment script
+├── kind_cleanup.sh                    # Cleanup script
+│
+├── app/                               # FastAPI application
+│   ├── Dockerfile                     # Multi-stage build
+│   ├── requirements.txt               # Python dependencies
+│   └── src/
+│       ├── main.py                    # FastAPI app (1160+ lines)
+│       ├── database.py                # SQLAlchemy models
+│       └── static/                    # Frontend files
+│           ├── index.html             # Main dashboard
+│           ├── scenarios.html         # K8s scenarios list
+│           ├── scenario-detail.html   # K8s scenario detail
+│           ├── argocd-scenarios.html
+│           ├── argocd-scenario-detail.html
+│           ├── ansible-scenarios.html
+│           ├── ansible-scenario-detail.html
+│           ├── helm-scenarios.html
+│           ├── helm-scenario-detail.html
+│           ├── jenkins-scenarios.html
+│           ├── jenkins-scenario-detail.html
+│           ├── gitlab-ci-scenarios.html
+│           ├── gitlab-ci-scenario-detail.html
+│           ├── terraform-scenarios.html
+│           ├── terraform-scenario-detail.html
+│           ├── app.js                 # Frontend JavaScript (69KB)
+│           └── style.css              # Stylesheet (34KB)
+│
+├── k8s/                               # Kubernetes manifests
+│   ├── base/
+│   │   ├── namespace.yaml
+│   │   ├── deployment.yaml            # FastAPI deployment
+│   │   ├── service.yaml               # ClusterIP service
+│   │   ├── service-nodeport.yaml      # NodePort service (30080)
+│   │   ├── configmap.yaml
+│   │   └── secret.yaml
+│   ├── database/
+│   │   ├── postgres-deployment.yaml   # PostgreSQL StatefulSet
+│   │   ├── postgres-service.yaml
+│   │   └── postgres-pvc.yaml          # Persistent storage
+│   ├── hpa/
+│   │   └── hpa.yaml                   # Horizontal Pod Autoscaler
+│   └── ingress/
+│       └── ingress.yaml               # NGINX Ingress
+│
+├── k8s-scenarios/                     # Kubernetes learning scenarios
+│   ├── 00-namespace.yaml
+│   ├── 01-hpa-autoscaling/
+│   │   ├── README.md
+│   │   ├── commands.json
+│   │   ├── deployment.yaml
+│   │   ├── hpa.yaml
+│   │   └── validate.sh
+│   ├── 02-node-failure/
+│   ├── 03-vpa-config/
+│   ├── 04-configmap-secrets/
+│   ├── 05-rolling-updates/
+│   ├── 06-network-policies/
+│   ├── 07-pod-disruption-budget/
+│   ├── 08-self-healing/
+│   ├── 09-liveness-readiness/
+│   ├── 10-statefulset-operations/
+│   ├── 11-daemonset-deployment/
+│   ├── 12-job-cronjob/
+│   ├── 13-blue-green-deployment/
+│   ├── 14-ingress-configuration/
+│   ├── 15-rbac-setup/
+│   └── 16-node-affinity/
+│
+├── argocd-scenarios/                  # ArgoCD GitOps scenarios
+│   ├── 01-basic-app-deploy/
+│   │   ├── README.md
+│   │   ├── commands.json
+│   │   ├── application.yaml
+│   │   └── manifests/
+│   ├── 02-auto-sync-self-heal/
+│   ├── 03-sync-waves-hooks/
+│   ├── 04-app-of-apps/
+│   ├── 05-kustomize-envs/
+│   ├── 06-helm-deploy/
+│   ├── 07-gitops-rollback/
+│   ├── 08-multi-source-app/
+│   ├── 09-health-checks/
+│   ├── 10-projects-rbac/
+│   ├── 11-canary-rollout/
+│   └── 12-disaster-recovery/
+│
+├── ansible-scenarios/                 # Ansible automation scenarios
+│   ├── 01-ansible-basics-inventory/
+│   │   ├── README.md
+│   │   ├── commands.json
+│   │   ├── inventory/
+│   │   └── playbooks/
+│   ├── 02-package-management/
+│   ├── 03-user-management/
+│   ├── 04-file-deployment-templates/
+│   ├── 05-multi-tier-app-deployment/
+│   ├── 06-ansible-vault-secrets/
+│   ├── 07-rolling-updates-zero-downtime/
+│   ├── 08-system-hardening-compliance/
+│   ├── 09-monitoring-stack-deployment/
+│   ├── 10-disaster-recovery-automation/
+│   ├── 11-dynamic-infrastructure-orchestration/
+│   └── 12-ci-cd-pipeline-automation/
+│
+└── scenario-scripts/                  # Helper scripts
     ├── load-test.sh
     └── setup-hpa.sh
-
 ```
 
 ### Key Files Explained
 
-**app/src/main.py** (1,100+ lines)
-- Modern FastAPI application with web dashboard
-- Health endpoints: `/health`, `/ready`
-- Monitoring: `/metrics` (Prometheus)
-- Load test controls: `/load-test/start`, `/load-test/stop`
-- Incident simulation: `/simulate/crash`, `/simulate/notready`
-- Live logs via `/logs`
+**[app/src/main.py](app/src/main.py:1)** (1160+ lines)
+- FastAPI application with comprehensive REST API
+- Auto-discovers scenarios by scanning directories
+- Serves frontend HTML/JS/CSS files
+- Database integration for progress tracking
+- Prometheus metrics endpoint
+- Health and readiness probes
+- Kubernetes API integration for cluster status
 
-**k8s/base/deployment.yaml**
-- Production-ready Deployment configuration
-- Non-root security (user 1000)
-- Liveness probe: restarts unhealthy pods
-- Readiness probe: removes unhealthy pods from service
-- Resource requests/limits: prevent resource starvation
-- ConfigMap and Secret integration
+**[app/src/database.py](app/src/database.py)**
+- SQLAlchemy models (User, Task)
+- PostgreSQL connection management
+- Database initialization and migrations
 
-**k8s/hpa/hpa.yaml**
-- Horizontal Pod Autoscaler
-- Scales based on CPU utilization (70% target)
-- Min 2 replicas, max 10 replicas
-- Fast scale-up (0s window), slow scale-down (60s window)
-- Prevents flapping during load changes
+**[kind_setup.sh](kind_setup.sh:1)** (500+ lines)
+- Complete automated deployment
+- Prerequisite checking
+- Cluster creation with custom configuration
+- NGINX Ingress installation
+- Database deployment
+- Application build and deployment
+- Health verification
+- Colorized output
 
-**kind_setup.sh**
-- Complete automation script
-- Idempotent (can run multiple times)
-- Comprehensive error checking
-- Colored output for better UX
-- Built-in testing and verification
+---
+
+## ➕ Adding New Scenarios
+
+Each scenario is self-contained in its own directory. Here's how to add new ones:
+
+### Scenario Directory Structure
+
+```
+scenario-name/
+├── README.md              # Overview, learning objectives, prerequisites
+├── commands.json          # Step-by-step commands with metadata
+├── *.yaml                 # Kubernetes manifests
+└── validate.sh (optional) # Validation script
+```
+
+### 1. Create the Scenario Directory
+
+```bash
+# Choose the appropriate category
+cd k8s-scenarios/     # or argocd-scenarios/ or ansible-scenarios/
+
+# Create directory with zero-padded number prefix
+mkdir 17-my-new-scenario
+cd 17-my-new-scenario
+```
+
+### 2. Create README.md
+
+```markdown
+# Scenario: My New Scenario
+
+## Overview
+Brief description of what this scenario teaches.
+
+## Learning Objectives
+- Objective 1
+- Objective 2
+- Objective 3
+
+## Prerequisites
+- Knowledge of X
+- Completed scenarios: Y, Z
+
+## Difficulty
+Medium
+
+## Estimated Duration
+20 minutes
+
+## Resources Created
+- Deployment: my-app
+- Service: my-service
+- ConfigMap: my-config
+
+## Cleanup
+```bash
+kubectl delete -f .
+```
+```
+
+### 3. Create commands.json
+
+```json
+{
+  "scenario_id": "17-my-new-scenario",
+  "title": "My New Scenario",
+  "difficulty": "medium",
+  "duration": "20 min",
+  "category": "kubernetes",
+  "commands": [
+    {
+      "step": 1,
+      "name": "Create Namespace",
+      "command": "kubectl create namespace my-scenario",
+      "description": "Create isolated namespace for this scenario",
+      "explanation": "Namespaces provide resource isolation in Kubernetes",
+      "what_it_does": "Creates a new namespace called 'my-scenario'",
+      "expected_output": "namespace/my-scenario created",
+      "next_step": "Deploy the application",
+      "cleanup": false
+    },
+    {
+      "step": 2,
+      "name": "Deploy Application",
+      "command": "kubectl apply -f deployment.yaml -n my-scenario",
+      "description": "Deploy the demo application",
+      "explanation": "This creates a Deployment with 3 replicas",
+      "what_it_does": "Creates pods running the application",
+      "expected_output": "deployment.apps/my-app created",
+      "next_step": "Verify deployment status",
+      "cleanup": false
+    },
+    {
+      "step": 3,
+      "name": "Cleanup",
+      "command": "kubectl delete namespace my-scenario",
+      "description": "Remove all resources from this scenario",
+      "explanation": "Deleting the namespace removes everything in it",
+      "what_it_does": "Cleans up all scenario resources",
+      "expected_output": "namespace 'my-scenario' deleted",
+      "cleanup": true
+    }
+  ]
+}
+```
+
+### 4. Add Kubernetes Manifests
+
+Create your YAML files (deployment.yaml, service.yaml, etc.):
+
+```yaml
+# deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+  namespace: scenarios
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: app
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+```
+
+### 5. Add Validation Script (Optional)
+
+```bash
+#!/bin/bash
+# validate.sh
+
+echo "Validating scenario resources..."
+
+# Check deployment
+kubectl get deployment my-app -n scenarios &>/dev/null
+if [ $? -eq 0 ]; then
+  echo "✅ Deployment exists"
+else
+  echo "❌ Deployment not found"
+  exit 1
+fi
+
+# Check replica count
+REPLICAS=$(kubectl get deployment my-app -n scenarios -o jsonpath='{.status.readyReplicas}')
+if [ "$REPLICAS" -eq 3 ]; then
+  echo "✅ All 3 replicas are ready"
+else
+  echo "❌ Expected 3 replicas, found $REPLICAS"
+  exit 1
+fi
+
+echo "🎉 Validation successful!"
+```
+
+### 6. Test Your Scenario
+
+```bash
+# Test locally
+kubectl apply -f .
+./validate.sh
+kubectl delete -f .
+
+# Rebuild application to include the scenario
+docker build -t k8s-demo-app:latest ./app
+kind load docker-image k8s-demo-app:latest --name k8s-demo
+kubectl rollout restart deployment/k8s-demo-app -n k8s-multi-demo
+
+# Verify in web UI
+open http://localhost:30080/scenarios.html
+```
+
+### Auto-Discovery
+
+The backend automatically discovers new scenarios by:
+1. Scanning scenario directories (k8s-scenarios/, argocd-scenarios/, etc.)
+2. Reading README.md for metadata
+3. Parsing commands.json for step-by-step instructions
+4. Serving via REST API endpoints
+5. Displaying in the web UI
+
+**No backend code changes needed!**
+
+---
+
+## 📊 Monitoring & Debugging
+
+### Essential Commands
+
+```bash
+# View all resources in main namespace
+kubectl get all -n k8s-multi-demo
+
+# View scenario resources
+kubectl get all -n scenarios
+kubectl get all -n argocd
+
+# Check pod logs (FastAPI application)
+kubectl logs -f -l app=k8s-demo-app -n k8s-multi-demo
+
+# Check database logs
+kubectl logs -f deployment/postgres -n k8s-multi-demo
+
+# Watch pod status
+kubectl get pods -n k8s-multi-demo -w
+
+# View events
+kubectl get events -n k8s-multi-demo --sort-by='.lastTimestamp'
+
+# Check resource usage
+kubectl top pods -n k8s-multi-demo
+kubectl top nodes
+
+# Describe resources
+kubectl describe deployment k8s-demo-app -n k8s-multi-demo
+kubectl describe pod <pod-name> -n k8s-multi-demo
+```
+
+### Application Endpoints
+
+```bash
+# Health check
+curl http://localhost:30080/health
+
+# Readiness check
+curl http://localhost:30080/ready
+
+# Prometheus metrics
+curl http://localhost:30080/metrics
+
+# API documentation (OpenAPI/Swagger)
+open http://localhost:30080/docs
+
+# Database stats
+curl http://localhost:30080/api/db/stats
+```
+
+### Database Access
+
+```bash
+# Connect to PostgreSQL
+kubectl exec -it deployment/postgres -n k8s-multi-demo -- psql -U postgres -d k8s_demo
+
+# Inside psql:
+\dt                    # List tables
+\d users              # Describe users table
+SELECT * FROM users;  # Query users
+\q                    # Exit
+```
+
+### Debugging Failed Scenarios
+
+```bash
+# Check if scenario namespace exists
+kubectl get namespace scenarios
+
+# View resources in scenario namespace
+kubectl get all -n scenarios
+
+# Check pod status and logs
+kubectl get pods -n scenarios
+kubectl logs <pod-name> -n scenarios
+
+# Describe pod for events
+kubectl describe pod <pod-name> -n scenarios
+
+# Delete and recreate resources
+kubectl delete -f k8s-scenarios/XX-scenario-name/
+kubectl apply -f k8s-scenarios/XX-scenario-name/
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### Application Not Accessible
+
+**Problem**: Can't access http://localhost:30080
+
+```bash
+# Check if cluster exists
+kind get clusters
+
+# Check if NodePort service exists
+kubectl get svc k8s-demo-nodeport -n k8s-multi-demo
+
+# Check pod status
+kubectl get pods -n k8s-multi-demo
+
+# Check pod logs
+kubectl logs -l app=k8s-demo-app -n k8s-multi-demo
+
+# Port-forward as alternative
+kubectl port-forward svc/k8s-demo-service 8080:80 -n k8s-multi-demo
+# Then access http://localhost:8080
+```
+
+### Database Connection Errors
+
+**Problem**: Application shows database errors
+
+```bash
+# Check PostgreSQL pod
+kubectl get pods -n k8s-multi-demo | grep postgres
+
+# Check PostgreSQL logs
+kubectl logs deployment/postgres -n k8s-multi-demo
+
+# Restart PostgreSQL
+kubectl rollout restart deployment/postgres -n k8s-multi-demo
+
+# Check database service
+kubectl get svc postgres -n k8s-multi-demo
+```
+
+### Scenarios Not Loading
+
+**Problem**: Scenario list is empty in web UI
+
+```bash
+# Verify scenario directories exist
+ls k8s-scenarios/
+ls argocd-scenarios/
+
+# Check application logs
+kubectl logs -l app=k8s-demo-app -n k8s-multi-demo | grep -i scenario
+
+# Verify image includes scenarios
+kubectl exec deployment/k8s-demo-app -n k8s-multi-demo -- ls /app/k8s-scenarios
+
+# Rebuild if needed
+docker build -t k8s-demo-app:latest ./app
+kind load docker-image k8s-demo-app:latest --name k8s-demo
+kubectl rollout restart deployment/k8s-demo-app -n k8s-multi-demo
+```
+
+### Pods Not Starting
+
+**Problem**: Pods stuck in Pending, CrashLoopBackOff, or ImagePullBackOff
+
+```bash
+# Check pod status
+kubectl get pods -n k8s-multi-demo
+
+# Describe pod for events
+kubectl describe pod <pod-name> -n k8s-multi-demo
+
+# Common fixes:
+
+# 1. ImagePullBackOff - Image not loaded
+docker images | grep k8s-demo-app
+kind load docker-image k8s-demo-app:latest --name k8s-demo
+
+# 2. CrashLoopBackOff - Check logs
+kubectl logs <pod-name> -n k8s-multi-demo
+kubectl logs <pod-name> -n k8s-multi-demo --previous
+
+# 3. Pending - Check resources
+kubectl top nodes
+kubectl describe node k8s-demo-control-plane
+```
+
+### Cluster Issues
+
+**Problem**: Cluster not responding or corrupted
+
+```bash
+# Check cluster status
+kubectl cluster-info
+kubectl get nodes
+
+# Restart cluster (Warning: destructive)
+kind delete cluster --name k8s-demo
+./kind_setup.sh
+
+# Check Docker daemon
+docker ps
+docker info
+```
+
+### Metrics Server Issues
+
+**Problem**: HPA scenarios show "unknown" metrics
+
+```bash
+# Check metrics-server
+kubectl get pods -n kube-system | grep metrics-server
+
+# Test metrics
+kubectl top nodes
+kubectl top pods -n scenarios
+
+# Reinstall metrics-server
+kubectl delete -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+kubectl patch -n kube-system deployment metrics-server --type=json \
+  -p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
+```
 
 ---
 
 ## 🧹 Cleanup
 
-### Script for deletion:
-
-``` bash
-    ./kind_cleanup.sh
-```
-
-### Delete Everything
+### Quick Cleanup (Delete Everything)
 
 ```bash
-# Delete the entire cluster
+# Run cleanup script
+./kind_cleanup.sh
+
+# Or manually:
 kind delete cluster --name k8s-demo
 
 # Verify deletion
 kind get clusters
-# Should not show k8s-demo
-
-# Remove Docker images (optional)
-docker rmi k8s-demo-app:latest
+docker ps
 ```
 
-### Delete Only Application Resources
+### Partial Cleanup (Keep Cluster, Remove Application)
 
 ```bash
-# Delete namespace (removes all resources in it)
+# Delete main application
 kubectl delete namespace k8s-multi-demo
 
-# Or delete resources individually
-kubectl delete -f k8s/hpa/hpa.yaml
-kubectl delete -f k8s/ingress/ingress.yaml
-kubectl delete -f k8s/base/service.yaml
-kubectl delete -f k8s/base/deployment.yaml
-kubectl delete -f k8s/base/secret.yaml
-kubectl delete -f k8s/base/configmap.yaml
-kubectl delete -f k8s/base/namespace.yaml
+# Delete scenario resources
+kubectl delete namespace scenarios
+kubectl delete namespace argocd
+
+# Keep cluster for other experiments
 ```
 
-### Clean Up Port-Forwards
+### Cleanup Individual Scenarios
 
 ```bash
-# Kill all port-forward processes
-pkill -f "port-forward"
+# Most scenarios include cleanup instructions
+kubectl delete -f k8s-scenarios/01-hpa-autoscaling/
 
-# Or find and kill specific processes
-ps aux | grep port-forward
-kill <PID>
+# Or delete by namespace
+kubectl delete namespace <scenario-namespace>
 ```
 
-### Remove kind Completely
+### Remove Docker Images
 
 ```bash
-# Remove kind binary
-sudo rm /usr/local/bin/kind
+# List images
+docker images | grep k8s-demo
 
-# Remove kind configurations
-rm -rf ~/.kube/config
-```
+# Remove specific image
+docker rmi k8s-demo-app:latest
 
----
-
-## 🚀 Advanced Topics
-
-### Custom Resource Limits
-
-Edit `k8s/base/deployment.yaml` to adjust resources:
-
-```yaml
-resources:
-  requests:
-    memory: "256Mi"   # Minimum memory
-    cpu: "200m"       # Minimum CPU (0.2 cores)
-  limits:
-    memory: "512Mi"   # Maximum memory
-    cpu: "500m"       # Maximum CPU (0.5 cores)
-```
-
-### Adjust HPA Thresholds
-
-Edit `k8s/hpa/hpa.yaml`:
-
-```yaml
-metrics:
-- type: Resource
-  resource:
-    name: cpu
-    target:
-      type: Utilization
-      averageUtilization: 50  # Change from 70% to 50%
-
-minReplicas: 3  # Increase minimum
-maxReplicas: 20 # Increase maximum
-```
-
-### Add Memory-Based Scaling
-
-Edit `k8s/hpa/hpa.yaml`:
-
-```yaml
-metrics:
-- type: Resource
-  resource:
-    name: cpu
-    target:
-      type: Utilization
-      averageUtilization: 70
-- type: Resource
-  resource:
-    name: memory
-    target:
-      type: Utilization
-      averageUtilization: 80  # Scale if memory > 80%
-```
-
-### Enable Multiple Ingress Hosts
-
-Edit `k8s/ingress/ingress.yaml`:
-
-```yaml
-spec:
-  ingressClassName: nginx
-  rules:
-  - host: k8s-multi-demo.local
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: k8s-demo-service
-            port:
-              number: 80
-  - host: demo.local  # Add second host
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: k8s-demo-service
-            port:
-              number: 80
-```
-
-### Enable TLS/HTTPS
-
-```bash
-# Generate self-signed certificate
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout tls.key -out tls.crt \
-  -subj "/CN=k8s-multi-demo.local/O=k8s-multi-demo"
-
-# Create TLS secret
-kubectl create secret tls demo-tls \
-  --cert=tls.crt \
-  --key=tls.key \
-  -n k8s-multi-demo
-
-# Update ingress.yaml to use TLS
-# Add:
-# spec:
-#   tls:
-#   - hosts:
-#     - k8s-multi-demo.local
-#     secretName: demo-tls
-```
-
-### Multi-Node Cluster
-
-```yaml
-# kind-config.yaml
-kind: Cluster
-apiVersion: kind.x-k8s.io/v1alpha4
-nodes:
-- role: control-plane
-  kubeadmConfigPatches:
-  - |
-    kind: InitConfiguration
-    nodeRegistration:
-      kubeletExtraArgs:
-        node-labels: "ingress-ready=true"
-  extraPortMappings:
-  - containerPort: 80
-    hostPort: 80
-  - containerPort: 30080
-    hostPort: 30080
-- role: worker
-- role: worker
-- role: worker
-
-# Create cluster
-kind create cluster --name k8s-demo --config=kind-config.yaml
-```
-
-### Persistent Storage
-
-Add PersistentVolumeClaim:
-
-```yaml
-# pvc.yaml
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: app-storage
-  namespace: k8s-multi-demo
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
-
-# Update deployment to use PVC
-# Add to deployment.yaml:
-# volumes:
-# - name: data
-#   persistentVolumeClaim:
-#     claimName: app-storage
-# volumeMounts:
-# - name: data
-#   mountPath: /data
-```
-
-### Network Policies
-
-Add network restrictions:
-
-```yaml
-# network-policy.yaml
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: app-network-policy
-  namespace: k8s-multi-demo
-spec:
-  podSelector:
-    matchLabels:
-      app: k8s-demo-app
-  policyTypes:
-  - Ingress
-  - Egress
-  ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          name: ingress-nginx
-    ports:
-    - protocol: TCP
-      port: 8000
-  egress:
-  - to:
-    - namespaceSelector: {}
-    ports:
-    - protocol: TCP
-      port: 53  # DNS
+# Remove all unused images
+docker image prune -a
 ```
 
 ---
 
 ## 🎓 Learning Outcomes
 
-By working with this project, you will understand:
+By working through this platform, you will master:
 
 ### Kubernetes Core Concepts
-- ✅ **Pods**: Smallest deployable units
-- ✅ **Deployments**: Declarative pod management
-- ✅ **Services**: Stable networking and load balancing
-- ✅ **Ingress**: HTTP routing and domain management
-- ✅ **ConfigMaps**: Environment configuration
-- ✅ **Secrets**: Sensitive data management
-- ✅ **Namespaces**: Resource isolation
+- ✅ Pods, Deployments, Services, Ingress
+- ✅ StatefulSets, DaemonSets, Jobs, CronJobs
+- ✅ ConfigMaps, Secrets, Persistent Volumes
+- ✅ Namespaces, RBAC, Network Policies
+- ✅ Health Probes, Resource Management
+- ✅ Horizontal & Vertical Pod Autoscaling
 
-### Production Patterns
-- ✅ **Health Probes**: Automatic failure detection and recovery
-- ✅ **Resource Management**: CPU/memory requests and limits
-- ✅ **Auto-Scaling**: Horizontal Pod Autoscaler (HPA)
-- ✅ **Rolling Updates**: Zero-downtime deployments
-- ✅ **Security**: Non-root containers, least privilege
+### GitOps with ArgoCD
+- ✅ Application deployment and synchronization
+- ✅ Auto-sync and self-healing
+- ✅ Sync waves and hooks
+- ✅ Multi-source applications
+- ✅ Kustomize and Helm integration
+- ✅ Canary deployments and rollbacks
 
-### DevOps Practices
-- ✅ **Infrastructure as Code**: All configs in Git
-- ✅ **Automation**: Deployment scripts and CI/CD-ready
-- ✅ **Monitoring**: Prometheus metrics, live logs
-- ✅ **Incident Response**: Simulated failures and recovery
-- ✅ **Documentation**: Production-grade README
+### Ansible Automation
+- ✅ Inventory management and playbooks
+- ✅ Roles, templates, and variables
+- ✅ Ansible Vault for secrets
+- ✅ Multi-tier application deployment
+- ✅ System hardening and compliance
+- ✅ CI/CD pipeline integration
 
-### Interview Topics
-- ✅ How HPA works and when to use it
-- ✅ Difference between liveness and readiness probes
-- ✅ Service types (ClusterIP, NodePort, LoadBalancer)
-- ✅ Ingress vs Service vs NodePort
-- ✅ Resource requests vs limits
-- ✅ ConfigMaps vs Secrets
-- ✅ Rolling updates and rollbacks
-- ✅ Kubernetes networking basics
+### Production Best Practices
+- ✅ Infrastructure as Code
+- ✅ Zero-downtime deployments
+- ✅ High availability patterns
+- ✅ Security hardening
+- ✅ Monitoring and observability
+- ✅ Disaster recovery
 
----
-
-## 💡 Interview Tips
-
-**Common Questions You Can Answer:**
-
-1. **"How do you handle auto-scaling in Kubernetes?"**
-   - "I implemented HPA with CPU-based scaling at 70% threshold"
-   - "Configured min 2, max 10 replicas with metrics-server"
-   - "Tested with load generation showing scale-up and scale-down"
-
-2. **"Explain your deployment strategy"**
-   - "Rolling updates for zero-downtime deployments"
-   - "Health probes ensure only healthy pods receive traffic"
-   - "Resource limits prevent resource starvation"
-
-3. **"How do you monitor applications in Kubernetes?"**
-   - "Prometheus metrics endpoint for observability"
-   - "kubectl commands for real-time monitoring"
-   - "Live logs and event streaming"
-
-4. **"What's the difference between liveness and readiness?"**
-   - "Liveness: Kubernetes restarts the pod if it fails"
-   - "Readiness: Pod stops receiving traffic if not ready"
-   - "I tested both with incident simulation"
-
-5. **"How do you expose services externally?"**
-   - "Ingress for production (domain-based routing)"
-   - "NodePort for development/testing"
-   - "Port-forward for local debugging"
-   - "All demonstrated in this project"
+### DevOps Skills
+- ✅ Container orchestration
+- ✅ Service mesh concepts
+- ✅ CI/CD pipeline design
+- ✅ GitOps workflows
+- ✅ Configuration management
+- ✅ Troubleshooting and debugging
 
 ---
 
-## 📞 Contact & Author
+## 🤝 Contributing
+
+Contributions are welcome! Here's how you can help:
+
+### Adding Scenarios
+
+1. Fork the repository
+2. Create a new scenario following the [Adding New Scenarios](#-adding-new-scenarios) guide
+3. Test your scenario thoroughly
+4. Submit a pull request with:
+   - Scenario description
+   - Learning objectives
+   - Testing evidence (screenshots)
+
+### Reporting Issues
+
+Open an issue on GitHub with:
+- Clear description of the problem
+- Steps to reproduce
+- Expected vs actual behavior
+- Environment details (OS, kubectl version, etc.)
+- Relevant logs
+
+### Suggesting Features
+
+Open an issue tagged "enhancement" with:
+- Use case description
+- Proposed solution
+- Alternative approaches considered
+
+---
+
+## 📞 Contact & Support
 
 **Author**: Shay Guedj
 **GitHub**: [@shaydevops2024](https://github.com/shaydevops2024)
+**Repository**: [kubernetes-production-simulator](https://github.com/shaydevops2024/kubernetes-production-simulator)
 
-**Issues & Questions**: [Create an issue on GitHub](https://github.com/shaydevops2024/kubernetes-production-simulator/issues)
+**Get Help:**
+- 🐛 [Report a Bug](https://github.com/shaydevops2024/kubernetes-production-simulator/issues)
+- 💡 [Request a Feature](https://github.com/shaydevops2024/kubernetes-production-simulator/issues)
+- 📚 [Read the Docs](https://github.com/shaydevops2024/kubernetes-production-simulator/wiki)
 
 ---
 
 ## 📝 License
 
-MIT License - Free to use for learning and portfolios!
+MIT License - Free to use for learning, portfolios, and commercial projects!
+
+See [LICENSE](LICENSE) file for details.
 
 ---
 
 ## 🌟 Acknowledgments
 
-- **Kubernetes Community** for excellent documentation
-- **FastAPI** for the modern web framework
-- **kind** for local Kubernetes clusters
-- **NGINX Ingress** for production-grade routing
+This project builds on the excellent work of:
+- **Kubernetes Community** - For comprehensive documentation
+- **ArgoCD Team** - For GitOps best practices
+- **FastAPI** - For the modern web framework
+- **PostgreSQL** - For reliable data persistence
+- **Kind** - For local Kubernetes clusters
+- **NGINX Ingress** - For production-grade routing
 
 ---
 
-## 🎯 Next Steps
+## 🎯 Roadmap
 
-Want to expand this project? Here are some ideas:
+### Coming Soon
+- [ ] Progress tracking and scenario completion badges
+- [ ] Interactive terminal in web UI
+- [ ] Scenario difficulty ratings and recommendations
+- [ ] Video tutorials for complex scenarios
+- [ ] Community-contributed scenarios
+- [ ] Certification practice exams (CKA, CKAD, CKS)
+- [ ] Terraform, Pulumi, and CloudFormation scenarios
+- [ ] Service mesh scenarios (Istio, Linkerd)
+- [ ] Observability stack (Prometheus, Grafana, Loki, Tempo)
 
-1. **Add CI/CD Pipeline**
-   - GitHub Actions workflow
-   - Automated testing
-   - Docker image building
-
-2. **Add Monitoring Stack**
-   - Prometheus + Grafana
-   - Custom dashboards
-   - Alerting rules
-
-3. **Add Database**
-   - PostgreSQL StatefulSet
-   - Persistent storage
-   - Database migrations
-
-4. **Add Multiple Services**
-   - Microservices architecture
-   - Service mesh (Istio)
-   - Inter-service communication
-
-5. **Add Security Scanning**
-   - Container image scanning
-   - Kubernetes security policies
-   - RBAC implementation
-
-6. **Deploy to Cloud**
-   - AWS EKS
-   - Google GKE
-   - Azure AKS
+### Future Enhancements
+- [ ] Multi-cluster scenarios
+- [ ] Cloud provider integration (AWS EKS, GCP GKE, Azure AKS)
+- [ ] GitLab integration for GitOps
+- [ ] Slack/Discord notifications
+- [ ] Leaderboards and gamification
+- [ ] API for programmatic access
+- [ ] Mobile-responsive UI improvements
+- [ ] Dark mode
 
 ---
 
 ## ⭐ Star This Repo!
 
-If this project helped you learn Kubernetes or land a DevOps role, please star it on GitHub!
+If this platform helped you learn Kubernetes, land a DevOps role, or ace an interview, please give it a star on GitHub! ⭐
 
-**🚀 Happy Kubernetes Learning! 🚀**
+**🚀 Happy Learning! 🚀**
+
+---
+
+## 📊 Project Stats
+
+- **50+ Scenarios** across 7 categories
+- **1200+ lines** of Python (FastAPI backend)
+- **140KB+ JavaScript** for interactive frontend
+- **500+ lines** of bash automation
+- **100+ Kubernetes manifests**
+- **Fully documented** with README files and inline comments
+- **Production-ready** architecture and patterns
+- **Actively maintained** and growing
+
+---
+
+## 💡 Use Cases
+
+### For Students
+- Learn DevOps technologies hands-on
+- Build a portfolio project
+- Prepare for certifications (CKA, CKAD)
+- Practice for technical interviews
+
+### For Professionals
+- Sharpen Kubernetes skills
+- Learn GitOps workflows
+- Experiment with new tools safely
+- Create training materials for teams
+
+### For Teams
+- Onboarding new DevOps engineers
+- Internal training workshops
+- Proof-of-concept for new patterns
+- Reference architecture for projects
+
+### For Educators
+- Teaching material for courses
+- Lab environment for students
+- Assessment and grading scenarios
+- Demonstration platform for concepts
+
+---
+
+**Built with ❤️ by [Shay Guedj](https://github.com/shaydevops2024)**

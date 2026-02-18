@@ -1,0 +1,106 @@
+{
+  "scenario_id": "12-blue-green-deployment",
+  "difficulty": "hard",
+  "duration": "30 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Namespace",
+      "command": "kubectl create namespace scenarios --dry-run=client -o yaml | kubectl apply -f -",
+      "description": "Create scenarios namespace",
+      "explanation": "Creates namespace for blue-green deployment demonstration.",
+      "what_it_does": "Creates 'scenarios' namespace if needed.",
+      "next_step": "Deploy blue (v1) environment."
+    },
+    {
+      "name": "Step 2: Deploy Blue Environment",
+      "command": "kubectl apply -f k8s-scenarios/12-blue-green-deployment/deployment-blue.yaml -n scenarios",
+      "description": "Deploy blue version (v1) with 3 replicas",
+      "explanation": "Creates blue deployment with label version=blue. This is your current production version running nginx:1.20.",
+      "what_it_does": "Creates bluegreen-blue deployment with version label 'blue'.",
+      "next_step": "Create service pointing to blue."
+    },
+    {
+      "name": "Step 3: Create Service for Blue",
+      "command": "kubectl apply -f k8s-scenarios/12-blue-green-deployment/service.yaml -n scenarios",
+      "description": "Create service initially routing to blue",
+      "explanation": "Service uses selector version=blue to route traffic to blue pods. All user traffic goes to blue (v1). The service provides a stable endpoint while we swap backends.",
+      "what_it_does": "Creates bluegreen-service with selector targeting blue deployment.",
+      "next_step": "Verify blue is serving traffic."
+    },
+    {
+      "name": "Step 4: Test Blue Version",
+      "command": "kubectl run test-client --rm -i --tty --image=busybox --restart=Never -n scenarios -- wget -qO- http://bluegreen-service",
+      "description": "Verify service routes to blue (v1)",
+      "explanation": "Should see response from nginx:1.20 (blue). All traffic currently goes to blue. Press Ctrl+C after seeing output.",
+      "what_it_does": "Tests HTTP request through service to verify blue is serving.",
+      "next_step": "Deploy green (v2) environment."
+    },
+    {
+      "name": "Step 5: Deploy Green Environment",
+      "command": "kubectl apply -f k8s-scenarios/12-blue-green-deployment/deployment-green.yaml -n scenarios",
+      "description": "Deploy green version (v2) with 3 replicas",
+      "explanation": "Creates green deployment with label version=green running nginx:1.21. Green runs alongside blue but receives no traffic yet. This allows testing before switching.",
+      "what_it_does": "Creates bluegreen-green deployment with version label 'green'.",
+      "next_step": "Verify both environments running."
+    },
+    {
+      "name": "Step 6: Verify Both Versions Running",
+      "command": "kubectl get pods -n scenarios -l app=bluegreen -o wide",
+      "description": "See both blue and green pods running",
+      "explanation": "Should see 6 pods total: 3 with version=blue, 3 with version=green. Both versions are running but service still points only to blue.",
+      "what_it_does": "Lists all pods for both deployments.",
+      "next_step": "Test green directly before switching."
+    },
+    {
+      "name": "Step 7: Test Green Directly",
+      "command": "GREEN_POD=$(kubectl get pod -n scenarios -l version=green -o jsonpath='{.items[0].metadata.name}') && kubectl exec -n scenarios $GREEN_POD -- curl -s localhost",
+      "description": "Test green version directly (not through service)",
+      "explanation": "Accesses green pod directly to verify it works before switching traffic. This is pre-production testing. Green should respond with nginx:1.21.",
+      "what_it_does": "Makes HTTP request directly to a green pod.",
+      "next_step": "Switch service to green."
+    },
+    {
+      "name": "Step 8: Switch Service to Green",
+      "command": "kubectl patch service bluegreen-service -n scenarios -p '{\"spec\":{\"selector\":{\"app\":\"myapp\",\"version\":\"green\"}}}'",
+      "description": "Change service selector from blue to green",
+      "explanation": "This is the instant traffic switch! Service selector changes from version=blue to version=green. All new connections immediately go to green (v2). Zero downtime - just endpoint change.",
+      "what_it_does": "Updates service selector to route traffic to green deployment.",
+      "next_step": "Verify traffic now goes to green."
+    },
+    {
+      "name": "Step 9: Test Green Through Service",
+      "command": "kubectl run test-after-switch --rm -i --tty --image=busybox --restart=Never -n scenarios -- wget -qO- http://bluegreen-service",
+      "description": "Verify service now routes to green (v2)",
+      "explanation": "Should see response from nginx:1.21 (green). Traffic successfully switched! Blue is still running for quick rollback if needed. Press Ctrl+C after seeing output.",
+      "what_it_does": "Tests HTTP request through service to verify green is serving.",
+      "next_step": "Monitor for issues, then cleanup old blue."
+    },
+    {
+      "name": "Step 10: View Service Endpoints",
+      "command": "kubectl get endpoints bluegreen-service -n scenarios -o yaml",
+      "description": "See which pod IPs service targets",
+      "explanation": "Shows endpoints list - should be green pod IPs only. Confirms service switched from blue to green.",
+      "what_it_does": "Displays service endpoint IPs (should be green pods).",
+      "next_step": "Ready for cleanup!",
+      "show_yaml": true
+    },
+    {
+      "name": "Cleanup: Delete Blue Deployment",
+      "command": "kubectl delete -f k8s-scenarios/12-blue-green-deployment/deployment-blue.yaml -n scenarios",
+      "description": "Remove blue (old version)",
+      "explanation": "After confirming green works in production, delete blue to free resources. In real scenarios, keep blue for 24-48 hours for easy rollback.",
+      "what_it_does": "Removes bluegreen-blue deployment and pods.",
+      "next_step": "Delete green and service.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup: Delete Green and Service",
+      "command": "kubectl delete -f k8s-scenarios/12-blue-green-deployment/deployment-green.yaml -f k8s-scenarios/12-blue-green-deployment/service.yaml -n scenarios",
+      "description": "Remove green deployment and service",
+      "explanation": "Deletes remaining resources from blue-green scenario.",
+      "what_it_does": "Removes bluegreen-green deployment and bluegreen-service.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

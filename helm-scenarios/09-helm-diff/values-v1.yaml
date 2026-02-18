@@ -1,0 +1,40 @@
+# values-v1.yaml
+# Initial deployment values for the nginx release.
+# This represents the "current state" of our deployment.
+
+# Single replica for initial deployment
+replicaCount: 1
+
+# Resource limits suitable for a Kind cluster
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 100m
+    memory: 128Mi
+
+# ClusterIP service (internal only)
+service:
+  type: ClusterIP
+  port: 80
+
+# Simple server block returning version info
+serverBlock: |-
+  server {
+    listen 0.0.0.0:8080;
+    location /version {
+      return 200 "v1.0.0\n";
+    }
+    location /healthz {
+      return 200 "healthy\n";
+    }
+    location / {
+      return 200 "Hello from diff-demo v1!\n";
+    }
+  }
+
+# Common labels applied to all resources
+commonLabels:
+  app-version: "v1"
+  scenario: helm-diff

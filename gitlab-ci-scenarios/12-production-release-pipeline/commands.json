@@ -1,0 +1,79 @@
+{
+  "scenario_id": "12-production-release-pipeline",
+  "difficulty": "hard",
+  "duration": "25 min",
+  "commands": [
+    {
+      "name": "Step 1: Review Production Release Pipeline",
+      "command": "cat gitlab-ci-scenarios/12-production-release-pipeline/.gitlab-ci.yml",
+      "description": "Examine a complete production release pipeline with all safety mechanisms",
+      "explanation": "This is the most comprehensive pipeline pattern. It includes every stage a production release needs: build, security scanning, staging deploy, smoke tests, canary deploy (10% traffic), automated health checks, manual promotion, and automatic rollback. This is the pipeline pattern used by teams deploying to production multiple times per day.",
+      "what_it_does": "Displays a complete production release pipeline with canary, smoke tests, promotion, and rollback.",
+      "next_step": "Understand the canary deployment stage.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 2: Canary Deployment Strategy",
+      "command": "echo '=== Canary Deployment in CI ===' && echo '' && echo 'deploy-canary:' && echo '  stage: canary' && echo '  script:' && echo '    # Deploy new version alongside current' && echo '    - helm upgrade --install $APP-canary ./chart' && echo '        --namespace production' && echo '        --set image.tag=$CI_COMMIT_SHA' && echo '        --set replicaCount=1          # 1 canary pod' && echo '        --set canary.enabled=true' && echo '        --set canary.weight=10         # 10% of traffic' && echo '        --atomic --timeout 5m' && echo '' && echo 'Traffic flow:' && echo '  Users → Load Balancer → 90% → v1.0.0 (3 pods)' && echo '                        → 10% → v1.1.0 (1 canary pod)' && echo '' && echo 'Why canary?' && echo '  - Only 10% of users see the new version' && echo '  - If it is broken, 90% of users are unaffected' && echo '  - Monitor error rates, latency, crash rates' && echo '  - Automated health checks decide: promote or rollback' && echo '' && echo 'Traffic splitting methods:' && echo '  1. Pod ratio: 1 canary / 9 stable = ~10%' && echo '  2. Ingress weight: NGINX ingress canary annotations' && echo '  3. Service mesh: Istio VirtualService weight' && echo '  4. Argo Rollouts: Automated canary with analysis'",
+      "description": "Learn how canary deployments gradually roll out changes to a subset of users",
+      "explanation": "Canary deployments are the safest way to release to production. Instead of switching all traffic to the new version at once (big bang), you start with a small percentage. If the canary pod has elevated error rates or latency, you roll back immediately - and only 10% of users were affected instead of 100%.",
+      "what_it_does": "Explains canary deployment configuration, traffic flow, and traffic splitting methods.",
+      "next_step": "See automated smoke tests.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 3: Automated Smoke Tests",
+      "command": "echo '=== Smoke Tests as Deployment Gates ===' && echo '' && echo 'smoke-test-canary:' && echo '  stage: verify' && echo '  image: curlimages/curl:latest' && echo '  script:' && echo '    - echo \"Testing canary deployment...\"' && echo '    # Basic health check' && echo '    - curl -sf https://app.example.com/health' && echo '        -H \"X-Canary: true\"  # Route to canary' && echo '    # API functionality test' && echo '    - curl -sf https://app.example.com/api/status' && echo '    # Response time check' && echo '    - |' && echo '      RESPONSE_TIME=$(curl -sf -o /dev/null -w \"%{time_total}\"' && echo '        https://app.example.com/api/status)' && echo '      echo \"Response time: ${RESPONSE_TIME}s\"' && echo '      # Fail if response time > 2 seconds' && echo '      if [ $(echo \"$RESPONSE_TIME > 2.0\" | bc -l) -eq 1 ]; then' && echo '        echo \"FAIL: Response time too high\"' && echo '        exit 1' && echo '      fi' && echo '    - echo \"All smoke tests PASSED\"' && echo '' && echo 'If smoke tests FAIL:' && echo '  → Pipeline stops' && echo '  → Automatic rollback job triggers' && echo '  → Alert sent to Slack' && echo '' && echo 'If smoke tests PASS:' && echo '  → Manual promotion job becomes available' && echo '  → Team decides to promote to 100%'",
+      "description": "Learn how automated smoke tests verify canary deployments before promotion",
+      "explanation": "Smoke tests are quick automated checks that verify the canary deployment is healthy. They test health endpoints, basic API functionality, and response times. If any check fails, the pipeline stops and rollback is triggered. These are not full test suites - they are fast (under 60 seconds) checks that catch obvious problems.",
+      "what_it_does": "Shows smoke test implementation with health checks, API tests, and response time validation.",
+      "next_step": "Understand promotion and rollback.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 4: Promotion and Rollback",
+      "command": "echo '=== Promotion: Canary → Full Deployment ===' && echo '' && echo 'promote-to-production:' && echo '  stage: promote' && echo '  when: manual  # Human decision after canary looks good' && echo '  script:' && echo '    - helm upgrade --install $APP ./chart' && echo '        --namespace production' && echo '        --set image.tag=$CI_COMMIT_SHA' && echo '        --set replicaCount=3             # Full replicas' && echo '        --set canary.enabled=false       # Disable canary' && echo '        --atomic --timeout 10m' && echo '    # Remove canary deployment' && echo '    - helm uninstall $APP-canary -n production || true' && echo '' && echo '=== Automatic Rollback ===' && echo '' && echo 'rollback:' && echo '  stage: rollback' && echo '  when: on_failure  # Runs ONLY if previous stage failed' && echo '  variables:' && echo '    GIT_STRATEGY: none' && echo '  script:' && echo '    - echo \"Rolling back canary deployment\"' && echo '    - helm uninstall $APP-canary -n production || true' && echo '    - echo \"Canary removed. Stable version still running.\"' && echo '    # Notify team' && echo '    - |' && echo '      curl -X POST $SLACK_WEBHOOK -d \"{' && echo '        \\\"text\\\": \\\"🚨 Canary rollback: $APP $CI_COMMIT_SHA\\\"' && echo '      }\"' && echo '' && echo 'Flow:' && echo '  Smoke tests pass  → Human clicks Promote → Full rollout' && echo '  Smoke tests fail  → Automatic rollback  → Canary removed' && echo '' && echo 'The stable version is NEVER touched until promotion.' && echo 'Rollback = just remove the canary. Instant. Safe.'",
+      "description": "Learn the promotion and rollback mechanisms in a canary pipeline",
+      "explanation": "The key insight is that the stable deployment is never modified during canary. The canary runs alongside it. Promotion replaces the stable deployment with the new version. Rollback just removes the canary - the stable version was running the whole time. This makes rollback instant and risk-free.",
+      "what_it_does": "Shows promotion (canary → full) and rollback (remove canary) mechanisms.",
+      "next_step": "Simulate the release pipeline.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 5: Simulate Release Pipeline",
+      "command": "kubectl create namespace gitlab-ci-scenarios --dry-run=client -o yaml | kubectl apply -f - && echo '=== Deploying stable version (v1.0.0) ===' && kubectl apply -f gitlab-ci-scenarios/12-production-release-pipeline/stable-deployment.yaml && kubectl rollout status deployment/release-demo -n gitlab-ci-scenarios --timeout=60s && echo '' && echo '=== Deploying canary (v1.1.0 - 1 pod) ===' && kubectl apply -f gitlab-ci-scenarios/12-production-release-pipeline/canary-deployment.yaml && kubectl rollout status deployment/release-demo-canary -n gitlab-ci-scenarios --timeout=60s && echo '' && echo '=== Current state: stable + canary running side by side ===' && kubectl get pods -n gitlab-ci-scenarios -l scenario=release-pipeline -o wide",
+      "description": "Deploy both stable and canary versions to see them running side by side",
+      "explanation": "This simulates the canary phase of the release pipeline. The stable deployment (3 pods running v1.0.0) is untouched. The canary deployment (1 pod running v1.1.0) runs alongside it. A service would route traffic to both, with the canary getting approximately 25% of traffic (1 out of 4 pods).",
+      "what_it_does": "Deploys a stable version with 3 replicas and a canary with 1 replica side by side.",
+      "next_step": "Simulate rollback.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 6: Simulate Rollback",
+      "command": "echo '=== Simulating canary rollback (smoke tests failed) ===' && echo '' && echo 'Before rollback:' && kubectl get pods -n gitlab-ci-scenarios -l scenario=release-pipeline --no-headers | wc -l && echo 'pods running' && echo '' && echo 'Rolling back canary...' && kubectl delete deployment release-demo-canary -n gitlab-ci-scenarios --ignore-not-found && echo '' && echo 'After rollback:' && kubectl get pods -n gitlab-ci-scenarios -l scenario=release-pipeline && echo '' && echo '=== Rollback complete ===' && echo 'Stable version (v1.0.0) is untouched and serving all traffic.' && echo 'Canary (v1.1.0) has been removed.' && echo 'Zero downtime. Zero impact to users on stable version.'",
+      "description": "Simulate a canary rollback by removing the canary deployment",
+      "explanation": "Rollback in a canary deployment is trivially simple: delete the canary. The stable version was never modified, so it continues serving all traffic. This is why canary is superior to in-place upgrades: the blast radius of a failure is limited to the canary percentage, and recovery is instant.",
+      "what_it_does": "Removes the canary deployment while the stable version continues running.",
+      "next_step": "Review the production release summary.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 7: Production Release Pipeline Summary",
+      "command": "echo '============================================' && echo '  Production Release Pipeline Summary' && echo '============================================' && echo '' && echo 'Complete pipeline stages:' && echo '  1. Build + Push image (tagged with $CI_COMMIT_SHA)' && echo '  2. Security scans (SAST, dependency, container)' && echo '  3. Deploy to staging (automatic)' && echo '  4. Smoke test staging (automatic)' && echo '  5. Deploy canary to production (10% traffic)' && echo '  6. Smoke test canary (automatic)' && echo '  7. Promote to 100% (manual approval)' && echo '  8. Rollback on failure (automatic)' && echo '  9. Notify team (Slack/webhook)' && echo '  10. Create GitLab release (changelog)' && echo '' && echo 'Safety guarantees:' && echo '  ✅ Security scans before any deployment' && echo '  ✅ Staging validation before production' && echo '  ✅ Canary limits blast radius to 10%' && echo '  ✅ Automated smoke tests catch regressions' && echo '  ✅ Manual gate before full rollout' && echo '  ✅ Instant rollback (remove canary)' && echo '  ✅ Notifications on deploy and rollback' && echo '' && echo 'This pipeline enables deploying to production' && echo 'multiple times per day with confidence.'",
+      "description": "Review the complete production release pipeline strategy",
+      "explanation": "This is the gold standard for production CI/CD. Each stage adds a safety net. The pipeline either succeeds completely (new version deployed to 100% of users) or fails safely (canary removed, stable version untouched). Combined with notifications and GitLab releases, this gives teams full confidence to deploy frequently.",
+      "what_it_does": "Prints the complete production release pipeline checklist with safety guarantees.",
+      "next_step": "Clean up resources.",
+      "cleanup": false
+    },
+    {
+      "name": "Cleanup: Remove Resources",
+      "command": "kubectl delete namespace gitlab-ci-scenarios --ignore-not-found",
+      "description": "Remove all resources created by this scenario",
+      "explanation": "Deletes the namespace and all resources within it.",
+      "what_it_does": "Removes the gitlab-ci-scenarios namespace and all deployed resources.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

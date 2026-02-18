@@ -1,0 +1,94 @@
+# .gitlab-ci.yml - Multi-Stage Pipeline Example
+# This file defines the complete CI/CD pipeline
+
+# Define execution order of stages
+stages:
+  - lint
+  - test
+  - build
+  - deploy
+
+# Global variables available to all jobs
+variables:
+  APP_NAME: "my-application"
+  DOCKER_REGISTRY: "registry.gitlab.com/mygroup/myproject"
+
+# --- LINT STAGE ---
+# Both jobs run in parallel
+lint-yaml:
+  stage: lint
+  image: python:3.11-slim
+  script:
+    - pip install yamllint
+    - yamllint -d relaxed .
+  rules:
+    - if: $CI_MERGE_REQUEST_IID
+    - if: $CI_COMMIT_BRANCH == "main"
+
+lint-dockerfile:
+  stage: lint
+  image: hadolint/hadolint:latest
+  script:
+    - hadolint Dockerfile
+  rules:
+    - if: $CI_MERGE_REQUEST_IID
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# --- TEST STAGE ---
+unit-tests:
+  stage: test
+  image: python:3.11
+  before_script:
+    - pip install -r requirements.txt
+  script:
+    - pytest tests/unit/ -v --junitxml=report.xml
+  artifacts:
+    reports:
+      junit: report.xml
+    expire_in: 1 week
+
+integration-tests:
+  stage: test
+  image: python:3.11
+  services:
+    - postgres:15
+  variables:
+    POSTGRES_DB: testdb
+    POSTGRES_USER: test
+    POSTGRES_PASSWORD: test
+    DATABASE_URL: "postgresql://test:test@postgres:5432/testdb"
+  script:
+    - pip install -r requirements.txt
+    - pytest tests/integration/ -v
+
+# --- BUILD STAGE ---
+build-image:
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:v1.14.0-debug
+    entrypoint: [""]
+  script:
+    - >-
+      /kaniko/executor
+      --context $CI_PROJECT_DIR
+      --dockerfile $CI_PROJECT_DIR/Dockerfile
+      --destination $DOCKER_REGISTRY:$CI_COMMIT_SHA
+      --destination $DOCKER_REGISTRY:latest
+      --cache=true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# --- DEPLOY STAGE ---
+deploy-staging:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  script:
+    - kubectl set image deployment/$APP_NAME
+        $APP_NAME=$DOCKER_REGISTRY:$CI_COMMIT_SHA
+        -n staging
+    - kubectl rollout status deployment/$APP_NAME -n staging --timeout=120s
+  environment:
+    name: staging
+    url: https://staging.example.com
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"

@@ -1,0 +1,173 @@
+# .gitlab-ci.yml - Full Production Release Pipeline
+# Complete release with canary, smoke tests, promotion, and rollback
+
+stages:
+  - build
+  - security
+  - deploy-staging
+  - test-staging
+  - deploy-canary
+  - test-canary
+  - promote
+  - rollback
+  - notify
+  - release
+
+variables:
+  APP_NAME: "myapp"
+  HELM_CHART: "./chart"
+
+# ============================================
+# BUILD
+# ============================================
+build:
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:v1.14.0-debug
+    entrypoint: [""]
+  script:
+    - /kaniko/executor
+        --context $CI_PROJECT_DIR
+        --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+        --cache=true
+
+# ============================================
+# SECURITY
+# ============================================
+security-scan:
+  stage: security
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+  script:
+    - trivy image --severity HIGH,CRITICAL --exit-code 1
+        $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+  allow_failure: false
+
+# ============================================
+# STAGING
+# ============================================
+deploy-staging:
+  stage: deploy-staging
+  image: alpine/helm:3.14
+  script:
+    - helm upgrade --install $APP_NAME-staging $HELM_CHART
+        --namespace staging
+        --set image.tag=$CI_COMMIT_SHA
+        --atomic --timeout 5m
+  environment:
+    name: staging
+
+smoke-test-staging:
+  stage: test-staging
+  image: curlimages/curl:latest
+  script:
+    - curl -sf https://staging.example.com/health
+    - curl -sf https://staging.example.com/api/status
+
+# ============================================
+# CANARY (10% traffic)
+# ============================================
+deploy-canary:
+  stage: deploy-canary
+  image: alpine/helm:3.14
+  script:
+    - helm upgrade --install $APP_NAME-canary $HELM_CHART
+        --namespace production
+        --set image.tag=$CI_COMMIT_SHA
+        --set replicaCount=1
+        --set canary.enabled=true
+        --set canary.weight=10
+        --atomic --timeout 5m
+  environment:
+    name: production/canary
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+smoke-test-canary:
+  stage: test-canary
+  image: curlimages/curl:latest
+  script:
+    - sleep 30  # Wait for traffic to reach canary
+    - curl -sf https://app.example.com/health
+    - |
+      RESPONSE_TIME=$(curl -sf -o /dev/null -w "%{time_total}" https://app.example.com/api/status)
+      echo "Response time: ${RESPONSE_TIME}s"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ============================================
+# PROMOTE (canary → full)
+# ============================================
+promote-to-production:
+  stage: promote
+  image: alpine/helm:3.14
+  script:
+    - helm upgrade --install $APP_NAME $HELM_CHART
+        --namespace production
+        --set image.tag=$CI_COMMIT_SHA
+        --set replicaCount=3
+        --atomic --timeout 10m
+    - helm uninstall $APP_NAME-canary -n production || true
+  environment:
+    name: production
+  when: manual
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ============================================
+# ROLLBACK (automatic on canary failure)
+# ============================================
+rollback-canary:
+  stage: rollback
+  image: alpine/helm:3.14
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - helm uninstall $APP_NAME-canary -n production || true
+    - echo "Canary rolled back. Stable version unchanged."
+  when: on_failure
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ============================================
+# NOTIFY
+# ============================================
+notify-success:
+  stage: notify
+  image: curlimages/curl:latest
+  script:
+    - |
+      curl -X POST "$SLACK_WEBHOOK" -H "Content-type: application/json" -d "{
+        \"text\": \"✅ Deployed $APP_NAME $CI_COMMIT_SHORT_SHA to production\"
+      }"
+  when: on_success
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+notify-failure:
+  stage: notify
+  image: curlimages/curl:latest
+  script:
+    - |
+      curl -X POST "$SLACK_WEBHOOK" -H "Content-type: application/json" -d "{
+        \"text\": \"🚨 Failed to deploy $APP_NAME $CI_COMMIT_SHORT_SHA - canary rolled back\"
+      }"
+  when: on_failure
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ============================================
+# RELEASE (create GitLab release on tags)
+# ============================================
+create-release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  script:
+    - echo "Creating release $CI_COMMIT_TAG"
+  release:
+    tag_name: $CI_COMMIT_TAG
+    name: "Release $CI_COMMIT_TAG"
+    description: "Release $CI_COMMIT_TAG - deployed via CI/CD pipeline"
+  rules:
+    - if: $CI_COMMIT_TAG

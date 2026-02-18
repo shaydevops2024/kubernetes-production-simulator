@@ -1,0 +1,133 @@
+{
+  "scenario_id": "04-chart-dependencies",
+  "difficulty": "medium",
+  "duration": "25 min",
+  "commands": [
+    {
+      "name": "Step 1: Create Helm Scenarios Namespace",
+      "command": "kubectl create namespace helm-scenarios --dry-run=client -o yaml | kubectl apply -f -",
+      "description": "Create dedicated 'helm-scenarios' namespace for all Helm learning scenarios",
+      "explanation": "This creates a separate namespace called 'helm-scenarios' where all Helm scenario resources will be deployed. Using --dry-run with apply makes it idempotent - safe to run multiple times.",
+      "what_it_does": "Creates the 'helm-scenarios' namespace if it doesn't exist, or does nothing if it already exists.",
+      "next_step": "Namespace ready. Now add the Bitnami repo and create the chart scaffold.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 2: Add Bitnami Repository",
+      "command": "helm repo add bitnami https://charts.bitnami.com/bitnami && helm repo update",
+      "description": "Add the Bitnami chart repository and update the local cache",
+      "explanation": "The PostgreSQL dependency chart is hosted on the Bitnami repository. We need it registered locally so 'helm dependency update' can download the chart. 'helm repo update' refreshes the index to get the latest chart versions.",
+      "what_it_does": "Registers the Bitnami repository and downloads the latest chart index.",
+      "next_step": "Repository added. Now scaffold a new chart.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 3: Create the Application Chart",
+      "command": "helm create helm-scenarios/04-chart-dependencies/myapp",
+      "description": "Scaffold a new Helm chart for the application",
+      "explanation": "'helm create' generates a starter chart with a deployment, service, serviceaccount, and other templates. We'll modify it to add a PostgreSQL dependency. The generated chart uses Nginx by default, which is fine for our demo - the key learning is about dependency management.",
+      "what_it_does": "Creates a new chart directory 'myapp' inside the scenario folder with the standard Helm chart structure.",
+      "next_step": "Chart scaffolded. Now replace Chart.yaml with our version that declares the PostgreSQL dependency.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 4: Add PostgreSQL Dependency to Chart.yaml",
+      "command": "cp helm-scenarios/04-chart-dependencies/Chart.yaml helm-scenarios/04-chart-dependencies/myapp/Chart.yaml && cat helm-scenarios/04-chart-dependencies/myapp/Chart.yaml",
+      "description": "Replace the generated Chart.yaml with our version that declares a PostgreSQL dependency",
+      "explanation": "The dependencies section in Chart.yaml declares that our chart requires the bitnami/postgresql chart at version ~16.4.0 (tilde range means >=16.4.0 and <16.5.0). The 'condition: postgresql.enabled' means the dependency is only included if postgresql.enabled is true in values. This lets users optionally disable the database.",
+      "what_it_does": "Copies our pre-prepared Chart.yaml (with PostgreSQL dependency) into the myapp chart directory and displays its contents.",
+      "next_step": "Chart.yaml updated. Now run helm dependency update to download the subchart.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 5: Run helm dependency update",
+      "command": "helm dependency update helm-scenarios/04-chart-dependencies/myapp",
+      "description": "Download the declared dependencies into the charts/ directory",
+      "explanation": "'helm dependency update' reads Chart.yaml, resolves all dependencies, downloads them as .tgz archives into charts/, and generates Chart.lock (a lockfile with exact versions). This is similar to 'npm install' or 'pip install -r requirements.txt'. The Chart.lock ensures reproducible builds by pinning exact versions.",
+      "what_it_does": "Downloads the PostgreSQL chart from Bitnami into myapp/charts/ as a .tgz file and creates/updates Chart.lock with the exact resolved version.",
+      "next_step": "Dependencies downloaded. Let's inspect what was fetched.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 6: Inspect the charts/ Directory and Chart.lock",
+      "command": "echo '=== charts/ directory ===' && ls -la helm-scenarios/04-chart-dependencies/myapp/charts/ && echo '=== Chart.lock ===' && cat helm-scenarios/04-chart-dependencies/myapp/Chart.lock",
+      "description": "Verify the downloaded dependency and lockfile",
+      "explanation": "The charts/ directory now contains a postgresql-XX.X.X.tgz archive. Chart.lock records the exact version that was downloaded, the repository URL, and a digest hash. In a team setting, you commit Chart.lock to Git so others can run 'helm dependency build' to get the exact same versions.",
+      "what_it_does": "Shows the downloaded PostgreSQL .tgz in charts/ and displays Chart.lock with the pinned dependency version and integrity digest.",
+      "next_step": "Dependencies verified. Now let's override subchart values.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 7: Override Subchart Values",
+      "command": "cp helm-scenarios/04-chart-dependencies/values.yaml helm-scenarios/04-chart-dependencies/myapp/values.yaml && echo '=== Subchart override section ===' && grep -A 30 'PostgreSQL subchart' helm-scenarios/04-chart-dependencies/myapp/values.yaml",
+      "description": "Replace values.yaml with our version that overrides PostgreSQL subchart settings",
+      "explanation": "To override subchart values, nest them under the dependency name in the parent's values.yaml. Our values.yaml has a 'postgresql:' section that overrides the subchart's auth settings (custom user, password, database), resource limits (sized for Kind), and persistence size. The subchart sees these values as its own top-level values.",
+      "what_it_does": "Copies our values.yaml (with PostgreSQL overrides) into the myapp chart and displays the subchart override section showing auth, resources, and persistence settings.",
+      "next_step": "Values configured. Now install the chart with its dependency.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 8: Install the Chart with Dependencies",
+      "command": "helm install myapp helm-scenarios/04-chart-dependencies/myapp --namespace helm-scenarios",
+      "description": "Install the application chart which automatically deploys PostgreSQL as a subchart",
+      "explanation": "When you install a chart with dependencies, Helm installs everything together as a single release. Both the parent (Nginx) and subchart (PostgreSQL) resources are created and managed under the same release name. Note: PostgreSQL takes longer to start up than Nginx (it initializes the database, creates the user, and sets up permissions), so wait a minute before checking pod status.",
+      "what_it_does": "Creates the 'myapp' Helm release, deploying both the Nginx application and PostgreSQL database as a single unit in the helm-scenarios namespace.",
+      "next_step": "Chart installed. Let's verify both app and database are running.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 9: Verify Both Application and Database Running",
+      "command": "echo '=== All Pods ===' && kubectl get pods -n helm-scenarios -l app.kubernetes.io/instance=myapp && echo '=== All Services ===' && kubectl get svc -n helm-scenarios -l app.kubernetes.io/instance=myapp && echo '=== Helm Release ===' && helm list --namespace helm-scenarios",
+      "description": "Confirm the application and PostgreSQL pods and services are all running",
+      "explanation": "You should see at least 2 pods: one for the Nginx application and one for PostgreSQL (myapp-postgresql-0, a StatefulSet pod). Both should show Running status. Services should include the Nginx ClusterIP service and the PostgreSQL service. All resources belong to the same Helm release 'myapp'.",
+      "what_it_does": "Lists all pods and services belonging to the 'myapp' release, showing both the application and PostgreSQL database resources running together.",
+      "next_step": "Both are running. Let's verify the database was configured with our custom values.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 10: Verify Database Configuration",
+      "command": "echo '=== PostgreSQL overrides from parent values ===' && helm get values myapp --namespace helm-scenarios --all | grep -A 20 'postgresql:' && echo '=== PostgreSQL StatefulSet ===' && kubectl get statefulset -n helm-scenarios -l app.kubernetes.io/instance=myapp",
+      "description": "Confirm that subchart values were overridden by the parent chart",
+      "explanation": "The '--all' flag shows all values including chart defaults (not just user-supplied overrides). The postgresql section in the parent chart's values.yaml is passed to the subchart as its configuration. Without --all, helm get values returns nothing because the values are chart defaults rather than explicit overrides. The StatefulSet confirms PostgreSQL is running as a stateful workload (appropriate for databases).",
+      "what_it_does": "Displays the PostgreSQL-related values from the release and shows the PostgreSQL StatefulSet confirming the database is running with our custom configuration.",
+      "next_step": "Let's also explore what helm dependency build does differently.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 11: Understand helm dependency build vs update",
+      "command": "echo '=== helm dependency build uses Chart.lock ===' && echo 'dependency update: Reads Chart.yaml, resolves versions, downloads charts, writes Chart.lock' && echo 'dependency build:  Reads Chart.lock, downloads exact pinned versions (faster, reproducible)' && echo '' && echo '=== Current Chart.lock ===' && cat helm-scenarios/04-chart-dependencies/myapp/Chart.lock && echo '' && echo '=== Running helm dependency build ===' && helm dependency build helm-scenarios/04-chart-dependencies/myapp",
+      "description": "Learn the difference between helm dependency update and build",
+      "explanation": "'helm dependency update' resolves version ranges from Chart.yaml (like ~16.4.0) to the latest matching version and writes Chart.lock. 'helm dependency build' reads Chart.lock and downloads the exact pinned versions - no version resolution. Use 'update' when adding or changing dependencies. Use 'build' when reproducibly rebuilding from a lockfile (e.g., in CI/CD or when cloning a repo).",
+      "what_it_does": "Explains the difference between update and build, shows the existing Chart.lock, and runs 'helm dependency build' to demonstrate it downloads the exact same pinned version from the lockfile.",
+      "next_step": "Dependencies mastered! Time to clean up.",
+      "cleanup": false
+    },
+    {
+      "name": "Cleanup 1: Uninstall the Helm Release",
+      "command": "helm uninstall myapp --namespace helm-scenarios --wait",
+      "description": "Remove the myapp Helm release and all its Kubernetes resources",
+      "explanation": "'helm uninstall' removes the entire release including both the application and the PostgreSQL subchart. All resources (Deployment, StatefulSet, Services, ConfigMaps, Secrets, PVCs) are deleted. Using --wait ensures Helm waits for all resources to be fully terminated.",
+      "what_it_does": "Deletes the 'myapp' release including both the Nginx application and PostgreSQL database, and all associated Kubernetes resources.",
+      "next_step": "Release removed. Now clean up the chart directory and any leftover PVCs.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup 2: Remove PVCs and Chart Directory",
+      "command": "kubectl delete pvc --all -n helm-scenarios 2>/dev/null; rm -rf helm-scenarios/04-chart-dependencies/myapp && echo 'Chart directory and PVCs removed'",
+      "description": "Remove persistent volume claims and the scaffolded chart directory",
+      "explanation": "PostgreSQL uses PersistentVolumeClaims for data storage. Helm uninstall does not delete PVCs by default (to prevent data loss). We explicitly delete them here since this is a learning scenario. We also remove the chart directory created by 'helm create'.",
+      "what_it_does": "Deletes any remaining PVCs in the namespace and removes the 'myapp' chart directory from the local filesystem.",
+      "next_step": "Verify cleanup is complete.",
+      "cleanup": true
+    },
+    {
+      "name": "Cleanup 3: Verify Resources Removed",
+      "command": "helm list --namespace helm-scenarios && echo '---' && kubectl get all,pvc -n helm-scenarios",
+      "description": "Confirm all Helm resources have been removed",
+      "explanation": "'helm list' should show no releases. 'kubectl get all,pvc' should show no resources or PVCs. This confirms the uninstall was successful and the namespace is clean for the next scenario.",
+      "what_it_does": "Verifies that no Helm releases, Kubernetes resources, or PVCs remain in the helm-scenarios namespace.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

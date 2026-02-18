@@ -15,6 +15,7 @@ window.addEventListener('DOMContentLoaded', function() {
     loadConfig();
     startStatusMonitoring();
     startClusterStatsMonitoring();
+    fetchToolsStatus();
     
     var taskSubmit = document.getElementById('create-task-form').querySelector('button[type="submit"]');
     if (taskSubmit) {
@@ -78,9 +79,71 @@ document.getElementById('modal-overlay').addEventListener('click', function(e) {
     }
 });
 
+// Close sidebar with Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeTestingSidebar();
+    }
+});
+
 // Open Play Kubernetes scenarios page
 function openPlayKubernetes() {
     window.open('/static/scenarios.html', '_blank');
+}
+
+// Open Play ArgoCD scenarios page
+function openPlayArgoCD() {
+    window.open('/static/argocd-scenarios.html', '_blank');
+}
+
+// Open Play Helm scenarios page
+function openPlayHelm() {
+    window.open('/static/helm-scenarios.html', '_blank');
+}
+
+// Open Play GitLab CI scenarios page
+function openPlayGitlabCI() {
+    window.open('/static/gitlab-ci-scenarios.html', '_blank');
+}
+
+// Open Play Jenkins scenarios page
+function openPlayJenkins() {
+    window.open('/static/jenkins-scenarios.html', '_blank');
+}
+
+// Open Play Terraform scenarios page
+function openPlayTerraform() {
+    window.open('/static/terraform-scenarios.html', '_blank');
+}
+
+// Open Play Ansible scenarios page
+function openPlayAnsible() {
+    window.open('/static/ansible-scenarios.html', '_blank');
+}
+
+// Open Hands-On Projects page
+function openHandsOnProjects() {
+    window.open('/static/hands-on-projects.html', '_blank');
+}
+
+// Open ArgoCD with automatic fallback
+function openArgoCD() {
+    // Ask backend which ArgoCD URL to use
+    fetch('/api/argocd/url')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.url) {
+                window.open(data.url, '_blank');
+            } else {
+                // Default fallback
+                window.open('http://k8s-multi-demo.argocd:30800/', '_blank');
+            }
+        })
+        .catch(function(error) {
+            console.log('Error getting ArgoCD URL, using default:', error);
+            // On error, default to argocd URL
+            window.open('http://k8s-multi-demo.argocd:30800/', '_blank');
+        });
 }
 
 // Load app configuration
@@ -90,7 +153,7 @@ function loadConfig() {
         .then(function(config) {
             document.getElementById('app-env').textContent = config.app_env;
             document.getElementById('app-name').textContent = config.app_name;
-            
+
             var badge = document.getElementById('secret-badge');
             if (config.secret_configured) {
                 badge.className = 'badge badge-success';
@@ -99,8 +162,223 @@ function loadConfig() {
                 badge.className = 'badge badge-warning';
                 badge.textContent = '⚠ No';
             }
+
+            var configmapBadge = document.getElementById('configmap-badge');
+            if (config.configmap_configured) {
+                configmapBadge.className = 'badge badge-success';
+                configmapBadge.textContent = '✓ Yes';
+            } else {
+                configmapBadge.className = 'badge badge-warning';
+                configmapBadge.textContent = '⚠ No';
+            }
         })
         .catch(function(e) { console.error('Config error:', e); });
+}
+
+// Fetch deployment tools status (Helm & ArgoCD) - queries real cluster data
+function fetchToolsStatus() {
+    refreshHelmStatus();
+    refreshArgoCDStatus();
+}
+
+// Refresh Helm status (installed, version, release count)
+function refreshHelmStatus() {
+    var installedEl = document.getElementById('helm-installed');
+    var versionEl = document.getElementById('helm-version');
+    var releasesEl = document.getElementById('helm-releases');
+
+    fetch('/api/tools/helm')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (installedEl) {
+                if (data.installed) {
+                    installedEl.className = 'badge badge-success';
+                    installedEl.textContent = '✓ Yes';
+                } else {
+                    installedEl.className = 'badge badge-grey';
+                    installedEl.textContent = '✗ No';
+                }
+            }
+
+            if (versionEl) {
+                versionEl.textContent = data.version || '-';
+            }
+
+            if (releasesEl) {
+                releasesEl.textContent = data.release_count;
+                if (data.release_count > 0) {
+                    releasesEl.style.cursor = 'pointer';
+                    releasesEl.onclick = function() {
+                        refreshHelmReleases();
+                        toggleHelmReleasesList();
+                    };
+                } else {
+                    releasesEl.style.cursor = 'default';
+                    releasesEl.onclick = null;
+                }
+            }
+        })
+        .catch(function(err) {
+            console.error('Helm status error:', err);
+            if (installedEl) {
+                installedEl.className = 'badge badge-grey';
+                installedEl.textContent = 'Error';
+            }
+        });
+}
+
+// Refresh ArgoCD status (installed, version, app count)
+function refreshArgoCDStatus() {
+    var installedEl = document.getElementById('argocd-installed');
+    var versionEl = document.getElementById('argocd-version');
+    var appsEl = document.getElementById('argocd-app-count');
+
+    fetch('/api/tools/argocd')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (installedEl) {
+                if (data.installed) {
+                    installedEl.className = 'badge badge-success';
+                    installedEl.textContent = '✓ Yes';
+                } else {
+                    installedEl.className = 'badge badge-grey';
+                    installedEl.textContent = '✗ No';
+                }
+            }
+
+            if (versionEl) {
+                versionEl.textContent = data.version || '-';
+            }
+
+            if (appsEl) {
+                appsEl.textContent = data.app_count;
+                if (data.app_count > 0) {
+                    appsEl.style.cursor = 'pointer';
+                    appsEl.onclick = function() {
+                        refreshArgoCDApps();
+                        toggleArgoCDAppsList();
+                    };
+                } else {
+                    appsEl.style.cursor = 'default';
+                    appsEl.onclick = null;
+                }
+            }
+        })
+        .catch(function(err) {
+            console.error('ArgoCD status error:', err);
+            if (installedEl) {
+                installedEl.className = 'badge badge-grey';
+                installedEl.textContent = 'Error';
+            }
+        });
+}
+
+// Refresh Helm releases (dynamic)
+function refreshHelmReleases() {
+    var releasesEl = document.getElementById('helm-releases');
+    var listEl = document.getElementById('helm-releases-list');
+
+    if (releasesEl) releasesEl.textContent = '...';
+
+    fetch('/api/tools/helm/releases')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (releasesEl) {
+                if (data.release_count > 0) {
+                    releasesEl.textContent = data.release_count + ' release(s)';
+                    releasesEl.style.cursor = 'pointer';
+                    releasesEl.onclick = function() { toggleHelmReleasesList(); };
+                } else {
+                    releasesEl.textContent = 'None';
+                    releasesEl.style.cursor = 'default';
+                    releasesEl.onclick = null;
+                }
+            }
+
+            // Build the list
+            if (listEl && data.releases && data.releases.length > 0) {
+                var html = '';
+                data.releases.forEach(function(release) {
+                    var statusClass = release.status === 'deployed' ? 'badge-success' : 'badge-warning';
+                    html += '<div class="tool-list-item">';
+                    html += '<span class="name">' + release.name + '</span>';
+                    html += '<span class="details">' + release.namespace + ' - ' + release.chart + '</span>';
+                    html += '<span class="badge ' + statusClass + '">' + release.status + '</span>';
+                    html += '</div>';
+                });
+                listEl.innerHTML = html;
+            } else if (listEl) {
+                listEl.innerHTML = '';
+                listEl.style.display = 'none';
+            }
+        })
+        .catch(function(err) {
+            console.error('Helm releases error:', err);
+            if (releasesEl) releasesEl.textContent = 'Error';
+        });
+}
+
+// Toggle Helm releases list visibility
+function toggleHelmReleasesList() {
+    var listEl = document.getElementById('helm-releases-list');
+    if (listEl && listEl.innerHTML) {
+        listEl.style.display = listEl.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+// Refresh ArgoCD apps (dynamic)
+function refreshArgoCDApps() {
+    var appsEl = document.getElementById('argocd-app-count');
+    var listEl = document.getElementById('argocd-apps-list');
+
+    if (appsEl) appsEl.textContent = '...';
+
+    fetch('/api/tools/argocd/apps')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (appsEl) {
+                if (data.app_count > 0) {
+                    appsEl.textContent = data.app_count + ' app(s)';
+                    appsEl.style.cursor = 'pointer';
+                    appsEl.onclick = function() { toggleArgoCDAppsList(); };
+                } else {
+                    appsEl.textContent = 'None';
+                    appsEl.style.cursor = 'default';
+                    appsEl.onclick = null;
+                }
+            }
+
+            // Build the list
+            if (listEl && data.applications && data.applications.length > 0) {
+                var html = '';
+                data.applications.forEach(function(app) {
+                    var healthClass = app.health === 'Healthy' ? 'badge-success' :
+                                      app.health === 'Progressing' ? 'badge-warning' : 'badge-danger';
+                    var syncClass = app.sync === 'Synced' ? 'badge-success' : 'badge-warning';
+                    html += '<div class="tool-list-item">';
+                    html += '<span class="name">' + app.name + '</span>';
+                    html += '<span class="badge ' + healthClass + '">' + app.health + '</span>';
+                    html += '<span class="badge ' + syncClass + '">' + app.sync + '</span>';
+                    html += '</div>';
+                });
+                listEl.innerHTML = html;
+            } else if (listEl) {
+                listEl.innerHTML = '';
+                listEl.style.display = 'none';
+            }
+        })
+        .catch(function(err) {
+            console.error('ArgoCD apps error:', err);
+            if (appsEl) appsEl.textContent = 'Error';
+        });
+}
+
+// Toggle ArgoCD apps list visibility
+function toggleArgoCDAppsList() {
+    var listEl = document.getElementById('argocd-apps-list');
+    if (listEl && listEl.innerHTML) {
+        listEl.style.display = listEl.style.display === 'none' ? 'block' : 'none';
+    }
 }
 
 // Cluster stats monitoring
@@ -139,6 +417,7 @@ function changeRefreshInterval() {
     dashboardRefreshInterval = setInterval(function() {
         updateClusterStats();
         updateStatusBadges();
+        fetchToolsStatus();
     }, currentRefreshSeconds * 1000);
 }
 
@@ -275,7 +554,7 @@ function showClusterDetails(type) {
 
 // Developer profile popup
 function showDeveloperProfile() {
-    var profileHTML = '<div style="text-align: left; padding: 20px; line-height: 1.8;">';
+    var profileHTML = '<div style="text-align: left; padding: 20px; line-height: 1.8; background: #FFF7ED; border-radius: 8px;">';
     profileHTML += '<h3 style="margin-top: 0; color: #2c3e50;">Author: Shay Guedj</h3>';
     profileHTML += '<p style="margin: 15px 0; color: #555; font-size: 14px;">';
     profileHTML += 'DevOps Engineer with 3+ years of hands-on experience architecting and managing cloud-native infrastructures on AWS. ';
@@ -288,9 +567,9 @@ function showDeveloperProfile() {
     profileHTML += '<button class="btn btn-secondary" onclick="closeModal()" style="padding: 10px 20px;">Close</button>';
     profileHTML += '</div>';
     profileHTML += '</div>';
-    
+
     // Pass true to hide the X button and OK button
-    showModal('Developer Profile', profileHTML, true);
+    showModal('My DevOps Profile', profileHTML, true);
 }
 
 // Status monitoring
@@ -404,6 +683,7 @@ function switchTab(tabName) {
         initDashboardRefresh();
         startStatusMonitoring();
         startClusterStatsMonitoring();
+        fetchToolsStatus();
     } else if (tabName === 'database') {
         refreshDatabaseData();
         fetchDatabaseInfo();
@@ -501,8 +781,42 @@ function showMonitoringCommands() {
     commands += '<div class="cli-command"><code>kubectl get hpa -n k8s-multi-demo</code><button class="copy-btn" onclick="copyCommand(this)">📋 Copy</button></div>';
     commands += '<div class="cli-command"><code>kubectl describe pod -n k8s-multi-demo -l app=k8s-demo-app</code><button class="copy-btn" onclick="copyCommand(this)">📋 Copy</button></div>';
     commands += '<div class="cli-command"><code>kubectl get events -n k8s-multi-demo --sort-by=.metadata.creationTimestamp</code><button class="copy-btn" onclick="copyCommand(this)">📋 Copy</button></div>';
-    
+
     showCLICommands(commands, '📊 General Monitoring Commands');
+}
+
+// Open testing actions sidebar
+function openTestingSidebar() {
+    var sidebar = document.getElementById('testing-sidebar');
+    var overlay = document.getElementById('sidebar-overlay');
+
+    if (sidebar) sidebar.classList.add('active');
+    if (overlay) overlay.classList.add('active');
+
+    // Prevent body scroll when sidebar is open
+    document.body.style.overflow = 'hidden';
+}
+
+// Close testing actions sidebar
+function closeTestingSidebar() {
+    var sidebar = document.getElementById('testing-sidebar');
+    var overlay = document.getElementById('sidebar-overlay');
+
+    if (sidebar) sidebar.classList.remove('active');
+    if (overlay) overlay.classList.remove('active');
+
+    // Restore body scroll
+    document.body.style.overflow = '';
+}
+
+// Show Helm CLI commands
+function showHelmCommands() {
+    var commands = '<div class="cli-command"><code>helm list -n k8s-multi-demo</code><button class="copy-btn" onclick="copyCommand(this)">📋 Copy</button></div>';
+    commands += '<div class="cli-command"><code>helm history k8s-demo -n k8s-multi-demo</code><button class="copy-btn" onclick="copyCommand(this)">📋 Copy</button></div>';
+    commands += '<div class="cli-command"><code>helm get values k8s-demo -n k8s-multi-demo</code><button class="copy-btn" onclick="copyCommand(this)">📋 Copy</button></div>';
+    commands += '<div class="cli-command"><code>helm status k8s-demo -n k8s-multi-demo</code><button class="copy-btn" onclick="copyCommand(this)">📋 Copy</button></div>';
+
+    showCLICommands(commands, '⎈ Helm Commands');
 }
 
 // Copy command functionality
@@ -558,7 +872,6 @@ function refreshDatabaseData(skipUserDropdown) {
             document.getElementById('active-users-count').textContent = stats.active_users_count || 0;
             document.getElementById('tasks-count').textContent = stats.tasks_count || 0;
             document.getElementById('pending-tasks-count').textContent = stats.pending_tasks_count || 0;
-            document.getElementById('metrics-count').textContent = stats.metrics_count || 0;
             
             var badge = document.getElementById('db-status-badge');
             if (stats.connected) {
@@ -573,17 +886,17 @@ function refreshDatabaseData(skipUserDropdown) {
     
     fetch('/api/users')
         .then(function(r) { return r.json(); })
-        .then(function(users) {
-            updateUsersTable(users);
+        .then(function(data) {
+            updateUsersTable(data.users || []);
             if (!skipUserDropdown) {
-                updateUserDropdown(users);
+                updateUserDropdown(data.users || []);
             }
         })
         .catch(function(e) { console.error('Users error:', e); });
-    
+
     fetch('/api/tasks')
         .then(function(r) { return r.json(); })
-        .then(function(tasks) { updateTasksTable(tasks); })
+        .then(function(data) { updateTasksTable(data.tasks || []); })
         .catch(function(e) { console.error('Tasks error:', e); });
     
     // Fetch database configuration info
@@ -724,7 +1037,7 @@ document.getElementById('create-user-form').addEventListener('submit', function(
         full_name: document.getElementById('user-fullname').value
     };
     
-    fetch('/api/users/create', {
+    fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -738,9 +1051,9 @@ document.getElementById('create-user-form').addEventListener('submit', function(
         msg.textContent = '✅ User "' + data.username + '" created successfully!';
         msg.classList.add('show');
         setTimeout(function() { msg.classList.remove('show'); }, 5000);
-        
+
         document.getElementById('create-user-form').reset();
-        showCLICommandsForUser(result.user);
+        showCLICommandsForUser(result);
         refreshDatabaseData();
         
         setTimeout(function() {
@@ -764,7 +1077,7 @@ document.getElementById('create-task-form').addEventListener('submit', function(
         priority: parseInt(document.getElementById('task-priority').value)
     };
     
-    fetch('/api/tasks/create', {
+    fetch('/api/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -778,11 +1091,11 @@ document.getElementById('create-task-form').addEventListener('submit', function(
         msg.textContent = '✅ Task "' + data.title + '" created successfully!';
         msg.classList.add('show');
         setTimeout(function() { msg.classList.remove('show'); }, 5000);
-        
+
         document.getElementById('create-task-form').reset();
         document.getElementById('task-user-id').value = data.user_id;
-        
-        showCLICommandsForTask(result.task);
+
+        showCLICommandsForTask(result);
         refreshDatabaseData(true);
         
         setTimeout(function() {
@@ -855,10 +1168,15 @@ function startLoadTest() {
         statusBadge.textContent = '⚡ Running';
     }
     
-    fetch('/loadtest/start', { method: 'POST' })
+    fetch('/api/load-test/start', { method: 'POST' })
         .then(function(r) { return r.json(); })
-        .then(function(d) { 
+        .then(function(d) {
             showModal('Load Test Started', 'Load test is now running. Pods should start scaling up within 1-2 minutes.<br><br>Monitor with: <code>kubectl get pods -n k8s-multi-demo -w</code>');
+        })
+        .catch(function(e) {
+            showModal('Error', 'Failed to start load test: ' + e.message);
+            if (startBtn) startBtn.disabled = false;
+            if (stopBtn) stopBtn.disabled = true;
         });
 }
 
@@ -874,7 +1192,7 @@ function stopLoadTest() {
         statusBadge.textContent = 'Not Running';
     }
     
-    fetch('/loadtest/stop', { method: 'POST' })
+    fetch('/api/load-test/stop', { method: 'POST' })
         .then(function(r) { return r.json(); })
         .then(function(d) {
             showModal('Load Test Stopped', 'Load test has been stopped. Pods will scale back down to the minimum after a few minutes.');
@@ -883,12 +1201,15 @@ function stopLoadTest() {
 
 // Logs functions
 function refreshLogs() {
-    fetch('/logs')
-        .then(function(r) { return r.json(); })
+    fetch('/api/logs')
+        .then(function(r) {
+            if (!r.ok) throw new Error('Failed to fetch logs');
+            return r.json();
+        })
         .then(function(data) {
             var viewer = document.getElementById('log-viewer');
             if (!viewer) return;
-            
+
             if (data.logs && data.logs.length > 0) {
                 var html = '';
                 for (var i = 0; i < data.logs.length; i++) {
@@ -900,7 +1221,14 @@ function refreshLogs() {
                 viewer.innerHTML = html;
                 viewer.scrollTop = viewer.scrollHeight;
             } else {
-                viewer.innerHTML = '<div>No logs available</div>';
+                viewer.innerHTML = '<div class="info-message">No logs available yet. Logs will appear here as the application runs.</div>';
+            }
+        })
+        .catch(function(e) {
+            console.error('Error fetching logs:', e);
+            var viewer = document.getElementById('log-viewer');
+            if (viewer) {
+                viewer.innerHTML = '<div class="error-message">Failed to load logs: ' + escapeHtml(e.message) + '</div>';
             }
         });
 }
@@ -927,4 +1255,553 @@ function formatDate(dateString) {
     } catch(e) {
         return dateString;
     }
+}
+
+// ==================== GUIDED TOUR ====================
+
+var tourCurrentStep = 0;
+var tourSteps = [
+    {
+        element: '#tour-sidebar-nav',
+        title: 'Navigation Menu',
+        content: 'Navigate between Dashboard and interactive learning scenarios for Kubernetes, ArgoCD, Helm, Terraform, Ansible, and more. Each section opens hands-on practice environments.',
+        position: 'right'
+    },
+    {
+        element: '#tour-cluster-stats',
+        title: 'Cluster Overview',
+        content: 'Monitor your Kubernetes cluster in real-time. Click any stat box to see detailed information about deployments, pods, and nodes.',
+        position: 'bottom'
+    },
+    {
+        element: '#tour-app-info',
+        title: 'Application Status',
+        content: 'Track your application\'s health and readiness status from Kubernetes probes. This reflects real-time data from your cluster.',
+        position: 'bottom'
+    },
+    {
+        element: '#tour-testing-btn',
+        title: 'Testing Actions',
+        content: 'Simulate real-world scenarios like pod failures, health check issues, and load testing. Observe how Kubernetes self-heals automatically.',
+        position: 'left'
+    },
+    {
+        element: '#tour-prerequisites-btn',
+        title: 'Prerequisites',
+        content: 'Check which DevOps tools are installed on your machine (kubectl, helm, docker, etc.) and install missing tools with a single command.',
+        position: 'left'
+    },
+    {
+        element: '#tour-deployment-tools',
+        title: 'Deployment Tools',
+        content: 'Monitor Helm releases and ArgoCD applications in your cluster. Access CLI commands and open the ArgoCD UI to manage GitOps deployments.',
+        position: 'top'
+    },
+    {
+        element: '#tour-hands-on-projects',
+        title: 'Hands-On Projects',
+        content: 'Complete real-world DevOps projects combining multiple tools and technologies. Perfect for portfolio building and interview preparation!',
+        position: 'right'
+    },
+    {
+        element: '#tour-developer-info',
+        title: 'How was it created',
+        content: 'Built by a DevOps Engineer to help others learn through practical scenarios. Click "Click Me" to learn more and access the GitHub repository.',
+        position: 'right'
+    }
+];
+
+// Check if user has seen the tour
+function checkTourStatus() {
+    var hasSeenTour = localStorage.getItem('devops-simulator-tour-seen');
+    if (!hasSeenTour) {
+        setTimeout(function() {
+            showTourWelcome();
+        }, 1000);
+    }
+}
+
+// Show welcome modal
+function showTourWelcome() {
+    var modal = document.getElementById('tour-welcome-modal');
+    if (modal) {
+        modal.classList.add('active');
+    }
+}
+
+// Hide welcome modal
+function hideTourWelcome() {
+    var modal = document.getElementById('tour-welcome-modal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
+
+// Start the tour
+function startTour() {
+    hideTourWelcome();
+    tourCurrentStep = 0;
+    showTourStep(tourCurrentStep);
+
+    var overlay = document.getElementById('tour-overlay');
+    if (overlay) {
+        overlay.classList.add('active');
+    }
+}
+
+// Skip the tour
+function skipTour() {
+    var dontShow = document.getElementById('tour-dont-show');
+    if (dontShow && dontShow.checked) {
+        localStorage.setItem('devops-simulator-tour-seen', 'true');
+    }
+    hideTourWelcome();
+}
+
+// End the tour
+function endTour() {
+    localStorage.setItem('devops-simulator-tour-seen', 'true');
+
+    var overlay = document.getElementById('tour-overlay');
+    var tooltip = document.getElementById('tour-tooltip');
+
+    if (overlay) overlay.classList.remove('active');
+    if (tooltip) tooltip.classList.remove('active');
+
+    // Remove highlight from current element
+    var highlighted = document.querySelector('.tour-highlight');
+    if (highlighted) {
+        highlighted.classList.remove('tour-highlight');
+    }
+}
+
+// Show a specific tour step
+function showTourStep(stepIndex) {
+    var step = tourSteps[stepIndex];
+    if (!step) return;
+
+    // Remove previous highlight
+    var prevHighlighted = document.querySelector('.tour-highlight');
+    if (prevHighlighted) {
+        prevHighlighted.classList.remove('tour-highlight');
+    }
+
+    // Find and highlight the element
+    var element = document.querySelector(step.element);
+    if (!element) {
+        // Skip to next step if element not found
+        if (stepIndex < tourSteps.length - 1) {
+            nextTourStep();
+        } else {
+            endTour();
+        }
+        return;
+    }
+
+    element.classList.add('tour-highlight');
+
+    // Scroll element into view
+    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    // Update tooltip content
+    var titleEl = document.getElementById('tour-title');
+    var contentEl = document.getElementById('tour-content');
+    var counterEl = document.getElementById('tour-step-counter');
+    var prevBtn = document.getElementById('tour-prev-btn');
+    var nextBtn = document.getElementById('tour-next-btn');
+
+    if (titleEl) titleEl.textContent = step.title;
+    if (contentEl) contentEl.textContent = step.content;
+    if (counterEl) counterEl.textContent = (stepIndex + 1) + '/' + tourSteps.length;
+
+    // Update navigation buttons
+    if (prevBtn) {
+        prevBtn.style.display = stepIndex === 0 ? 'none' : 'inline-block';
+    }
+    if (nextBtn) {
+        nextBtn.textContent = stepIndex === tourSteps.length - 1 ? 'Finish' : 'Next';
+    }
+
+    // Update progress dots
+    updateTourProgress(stepIndex);
+
+    // Position the tooltip
+    setTimeout(function() {
+        positionTooltip(element, step.position);
+    }, 300);
+}
+
+// Position tooltip relative to element
+function positionTooltip(element, position) {
+    var tooltip = document.getElementById('tour-tooltip');
+    if (!tooltip || !element) return;
+
+    var rect = element.getBoundingClientRect();
+    var tooltipRect = tooltip.getBoundingClientRect();
+    var padding = 15;
+
+    // Remove all arrow classes
+    tooltip.classList.remove('arrow-top', 'arrow-bottom', 'arrow-left', 'arrow-right');
+
+    var top, left;
+
+    switch (position) {
+        case 'right':
+            top = rect.top + (rect.height / 2) - (tooltipRect.height / 2);
+            left = rect.right + padding;
+            tooltip.classList.add('arrow-left');
+            break;
+        case 'left':
+            top = rect.top + (rect.height / 2) - (tooltipRect.height / 2);
+            left = rect.left - tooltipRect.width - padding;
+            tooltip.classList.add('arrow-right');
+            break;
+        case 'bottom':
+            top = rect.bottom + padding;
+            left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+            tooltip.classList.add('arrow-top');
+            break;
+        case 'top':
+            top = rect.top - tooltipRect.height - padding;
+            left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+            tooltip.classList.add('arrow-bottom');
+            break;
+        default:
+            top = rect.bottom + padding;
+            left = rect.left;
+            tooltip.classList.add('arrow-top');
+    }
+
+    // Keep tooltip within viewport
+    var viewportWidth = window.innerWidth;
+    var viewportHeight = window.innerHeight;
+
+    if (left < 10) left = 10;
+    if (left + tooltipRect.width > viewportWidth - 10) {
+        left = viewportWidth - tooltipRect.width - 10;
+    }
+    if (top < 10) top = 10;
+    if (top + tooltipRect.height > viewportHeight - 10) {
+        top = viewportHeight - tooltipRect.height - 10;
+    }
+
+    tooltip.style.top = top + 'px';
+    tooltip.style.left = left + 'px';
+    tooltip.classList.add('active');
+}
+
+// Update progress dots
+function updateTourProgress(currentIndex) {
+    var progressContainer = document.getElementById('tour-progress');
+    if (!progressContainer) return;
+
+    var html = '';
+    for (var i = 0; i < tourSteps.length; i++) {
+        var className = 'tour-progress-dot';
+        if (i < currentIndex) className += ' completed';
+        if (i === currentIndex) className += ' active';
+        html += '<div class="' + className + '"></div>';
+    }
+    progressContainer.innerHTML = html;
+}
+
+// Next step
+function nextTourStep() {
+    if (tourCurrentStep < tourSteps.length - 1) {
+        tourCurrentStep++;
+        showTourStep(tourCurrentStep);
+    } else {
+        endTour();
+    }
+}
+
+// Previous step
+function prevTourStep() {
+    if (tourCurrentStep > 0) {
+        tourCurrentStep--;
+        showTourStep(tourCurrentStep);
+    }
+}
+
+// Initialize tour check on page load
+window.addEventListener('DOMContentLoaded', function() {
+    setTimeout(checkTourStatus, 1000);
+});
+
+// ============================================
+// PREREQUISITES MODAL
+// ============================================
+
+var currentPrereqStep = 1;
+var currentSessionId = null;
+var prerequisitesData = null;
+
+function openPrerequisitesModal() {
+    currentPrereqStep = 1;
+    showPrereqStep(1);
+    var modal = document.getElementById('prerequisites-modal');
+    modal.classList.add('active');
+}
+
+function closePrerequisitesModal() {
+    var modal = document.getElementById('prerequisites-modal');
+    modal.classList.remove('active');
+    currentPrereqStep = 1;
+    currentSessionId = null;
+}
+
+function showPrereqStep(stepNum) {
+    var steps = document.querySelectorAll('.prereq-step');
+    steps.forEach(function(step, idx) {
+        step.classList.remove('active');
+        if (idx + 1 === stepNum) {
+            step.classList.add('active');
+        }
+    });
+    currentPrereqStep = stepNum;
+}
+
+function copyCheckerCommand() {
+    var code = document.getElementById('checker-command');
+    var textToCopy = code.textContent.trim();
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(textToCopy).then(function() {
+            // Change button text temporarily
+            var btn = event.target;
+            var originalText = btn.textContent;
+            btn.textContent = '✓ Copied!';
+            btn.style.background = '#16A34A';
+            setTimeout(function() {
+                btn.textContent = originalText;
+                btn.style.background = '';
+            }, 2000);
+        }).catch(function(err) {
+            showModal('Error', 'Failed to copy: ' + err, false);
+        });
+    } else {
+        // Fallback for older browsers
+        var textArea = document.createElement('textarea');
+        textArea.value = textToCopy;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            var btn = event.target;
+            var originalText = btn.textContent;
+            btn.textContent = '✓ Copied!';
+            btn.style.background = '#16A34A';
+            setTimeout(function() {
+                btn.textContent = originalText;
+                btn.style.background = '';
+            }, 2000);
+        } catch (err) {
+            showModal('Error', 'Failed to copy: ' + err, false);
+        }
+        document.body.removeChild(textArea);
+    }
+}
+
+function refreshPrereqStatus(retryCount) {
+    retryCount = retryCount || 0;
+    var maxRetries = 5;
+    var retryDelay = 500; // ms
+
+    // Poll for latest session report
+    fetch('/api/prerequisites/status/latest')
+        .then(function(r) {
+            if (!r.ok) {
+                throw new Error('NOT_FOUND');
+            }
+            return r.json();
+        })
+        .then(function(data) {
+            currentSessionId = data.session_id || 'latest';
+            prerequisitesData = data;
+            displayPrereqResults(data);
+            showPrereqStep(2);
+        })
+        .catch(function(e) {
+            // Retry if report not found yet and retries remaining
+            if (e.message === 'NOT_FOUND' && retryCount < maxRetries) {
+                setTimeout(function() {
+                    refreshPrereqStatus(retryCount + 1);
+                }, retryDelay);
+            } else {
+                // Close prerequisites modal first, then show error
+                closePrerequisitesModal();
+                setTimeout(function() {
+                    var message = retryCount >= maxRetries
+                        ? 'No report found after multiple attempts. Please run the checker command and try again.'
+                        : 'Error loading prerequisites status. Please try again.';
+                    showModal('Error', message, false);
+                }, 300);
+            }
+        });
+}
+
+function displayPrereqResults(data) {
+    var tools = data.tools;
+    var installedCount = 0;
+    var missingCount = 0;
+    var listHtml = '';
+
+    // Sort tools: installed first, then missing
+    var toolEntries = Object.entries(tools).sort(function(a, b) {
+        if (a[1].installed === b[1].installed) return 0;
+        return a[1].installed ? -1 : 1;
+    });
+
+    toolEntries.forEach(function(entry) {
+        var toolId = entry[0];
+        var tool = entry[1];
+        var installed = tool.installed;
+
+        if (installed) installedCount++;
+        else missingCount++;
+
+        var itemClass = installed ? 'prereq-item installed' : 'prereq-item';
+        var statusClass = installed ? 'prereq-status installed' : 'prereq-status missing';
+        var statusText = installed ? '✓ Installed' : '✗ Missing';
+        var versionText = installed ? tool.version : 'Not available';
+        var locationText = tool.location || '';
+        var locationBadge = locationText === 'local' ? '<span class="location-badge local">📍 local</span>' : '';
+        var checkboxDisabled = installed ? 'disabled' : '';
+
+        listHtml += '<div class="' + itemClass + '">';
+        listHtml += '  <input type="checkbox" class="prereq-checkbox" ';
+        listHtml += '    data-tool-id="' + toolId + '" ';
+        listHtml += '    onchange="updateDownloadButton()" ';
+        listHtml += checkboxDisabled + '>';
+        listHtml += '  <div class="prereq-info">';
+        listHtml += '    <div class="prereq-name">' + toolId + ' ' + locationBadge + '</div>';
+        listHtml += '    <div class="prereq-version">' + versionText + '</div>';
+        listHtml += '  </div>';
+        listHtml += '  <div class="' + statusClass + '">' + statusText + '</div>';
+        listHtml += '</div>';
+    });
+
+    document.getElementById('prereq-installed-count').textContent = installedCount + ' Installed';
+    document.getElementById('prereq-missing-count').textContent = missingCount + ' Missing';
+    document.getElementById('prerequisites-list').innerHTML = listHtml;
+
+    // Auto-check missing tools
+    updateDownloadButton();
+}
+
+function updateDownloadButton() {
+    var checkboxes = document.querySelectorAll('.prereq-checkbox:checked:not([disabled])');
+    var downloadBtn = document.getElementById('download-installer-btn');
+    var installBtn = document.getElementById('install-now-btn');
+
+    if (checkboxes.length > 0) {
+        var toolText = checkboxes.length + ' tool' + (checkboxes.length > 1 ? 's' : '');
+        downloadBtn.disabled = false;
+        downloadBtn.textContent = '📥 Download Installer (' + toolText + ')';
+        installBtn.disabled = false;
+        installBtn.textContent = '🚀 Install Now (' + toolText + ')';
+    } else {
+        downloadBtn.disabled = true;
+        downloadBtn.textContent = '📥 Download Installer';
+        installBtn.disabled = true;
+        installBtn.textContent = '🚀 Install Now';
+    }
+}
+
+function installNow() {
+    var checkboxes = document.querySelectorAll('.prereq-checkbox:checked:not([disabled])');
+    var selectedTools = [];
+
+    checkboxes.forEach(function(cb) {
+        selectedTools.push(cb.dataset.toolId);
+    });
+
+    if (selectedTools.length === 0) {
+        showModal('Error', 'Please select at least one tool to install.', false);
+        return;
+    }
+
+    // Build the install command with selected tools
+    var toolsParam = selectedTools.join(',');
+    var installCmd = 'curl -s http://localhost:30080/api/prerequisites/installer.sh?tools=' + toolsParam + ' | bash';
+
+    // Update the command in Step 3
+    document.getElementById('install-command').textContent = installCmd;
+
+    // Show step 3
+    showPrereqStep(3);
+}
+
+function copyInstallCommand() {
+    var code = document.getElementById('install-command');
+    var textToCopy = code.textContent.trim();
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(textToCopy).then(function() {
+            var btn = event.target;
+            var originalText = btn.textContent;
+            btn.textContent = '✓ Copied!';
+            btn.style.background = '#16A34A';
+            setTimeout(function() {
+                btn.textContent = originalText;
+                btn.style.background = '';
+            }, 2000);
+        }).catch(function(err) {
+            showModal('Error', 'Failed to copy: ' + err, false);
+        });
+    } else {
+        var textArea = document.createElement('textarea');
+        textArea.value = textToCopy;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            var btn = event.target;
+            var originalText = btn.textContent;
+            btn.textContent = '✓ Copied!';
+            btn.style.background = '#16A34A';
+            setTimeout(function() {
+                btn.textContent = originalText;
+                btn.style.background = '';
+            }, 2000);
+        } catch (err) {
+            showModal('Error', 'Failed to copy: ' + err, false);
+        }
+        document.body.removeChild(textArea);
+    }
+}
+
+function downloadInstaller() {
+    var checkboxes = document.querySelectorAll('.prereq-checkbox:checked:not([disabled])');
+    var selectedTools = [];
+
+    checkboxes.forEach(function(cb) {
+        selectedTools.push(cb.dataset.toolId);
+    });
+
+    if (selectedTools.length === 0) {
+        showModal('Error', 'Please select at least one tool to install.', false);
+        return;
+    }
+
+    // Download installer script
+    var url = '/api/prerequisites/installer.sh?tools=' + selectedTools.join(',');
+    window.location.href = url;
+
+    // Show step 4 (download instructions)
+    setTimeout(function() {
+        showPrereqStep(4);
+    }, 500);
+}
+
+function backToStep1() {
+    showPrereqStep(1);
+}
+
+function backToStep2() {
+    showPrereqStep(2);
 }

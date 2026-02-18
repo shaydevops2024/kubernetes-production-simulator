@@ -1,0 +1,97 @@
+# values.yaml
+# Parent chart values and subchart overrides for the myapp chart.
+
+# --------------------
+# Application settings
+# --------------------
+replicaCount: 1
+
+image:
+  repository: nginx
+  tag: "1.25-alpine"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 100m
+    memory: 128Mi
+
+# Application environment variables (connecting to the PostgreSQL subchart)
+env:
+  - name: DATABASE_HOST
+    value: "myapp-postgresql"
+  - name: DATABASE_PORT
+    value: "5432"
+  - name: DATABASE_NAME
+    value: "appdb"
+  - name: DATABASE_USER
+    value: "appuser"
+
+# ------------------------------------------
+# PostgreSQL subchart value overrides
+# Values under the 'postgresql' key are passed
+# directly to the postgresql subchart.
+# ------------------------------------------
+postgresql:
+  # Enable/disable the dependency
+  enabled: true
+
+  # Authentication configuration
+  auth:
+    # Password for the 'postgres' superuser
+    postgresPassword: "supersecret"
+    # Create a custom database and user for the app
+    username: "appuser"
+    password: "appsecret"
+    database: "appdb"
+
+  # Primary instance configuration
+  primary:
+    # Resource limits suitable for Kind cluster
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+
+    persistence:
+      # Use smaller PVC for Kind cluster
+      size: 1Gi
+
+    # Pod-level settings
+    podSecurityContext:
+      fsGroup: 1001
+    containerSecurityContext:
+      runAsUser: 1001

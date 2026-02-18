@@ -1,0 +1,88 @@
+{
+  "scenario_id": "05-multibranch-pipeline",
+  "difficulty": "medium",
+  "duration": "15 min",
+  "commands": [
+    {
+      "name": "Step 1: Understand the Multibranch Pipeline Concept",
+      "command": "echo '=== Jenkins Multibranch Pipeline ===\n\nA Multibranch Pipeline automatically discovers branches and pull requests\nin a source code repository and creates pipeline jobs for each.\n\nHow it works:\n  1. Jenkins scans your Git repository on a schedule (or via webhook)\n  2. For every branch containing a Jenkinsfile, a pipeline job is created\n  3. When a branch is deleted, the corresponding job is removed\n  4. Pull Requests get their own temporary pipeline runs\n\nKey benefits:\n  - Zero manual job creation per branch\n  - Branch-specific behavior (dev vs staging vs prod)\n  - Automatic PR validation before merge\n  - Self-cleaning: stale branch jobs are pruned'",
+      "description": "Learn what Multibranch Pipelines are and why they exist",
+      "explanation": "In traditional Jenkins, you create one pipeline job per repository. With Multibranch Pipeline, Jenkins automatically discovers every branch and PR, creating separate pipeline instances for each. This is essential for GitFlow and trunk-based development workflows where multiple branches coexist.",
+      "what_it_does": "Displays an overview of the Multibranch Pipeline concept including how automatic branch discovery works and its key benefits.",
+      "next_step": "Now review a Jenkinsfile that uses branch conditions to behave differently per branch.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 2: Review Jenkinsfile with Branch Conditions",
+      "command": "cat << 'JENKINSFILE'\n// Jenkinsfile (Multibranch Pipeline)\npipeline {\n    agent any\n\n    environment {\n        APP_NAME    = 'my-web-app'\n        REGISTRY    = 'registry.example.com'\n        IMAGE_TAG   = \"${env.BRANCH_NAME}-${env.BUILD_NUMBER}\"\n    }\n\n    stages {\n        stage('Build') {\n            steps {\n                sh 'npm install && npm run build'\n            }\n        }\n\n        stage('Unit Tests') {\n            steps {\n                sh 'npm test'\n            }\n        }\n\n        stage('Deploy to Dev') {\n            when { branch 'develop' }\n            steps {\n                sh \"kubectl set image deployment/${APP_NAME} app=${REGISTRY}/${APP_NAME}:${IMAGE_TAG} -n dev\"\n            }\n        }\n\n        stage('Deploy to Staging') {\n            when { branch 'staging' }\n            steps {\n                sh \"kubectl set image deployment/${APP_NAME} app=${REGISTRY}/${APP_NAME}:${IMAGE_TAG} -n staging\"\n                sh 'kubectl rollout status deployment/${APP_NAME} -n staging --timeout=120s'\n            }\n        }\n\n        stage('Deploy to Production') {\n            when { branch 'main' }\n            steps {\n                input message: 'Deploy to production?', ok: 'Approve'\n                sh \"kubectl set image deployment/${APP_NAME} app=${REGISTRY}/${APP_NAME}:${IMAGE_TAG} -n production\"\n            }\n        }\n    }\n}\nJENKINSFILE",
+      "description": "Examine a Jenkinsfile that deploys to different environments based on branch name",
+      "explanation": "The 'when { branch ... }' directive is the core of branch-specific behavior. Only stages matching the current branch are executed. The 'develop' branch auto-deploys to dev, 'staging' deploys to a staging namespace, and 'main' requires manual approval before production. The IMAGE_TAG uses BRANCH_NAME to create unique, traceable images per branch.",
+      "what_it_does": "Prints a complete Jenkinsfile showing how the 'when' directive controls which stages execute based on the active branch name.",
+      "next_step": "Next, simulate how Jenkins discovers branches in a repository.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 3: Simulate Branch Discovery",
+      "command": "echo '=== Simulating Multibranch Branch Scan ==='\necho ''\necho 'Repository: https://github.com/example/my-web-app.git'\necho 'Scan started at: '$(date '+%Y-%m-%d %H:%M:%S')\necho ''\nfor branch in main develop staging feature/login-page feature/api-v2 hotfix/security-patch; do\n  sleep 0.3\n  echo \"[Branch Scan] Discovered: ${branch}\"\n  if [ \"$branch\" = \"feature/login-page\" ] || [ \"$branch\" = \"feature/api-v2\" ] || [ \"$branch\" = \"hotfix/security-patch\" ]; then\n    echo \"  -> Jenkinsfile found. Creating pipeline job: my-web-app/${branch}\"\n  elif [ \"$branch\" = \"main\" ] || [ \"$branch\" = \"develop\" ] || [ \"$branch\" = \"staging\" ]; then\n    echo \"  -> Jenkinsfile found. Creating pipeline job: my-web-app/${branch}\"\n  fi\ndone\necho ''\necho 'Scan complete. 6 branches found. 6 pipeline jobs created.'\necho ''\necho 'Pull Request scan:'\necho '  PR #42: feature/login-page -> main   [Pipeline created]'\necho '  PR #45: hotfix/security-patch -> main [Pipeline created]'\necho ''\necho 'Total jobs: 6 branch pipelines + 2 PR pipelines = 8 active jobs'",
+      "description": "Simulate Jenkins scanning a Git repository for branches and PRs",
+      "explanation": "When you configure a Multibranch Pipeline in Jenkins, you point it at a Git repository. Jenkins periodically scans (or is triggered by webhooks) to discover all branches and open PRs. Each branch with a Jenkinsfile gets its own pipeline instance. This scan is what makes Multibranch Pipelines so powerful -- no manual setup needed when developers create new branches.",
+      "what_it_does": "Simulates a branch scan showing Jenkins discovering 6 branches and 2 pull requests, creating pipeline jobs for each one.",
+      "next_step": "See how each branch triggers deployment to the correct environment.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 4: Show Branch-Specific Deployments",
+      "command": "kubectl create namespace jenkins-scenarios --dry-run=client -o yaml | kubectl apply -f - && \\\necho '' && \\\necho '=== Branch-Specific Deployment Simulation ===' && \\\necho '' && \\\necho '--- Branch: develop ---' && \\\necho 'Stage: Build .............. [PASSED]' && \\\necho 'Stage: Unit Tests ......... [PASSED]' && \\\necho 'Stage: Deploy to Dev ...... [RUNNING]' && \\\necho '  -> kubectl set image deployment/my-web-app app=registry.example.com/my-web-app:develop-47 -n dev' && \\\necho '  -> Deployment updated in DEV namespace' && \\\necho 'Stage: Deploy to Staging .. [SKIPPED] (branch != staging)' && \\\necho 'Stage: Deploy to Prod ..... [SKIPPED] (branch != main)' && \\\necho '' && \\\necho '--- Branch: staging ---' && \\\necho 'Stage: Build .............. [PASSED]' && \\\necho 'Stage: Unit Tests ......... [PASSED]' && \\\necho 'Stage: Deploy to Dev ...... [SKIPPED] (branch != develop)' && \\\necho 'Stage: Deploy to Staging .. [RUNNING]' && \\\necho '  -> kubectl set image deployment/my-web-app app=registry.example.com/my-web-app:staging-23 -n staging' && \\\necho '  -> Rollout status: 3/3 replicas updated' && \\\necho 'Stage: Deploy to Prod ..... [SKIPPED] (branch != main)' && \\\necho '' && \\\necho '--- Branch: main ---' && \\\necho 'Stage: Build .............. [PASSED]' && \\\necho 'Stage: Unit Tests ......... [PASSED]' && \\\necho 'Stage: Deploy to Dev ...... [SKIPPED] (branch != develop)' && \\\necho 'Stage: Deploy to Staging .. [SKIPPED] (branch != staging)' && \\\necho 'Stage: Deploy to Prod ..... [WAITING] Manual approval required' && \\\necho '  -> Approved by: admin@example.com' && \\\necho '  -> kubectl set image deployment/my-web-app app=registry.example.com/my-web-app:main-112 -n production' && \\\necho '  -> Production deployment complete'",
+      "description": "Demonstrate how the same Jenkinsfile produces different behavior for each branch",
+      "explanation": "This is the power of Multibranch Pipelines: one Jenkinsfile, multiple behaviors. The 'when { branch }' directive means each branch only executes stages relevant to its environment. develop goes to dev, staging goes to staging, and main goes to production (with approval). Skipped stages show as gray in the Jenkins UI, making it easy to understand the pipeline flow.",
+      "what_it_does": "Creates the jenkins-scenarios namespace and displays a simulation of three branches running the same pipeline with different stages executing based on the branch name.",
+      "next_step": "See how Pull Request validation works in a Multibranch Pipeline.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 5: Demonstrate PR Validation Pipeline",
+      "command": "echo '=== Pull Request Pipeline: PR #42 (feature/login-page -> main) ==='\necho ''\necho 'Trigger: Pull Request opened by developer@example.com'\necho 'Source:  feature/login-page'\necho 'Target:  main'\necho ''\necho 'Stage: Build .............. [PASSED]'\necho 'Stage: Unit Tests ......... [PASSED] (142 tests, 0 failures)'\necho 'Stage: Integration Tests .. [PASSED] (28 tests, 0 failures)'\necho 'Stage: Code Quality ....... [PASSED] (SonarQube gate: OK)'\necho 'Stage: Deploy to Dev ...... [SKIPPED] (not develop branch)'\necho 'Stage: Deploy to Staging .. [SKIPPED] (not staging branch)'\necho 'Stage: Deploy to Prod ..... [SKIPPED] (not main branch)'\necho ''\necho 'Result: SUCCESS'\necho ''\necho 'GitHub Status Check updated:'\necho '  continuous-integration/jenkins/pr-merge - All checks passed'\necho '  -> PR #42 is now mergeable'\necho ''\necho 'Additional PR-specific steps you can add:'\necho '  - when { changeRequest() }         -> runs only for PRs'\necho '  - when { changeRequest target: \"main\" } -> PRs targeting main'\necho '  - CHANGE_ID env var = PR number'\necho '  - CHANGE_TARGET env var = target branch'",
+      "description": "Show how Jenkins validates pull requests before they are merged",
+      "explanation": "Multibranch Pipelines treat Pull Requests as first-class citizens. When a PR is opened, Jenkins runs the pipeline against the PR branch. The 'when { changeRequest() }' directive can trigger PR-only stages like extra testing or ephemeral environment creation. Jenkins reports the result back to GitHub/GitLab as a status check, blocking merge if the pipeline fails.",
+      "what_it_does": "Simulates a PR pipeline execution showing build, test, and quality stages passing, with deployment stages skipped since it is a PR branch, and the GitHub status check being updated.",
+      "next_step": "Deploy a branch-specific application to Kubernetes to see the concept in action.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 6: Deploy Branch-Specific Apps to Kubernetes",
+      "command": "for branch in develop staging main; do\n  kubectl create configmap ${branch}-branch-info \\\n    --from-literal=branch=${branch} \\\n    --from-literal=image-tag=\"registry.example.com/my-web-app:${branch}-$(date +%s)\" \\\n    --from-literal=deploy-target=${branch} \\\n    --from-literal=pipeline-url=\"http://jenkins.example.com/job/my-web-app/job/${branch}/\" \\\n    -n jenkins-scenarios \\\n    --dry-run=client -o yaml | kubectl apply -f -\n  echo \"Created ConfigMap for branch: ${branch}\"\ndone\necho ''\necho 'Each branch has its own metadata in the cluster, simulating'\necho 'how Jenkins would track deployments per branch.'",
+      "description": "Create Kubernetes ConfigMaps representing branch-specific deployment metadata",
+      "explanation": "In a real Multibranch Pipeline, each branch deploys to its own namespace or uses distinct resource labels. Here we create ConfigMaps per branch to simulate that metadata. In production, Jenkins would label deployed resources with the branch name, build number, and commit SHA for full traceability.",
+      "what_it_does": "Creates three ConfigMaps (develop-branch-info, staging-branch-info, main-branch-info) in the jenkins-scenarios namespace, each containing branch-specific deployment metadata.",
+      "next_step": "Verify all the branch resources were created correctly.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 7: Verify Branch Resources",
+      "command": "echo '=== Branch Deployment Status ==='\necho ''\nfor branch in develop staging main; do\n  echo \"--- ${branch} ---\"\n  kubectl get configmap ${branch}-branch-info -n jenkins-scenarios -o jsonpath='{.data}' 2>/dev/null | tr ',' '\\n' | tr -d '{}' | sed 's/\"//g'\n  echo ''\n  echo ''\ndone\necho '=== Summary ==='\necho 'ConfigMaps in jenkins-scenarios namespace:'\nkubectl get configmaps -n jenkins-scenarios --no-headers | grep -c 'branch-info' | xargs -I{} echo '  {} branch-specific ConfigMaps found'\nkubectl get configmaps -n jenkins-scenarios --no-headers",
+      "description": "Verify all branch-specific resources are deployed correctly",
+      "explanation": "Verification is an important pipeline step. In a real deployment, you would check rollout status, run smoke tests, and validate that the correct image tag is running. Here we verify the ConfigMaps contain the right branch metadata, simulating the post-deployment verification that a well-designed Multibranch Pipeline would perform.",
+      "what_it_does": "Displays the contents of each branch ConfigMap and shows a summary count of all branch-specific resources in the jenkins-scenarios namespace.",
+      "next_step": "Review a summary of everything learned about Multibranch Pipelines.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 8: Scenario Summary",
+      "command": "echo '╔══════════════════════════════════════════════════════════════╗'\necho '║        Multibranch Pipeline - Key Takeaways                 ║'\necho '╠══════════════════════════════════════════════════════════════╣'\necho '║                                                            ║'\necho '║  1. Multibranch Pipelines auto-discover branches and PRs   ║'\necho '║     -> No manual job creation needed per branch             ║'\necho '║                                                            ║'\necho '║  2. \"when { branch }\" controls per-branch behavior         ║'\necho '║     -> Same Jenkinsfile, different execution paths          ║'\necho '║                                                            ║'\necho '║  3. PRs get their own pipeline runs                        ║'\necho '║     -> Validate before merge with status checks             ║'\necho '║                                                            ║'\necho '║  4. Environment variables available:                       ║'\necho '║     -> BRANCH_NAME: current branch                         ║'\necho '║     -> CHANGE_ID: PR number (for PRs)                      ║'\necho '║     -> CHANGE_TARGET: PR target branch (for PRs)           ║'\necho '║                                                            ║'\necho '║  5. Configuration in Jenkins UI:                           ║'\necho '║     -> New Item -> Multibranch Pipeline                    ║'\necho '║     -> Add Git source with credentials                     ║'\necho '║     -> Set scan trigger (webhook or timer)                 ║'\necho '║                                                            ║'\necho '║  Best Practice: Use webhooks for instant branch detection  ║'\necho '║  rather than periodic polling.                             ║'\necho '║                                                            ║'\necho '╚══════════════════════════════════════════════════════════════╝'",
+      "description": "Review the key concepts learned about Multibranch Pipelines",
+      "explanation": "Multibranch Pipelines are the standard way to implement CI/CD in Jenkins for teams using Git branching strategies. They eliminate manual job management, enforce consistent pipeline behavior via a shared Jenkinsfile, and integrate tightly with pull request workflows for code quality enforcement.",
+      "what_it_does": "Displays a formatted summary of all key Multibranch Pipeline concepts covered in this scenario.",
+      "next_step": "Clean up all resources created during this scenario.",
+      "cleanup": false
+    },
+    {
+      "name": "Step 9: Cleanup",
+      "command": "echo 'Cleaning up Multibranch Pipeline scenario resources...'\nkubectl delete configmap develop-branch-info staging-branch-info main-branch-info -n jenkins-scenarios --ignore-not-found\necho ''\necho 'All Multibranch Pipeline scenario resources have been removed.'\necho 'The jenkins-scenarios namespace is preserved for other scenarios.'",
+      "description": "Remove all resources created during this scenario",
+      "explanation": "Cleanup removes all ConfigMaps created during the scenario. The jenkins-scenarios namespace is preserved since other Jenkins scenarios may use it. Always clean up after yourself to keep the cluster tidy.",
+      "what_it_does": "Deletes the develop-branch-info, staging-branch-info, and main-branch-info ConfigMaps from the jenkins-scenarios namespace.",
+      "next_step": "Scenario complete! Try the Shared Library scenario next to learn about reusable pipeline code.",
+      "cleanup": true
+    }
+  ]
+}

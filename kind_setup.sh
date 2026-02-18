@@ -12,6 +12,9 @@ CLUSTER_NAME="k8s-demo"
 NAMESPACE="k8s-multi-demo"
 APP_IMAGE="k8s-demo-app:latest"
 NODEPORT="30080"
+ARGOCD_NODEPORT="30800"
+JENKINS_NODEPORT="30880"
+JENKINS_HOST_PORT="8080"
 
 # Colors for output
 RED='\033[0;31m'
@@ -58,14 +61,21 @@ print_info() {
 clear
 print_header "KUBERNETES PRODUCTION DEMO - COMPLETE DEPLOYMENT"
 echo -e "${GREEN}This script will:${NC}"
-echo "  1. Delete the existing KIND cluster (if it exists)"
-echo "  2. Create a fresh 3-node kind cluster"
-echo "  3. Install NGINX Ingress Controller"
-echo "  4. Build Docker image with 18 scenarios built-in"
-echo "  5. Deploy the application with PostgreSQL database"
-echo "  6. Setup metrics-server and HPA"
-echo "  7. Run comprehensive tests"
-echo "  8. Display access information"
+echo "  1. Check prerequisites (Docker, kubectl, kind)"
+echo "  2. Cleanup old resources"
+echo "  3. Create a fresh 3-node kind cluster"
+echo "  4. Install NGINX Ingress Controller"
+echo "  5. Build Docker image with 18 scenarios built-in"
+echo "  6. Deploy PostgreSQL database"
+echo "  7. Deploy the application"
+echo "  8. Verify scenarios in pods"
+echo "  9. Install metrics-server"
+echo "  10. Configure HPA (Horizontal Pod Autoscaler)"
+echo "  11. Install and configure ArgoCD"
+echo "  12. Install Jenkins via Helm"
+echo "  13. Run comprehensive tests"
+echo "  13. Configure /etc/hosts for ingress"
+echo "  14. Display access information"
 echo ""
 echo -e "${YELLOW}⏱️  Estimated time: 10-15 minutes${NC}"
 echo ""
@@ -100,6 +110,15 @@ if command -v kind &> /dev/null; then
     print_success "kind installed (version $KIND_VERSION)"
 else
     print_error "kind not found. Please install kind first."
+    exit 1
+fi
+
+print_step "Checking Helm..."
+if command -v helm &> /dev/null; then
+    HELM_VERSION=$(helm version --short 2>/dev/null | cut -d'+' -f1)
+    print_success "Helm installed (version $HELM_VERSION)"
+else
+    print_error "Helm not found. Please install Helm first."
     exit 1
 fi
 
@@ -147,7 +166,7 @@ print_success "Cleanup complete!"
 print_header "STEP 3/12: CREATING KIND CLUSTER"
 
 print_step "Creating cluster configuration..."
-cat > /tmp/kind-config.yaml <<EOF
+cat > /tmp/kind-config.yaml <<EOF     #line 151
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
@@ -168,8 +187,15 @@ nodes:
   - containerPort: ${NODEPORT}
     hostPort: ${NODEPORT}
     protocol: TCP
+  - containerPort: ${ARGOCD_NODEPORT}
+    hostPort: ${ARGOCD_NODEPORT}
+    protocol: TCP
+  - containerPort: ${JENKINS_NODEPORT}
+    hostPort: ${JENKINS_HOST_PORT}
+    protocol: TCP
 - role: worker
 - role: worker
+
 EOF
 print_success "Configuration created"
 
@@ -228,13 +254,38 @@ docker exec ${CLUSTER_NAME}-control-plane crictl images | grep k8s-demo-app || p
 print_success "Application image built with scenarios and loaded!"
 
 # ============================================
-# STEP 6: DEPLOY APPLICATION
+# STEP 6: DEPLOY DATABASE FIRST
 # ============================================
-print_header "STEP 6/12: DEPLOYING APPLICATION"
+print_header "STEP 6/14: DEPLOYING POSTGRESQL DATABASE"
 
 print_step "Creating namespace '${NAMESPACE}'..."
 kubectl apply -f k8s/base/namespace.yaml
 print_success "Namespace created"
+
+print_step "Creating PostgreSQL Secret..."
+kubectl apply -f k8s/database/postgres-secret.yaml
+print_success "PostgreSQL Secret created"
+
+print_step "Creating PostgreSQL ConfigMap..."
+kubectl apply -f k8s/database/postgres-configmap.yaml
+print_success "PostgreSQL ConfigMap created"
+
+print_step "Creating PostgreSQL StatefulSet..."
+kubectl apply -f k8s/database/postgres-statefulset.yaml
+print_success "PostgreSQL StatefulSet created"
+
+print_step "Creating PostgreSQL Service..."
+kubectl apply -f k8s/database/postgres-service.yaml
+print_success "PostgreSQL Service created"
+
+print_step "Waiting for PostgreSQL to be ready..."
+kubectl rollout status statefulset/postgres -n ${NAMESPACE} --timeout=600s
+print_success "PostgreSQL is ready!"
+
+# ============================================
+# STEP 7: DEPLOY APPLICATION
+# ============================================
+print_header "STEP 7/14: DEPLOYING APPLICATION"
 
 print_step "Creating Service Account and RBAC..."
 kubectl apply -f k8s/base/rbac.yaml
@@ -264,12 +315,6 @@ print_step "Applying Ingress configuration..."
 kubectl apply -f k8s/ingress/ingress.yaml
 print_success "Ingress created"
 
-# Deploy database if script exists
-if [ -f "./deploy-database.sh" ]; then
-    chmod a+x ./deploy-database.sh
-    ./deploy-database.sh
-fi
-
 print_step "Waiting for application pods to be ready (this can take a few minutes)..."
 kubectl wait --for=condition=ready pod -l app=k8s-demo-app -n ${NAMESPACE} --timeout=600s
 
@@ -277,9 +322,9 @@ POD_COUNT=$(kubectl get pods -n ${NAMESPACE} --no-headers | grep k8s-demo-app | 
 print_success "Application deployed! ($POD_COUNT pods running)"
 
 # ============================================
-# STEP 7: VERIFY SCENARIOS IN PODS
+# STEP 8: VERIFY SCENARIOS IN PODS
 # ============================================
-print_header "STEP 7/12: VERIFYING SCENARIOS IN PODS"
+print_header "STEP 8/14: VERIFYING SCENARIOS IN PODS"
 
 print_step "Checking scenarios in pods (baked into the image)..."
 POD_NAMES=($(kubectl get pods -n ${NAMESPACE} -l app=k8s-demo-app -o jsonpath='{.items[*].metadata.name}'))
@@ -292,7 +337,7 @@ if [ -n "$FIRST_POD" ]; then
         print_success "Verified: ${SCENARIO_COUNT} scenarios present in pods!"
         print_info "Scenarios are baked into the Docker image - no copying needed!"
     else
-        print_warning "Found ${SCENARIO_COUNT} scenarios (expected 18)"
+        print_warning "Found ${SCENARIO_COUNT} scenarios (expected 19)"
         echo ""
         echo "Listing scenarios in pod:"
         kubectl exec -n ${NAMESPACE} ${FIRST_POD} -- ls -1 /scenarios 2>/dev/null || echo "Cannot list /scenarios"
@@ -302,9 +347,9 @@ else
 fi
 
 # ============================================
-# STEP 8: INSTALL METRICS SERVER
+# STEP 9: INSTALL METRICS SERVER
 # ============================================
-print_header "STEP 8/12: INSTALLING METRICS SERVER"
+print_header "STEP 9/14: INSTALLING METRICS SERVER"
 
 print_step "Applying metrics-server manifests..."
 kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
@@ -319,9 +364,9 @@ kubectl rollout status deployment/metrics-server -n kube-system --timeout=600s
 print_success "Metrics-server installed and ready!"
 
 # ============================================
-# STEP 9: CONFIGURE HPA
+# STEP 10: CONFIGURE HPA
 # ============================================
-print_header "STEP 9/12: CONFIGURING HORIZONTAL POD AUTOSCALER"
+print_header "STEP 10/14: CONFIGURING HORIZONTAL POD AUTOSCALER"
 
 print_step "Applying HPA configuration..."
 kubectl apply -f k8s/hpa/hpa.yaml
@@ -338,9 +383,91 @@ kubectl get hpa -n ${NAMESPACE}
 print_success "HPA configured and active!"
 
 # ============================================
-# STEP 10: COMPREHENSIVE TESTING
+# STEP 11: INSTALL ARGOCD
 # ============================================
-print_header "STEP 10/12: RUNNING COMPREHENSIVE TESTS"
+print_header "STEP 11/14: INSTALLING ARGOCD"
+
+print_step "Creating argocd namespace..."
+kubectl create namespace argocd
+print_success "ArgoCD namespace created"
+
+print_step "Installing ArgoCD manifests..."
+kubectl apply --server-side -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+print_success "ArgoCD manifests applied"
+
+print_step "Applying ArgoCD config patches before pods are ready (avoids restart)..."
+# Wait briefly for the configmaps to be created by the manifest
+sleep 5
+kubectl patch configmap argocd-cmd-params-cm -n argocd --type merge -p '{"data":{"server.insecure":"true"}}' 2>/dev/null || sleep 5 && kubectl patch configmap argocd-cmd-params-cm -n argocd --type merge -p '{"data":{"server.insecure":"true"}}'
+kubectl patch configmap argocd-cm -n argocd --type merge -p '{"data":{"url":"http://k8s-multi-demo.argocd","server.rbac.logout.redirect":"http://k8s-multi-demo.argocd"}}'
+print_success "ArgoCD config patches applied"
+
+print_step "Exposing ArgoCD via NodePort (port ${ARGOCD_NODEPORT})..."
+kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "NodePort", "ports": [{"name": "http", "port": 80, "targetPort": 8080, "nodePort": 30800}]}}'
+print_success "ArgoCD exposed on NodePort ${ARGOCD_NODEPORT}"
+
+print_step "Applying ArgoCD Ingress..."
+kubectl apply -f k8s/argoCD/argocd-ingress.yaml
+print_success "ArgoCD Ingress created"
+
+print_step "Waiting for ArgoCD server to be ready (this may take a few minutes)..."
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=argocd-server -n argocd --timeout=600s
+print_success "ArgoCD server is ready"
+
+print_step "Retrieving ArgoCD admin password..."
+ARGOCD_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" 2>/dev/null | base64 -d)
+if [ -n "$ARGOCD_PASSWORD" ]; then
+    print_success "ArgoCD admin password retrieved"
+else
+    print_warning "Could not retrieve ArgoCD password"
+    ARGOCD_PASSWORD="(check manually)"
+fi
+
+print_success "ArgoCD installation complete!"
+
+# ============================================
+# STEP 12: INSTALL JENKINS
+# ============================================
+print_header "STEP 12: INSTALLING JENKINS"
+
+print_step "Adding Jenkins Helm repository..."
+helm repo add jenkins https://charts.jenkins.io
+helm repo update
+print_success "Jenkins Helm repo added"
+
+print_step "Installing Jenkins via Helm..."
+helm install jenkins jenkins/jenkins -n jenkins --create-namespace \
+  --set controller.serviceType=NodePort \
+  --set controller.nodePort=${JENKINS_NODEPORT}
+print_success "Jenkins Helm release created"
+
+print_step "Waiting for Jenkins pod to be created..."
+for i in $(seq 1 60); do
+    if kubectl get pods -l app.kubernetes.io/name=jenkins -n jenkins --no-headers 2>/dev/null | grep -q .; then
+        break
+    fi
+    sleep 5
+done
+
+print_step "Waiting for Jenkins to be ready (this may take a few minutes)..."
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=jenkins -n jenkins --timeout=600s
+print_success "Jenkins is ready!"
+
+print_step "Retrieving Jenkins admin password..."
+JENKINS_PASSWORD=$(kubectl exec -n jenkins svc/jenkins -c jenkins -- cat /run/secrets/additional/chart-admin-password 2>/dev/null)
+if [ -n "$JENKINS_PASSWORD" ]; then
+    print_success "Jenkins admin password retrieved"
+else
+    print_warning "Could not retrieve Jenkins password"
+    JENKINS_PASSWORD="(check manually)"
+fi
+
+print_success "Jenkins installation complete!"
+
+# ============================================
+# STEP 13: COMPREHENSIVE TESTING
+# ============================================
+print_header "STEP 12/14: RUNNING COMPREHENSIVE TESTS"
 
 print_step "Test 1: Checking pod health..."
 HEALTHY_PODS=$(kubectl get pods -n ${NAMESPACE} -o jsonpath='{.items[*].status.conditions[?(@.type=="Ready")].status}' | grep -o "True" | wc -l)
@@ -393,34 +520,54 @@ fi
 print_success "All tests completed!"
 
 # ============================================
-# STEP 11: CONFIGURE HOSTS FILE
+# STEP 13: CONFIGURE HOSTS FILE
 # ============================================
-print_header "STEP 11/12: CONFIGURING HOSTS FILE"
+print_header "STEP 13/14: CONFIGURING HOSTS FILE"
 
-print_step "Checking /etc/hosts for ingress hostname..."
-HOSTS_ENTRY="127.0.0.1 k8s-multi-demo.internal"
+print_step "Checking /etc/hosts for application ingress hostname..."
+APP_HOSTS_ENTRY="127.0.0.1 k8s-multi-demo.internal"
 
 if grep -q "k8s-multi-demo.internal" /etc/hosts 2>/dev/null; then
-    print_success "Host entry already exists in /etc/hosts"
+    print_success "Application host entry already exists in /etc/hosts"
 else
     print_step "Adding k8s-multi-demo.internal to /etc/hosts..."
-    
+
     if [ -w /etc/hosts ]; then
-        echo "$HOSTS_ENTRY" >> /etc/hosts
-        print_success "Successfully added to /etc/hosts"
+        echo "$APP_HOSTS_ENTRY" >> /etc/hosts
+        print_success "Successfully added application host to /etc/hosts"
     else
         print_warning "Cannot write to /etc/hosts (need sudo)"
         echo ""
-        echo -e "${YELLOW}To enable ingress access, please run:${NC}"
-        echo -e "${YELLOW}  echo '$HOSTS_ENTRY' | sudo tee -a /etc/hosts${NC}"
+        echo -e "${YELLOW}To enable application ingress access, please run:${NC}"
+        echo -e "${YELLOW}  echo '$APP_HOSTS_ENTRY' | sudo tee -a /etc/hosts${NC}"
+        echo ""
+    fi
+fi
+
+print_step "Checking /etc/hosts for ArgoCD ingress hostname..."
+ARGOCD_HOSTS_ENTRY="127.0.0.1 k8s-multi-demo.argocd"
+
+if grep -q "k8s-multi-demo.argocd" /etc/hosts 2>/dev/null; then
+    print_success "ArgoCD host entry already exists in /etc/hosts"
+else
+    print_step "Adding k8s-multi-demo.argocd to /etc/hosts..."
+
+    if [ -w /etc/hosts ]; then
+        echo "$ARGOCD_HOSTS_ENTRY" >> /etc/hosts
+        print_success "Successfully added ArgoCD host to /etc/hosts"
+    else
+        print_warning "Cannot write to /etc/hosts (need sudo)"
+        echo ""
+        echo -e "${YELLOW}To enable ArgoCD ingress access, please run:${NC}"
+        echo -e "${YELLOW}  echo '$ARGOCD_HOSTS_ENTRY' | sudo tee -a /etc/hosts${NC}"
         echo ""
     fi
 fi
 
 # ============================================
-# STEP 12: DISPLAY RESULTS
+# STEP 14: DISPLAY RESULTS
 # ============================================
-print_header "STEP 12/12: DEPLOYMENT SUMMARY"
+print_header "STEP 14/14: DEPLOYMENT SUMMARY"
 
 kubectl get all -n ${NAMESPACE}
 
@@ -430,12 +577,39 @@ echo -e "${GREEN}✅ DEPLOYMENT COMPLETE!${NC}"
 echo -e "${GREEN}========================================${NC}"
 echo ""
 
-echo -e "${CYAN}📍 Access Points:${NC}"
-echo "  Dashboard:  http://localhost:${NODEPORT}"
-echo "  Scenarios:  http://localhost:${NODEPORT}/static/scenarios.html"
+echo -e "${CYAN}📍 APPLICATION ACCESS POINTS:${NC}"
+echo -e "  ${GREEN}Via localhost (NodePort):${NC}"
+echo "    - Dashboard:  http://localhost:${NODEPORT}"
+echo "    - Scenarios:  http://localhost:${NODEPORT}/static/scenarios.html"
+echo "    - Database:   http://localhost:${NODEPORT}/database"
+echo ""
+echo -e "  ${GREEN}Via hostname (Ingress):${NC}"
 if [ "$INGRESS_HOSTS" != "none" ]; then
-    echo "  Ingress:    http://k8s-multi-demo.internal"
+    echo "    - Dashboard:  http://k8s-multi-demo.internal:${NODEPORT}"
+    echo "    - Scenarios:  http://k8s-multi-demo.internal:${NODEPORT}/static/scenarios.html"
+    echo "    - Database:   http://k8s-multi-demo.internal:${NODEPORT}/database"
+else
+    echo "    - Ingress not configured"
 fi
+echo ""
+
+echo -e "${CYAN}📍 ARGOCD ACCESS POINTS:${NC}"
+echo -e "  ${GREEN}Via localhost (NodePort):${NC}"
+echo "    - URL:      http://localhost:${ARGOCD_NODEPORT}"
+echo "    - Username: admin"
+echo "    - Password: ${ARGOCD_PASSWORD}"
+echo ""
+echo -e "  ${GREEN}Via hostname (Ingress):${NC}"
+echo "    - URL:      http://k8s-multi-demo.argocd"
+echo "    - Username: admin"
+echo "    - Password: ${ARGOCD_PASSWORD}"
+echo ""
+
+echo -e "${CYAN}📍 JENKINS ACCESS POINTS:${NC}"
+echo -e "  ${GREEN}Via localhost:${NC}"
+echo "    - URL:      http://localhost:${JENKINS_HOST_PORT}"
+echo "    - Username: admin"
+echo "    - Password: ${JENKINS_PASSWORD}"
 echo ""
 
 echo -e "${CYAN}📚 Kubernetes Scenarios:${NC}"
@@ -443,28 +617,55 @@ echo "  ✅ 18 Interactive Scenarios Built Into Image"
 echo "  ℹ️  Scenarios are baked into the Docker image - always available!"
 echo ""
 
+echo -e "${CYAN}💾 Database Information:${NC}"
+echo "  ✅ PostgreSQL deployed and initialized"
+echo "  📊 Tables: users, tasks, app_metrics"
+echo "  🔗 Connection: postgres-service:5432"
+echo ""
+
 echo -e "${CYAN}🎯 Quick Commands:${NC}"
 echo "  # View all pods:"
 echo "  kubectl get pods -n ${NAMESPACE}"
+echo ""
+echo "  # View ArgoCD pods:"
+echo "  kubectl get pods -n argocd"
+echo ""
+echo "  # View Jenkins pods:"
+echo "  kubectl get pods -n jenkins"
 echo ""
 echo "  # View scenarios in pod:"
 if [ -n "$FIRST_POD" ]; then
     echo "  kubectl exec -n ${NAMESPACE} ${FIRST_POD} -- ls /scenarios/"
 fi
 echo ""
-echo "  # View logs:"
+echo "  # View application logs:"
 echo "  kubectl logs -n ${NAMESPACE} -l app=k8s-demo-app -f"
 echo ""
 echo "  # Test API:"
 echo "  curl http://localhost:${NODEPORT}/api/scenarios | jq '.scenarios | length'"
+echo ""
+echo "  # Login to ArgoCD CLI:"
+echo "  argocd login localhost:${ARGOCD_NODEPORT} --username admin --password ${ARGOCD_PASSWORD} --insecure"
+echo ""
+
+echo -e "${CYAN}🌐 Access the Website:${NC}"
+echo "  To open http://k8s-multi-demo.internal:30080/ you need to add it to your hosts file."
+echo ""
+echo "  On Ubuntu (run once):"
+echo "  echo '127.0.0.1 k8s-multi-demo.internal' | sudo tee -a /etc/hosts"
+echo ""
+echo "  On Windows (run once in PowerShell as Administrator):"
+echo "  Add-Content -Path 'C:\Windows\System32\drivers\etc\hosts' -Value '127.0.0.1 k8s-multi-demo.internal'"
 echo ""
 
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}🎉 Ready to use!${NC}"
 echo -e "${GREEN}========================================${NC}"
 echo ""
-echo -e "${YELLOW}Open your browser and start learning Kubernetes:${NC}"
-echo -e "${CYAN}  http://localhost:${NODEPORT}/static/scenarios.html${NC}"
+echo -e "${YELLOW}🚀 Start exploring:${NC}"
+echo -e "${CYAN}  Application: http://localhost:${NODEPORT}/static/scenarios.html${NC}"
+echo -e "${CYAN}  ArgoCD:      http://localhost:${ARGOCD_NODEPORT}${NC}"
+echo -e "${CYAN}  Jenkins:     http://localhost:${JENKINS_HOST_PORT}${NC}"
 echo ""
-echo -e "${GREEN}Enjoy exploring 18 hands-on Kubernetes scenarios!${NC}"
+echo -e "${GREEN}Enjoy exploring 18 hands-on Kubernetes scenarios with GitOps!${NC}"
 echo ""

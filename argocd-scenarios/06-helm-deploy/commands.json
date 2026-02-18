@@ -1,0 +1,56 @@
+{
+  "scenario_id": "06-helm-deploy",
+  "difficulty": "medium",
+  "duration": "15 min",
+  "commands": [
+    {
+      "name": "Step 1: Review Helm Application CR",
+      "command": "cat argocd-scenarios/06-helm-deploy/application.yaml",
+      "description": "Review ArgoCD Application using a Helm chart source",
+      "explanation": "Instead of a Git repo path, this Application uses 'chart: nginx' from the Bitnami Helm repository. ArgoCD natively supports Helm - you can override values directly in the Application CR without needing helm CLI.",
+      "what_it_does": "Shows the Application CR with Helm chart source and value overrides.",
+      "next_step": "Apply the Application CR to deploy the Helm chart."
+    },
+    {
+      "name": "Step 2: Deploy Helm Chart via ArgoCD",
+      "command": "kubectl apply -f argocd-scenarios/06-helm-deploy/application.yaml",
+      "description": "Create the ArgoCD Application - deploys nginx Helm chart",
+      "explanation": "ArgoCD will fetch the nginx chart from the Bitnami repo, render it with the specified values (2 replicas, ClusterIP, resource limits), and deploy to argocd-sc-06 namespace.",
+      "what_it_does": "Creates ArgoCD Application that deploys a Helm chart.",
+      "next_step": "Watch the deployment in ArgoCD UI."
+    },
+    {
+      "name": "Step 3: Watch Helm Deployment",
+      "command": "echo '>>> Open ArgoCD UI at http://localhost:30800 <<<\n>>> Click sc06-helm-nginx to see all Helm-generated resources <<<' && sleep 10 && kubectl get application sc06-helm-nginx -n argocd",
+      "description": "View the Helm-deployed resources in ArgoCD UI",
+      "explanation": "In the ArgoCD UI, you'll see all resources the Helm chart created. Helm charts often create more resources than raw manifests (ConfigMaps, ServiceAccounts, etc). ArgoCD shows the complete resource tree.",
+      "what_it_does": "Guides you to view the Helm deployment in ArgoCD UI.",
+      "next_step": "Check what resources Helm created."
+    },
+    {
+      "name": "Step 4: List Helm-Created Resources",
+      "command": "kubectl get all -n argocd-sc-06",
+      "description": "View all Kubernetes resources created by the Helm chart",
+      "explanation": "Helm charts typically create multiple resources. You should see deployment, replicaset, pods, service, and possibly configmaps. All managed by ArgoCD through the Helm chart.",
+      "what_it_does": "Lists all resources in the Helm deployment namespace.",
+      "next_step": "View the Helm values ArgoCD is using."
+    },
+    {
+      "name": "Step 5: Check Applied Helm Values",
+      "command": "kubectl get application sc06-helm-nginx -n argocd -o jsonpath='{.spec.source.helm.values}' | head -20",
+      "description": "View the Helm values applied by ArgoCD",
+      "explanation": "These are the values ArgoCD uses to render the Helm chart. You can modify values by editing the Application CR - ArgoCD will re-render and sync automatically.",
+      "what_it_does": "Shows the Helm values used for chart rendering.",
+      "next_step": "Scenario complete! Clean up when ready."
+    },
+    {
+      "name": "Cleanup: Delete Helm Application",
+      "command": "kubectl delete application sc06-helm-nginx -n argocd && kubectl delete namespace argocd-sc-06 --ignore-not-found",
+      "description": "Remove the Helm-deployed application",
+      "explanation": "Deleting the Application removes ArgoCD management. The namespace deletion cleans up all Helm-created resources.",
+      "what_it_does": "Removes the Helm application and all its resources.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

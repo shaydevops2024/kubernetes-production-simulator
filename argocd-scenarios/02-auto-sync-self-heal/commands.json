@@ -1,0 +1,72 @@
+{
+  "scenario_id": "02-auto-sync-self-heal",
+  "difficulty": "easy",
+  "duration": "15 min",
+  "commands": [
+    {
+      "name": "Step 1: Review Auto-Sync Policy",
+      "command": "cat argocd-scenarios/02-auto-sync-self-heal/application.yaml",
+      "description": "Review the Application CR with automated sync policy",
+      "explanation": "Notice the syncPolicy section with 'automated', 'prune: true', and 'selfHeal: true'. This means ArgoCD will automatically deploy changes from Git, remove resources not in Git, and revert manual changes.",
+      "what_it_does": "Displays the Application CR with auto-sync and self-heal enabled.",
+      "next_step": "Apply it and watch ArgoCD deploy automatically."
+    },
+    {
+      "name": "Step 2: Apply the Application CR",
+      "command": "kubectl apply -f argocd-scenarios/02-auto-sync-self-heal/application.yaml",
+      "description": "Create the application - ArgoCD will auto-sync immediately",
+      "explanation": "Unlike Scenario 01, this app has automated sync. ArgoCD will immediately detect the new Application and begin deploying resources without manual intervention.",
+      "what_it_does": "Creates the Application with auto-sync enabled in ArgoCD.",
+      "next_step": "Watch ArgoCD automatically deploy the resources."
+    },
+    {
+      "name": "Step 3: Watch Auto-Deployment",
+      "command": "echo '>>> Open ArgoCD UI at http://localhost:30800 <<<' && sleep 2 && kubectl get application sc02-auto-sync -n argocd",
+      "description": "Open ArgoCD UI and check sync status - it should auto-sync",
+      "explanation": "In the ArgoCD UI, watch the application transition from OutOfSync to Synced automatically. No manual SYNC button needed! The status should quickly show 'Synced' and 'Healthy'.",
+      "what_it_does": "Shows the auto-sync in action through both UI and CLI.",
+      "next_step": "Verify resources were auto-deployed."
+    },
+    {
+      "name": "Step 4: Verify Auto-Deployed Resources",
+      "command": "kubectl get pods -n argocd-sc-02",
+      "description": "Check that pods were automatically created by ArgoCD",
+      "explanation": "You should see 3 running pods. ArgoCD deployed them automatically when it detected the Application CR. No manual sync was needed.",
+      "what_it_does": "Lists pods in the scenario namespace to confirm auto-deployment.",
+      "next_step": "Now test the self-heal feature by deleting a pod."
+    },
+    {
+      "name": "Step 5: Test Self-Heal - Delete a Pod",
+      "command": "kubectl delete pod -n argocd-sc-02 -l app=autosync-app --field-selector=status.phase=Running --grace-period=0 --force 2>/dev/null; echo 'Pod deleted! ArgoCD will detect drift and heal...' && sleep 5 && kubectl get pods -n argocd-sc-02",
+      "description": "Delete a pod and watch ArgoCD restore it",
+      "explanation": "When you delete a pod, the Deployment controller recreates it. But if you modify the deployment itself (e.g., change replicas), ArgoCD's self-heal will revert it. Let's test that next.",
+      "what_it_does": "Deletes a pod to demonstrate Kubernetes + ArgoCD recovery.",
+      "next_step": "Test self-heal by manually changing the replica count."
+    },
+    {
+      "name": "Step 6: Test Self-Heal - Change Replicas",
+      "command": "kubectl scale deployment autosync-app -n argocd-sc-02 --replicas=1 && echo 'Scaled to 1 replica. Watch ArgoCD revert...' && sleep 15 && kubectl get pods -n argocd-sc-02",
+      "description": "Scale to 1 replica - ArgoCD will revert back to 3",
+      "explanation": "ArgoCD detected that the live state (1 replica) differs from the desired state in Git (3 replicas). Self-heal automatically reverts the change. Check the ArgoCD UI to see the sync event.",
+      "what_it_does": "Manually changes replicas and watches ArgoCD revert the drift.",
+      "next_step": "Confirm ArgoCD reverted the change."
+    },
+    {
+      "name": "Step 7: Verify Self-Heal in ArgoCD UI",
+      "command": "echo '>>> Open ArgoCD UI at http://localhost:30800 <<<\n>>> Click on sc02-auto-sync <<<\n>>> Check LAST SYNC RESULT and HISTORY tab to see self-heal events <<<' && kubectl get application sc02-auto-sync -n argocd -o jsonpath='{.status.sync.status}'",
+      "description": "Check ArgoCD UI for self-heal sync events",
+      "explanation": "In the ArgoCD UI, the app should show 'Synced'. Check the History tab to see multiple sync events - the automatic syncs triggered by self-heal. This proves ArgoCD is actively enforcing the desired state.",
+      "what_it_does": "Guides you to verify self-heal events in the ArgoCD UI.",
+      "next_step": "Scenario complete! Clean up when ready."
+    },
+    {
+      "name": "Cleanup: Delete Application",
+      "command": "kubectl delete application sc02-auto-sync -n argocd && kubectl delete namespace argocd-sc-02 --ignore-not-found",
+      "description": "Remove the ArgoCD application and namespace",
+      "explanation": "Deleting the Application stops ArgoCD management. The namespace deletion removes all deployed resources.",
+      "what_it_does": "Removes the application and all resources.",
+      "next_step": "Cleanup complete!",
+      "cleanup": true
+    }
+  ]
+}

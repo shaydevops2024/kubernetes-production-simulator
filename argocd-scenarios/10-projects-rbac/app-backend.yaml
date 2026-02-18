@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sc10-backend
+  namespace: argocd
+spec:
+  project: team-backend
+  source:
+    repoURL: https://github.com/shaydevops2024/kubernetes-production-simulator.git
+    targetRevision: HEAD
+    path: argocd-scenarios/10-projects-rbac/manifests/backend
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd-sc-10-be
+  syncPolicy:
+    automated:
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

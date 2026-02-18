@@ -10,3 +10,4 @@ data:
   APP_ENV: "production"
   APP_NAME: "k8s-multi-demo-app"
   LOG_LEVEL: "INFO"
+  CONFIGMAP_VALUE: "configured"
