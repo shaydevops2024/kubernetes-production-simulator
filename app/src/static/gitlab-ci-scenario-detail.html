@@ -423,6 +423,7 @@
             border-radius: 15px;
             padding: 25px;
             margin-bottom: 25px;
+            text-align: left;
         }
 
         .info-step-card .info-step-title {
@@ -765,27 +766,35 @@
             }
             html += '</div>';
 
-            // Echo-only step (diagram/summary — not a real command to run)
+            // Echo-only step (informational — same style as info steps)
             if (cmd.type !== 'info' && isEchoOnlyCommand(cmd.command)) {
                 html += '<div class="info-step-card">';
-                html += '<div class="info-step-title">📊 Conceptual diagram — for understanding only</div>';
-                html += '<pre style="background: #1e293b; color: #e2e8f0; padding: 15px; border-radius: 8px; font-family: \'Monaco\', \'Menlo\', \'Ubuntu Mono\', monospace; font-size: 13px; white-space: pre; overflow-x: auto; margin: 0; text-align: left; line-height: 1.6;">' + escapeHtml(extractEchoOutput(cmd.command)) + '</pre>';
+                html += '<div class="info-step-title">ℹ️ Informational step — no command to run</div>';
+                if (cmd.description) {
+                    html += '<p style="color:#7a2900;font-size:14px;margin:0 0 15px 0;text-align:left;">' + escapeHtml(cmd.description) + '</p>';
+                }
+                html += '<pre style="background:#1e293b;color:#e2e8f0;padding:15px;border-radius:8px;font-family:\'Monaco\',\'Menlo\',\'Ubuntu Mono\',monospace;font-size:13px;white-space:pre;overflow-x:auto;margin:0;text-align:left;line-height:1.6;">' + escapeHtml(extractEchoOutput(cmd.command)) + '</pre>';
                 html += '</div>';
 
-                if (cmd.explanation || cmd.next_step) {
+                if (cmd.explanation) {
                     html += '<div class="info-cards">';
-                    if (cmd.explanation) {
-                        html += '<div class="info-card why">';
-                        html += '<h4><span>&#128161;</span> Why this matters</h4>';
-                        html += '<p>' + escapeHtml(cmd.explanation) + '</p>';
-                        html += '</div>';
-                    }
+                    html += '<div class="info-card why">';
+                    html += '<h4><span>&#128161;</span> Why this matters</h4>';
+                    html += '<p>' + escapeHtml(cmd.explanation) + '</p>';
+                    html += '</div>';
                     if (cmd.next_step) {
                         html += '<div class="info-card next">';
                         html += '<h4><span>&#10145;&#65039;</span> What\'s next</h4>';
                         html += '<p>' + escapeHtml(cmd.next_step) + '</p>';
                         html += '</div>';
                     }
+                    html += '</div>';
+                } else if (cmd.next_step) {
+                    html += '<div class="info-cards">';
+                    html += '<div class="info-card next">';
+                    html += '<h4><span>&#10145;&#65039;</span> What\'s next</h4>';
+                    html += '<p>' + escapeHtml(cmd.next_step) + '</p>';
+                    html += '</div>';
                     html += '</div>';
                 }
 
@@ -807,7 +816,7 @@
                     });
                     html += '</ol>';
                 } else if (cmd.description) {
-                    html += '<p style="color:#7a2900;font-size:15px;margin:0;">' + escapeHtml(cmd.description) + '</p>';
+                    html += '<p style="color:#7a2900;font-size:15px;margin:0;text-align:left;">' + escapeHtml(cmd.description) + '</p>';
                 }
                 html += '</div>';
 
