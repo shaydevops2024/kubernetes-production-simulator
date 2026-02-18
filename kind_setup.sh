@@ -279,7 +279,7 @@ kubectl apply -f k8s/database/postgres-service.yaml
 print_success "PostgreSQL Service created"
 
 print_step "Waiting for PostgreSQL to be ready..."
-kubectl wait --for=condition=ready pod -l app=postgres -n ${NAMESPACE} --timeout=600s
+kubectl rollout status statefulset/postgres -n ${NAMESPACE} --timeout=600s
 print_success "PostgreSQL is ready!"
 
 # ============================================
@@ -646,6 +646,16 @@ echo "  curl http://localhost:${NODEPORT}/api/scenarios | jq '.scenarios | lengt
 echo ""
 echo "  # Login to ArgoCD CLI:"
 echo "  argocd login localhost:${ARGOCD_NODEPORT} --username admin --password ${ARGOCD_PASSWORD} --insecure"
+echo ""
+
+echo -e "${CYAN}🌐 Access the Website:${NC}"
+echo "  To open http://k8s-multi-demo.internal:30080/ you need to add it to your hosts file."
+echo ""
+echo "  On Ubuntu (run once):"
+echo "  echo '127.0.0.1 k8s-multi-demo.internal' | sudo tee -a /etc/hosts"
+echo ""
+echo "  On Windows (run once in PowerShell as Administrator):"
+echo "  Add-Content -Path 'C:\Windows\System32\drivers\etc\hosts' -Value '127.0.0.1 k8s-multi-demo.internal'"
 echo ""
 
 echo -e "${GREEN}========================================${NC}"

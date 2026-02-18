@@ -245,6 +245,7 @@
         .wizard-content {
             padding: 40px;
             min-height: 400px;
+            text-align: left;
         }
 
         .step-header {
@@ -691,6 +692,7 @@
         var totalSteps = 0;
         var scenarioData = null;
         var allCommands = [];
+        var hasYamlExplanation = false;
 
         function openArgoCD() {
             fetch('/api/argocd/url')
@@ -714,21 +716,18 @@
                 var data = await response.json();
                 scenarioData = data;
 
+                // Check if YAML explanation exists
+                hasYamlExplanation = data.yaml_explanation && data.yaml_explanation.trim().length > 0;
+
                 // Separate regular commands and cleanup commands
                 var regularCommands = data.commands.filter(function(cmd) { return !cmd.cleanup; });
                 var cleanupCommands = data.commands.filter(function(cmd) { return cmd.cleanup; });
                 allCommands = regularCommands.concat(cleanupCommands);
-                totalSteps = allCommands.length;
+
+                // Total steps = yaml explanation (if exists) + all commands
+                totalSteps = allCommands.length + (hasYamlExplanation ? 1 : 0);
 
                 renderScenario(data);
-
-                // Auto-scroll to bottom after 2 seconds
-                setTimeout(function() {
-                    window.scrollTo({
-                        top: document.body.scrollHeight,
-                        behavior: 'smooth'
-                    });
-                }, 2000);
             } catch (error) {
                 document.getElementById('scenario-content').innerHTML =
                     '<div class="error-message"><h3>Error Loading Scenario</h3><p>' + error.message + '</p></div>';
@@ -801,11 +800,48 @@
         }
 
         function renderStep(step) {
-            var cmd = allCommands[step - 1];
             var contentEl = document.getElementById('wizard-content');
+            var html = '';
+
+            // Special handling for Step 1 if YAML explanation exists
+            if (step === 1 && hasYamlExplanation) {
+                html += '<div class="step-header">';
+                html += '<div class="step-number">📚</div>';
+                html += '<h2 class="step-title">ArgoCD YAML Configuration Guide</h2>';
+                html += '</div>';
+
+                html += '<div style="background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); border: 2px solid #f97316; border-radius: 15px; padding: 20px; margin-bottom: 20px;">';
+                html += '<p style="color: #9a3412; font-size: 15px; margin: 0; line-height: 1.6;">📖 <strong>Before you begin:</strong> This guide explains all the ArgoCD and YAML configuration files used in this scenario. Understanding these files will help you grasp what each command does and why. Scroll down to read the full guide, then click "Next Step" to start the hands-on commands.</p>';
+                html += '</div>';
+
+                // Render markdown content with max height and scroll
+                html += '<div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-height: 600px; overflow-y: auto; text-align: left; word-wrap: break-word; overflow-wrap: break-word;">';
+                html += parseMarkdownToHtml(scenarioData.yaml_explanation);
+                html += '</div>';
+
+                html += '<div style="text-align: center; margin-top: 20px; padding: 15px; background: #fef3c7; border-radius: 10px; border: 1px solid #fde047;">';
+                html += '<p style="color: #92400e; margin: 0; font-size: 14px;">💡 <strong>Tip:</strong> Take your time reading through this guide. You can always return to this step using the navigation buttons or progress dots below.</p>';
+                html += '</div>';
+
+                // Back to Top button
+                html += '<div style="text-align: center; margin-top: 20px;">';
+                html += '<button onclick="window.scrollTo({ top: 0, behavior: \'smooth\' })" style="padding: 12px 24px; background: linear-gradient(135deg, #ea580c 0%, #f97316 100%); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 6px 12px rgba(0,0,0,0.15)\';" onmouseout="this.style.transform=\'translateY(0)\'; this.style.boxShadow=\'0 4px 6px rgba(0,0,0,0.1)\';">';
+                html += '⬆️ Back to Top';
+                html += '</button>';
+                html += '</div>';
+
+                contentEl.innerHTML = html;
+
+                // No auto-scroll for first step
+                return;
+            }
+
+            // Regular command steps
+            var cmdIndex = hasYamlExplanation ? step - 2 : step - 1;
+            var cmd = allCommands[cmdIndex];
             var isArgo = isArgoCDStep(cmd);
 
-            var html = '<div class="step-header">';
+            html = '<div class="step-header">';
             html += '<div class="step-number">' + step + '</div>';
             html += '<h2 class="step-title">' + escapeHtml(cmd.name || 'Step ' + step) + '</h2>';
             if (cmd.cleanup) {
@@ -892,6 +928,16 @@
             }
 
             contentEl.innerHTML = html;
+
+            // Auto-scroll to bottom (skip first step)
+            if (step > 1) {
+                setTimeout(function() {
+                    window.scrollTo({
+                        top: document.body.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                }, 300);
+            }
         }
 
         function goToStep(step) {
@@ -1009,6 +1055,84 @@
             var div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        function parseMarkdownToHtml(markdown) {
+            if (!markdown) return '<p style="text-align: center; color: #94a3b8;">No explanation available for this scenario.</p>';
+
+            var html = '';
+            var lines = markdown.split('\n');
+            var inCodeBlock = false;
+            var codeContent = '';
+            var inList = false;
+
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i];
+                var trimmedLine = line.trim();
+
+                // Code blocks
+                if (trimmedLine.startsWith('```')) {
+                    if (inCodeBlock) {
+                        html += '<pre style="background: #1e293b; color: #e2e8f0; padding: 15px; border-radius: 8px; overflow-x: auto; font-size: 13px; margin: 15px 0; white-space: pre-wrap; word-wrap: break-word;">' + escapeHtml(codeContent.trim()) + '</pre>';
+                        codeContent = '';
+                        inCodeBlock = false;
+                    } else {
+                        inCodeBlock = true;
+                    }
+                    continue;
+                }
+
+                if (inCodeBlock) {
+                    codeContent += line + '\n';
+                    continue;
+                }
+
+                // Headings
+                if (trimmedLine.startsWith('# ')) {
+                    html += '<h2 style="color: #1e293b; margin: 25px 0 15px 0; font-size: 24px; text-align: left; font-weight: 700;">' + escapeHtml(trimmedLine.substring(2)) + '</h2>';
+                } else if (trimmedLine.startsWith('## ')) {
+                    html += '<div class="yaml-explain-section"><h4 style="text-align: left; color: #1e293b; font-size: 18px; font-weight: 600; margin-bottom: 10px;">' + escapeHtml(trimmedLine.substring(3)) + '</h4>';
+                } else if (trimmedLine.startsWith('### ')) {
+                    html += '<h5 style="color: #475569; margin: 15px 0 10px 0; font-size: 15px; font-weight: 600; text-align: left;">' + escapeHtml(trimmedLine.substring(4)) + '</h5>';
+                } else if (trimmedLine.startsWith('---')) {
+                    html += '</div>';
+                } else if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
+                    if (!inList) {
+                        html += '<ul style="padding-left: 20px; margin: 10px 0; text-align: left; color: #475569;">';
+                        inList = true;
+                    }
+                    html += '<li style="margin: 5px 0; text-align: left; color: #475569; font-size: 14px; line-height: 1.6;">' + parseInlineMarkdown(trimmedLine.substring(2)) + '</li>';
+                } else if (trimmedLine.startsWith('| ')) {
+                    html += '<div style="font-family: monospace; font-size: 12px; color: #64748b; margin: 5px 0; text-align: left;">' + escapeHtml(trimmedLine) + '</div>';
+                } else if (trimmedLine === '') {
+                    if (inList) {
+                        html += '</ul>';
+                        inList = false;
+                    }
+                    html += '<br>';
+                } else {
+                    if (inList) {
+                        html += '</ul>';
+                        inList = false;
+                    }
+                    html += '<p style="margin: 10px 0; text-align: left; color: #475569; font-size: 14px; line-height: 1.6;">' + parseInlineMarkdown(trimmedLine) + '</p>';
+                }
+            }
+
+            if (inList) {
+                html += '</ul>';
+            }
+
+            return html;
+        }
+
+        function parseInlineMarkdown(text) {
+            text = escapeHtml(text);
+            text = text.replace(/\*\*(.+?)\*\*/g, '<strong style="color: #1e293b; font-weight: 700;">$1</strong>');
+            text = text.replace(/\*(.+?)\*/g, '<em style="color: #475569;">$1</em>');
+            text = text.replace(/`(.+?)`/g, '<code style="background: #f1f5f9; color: #1e293b; padding: 2px 6px; border-radius: 3px; font-size: 13px;">$1</code>');
+            text = text.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" style="color: #f97316; text-decoration: underline;">$1</a>');
+            return text;
         }
 
         // Keyboard navigation
