@@ -13,11 +13,18 @@
     },
     {
       "name": "Step 2: Sync v1",
-      "command": "echo '>>> Open ArgoCD UI at http://localhost:30800 <<<\n>>> Click sc07-rollback > SYNC > SYNCHRONIZE <<<' && sleep 5 && kubectl get application sc07-rollback -n argocd",
+      "type": "info",
+      "command": "",
       "description": "Manually sync in ArgoCD UI to deploy v1",
       "explanation": "Use the ArgoCD UI to sync. You'll see the resources being created. Once synced, all pods should run nginx:1.20-alpine.",
       "what_it_does": "Triggers manual sync of v1 deployment.",
-      "next_step": "Verify v1 is running."
+      "next_step": "Verify v1 is running.",
+      "info_steps": [
+        "Open ArgoCD UI (use the button above)",
+        "Click on <strong>sc07-rollback</strong>",
+        "Click <strong>SYNC</strong> at the top, then <strong>SYNCHRONIZE</strong>",
+        "Watch the resources being created — once done, all pods run <em>nginx:1.20-alpine</em>"
+      ]
     },
     {
       "name": "Step 3: Verify v1 Running",
@@ -29,7 +36,7 @@
     },
     {
       "name": "Step 4: Simulate v2 Update (Direct Patch)",
-      "command": "kubectl set image deployment/rollback-app app=nginx:1.21-alpine -n argocd-sc-07 && echo 'Updated to v2 (nginx:1.21-alpine)' && sleep 5 && kubectl get pods -n argocd-sc-07 -o jsonpath='{.items[*].spec.containers[*].image}' | tr ' ' '\\n' | sort -u",
+      "command": "kubectl set image deployment/rollback-app app=nginx:1.21-alpine -n argocd-sc-07 && kubectl get pods -n argocd-sc-07 -o jsonpath='{.items[*].spec.containers[*].image}' | tr ' ' '\\n' | sort -u",
       "description": "Update the deployment image to simulate a new version",
       "explanation": "We directly patch the deployment to nginx:1.21-alpine. This creates drift between the live state and Git. ArgoCD will detect this as 'OutOfSync'.",
       "what_it_does": "Updates the deployment to v2, creating drift from Git.",
@@ -37,19 +44,33 @@
     },
     {
       "name": "Step 5: Observe Drift in ArgoCD",
-      "command": "echo '>>> Open ArgoCD UI at http://localhost:30800 <<<\n>>> Click sc07-rollback - notice OutOfSync status <<<\n>>> Click APP DIFF to see what changed <<<' && kubectl get application sc07-rollback -n argocd -o jsonpath='Sync: {.status.sync.status}'",
+      "type": "info",
+      "command": "",
       "description": "View the drift detection in ArgoCD UI",
       "explanation": "ArgoCD detected that the live deployment differs from Git. The APP DIFF view shows exactly what changed (image tag). In a real GitOps workflow, you'd revert by syncing back to Git state.",
       "what_it_does": "Shows drift detection between live state and Git desired state.",
-      "next_step": "Rollback to v1 by syncing ArgoCD (reverting to Git state)."
+      "next_step": "Rollback to v1 by syncing ArgoCD (reverting to Git state).",
+      "info_steps": [
+        "Open ArgoCD UI (use the button above)",
+        "Click on <strong>sc07-rollback</strong> — notice the <em>OutOfSync</em> status",
+        "Click <strong>APP DIFF</strong> to see exactly what changed (the image tag from 1.20 to 1.21)",
+        "This is ArgoCD's drift detection — it knows the live state no longer matches Git"
+      ]
     },
     {
       "name": "Step 6: Rollback via ArgoCD Sync",
-      "command": "echo '>>> In ArgoCD UI: Click SYNC > SYNCHRONIZE on sc07-rollback <<<\n>>> This reverts the deployment back to Git state (v1) <<<' && sleep 10 && kubectl get pods -n argocd-sc-07 -o jsonpath='{.items[*].spec.containers[*].image}' | tr ' ' '\\n' | sort -u",
+      "type": "info",
+      "command": "",
       "description": "Sync in ArgoCD to rollback to v1 (Git state)",
       "explanation": "Syncing re-applies the Git manifests, reverting the image back to nginx:1.20-alpine. This is GitOps rollback - the Git repo is always the source of truth. No need for 'kubectl rollout undo'.",
       "what_it_does": "Reverts deployment to Git state via ArgoCD sync.",
-      "next_step": "Verify the rollback succeeded."
+      "next_step": "Verify the rollback succeeded.",
+      "info_steps": [
+        "Open ArgoCD UI (use the button above)",
+        "Click on <strong>sc07-rollback</strong>",
+        "Click <strong>SYNC</strong> → <strong>SYNCHRONIZE</strong>",
+        "ArgoCD re-applies the Git manifests, reverting the image back to <em>nginx:1.20-alpine</em> — GitOps rollback with no <code>kubectl rollout undo</code> needed!"
+      ]
     },
     {
       "name": "Step 7: Verify Rollback",
@@ -61,11 +82,18 @@
     },
     {
       "name": "Step 8: View Sync History",
-      "command": "echo '>>> In ArgoCD UI: Click sc07-rollback > HISTORY AND ROLLBACK tab <<<\n>>> You can see all sync operations and rollback to any revision <<<' && kubectl get application sc07-rollback -n argocd -o jsonpath='{.status.history[*].revision}' | tr ' ' '\\n'",
+      "type": "info",
+      "command": "",
       "description": "View sync history in ArgoCD - shows all revisions",
       "explanation": "ArgoCD keeps a history of all sync operations. You can rollback to any previous sync revision through the UI. This is more powerful than kubectl rollout history because it covers ALL resources, not just deployments.",
       "what_it_does": "Shows sync history and revision tracking.",
-      "next_step": "Scenario complete! Clean up when ready."
+      "next_step": "Scenario complete! Clean up when ready.",
+      "info_steps": [
+        "Open ArgoCD UI (use the button above)",
+        "Click on <strong>sc07-rollback</strong>",
+        "Click the <strong>HISTORY AND ROLLBACK</strong> tab",
+        "You can see all sync operations — and roll back to <strong>any previous revision</strong> from this tab"
+      ]
     },
     {
       "name": "Cleanup: Delete Application",

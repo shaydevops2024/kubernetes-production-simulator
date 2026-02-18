@@ -320,9 +320,8 @@
             font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
             font-size: 15px;
             line-height: 1.6;
-            white-space: pre-wrap;
-            word-break: break-word;
-            overflow-wrap: break-word;
+            white-space: pre;
+            overflow-x: auto;
         }
 
         .command-code .prompt {
@@ -415,6 +414,48 @@
             font-size: 14px;
             margin-top: 4px;
             line-height: 1.5;
+        }
+
+        /* Info Step */
+        .info-step-card {
+            background: linear-gradient(135deg, #FEF3E2 0%, #fde9cc 100%);
+            border: 2px solid #FC6D26;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .info-step-card .info-step-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #C4320A;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-step-card ol {
+            padding-left: 22px;
+            margin: 0;
+        }
+
+        .info-step-card ol li {
+            color: #7a2900;
+            font-size: 15px;
+            line-height: 1.7;
+            margin-bottom: 10px;
+        }
+
+        .info-step-card ol li strong {
+            color: #5c1f00;
+        }
+
+        .info-step-card ol li em {
+            font-style: normal;
+            background: #fcd9b6;
+            padding: 1px 6px;
+            border-radius: 3px;
         }
 
         /* Cleanup Badge */
@@ -586,6 +627,7 @@
         var totalSteps = 0;
         var scenarioData = null;
         var allCommands = [];
+        var hasYamlExplanation = false;
 
         async function loadScenario() {
             try {
@@ -593,20 +635,25 @@
                 var data = await response.json();
                 scenarioData = data;
 
+                // Check if YAML explanation exists
+                hasYamlExplanation = data.yaml_explanation && data.yaml_explanation.trim().length > 0;
+
                 // Separate regular commands and cleanup commands
                 var regularCommands = data.commands.filter(function(cmd) { return !cmd.cleanup; });
                 var cleanupCommands = data.commands.filter(function(cmd) { return cmd.cleanup; });
                 allCommands = regularCommands.concat(cleanupCommands);
-                totalSteps = allCommands.length;
+                totalSteps = allCommands.length + (hasYamlExplanation ? 1 : 0);
 
                 renderScenario(data);
 
-                setTimeout(function() {
-                    window.scrollTo({
-                        top: document.body.scrollHeight,
-                        behavior: 'smooth'
-                    });
-                }, 2000);
+                if (!hasYamlExplanation) {
+                    setTimeout(function() {
+                        window.scrollTo({
+                            top: document.body.scrollHeight,
+                            behavior: 'smooth'
+                        });
+                    }, 2000);
+                }
             } catch (error) {
                 document.getElementById('scenario-content').innerHTML =
                     '<div class="error-message"><h3>Error Loading Scenario</h3><p>' + error.message + '</p></div>';
@@ -676,8 +723,39 @@
         }
 
         function renderStep(step) {
-            var cmd = allCommands[step - 1];
             var contentEl = document.getElementById('wizard-content');
+
+            // Special handling for Step 1 if YAML explanation exists
+            if (step === 1 && hasYamlExplanation) {
+                var html = '<div class="step-header">';
+                html += '<div class="step-number">📚</div>';
+                html += '<h2 class="step-title">GitLab CI YAML Configuration Guide</h2>';
+                html += '</div>';
+
+                html += '<div style="background: linear-gradient(135deg, #FEF3E2 0%, #fde9cc 100%); border: 2px solid #FC6D26; border-radius: 15px; padding: 20px; margin-bottom: 20px;">';
+                html += '<p style="color: #7a2900; font-size: 15px; margin: 0; line-height: 1.6;">📖 <strong>Before you begin:</strong> This guide explains the GitLab CI and YAML configuration files used in this scenario. Understanding these files will help you grasp what each command does and why. Scroll down to read the full guide, then click "Next Step" to start the hands-on commands.</p>';
+                html += '</div>';
+
+                html += '<div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-height: 600px; overflow-y: auto; text-align: left; word-wrap: break-word; overflow-wrap: break-word;">';
+                html += parseMarkdownToHtml(scenarioData.yaml_explanation);
+                html += '</div>';
+
+                html += '<div style="text-align: center; margin-top: 20px; padding: 15px; background: #fef3c7; border-radius: 10px; border: 1px solid #fde047;">';
+                html += '<p style="color: #92400e; margin: 0; font-size: 14px;">💡 <strong>Tip:</strong> Take your time reading through this guide. You can always return to this step using the navigation buttons or progress dots below.</p>';
+                html += '</div>';
+
+                html += '<div style="text-align: center; margin-top: 20px;">';
+                html += '<button onclick="window.scrollTo({ top: 0, behavior: \'smooth\' })" style="padding: 12px 24px; background: linear-gradient(135deg, #E24329 0%, #FCA326 100%); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer;">';
+                html += '⬆️ Back to Top';
+                html += '</button>';
+                html += '</div>';
+
+                contentEl.innerHTML = html;
+                return;
+            }
+
+            var cmd = allCommands[step - (hasYamlExplanation ? 2 : 1)];
+            if (!cmd) return;
 
             var html = '<div class="step-header">';
             html += '<div class="step-number">' + step + '</div>';
@@ -686,6 +764,78 @@
                 html += '<span class="cleanup-badge">Cleanup</span>';
             }
             html += '</div>';
+
+            // Echo-only step (diagram/summary — not a real command to run)
+            if (cmd.type !== 'info' && isEchoOnlyCommand(cmd.command)) {
+                html += '<div class="info-step-card">';
+                html += '<div class="info-step-title">📊 Conceptual diagram — for understanding only</div>';
+                html += '<pre style="background: #1e293b; color: #e2e8f0; padding: 15px; border-radius: 8px; font-family: \'Monaco\', \'Menlo\', \'Ubuntu Mono\', monospace; font-size: 13px; white-space: pre; overflow-x: auto; margin: 0; text-align: left; line-height: 1.6;">' + escapeHtml(extractEchoOutput(cmd.command)) + '</pre>';
+                html += '</div>';
+
+                if (cmd.explanation || cmd.next_step) {
+                    html += '<div class="info-cards">';
+                    if (cmd.explanation) {
+                        html += '<div class="info-card why">';
+                        html += '<h4><span>&#128161;</span> Why this matters</h4>';
+                        html += '<p>' + escapeHtml(cmd.explanation) + '</p>';
+                        html += '</div>';
+                    }
+                    if (cmd.next_step) {
+                        html += '<div class="info-card next">';
+                        html += '<h4><span>&#10145;&#65039;</span> What\'s next</h4>';
+                        html += '<p>' + escapeHtml(cmd.next_step) + '</p>';
+                        html += '</div>';
+                    }
+                    html += '</div>';
+                }
+
+                contentEl.innerHTML = html;
+                setTimeout(function() {
+                    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                }, 300);
+                return;
+            }
+
+            // Info-only step (no terminal command needed)
+            if (cmd.type === 'info') {
+                html += '<div class="info-step-card">';
+                html += '<div class="info-step-title">ℹ️ Informational step — no command to run</div>';
+                if (cmd.info_steps && cmd.info_steps.length > 0) {
+                    html += '<ol>';
+                    cmd.info_steps.forEach(function(s) {
+                        html += '<li>' + s + '</li>';
+                    });
+                    html += '</ol>';
+                } else if (cmd.description) {
+                    html += '<p style="color:#7a2900;font-size:15px;margin:0;">' + escapeHtml(cmd.description) + '</p>';
+                }
+                html += '</div>';
+
+                if (cmd.explanation) {
+                    html += '<div class="info-cards">';
+                    html += '<div class="info-card why">';
+                    html += '<h4><span>&#128161;</span> Why this matters</h4>';
+                    html += '<p>' + escapeHtml(cmd.explanation) + '</p>';
+                    html += '</div>';
+                    if (cmd.next_step) {
+                        html += '<div class="info-card next">';
+                        html += '<h4><span>&#10145;&#65039;</span> What\'s next</h4>';
+                        html += '<p>' + escapeHtml(cmd.next_step) + '</p>';
+                        html += '</div>';
+                    }
+                    html += '</div>';
+                } else if (cmd.next_step) {
+                    html += '<div class="info-cards">';
+                    html += '<div class="info-card next">';
+                    html += '<h4><span>&#10145;&#65039;</span> What\'s next</h4>';
+                    html += '<p>' + escapeHtml(cmd.next_step) + '</p>';
+                    html += '</div>';
+                    html += '</div>';
+                }
+
+                contentEl.innerHTML = html;
+                return;
+            }
 
             // Command Box
             html += '<div class="command-box">';
@@ -750,6 +900,9 @@
             }
 
             contentEl.innerHTML = html;
+            setTimeout(function() {
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            }, 300);
         }
 
         function goToStep(step) {
@@ -855,11 +1008,130 @@
             document.body.removeChild(textarea);
         }
 
+        function isEchoOnlyCommand(command) {
+            if (!command) return false;
+            var parts = command.split(' && ');
+            return parts.every(function(p) {
+                var t = p.trim();
+                return t === 'echo' || t.startsWith('echo ');
+            });
+        }
+
+        function extractEchoOutput(command) {
+            var parts = command.split(' && ');
+            var lines = parts.map(function(p) {
+                p = p.trim();
+                if (p === 'echo') return '';
+                p = p.substring(5); // remove 'echo '
+                if ((p.startsWith("'") && p.endsWith("'")) || (p.startsWith('"') && p.endsWith('"'))) {
+                    p = p.substring(1, p.length - 1);
+                }
+                return p;
+            });
+            return lines.join('\n');
+        }
+
         function escapeHtml(text) {
             if (!text) return '';
             var div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        function parseInlineMarkdown(text) {
+            text = escapeHtml(text);
+            text = text.replace(/\*\*(.+?)\*\*/g, '<strong style="color: #1e293b; font-weight: 700;">$1</strong>');
+            text = text.replace(/\*(.+?)\*/g, '<em style="color: #475569;">$1</em>');
+            text = text.replace(/`(.+?)`/g, '<code style="background: #f1f5f9; color: #1e293b; padding: 2px 6px; border-radius: 3px; font-size: 13px; font-family: monospace;">$1</code>');
+            text = text.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" style="color: #E24329; text-decoration: underline;">$1</a>');
+            return text;
+        }
+
+        var codeBlockCounter = 0;
+
+        function toggleCodeBlock(id) {
+            var pre = document.getElementById('code-' + id);
+            var btn = document.getElementById('toggle-' + id);
+            if (pre.style.display === 'none') {
+                pre.style.display = 'block';
+                btn.textContent = '▲ Collapse';
+            } else {
+                pre.style.display = 'none';
+                btn.textContent = '▶ Expand';
+            }
+        }
+
+        function parseMarkdownToHtml(markdown) {
+            if (!markdown) return '<p style="text-align: left; color: #94a3b8;">No explanation available for this scenario.</p>';
+
+            var html = '';
+            var lines = markdown.split('\n');
+            var inCodeBlock = false;
+            var codeContent = '';
+            var codeLanguage = '';
+            var inList = false;
+
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i];
+                var trimmedLine = line.trim();
+
+                if (trimmedLine.startsWith('```')) {
+                    if (inCodeBlock) {
+                        var id = ++codeBlockCounter;
+                        var lang = codeLanguage || 'code';
+                        html += '<div style="border-radius: 8px; overflow: hidden; margin: 15px 0; border: 1px solid #334155;">';
+                        html += '<div style="background: #334155; padding: 8px 15px; display: flex; justify-content: space-between; align-items: center;">';
+                        html += '<span style="color: #94a3b8; font-size: 12px; font-family: monospace; font-weight: 600;">' + escapeHtml(lang) + '</span>';
+                        html += '<button id="toggle-' + id + '" onclick="toggleCodeBlock(' + id + ')" style="background: #475569; color: #e2e8f0; border: none; border-radius: 4px; padding: 4px 10px; font-size: 12px; cursor: pointer;">▶ Expand</button>';
+                        html += '</div>';
+                        html += '<pre id="code-' + id + '" style="display: none; background: #1e293b; color: #e2e8f0; padding: 15px; margin: 0; overflow-x: auto; font-size: 13px; white-space: pre; text-align: left;">' + escapeHtml(codeContent.trim()) + '</pre>';
+                        html += '</div>';
+                        codeContent = '';
+                        codeLanguage = '';
+                        inCodeBlock = false;
+                    } else {
+                        codeLanguage = trimmedLine.substring(3).trim();
+                        inCodeBlock = true;
+                    }
+                    continue;
+                }
+
+                if (inCodeBlock) {
+                    codeContent += line + '\n';
+                    continue;
+                }
+
+                if (trimmedLine.startsWith('# ')) {
+                    html += '<h2 style="color: #1e293b; margin: 25px 0 15px 0; font-size: 24px; text-align: left; font-weight: 700;">' + escapeHtml(trimmedLine.substring(2)) + '</h2>';
+                } else if (trimmedLine.startsWith('## ')) {
+                    html += '<h3 style="color: #1e293b; font-size: 18px; font-weight: 600; margin: 20px 0 10px 0; text-align: left;">' + escapeHtml(trimmedLine.substring(3)) + '</h3>';
+                } else if (trimmedLine.startsWith('### ')) {
+                    html += '<h4 style="color: #475569; margin: 15px 0 8px 0; font-size: 15px; font-weight: 600; text-align: left;">' + escapeHtml(trimmedLine.substring(4)) + '</h4>';
+                } else if (trimmedLine.startsWith('---')) {
+                    html += '<hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;">';
+                } else if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
+                    if (!inList) {
+                        html += '<ul style="padding-left: 20px; margin: 10px 0; text-align: left; color: #475569;">';
+                        inList = true;
+                    }
+                    html += '<li style="margin: 5px 0; text-align: left; color: #475569; font-size: 14px; line-height: 1.6;">' + parseInlineMarkdown(trimmedLine.substring(2)) + '</li>';
+                } else if (trimmedLine === '') {
+                    if (inList) {
+                        html += '</ul>';
+                        inList = false;
+                    }
+                    html += '<br>';
+                } else {
+                    if (inList) {
+                        html += '</ul>';
+                        inList = false;
+                    }
+                    html += '<p style="margin: 10px 0; text-align: left; color: #475569; font-size: 14px; line-height: 1.6;">' + parseInlineMarkdown(trimmedLine) + '</p>';
+                }
+            }
+
+            if (inList) html += '</ul>';
+            return html;
         }
 
         document.addEventListener('keydown', function(e) {

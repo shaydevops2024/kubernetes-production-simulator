@@ -13,7 +13,7 @@
     },
     {
       "name": "Step 2: Compare Dev vs Prod Overlays",
-      "command": "echo '=== DEV ===' && cat argocd-scenarios/05-kustomize-envs/overlays/dev/kustomization.yaml && echo '\n=== PROD ===' && cat argocd-scenarios/05-kustomize-envs/overlays/prod/kustomization.yaml",
+      "command": "cat argocd-scenarios/05-kustomize-envs/overlays/dev/kustomization.yaml && cat argocd-scenarios/05-kustomize-envs/overlays/prod/kustomization.yaml",
       "description": "Compare how dev and prod overlays differ",
       "explanation": "Dev has 1 replica with minimal resources. Prod has 3 replicas with higher resource limits. Both use namePrefix and commonLabels to distinguish environments. ArgoCD natively understands Kustomize.",
       "what_it_does": "Shows the differences between dev and prod Kustomize overlays.",
@@ -37,15 +37,22 @@
     },
     {
       "name": "Step 5: View Both Apps in ArgoCD",
-      "command": "echo '>>> Open ArgoCD UI at http://localhost:30800 <<<\n>>> You should see sc05-kustomize-dev and sc05-kustomize-prod <<<' && kubectl get applications -n argocd -l 'app.kubernetes.io/instance in (sc05-kustomize-dev, sc05-kustomize-prod)' 2>/dev/null; kubectl get applications sc05-kustomize-dev sc05-kustomize-prod -n argocd 2>/dev/null",
+      "type": "info",
+      "command": "",
       "description": "Check both environments in ArgoCD UI",
       "explanation": "In the ArgoCD UI, you'll see two separate applications - one for dev and one for prod. Each manages its own namespace with different configurations. This is environment promotion via GitOps.",
       "what_it_does": "Shows both ArgoCD applications and guides you to the UI.",
-      "next_step": "Compare the actual deployments between environments."
+      "next_step": "Compare the actual deployments between environments.",
+      "info_steps": [
+        "Open ArgoCD UI (use the button above)",
+        "You should see two separate apps: <strong>sc05-kustomize-dev</strong> and <strong>sc05-kustomize-prod</strong>",
+        "Each manages its own namespace with different replica counts and resource limits",
+        "Same source repo, different Kustomize overlays — this is GitOps environment promotion"
+      ]
     },
     {
       "name": "Step 6: Compare Deployed Resources",
-      "command": "echo '=== DEV (1 replica) ===' && kubectl get pods -n argocd-sc-05-dev 2>/dev/null && echo '\n=== PROD (3 replicas) ===' && kubectl get pods -n argocd-sc-05-prod 2>/dev/null",
+      "command": "kubectl get pods -n argocd-sc-05-dev 2>/dev/null && kubectl get pods -n argocd-sc-05-prod 2>/dev/null",
       "description": "Compare pod counts between dev and prod",
       "explanation": "Dev should have 1 pod, prod should have 3 pods. Same application, different configurations via Kustomize overlays. This pattern scales to dozens of environments.",
       "what_it_does": "Shows the different replica counts in dev vs prod namespaces.",

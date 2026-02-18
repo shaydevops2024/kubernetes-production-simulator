@@ -21,11 +21,18 @@
     },
     {
       "name": "Step 3: Watch Helm Deployment",
-      "command": "echo '>>> Open ArgoCD UI at http://localhost:30800 <<<\n>>> Click sc06-helm-nginx to see all Helm-generated resources <<<' && sleep 10 && kubectl get application sc06-helm-nginx -n argocd",
+      "type": "info",
+      "command": "",
       "description": "View the Helm-deployed resources in ArgoCD UI",
       "explanation": "In the ArgoCD UI, you'll see all resources the Helm chart created. Helm charts often create more resources than raw manifests (ConfigMaps, ServiceAccounts, etc). ArgoCD shows the complete resource tree.",
       "what_it_does": "Guides you to view the Helm deployment in ArgoCD UI.",
-      "next_step": "Check what resources Helm created."
+      "next_step": "Check what resources Helm created.",
+      "info_steps": [
+        "Open ArgoCD UI (use the button above)",
+        "Click on <strong>sc06-helm-nginx</strong>",
+        "Notice how many resources the Helm chart created (ConfigMaps, ServiceAccounts, etc.) — more than raw manifests would",
+        "ArgoCD shows the <strong>complete Helm resource tree</strong> in one view"
+      ]
     },
     {
       "name": "Step 4: List Helm-Created Resources",

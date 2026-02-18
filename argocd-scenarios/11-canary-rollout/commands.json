@@ -5,7 +5,7 @@
   "commands": [
     {
       "name": "Step 1: Install Argo Rollouts Controller",
-      "command": "kubectl create namespace argo-rollouts --dry-run=client -o yaml | kubectl apply -f - && kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml && echo 'Waiting for Argo Rollouts controller...' && kubectl wait --for=condition=available deployment/argo-rollouts -n argo-rollouts --timeout=120s",
+      "command": "kubectl create namespace argo-rollouts --dry-run=client -o yaml | kubectl apply -f - && kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml && kubectl wait --for=condition=available deployment/argo-rollouts -n argo-rollouts --timeout=120s",
       "description": "Install the Argo Rollouts controller (required for canary deployments)",
       "explanation": "Argo Rollouts is a separate controller from ArgoCD. It provides advanced deployment strategies (canary, blue-green) that standard Kubernetes Deployments don't support. It uses a custom 'Rollout' resource instead of 'Deployment'.",
       "what_it_does": "Installs the Argo Rollouts controller in the argo-rollouts namespace.",
@@ -21,7 +21,7 @@
     },
     {
       "name": "Step 3: Deploy v1 via ArgoCD",
-      "command": "kubectl apply -f argocd-scenarios/11-canary-rollout/application.yaml && echo 'Waiting for sync...' && sleep 15 && kubectl get application sc11-canary -n argocd",
+      "command": "kubectl apply -f argocd-scenarios/11-canary-rollout/application.yaml && sleep 15 && kubectl get application sc11-canary -n argocd",
       "description": "Deploy the initial version via ArgoCD",
       "explanation": "ArgoCD will detect the Rollout resource and deploy it. ArgoCD natively understands Argo Rollout resources and shows their health status correctly.",
       "what_it_does": "Creates the ArgoCD Application and deploys the Rollout.",
@@ -29,7 +29,7 @@
     },
     {
       "name": "Step 4: Verify v1 Running",
-      "command": "kubectl get rollout canary-app -n argocd-sc-11 && echo '' && kubectl get pods -n argocd-sc-11",
+      "command": "kubectl get rollout canary-app -n argocd-sc-11 && kubectl get pods -n argocd-sc-11",
       "description": "Check that the Rollout and pods are healthy",
       "explanation": "You should see 4 pods running nginx:1.20-alpine. The Rollout status should show stable with all replicas ready.",
       "what_it_does": "Verifies v1 deployment via Argo Rollout.",
@@ -37,7 +37,7 @@
     },
     {
       "name": "Step 5: Trigger Canary Update to v2",
-      "command": "kubectl argo rollouts set image canary-app app=nginx:1.21-alpine -n argocd-sc-11 2>/dev/null || kubectl patch rollout canary-app -n argocd-sc-11 --type='json' -p='[{\"op\": \"replace\", \"path\": \"/spec/template/spec/containers/0/image\", \"value\":\"nginx:1.21-alpine\"}]' && echo 'Canary update started! 25% of pods will run v2.'",
+      "command": "kubectl argo rollouts set image canary-app app=nginx:1.21-alpine -n argocd-sc-11 2>/dev/null || kubectl patch rollout canary-app -n argocd-sc-11 --type='json' -p='[{\"op\": \"replace\", \"path\": \"/spec/template/spec/containers/0/image\", \"value\":\"nginx:1.21-alpine\"}]'",
       "description": "Update to v2 - canary will start at 25%",
       "explanation": "The Rollout controller starts the canary process. It creates new pods with v2 (25% of replicas) while keeping v1 pods running. The first step pauses and waits for manual promotion.",
       "what_it_does": "Starts canary deployment: 25% v2, 75% v1.",
@@ -45,7 +45,7 @@
     },
     {
       "name": "Step 6: Check Canary Status",
-      "command": "echo '>>> Open ArgoCD UI at http://localhost:30800 <<<\n>>> Click sc11-canary to see canary progress <<<' && sleep 10 && kubectl get rollout canary-app -n argocd-sc-11 && echo '' && kubectl get pods -n argocd-sc-11 -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.spec.containers[0].image}{\"\\n\"}{end}'",
+      "command": "sleep 10 && kubectl get rollout canary-app -n argocd-sc-11 && kubectl get pods -n argocd-sc-11 -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.spec.containers[0].image}{\"\\n\"}{end}'",
       "description": "View canary progress - should be paused at 25%",
       "explanation": "You should see some pods running v1 (nginx:1.20) and some running v2 (nginx:1.21). The Rollout is paused at 25%, waiting for manual promotion. In production, you'd verify v2 is healthy before proceeding.",
       "what_it_does": "Shows canary status with mixed v1/v2 pods.",
@@ -53,7 +53,7 @@
     },
     {
       "name": "Step 7: Promote Canary",
-      "command": "kubectl argo rollouts promote canary-app -n argocd-sc-11 2>/dev/null || kubectl patch rollout canary-app -n argocd-sc-11 --type='json' -p='[{\"op\": \"replace\", \"path\": \"/status/pauseConditions\", \"value\":[]}]' && echo 'Canary promoted! Moving to 50%, then 75%, then 100%...' && sleep 10 && kubectl get rollout canary-app -n argocd-sc-11",
+      "command": "kubectl argo rollouts promote canary-app -n argocd-sc-11 2>/dev/null || kubectl patch rollout canary-app -n argocd-sc-11 --type='json' -p='[{\"op\": \"replace\", \"path\": \"/status/pauseConditions\", \"value\":[]}]' && sleep 10 && kubectl get rollout canary-app -n argocd-sc-11",
       "description": "Promote the canary to continue the rollout",
       "explanation": "Promotion advances past the manual pause. The rollout continues: 50% (wait 30s) -> 75% (wait 30s) -> 100%. Each step gradually shifts traffic to v2 while monitoring health.",
       "what_it_does": "Promotes canary past the manual pause step.",
@@ -61,7 +61,7 @@
     },
     {
       "name": "Step 8: Verify Full Rollout",
-      "command": "echo 'Waiting for rollout to complete...' && sleep 70 && kubectl get rollout canary-app -n argocd-sc-11 && echo '' && kubectl get pods -n argocd-sc-11 -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.spec.containers[0].image}{\"\\n\"}{end}'",
+      "command": "sleep 70 && kubectl get rollout canary-app -n argocd-sc-11 && kubectl get pods -n argocd-sc-11 -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.spec.containers[0].image}{\"\\n\"}{end}'",
       "description": "Verify all pods are now on v2",
       "explanation": "After the canary steps complete, all pods should be running nginx:1.21-alpine (v2). The rollout is now stable on v2. In ArgoCD UI, the application should show Healthy and Synced.",
       "what_it_does": "Confirms complete rollout to v2.",

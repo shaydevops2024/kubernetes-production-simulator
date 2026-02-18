@@ -5,7 +5,7 @@
   "commands": [
     {
       "name": "Step 1: Understand Multi-Source Pattern",
-      "command": "echo '=== Multi-Source Application Pattern ===\n\nIn production, teams often split configs across repos:\n- Repo A: Deployment, Service (infra team)\n- Repo B: ConfigMaps, Secrets (app team)\n\nArgoCD can combine multiple sources into one Application.\nThis scenario simulates that pattern.' && cat argocd-scenarios/08-multi-source-app/manifests/deployment.yaml",
+      "command": "cat argocd-scenarios/08-multi-source-app/manifests/deployment.yaml",
       "description": "Learn why multi-source applications are used in production",
       "explanation": "Multi-source applications let different teams own different parts of the deployment. The infra team manages deployments/services while the app team manages configs. ArgoCD combines them into a single application.",
       "what_it_does": "Explains the multi-source pattern and shows the deployment manifest.",
@@ -28,16 +28,16 @@
       "next_step": "Deploy the application via ArgoCD."
     },
     {
-      "name": "Step 4: Deploy via ArgoCD",
-      "command": "kubectl apply -f argocd-scenarios/08-multi-source-app/application.yaml && echo 'Waiting for sync...' && sleep 10 && kubectl get application sc08-multi-source -n argocd",
-      "description": "Create the ArgoCD Application",
-      "explanation": "ArgoCD deploys all manifests from the source path. In a real multi-source setup, you'd configure multiple sources in the Application spec. Here we simulate it with manifests labeled by source.",
-      "what_it_does": "Creates the ArgoCD Application and begins syncing.",
+      "name": "Step 4: Deploy Manifests Directly (Simulating Multi-Source Sync)",
+      "command": "kubectl apply -f argocd-scenarios/08-multi-source-app/manifests/ && kubectl get all -n argocd-sc-08",
+      "description": "Apply all manifests directly, simulating what ArgoCD would pull from multiple Git sources",
+      "explanation": "In a real multi-source setup, ArgoCD pulls from two separate Git repos and combines them into one Application. Here we apply the manifests directly since this is a local Kind cluster without a real Git remote. The application.yaml in this scenario is reference material showing how you would configure a real multi-source Application pointing to your own Git repos.",
+      "what_it_does": "Deploys the deployment (primary source), service (primary source), and configmap (secondary source) to argocd-sc-08.",
       "next_step": "Verify all resources are deployed."
     },
     {
       "name": "Step 5: Verify Resources from Both Sources",
-      "command": "echo '=== Primary Source (Deployment + Service) ===' && kubectl get deployment,service -n argocd-sc-08 -l app=multi-source-app && echo '' && echo '=== Secondary Source (ConfigMap) ===' && kubectl get configmap -n argocd-sc-08 -l source=secondary && echo '' && echo '>>> Open ArgoCD UI to see all resources in the tree <<<'",
+      "command": "kubectl get deployment,service -n argocd-sc-08 -l app=multi-source-app && kubectl get configmap -n argocd-sc-08 -l source=secondary",
       "description": "Verify resources from both primary and secondary sources",
       "explanation": "The deployment and service come from the 'primary' source, while the ConfigMap comes from the 'secondary' source. In ArgoCD UI, you can see all resources in the application tree regardless of their origin.",
       "what_it_does": "Lists resources grouped by their source label.",
@@ -45,19 +45,19 @@
     },
     {
       "name": "Step 6: Update Secondary Source (ConfigMap)",
-      "command": "kubectl patch configmap multi-source-content -n argocd-sc-08 --type merge -p '{\"data\":{\"index.html\":\"<html><body><h1>Updated Content v2</h1><p>This content was updated from the secondary source.</p></body></html>\"}}' && echo 'ConfigMap updated! Check ArgoCD for OutOfSync status.'",
+      "command": "kubectl patch configmap multi-source-content -n argocd-sc-08 --type merge -p '{\"data\":{\"index.html\":\"<html><body><h1>Updated Content v2</h1><p>This content was updated from the secondary source.</p></body></html>\"}}'",
       "description": "Simulate a change in the secondary source repo",
       "explanation": "In production, a git push to the secondary repo would trigger this. ArgoCD detects the drift between desired state (Git) and live state (cluster). The application shows as OutOfSync.",
       "what_it_does": "Updates the ConfigMap to simulate a secondary source change.",
       "next_step": "Check ArgoCD sync status."
     },
     {
-      "name": "Step 7: Check Sync Status",
-      "command": "echo '>>> Open ArgoCD UI at http://localhost:30800 <<<\n>>> sc08-multi-source may show OutOfSync <<<' && kubectl get application sc08-multi-source -n argocd -o jsonpath='Sync: {.status.sync.status}, Health: {.status.health.status}'",
-      "description": "Observe how ArgoCD detects changes from either source",
-      "explanation": "ArgoCD monitors all resources regardless of which source they came from. Any drift triggers OutOfSync status. This ensures consistency across all sources.",
-      "what_it_does": "Shows the application sync and health status.",
-      "next_step": "Verify the updated content is served."
+      "name": "Step 7: Check Live ConfigMap State",
+      "command": "kubectl get configmap multi-source-content -n argocd-sc-08 -o jsonpath='{.data.index\\.html}'",
+      "description": "Observe the live state of the secondary source ConfigMap after the patch",
+      "explanation": "In a real ArgoCD multi-source setup, patching a resource directly like this creates drift — ArgoCD would detect the live state no longer matches Git and mark the app OutOfSync. It would then revert the change on the next sync. This is how GitOps enforces the Git repo as the single source of truth across all sources.",
+      "what_it_does": "Shows the current content of the ConfigMap to confirm the patch from Step 6 took effect.",
+      "next_step": "Verify the updated content is served by the pod."
     },
     {
       "name": "Step 8: Verify Updated Content",
@@ -69,7 +69,7 @@
     },
     {
       "name": "Cleanup: Delete Application",
-      "command": "kubectl delete application sc08-multi-source -n argocd 2>/dev/null; kubectl delete namespace argocd-sc-08 --ignore-not-found",
+      "command": "kubectl delete namespace argocd-sc-08 --ignore-not-found",
       "description": "Remove all resources from this scenario",
       "explanation": "Removes the ArgoCD Application and the namespace with all resources.",
       "what_it_does": "Cleans up all multi-source scenario resources.",

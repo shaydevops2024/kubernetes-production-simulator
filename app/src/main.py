@@ -1849,6 +1849,7 @@ async def get_gitlab_ci_scenario(scenario_id: str):
             "readme": "",
             "commands": [],
             "yaml_files": [],
+            "yaml_explanation": None,
             "difficulty": "medium",
             "duration": "15 min",
             "namespace": "gitlab-ci-scenarios"
@@ -1868,6 +1869,16 @@ async def get_gitlab_ci_scenario(scenario_id: str):
                 scenario_info["commands"] = commands_data.get("commands", [])
                 scenario_info["difficulty"] = commands_data.get("difficulty", "medium")
                 scenario_info["duration"] = commands_data.get("duration", "15 min")
+
+        # Read YAML explanation if exists
+        yaml_explanation_path = scenario_dir / "yaml-explanation.md"
+        if yaml_explanation_path.exists():
+            try:
+                with open(yaml_explanation_path, 'r', encoding='utf-8') as f:
+                    scenario_info["yaml_explanation"] = f.read()
+                    logger.info(f"Loaded yaml-explanation.md for GitLab CI scenario {scenario_id}")
+            except Exception as e:
+                logger.error(f"Error reading yaml-explanation.md for GitLab CI scenario {scenario_id}: {e}")
 
         # Collect YAML files from scenario dir and subdirectories
         yaml_files = []

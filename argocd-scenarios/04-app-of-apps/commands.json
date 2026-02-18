@@ -13,7 +13,7 @@
     },
     {
       "name": "Step 2: Review Child Applications",
-      "command": "echo \"=== Frontend App ===\" && cat argocd-scenarios/04-app-of-apps/children/frontend-app.yaml && echo \"\\n=== Backend App ===\" && cat argocd-scenarios/04-app-of-apps/children/backend-app.yaml",
+      "command": "cat argocd-scenarios/04-app-of-apps/children/frontend-app.yaml && cat argocd-scenarios/04-app-of-apps/children/backend-app.yaml",
       "description": "Review the child Application CRs for frontend and backend",
       "explanation": "Each child Application is a full ArgoCD Application CR that points to its own manifests directory. The frontend app deploys nginx, and the backend app deploys httpd. Both deploy to the same namespace (argocd-sc-04) but manage independent resources.",
       "what_it_does": "Displays both child Application CR definitions.",
@@ -29,15 +29,22 @@
     },
     {
       "name": "Step 4: Watch Child Apps Being Created",
-      "command": "echo \">>> Open ArgoCD UI at http://localhost:30800 <<<\" && echo \">>> You should see 3 apps: sc04-parent-app, sc04-frontend, sc04-backend <<<\" && sleep 10 && kubectl get applications -n argocd -l app.kubernetes.io/instance=sc04-parent-app 2>/dev/null; kubectl get applications -n argocd | grep sc04",
+      "type": "info",
+      "command": "",
       "description": "Watch ArgoCD auto-create child applications from the parent",
       "explanation": "In the ArgoCD UI, you will see three applications appear: the parent app (sc04-parent-app) and two children (sc04-frontend, sc04-backend). The parent app shows the child Application CRs as its managed resources. Each child app shows its own Deployment and Service.",
-      "what_it_does": "Lists all sc04 applications to show the parent-child relationship.",
-      "next_step": "Verify all resources are deployed across all apps."
+      "what_it_does": "Shows the parent-child relationship in the ArgoCD UI.",
+      "next_step": "Verify all resources are deployed across all apps.",
+      "info_steps": [
+        "Open ArgoCD UI (use the button above)",
+        "Wait a few seconds and refresh",
+        "You should see <strong>3 apps</strong>: sc04-parent-app, sc04-frontend, sc04-backend",
+        "Click on <strong>sc04-parent-app</strong> — it shows the child Application CRs as its managed resources"
+      ]
     },
     {
       "name": "Step 5: Verify All Deployed Resources",
-      "command": "echo \"=== All Applications ===\" && kubectl get applications -n argocd | grep sc04 && echo \"\\n=== Frontend Resources ===\" && kubectl get deployment,service -n argocd-sc-04 -l app=frontend 2>/dev/null && echo \"\\n=== Backend Resources ===\" && kubectl get deployment,service -n argocd-sc-04 -l app=backend 2>/dev/null && echo \"\\n=== All Pods ===\" && kubectl get pods -n argocd-sc-04",
+      "command": "kubectl get applications -n argocd | grep sc04 && kubectl get deployment,service -n argocd-sc-04 -l app=frontend 2>/dev/null && kubectl get deployment,service -n argocd-sc-04 -l app=backend 2>/dev/null && kubectl get pods -n argocd-sc-04",
       "description": "Verify all resources deployed by both child applications",
       "explanation": "You should see both frontend and backend deployments running with their services. All of these were deployed by applying a single parent Application CR. This pattern scales to hundreds of services - just add more child Application CRs to the children/ directory.",
       "what_it_does": "Lists all resources deployed by the App-of-Apps pattern.",
@@ -45,11 +52,19 @@
     },
     {
       "name": "Step 6: Explore App-of-Apps in ArgoCD UI",
-      "command": "echo \">>> Open ArgoCD UI at http://localhost:30800 <<<\\n>>> Click on sc04-parent-app - see child Application resources <<<\\n>>> Click on sc04-frontend - see its Deployment and Service <<<\\n>>> Click on sc04-backend - see its Deployment and Service <<<\\n\\nThe App-of-Apps pattern enables:\\n- Single entry point for deploying entire platforms\\n- Independent lifecycle management per service\\n- Easy onboarding of new services (just add a child App CR)\\n- Hierarchical organization of applications\"",
+      "type": "info",
+      "command": "",
       "description": "Explore the App-of-Apps hierarchy in ArgoCD UI",
       "explanation": "The ArgoCD UI shows the hierarchy clearly. The parent app manages Application CRs, while each child manages its own Kubernetes resources. This separation allows teams to independently manage their services while platform teams control the overall structure.",
       "what_it_does": "Guides you through the ArgoCD UI to understand the App-of-Apps hierarchy.",
-      "next_step": "Scenario complete! Clean up when ready."
+      "next_step": "Scenario complete! Clean up when ready.",
+      "info_steps": [
+        "Open ArgoCD UI (use the button above)",
+        "Click on <strong>sc04-parent-app</strong> — see the child Application CRs as its managed resources",
+        "Click on <strong>sc04-frontend</strong> — see its Deployment and Service",
+        "Click on <strong>sc04-backend</strong> — see its Deployment and Service",
+        "This is the App-of-Apps pattern: one entry point, independent lifecycle per service, easy to add more by dropping a new child App CR into the children/ directory"
+      ]
     },
     {
       "name": "Cleanup: Delete Parent Application (cascades to children)",

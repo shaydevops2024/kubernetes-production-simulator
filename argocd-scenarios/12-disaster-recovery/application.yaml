@@ -9,7 +9,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/YOURUSER/YOURREPO.git
+    repoURL: https://github.com/shaydevops2024/kubernetes-production-simulator.git
     targetRevision: HEAD
     path: argocd-scenarios/12-disaster-recovery/manifests
   destination:

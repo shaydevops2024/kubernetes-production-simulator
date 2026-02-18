@@ -5,7 +5,7 @@
   "commands": [
     {
       "name": "Step 1: Review Project Definitions",
-      "command": "echo '=== Frontend Project ===' && cat argocd-scenarios/10-projects-rbac/project-frontend.yaml && echo '\n=== Backend Project ===' && cat argocd-scenarios/10-projects-rbac/project-backend.yaml",
+      "command": "cat argocd-scenarios/10-projects-rbac/project-frontend.yaml && cat argocd-scenarios/10-projects-rbac/project-backend.yaml",
       "description": "Review the two AppProject definitions",
       "explanation": "Each AppProject restricts which repos can be used (sourceRepos), which namespaces can be deployed to (destinations), and which resource types are allowed. team-frontend can ONLY deploy to argocd-sc-10-fe, team-backend ONLY to argocd-sc-10-be.",
       "what_it_does": "Shows the RBAC restrictions for each team's project.",
@@ -29,7 +29,7 @@
     },
     {
       "name": "Step 4: Verify Project Isolation",
-      "command": "echo '>>> Open ArgoCD UI at http://localhost:30800 <<<\n>>> Notice apps are grouped by project <<<' && sleep 10 && echo '=== Frontend namespace ===' && kubectl get pods -n argocd-sc-10-fe && echo '\n=== Backend namespace ===' && kubectl get pods -n argocd-sc-10-be",
+      "command": "kubectl get pods -n argocd-sc-10-fe && kubectl get pods -n argocd-sc-10-be",
       "description": "Check that each team's app is in its own namespace",
       "explanation": "Frontend pods are in argocd-sc-10-fe, backend pods in argocd-sc-10-be. In the ArgoCD UI, you can filter by project. Each team only sees and manages their own applications.",
       "what_it_does": "Shows project-based namespace isolation.",
@@ -37,7 +37,7 @@
     },
     {
       "name": "Step 5: Test RBAC - Deploy to Wrong Namespace",
-      "command": "kubectl apply -f argocd-scenarios/10-projects-rbac/app-frontend-wrong-ns.yaml && echo '>>> Open ArgoCD UI - sc10-frontend-wrong will show SYNC FAILED <<<' && sleep 10 && kubectl get application sc10-frontend-wrong -n argocd -o jsonpath='Sync: {.status.sync.status}, Health: {.status.health.status}, Conditions: {.status.conditions[0].message}' 2>/dev/null || echo 'App may show sync error'",
+      "command": "kubectl apply -f argocd-scenarios/10-projects-rbac/app-frontend-wrong-ns.yaml && sleep 10 && kubectl get application sc10-frontend-wrong -n argocd -o jsonpath='Sync: {.status.sync.status}' 2>/dev/null",
       "description": "Try deploying frontend app to backend's namespace - should fail",
       "explanation": "The frontend project only allows deployments to argocd-sc-10-fe. Trying to deploy to argocd-sc-10-be violates the project RBAC policy. ArgoCD will reject the sync with a permission error.",
       "what_it_does": "Demonstrates ArgoCD project RBAC enforcement.",
@@ -45,11 +45,19 @@
     },
     {
       "name": "Step 6: Check RBAC Error in ArgoCD UI",
-      "command": "echo '>>> Open ArgoCD UI at http://localhost:30800 <<<\n>>> Click sc10-frontend-wrong <<<\n>>> You should see an error about destination not permitted <<<' && kubectl get application sc10-frontend-wrong -n argocd -o jsonpath='{.status.conditions[*].message}' 2>/dev/null",
+      "type": "info",
+      "command": "",
       "description": "View the RBAC violation error in ArgoCD",
       "explanation": "ArgoCD shows 'application destination {namespace: argocd-sc-10-be} is not permitted in project team-frontend'. This is exactly how multi-tenancy works - teams cannot deploy outside their allowed namespaces.",
       "what_it_does": "Shows the project RBAC enforcement error.",
-      "next_step": "Scenario complete! Clean up when ready."
+      "next_step": "Scenario complete! Clean up when ready.",
+      "info_steps": [
+        "Open ArgoCD UI (use the button above)",
+        "Click on <strong>sc10-frontend-wrong</strong>",
+        "You should see an <em>InvalidSpecError</em> with status Unknown",
+        "The error says: <strong>application destination server and namespace 'argocd-sc-10-be' do not match any of the allowed destinations in project 'team-frontend'</strong> — this is ArgoCD multi-tenancy RBAC in action",
+        "ArgoCD refuses to even attempt a sync because the spec itself violates project boundaries — this is stricter than a sync failure"
+      ]
     },
     {
       "name": "Cleanup: Delete All Resources",

@@ -5,7 +5,7 @@
   "commands": [
     {
       "name": "Step 1: Review Sync Wave Annotations",
-      "command": "echo \"=== ConfigMap (wave -1) ===\" && cat argocd-scenarios/03-sync-waves-hooks/manifests/configmap.yaml && echo \"\\n=== Deployment (wave 0) ===\" && cat argocd-scenarios/03-sync-waves-hooks/manifests/deployment.yaml && echo \"\\n=== Service (wave 1) ===\" && cat argocd-scenarios/03-sync-waves-hooks/manifests/service.yaml",
+      "command": "cat argocd-scenarios/03-sync-waves-hooks/manifests/configmap.yaml && cat argocd-scenarios/03-sync-waves-hooks/manifests/deployment.yaml && cat argocd-scenarios/03-sync-waves-hooks/manifests/service.yaml",
       "description": "Review all manifests to see their sync-wave annotations",
       "explanation": "Each manifest has an argocd.argoproj.io/sync-wave annotation. Resources with lower wave numbers are synced first: ConfigMap (wave -1) -> Deployment (wave 0) -> Service (wave 1). This ensures the ConfigMap exists before the Deployment references it.",
       "what_it_does": "Displays all manifests highlighting the sync-wave order.",
@@ -29,15 +29,22 @@
     },
     {
       "name": "Step 4: Watch Sync Waves in ArgoCD UI",
-      "command": "echo \">>> Open ArgoCD UI at http://localhost:30800 <<<\\n>>> Click on sc03-sync-waves <<<\\n>>> Watch resources appear in wave order <<<\\n>>> ConfigMap first, then Deployment, then Service <<<\" && sleep 5 && kubectl get application sc03-sync-waves -n argocd",
+      "type": "info",
+      "command": "",
       "description": "Observe the ordered deployment in ArgoCD UI",
       "explanation": "In the ArgoCD UI resource tree, you can see the sync progressing through waves. Each wave must complete (resources become healthy) before the next wave begins. This ordering prevents issues like Deployments starting before their ConfigMaps exist.",
       "what_it_does": "Guides you to observe sync waves visually in the ArgoCD UI.",
-      "next_step": "Verify the PostSync hook job ran."
+      "next_step": "Verify the PostSync hook job ran.",
+      "info_steps": [
+        "Open ArgoCD UI (use the button above)",
+        "Click on <strong>sc03-sync-waves</strong>",
+        "Watch resources appear in wave order: <strong>ConfigMap</strong> (wave -1) first, then <strong>Deployment</strong> (wave 0), then <strong>Service</strong> (wave 1)",
+        "Each wave must complete (become healthy) before the next one begins"
+      ]
     },
     {
       "name": "Step 5: Check PostSync Hook Execution",
-      "command": "kubectl get jobs -n argocd-sc-03 2>/dev/null; echo \"---\"; echo \"Note: If no jobs are shown, the PostSync hook already completed and was deleted (HookSucceeded policy).\" && kubectl get events -n argocd-sc-03 --field-selector reason=Completed 2>/dev/null | tail -5",
+      "command": "kubectl get jobs -n argocd-sc-03 2>/dev/null && kubectl get events -n argocd-sc-03 --field-selector reason=Completed 2>/dev/null | tail -5",
       "description": "Verify the PostSync hook job ran and completed",
       "explanation": "The PostSync Job runs after all sync waves complete. Because we set hook-delete-policy: HookSucceeded, the Job is automatically deleted after success. You may see it briefly, or it may already be cleaned up. The events can confirm it ran.",
       "what_it_does": "Checks for the PostSync hook Job and related events.",
@@ -45,7 +52,7 @@
     },
     {
       "name": "Step 6: Verify All Resources",
-      "command": "echo \"=== ConfigMap (deployed first - wave -1) ===\" && kubectl get configmap app-config -n argocd-sc-03 -o yaml 2>/dev/null | head -10 && echo \"\\n=== Deployment (deployed second - wave 0) ===\" && kubectl get deployment wave-app -n argocd-sc-03 && echo \"\\n=== Service (deployed third - wave 1) ===\" && kubectl get service wave-service -n argocd-sc-03 && echo \"\\n=== Pods ===\" && kubectl get pods -n argocd-sc-03",
+      "command": "kubectl get configmap app-config -n argocd-sc-03 -o yaml 2>/dev/null | head -10 && kubectl get deployment wave-app -n argocd-sc-03 && kubectl get service wave-service -n argocd-sc-03 && kubectl get pods -n argocd-sc-03",
       "description": "Verify all resources were created in sync wave order",
       "explanation": "All three resources should be present and healthy. The ConfigMap was created first (wave -1) so the Deployment (wave 0) could reference it. The Service (wave 1) was created last after the Deployment pods were running.",
       "what_it_does": "Lists all deployed resources to confirm successful ordered deployment.",

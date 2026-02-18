@@ -21,11 +21,18 @@
     },
     {
       "name": "Step 3: Watch Auto-Deployment",
-      "command": "echo '>>> Open ArgoCD UI at http://localhost:30800 <<<' && sleep 2 && kubectl get application sc02-auto-sync -n argocd",
-      "description": "Open ArgoCD UI and check sync status - it should auto-sync",
+      "type": "info",
+      "command": "",
+      "description": "Open ArgoCD UI and watch the app auto-sync - no SYNC button needed",
       "explanation": "In the ArgoCD UI, watch the application transition from OutOfSync to Synced automatically. No manual SYNC button needed! The status should quickly show 'Synced' and 'Healthy'.",
-      "what_it_does": "Shows the auto-sync in action through both UI and CLI.",
-      "next_step": "Verify resources were auto-deployed."
+      "what_it_does": "Shows the auto-sync in action through the ArgoCD UI.",
+      "next_step": "Verify resources were auto-deployed.",
+      "info_steps": [
+        "Open ArgoCD UI (use the button above)",
+        "Find the <strong>sc02-auto-sync</strong> application",
+        "Watch it transition from <em>OutOfSync</em> to <em>Synced</em> automatically — no SYNC button needed!",
+        "The status should quickly show <strong>Synced</strong> and <strong>Healthy</strong>"
+      ]
     },
     {
       "name": "Step 4: Verify Auto-Deployed Resources",
@@ -37,7 +44,7 @@
     },
     {
       "name": "Step 5: Test Self-Heal - Delete a Pod",
-      "command": "kubectl delete pod -n argocd-sc-02 -l app=autosync-app --field-selector=status.phase=Running --grace-period=0 --force 2>/dev/null; echo 'Pod deleted! ArgoCD will detect drift and heal...' && sleep 5 && kubectl get pods -n argocd-sc-02",
+      "command": "kubectl delete pod -n argocd-sc-02 -l app=autosync-app --grace-period=0 --force 2>/dev/null && kubectl get pods -n argocd-sc-02",
       "description": "Delete a pod and watch ArgoCD restore it",
       "explanation": "When you delete a pod, the Deployment controller recreates it. But if you modify the deployment itself (e.g., change replicas), ArgoCD's self-heal will revert it. Let's test that next.",
       "what_it_does": "Deletes a pod to demonstrate Kubernetes + ArgoCD recovery.",
@@ -45,7 +52,7 @@
     },
     {
       "name": "Step 6: Test Self-Heal - Change Replicas",
-      "command": "kubectl scale deployment autosync-app -n argocd-sc-02 --replicas=1 && echo 'Scaled to 1 replica. Watch ArgoCD revert...' && sleep 15 && kubectl get pods -n argocd-sc-02",
+      "command": "kubectl scale deployment autosync-app -n argocd-sc-02 --replicas=1 && kubectl get pods -n argocd-sc-02",
       "description": "Scale to 1 replica - ArgoCD will revert back to 3",
       "explanation": "ArgoCD detected that the live state (1 replica) differs from the desired state in Git (3 replicas). Self-heal automatically reverts the change. Check the ArgoCD UI to see the sync event.",
       "what_it_does": "Manually changes replicas and watches ArgoCD revert the drift.",
@@ -53,11 +60,18 @@
     },
     {
       "name": "Step 7: Verify Self-Heal in ArgoCD UI",
-      "command": "echo '>>> Open ArgoCD UI at http://localhost:30800 <<<\n>>> Click on sc02-auto-sync <<<\n>>> Check LAST SYNC RESULT and HISTORY tab to see self-heal events <<<' && kubectl get application sc02-auto-sync -n argocd -o jsonpath='{.status.sync.status}'",
+      "type": "info",
+      "command": "",
       "description": "Check ArgoCD UI for self-heal sync events",
       "explanation": "In the ArgoCD UI, the app should show 'Synced'. Check the History tab to see multiple sync events - the automatic syncs triggered by self-heal. This proves ArgoCD is actively enforcing the desired state.",
       "what_it_does": "Guides you to verify self-heal events in the ArgoCD UI.",
-      "next_step": "Scenario complete! Clean up when ready."
+      "next_step": "Scenario complete! Clean up when ready.",
+      "info_steps": [
+        "Open ArgoCD UI (use the button above)",
+        "Click on <strong>sc02-auto-sync</strong>",
+        "Check the <strong>HISTORY</strong> tab — you'll see multiple sync events triggered by self-heal",
+        "The app should show <em>Synced</em> with 3 replicas restored automatically"
+      ]
     },
     {
       "name": "Cleanup: Delete Application",

@@ -5,6 +5,7 @@
 var autoRefreshInterval = null;
 var statusMonitorInterval = null;
 var clusterStatsInterval = null;
+var toolsStatusInterval = null;
 var currentCLISection = null;
 var clusterStatsData = null;
 var dashboardRefreshInterval = null;
@@ -15,7 +16,7 @@ window.addEventListener('DOMContentLoaded', function() {
     loadConfig();
     startStatusMonitoring();
     startClusterStatsMonitoring();
-    fetchToolsStatus();
+    startToolsStatusMonitoring();
     
     var taskSubmit = document.getElementById('create-task-form').querySelector('button[type="submit"]');
     if (taskSubmit) {
@@ -42,6 +43,7 @@ window.addEventListener('beforeunload', function() {
     }
     stopStatusMonitoring();
     stopClusterStatsMonitoring();
+    stopToolsStatusMonitoring();
 });
 
 // Modal functions
@@ -395,6 +397,20 @@ function stopClusterStatsMonitoring() {
     }
 }
 
+// Tools status monitoring (Helm & ArgoCD)
+function startToolsStatusMonitoring() {
+    if (toolsStatusInterval) clearInterval(toolsStatusInterval);
+    fetchToolsStatus();
+    toolsStatusInterval = setInterval(fetchToolsStatus, 3000);
+}
+
+function stopToolsStatusMonitoring() {
+    if (toolsStatusInterval) {
+        clearInterval(toolsStatusInterval);
+        toolsStatusInterval = null;
+    }
+}
+
 // Dashboard auto-refresh control
 function changeRefreshInterval() {
     var select = document.getElementById("refresh-interval");
@@ -683,13 +699,14 @@ function switchTab(tabName) {
         initDashboardRefresh();
         startStatusMonitoring();
         startClusterStatsMonitoring();
-        fetchToolsStatus();
+        startToolsStatusMonitoring();
     } else if (tabName === 'database') {
         refreshDatabaseData();
         fetchDatabaseInfo();
         startAutoRefresh();
         stopStatusMonitoring();
         stopClusterStatsMonitoring();
+        stopToolsStatusMonitoring();
     } else if (tabName === 'logs') {
         refreshLogs();
         stopStatusMonitoring();

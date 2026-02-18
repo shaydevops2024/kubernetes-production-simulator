@@ -275,6 +275,49 @@
             color: #1e293b;
         }
 
+        /* Info Step */
+        .info-step-card {
+            background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+            border: 2px solid #f97316;
+            border-radius: 15px;
+            padding: 25px 30px;
+            margin-bottom: 25px;
+        }
+
+        .info-step-card .info-step-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #c2410c;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-step-card ol {
+            padding-left: 22px;
+            margin: 0;
+        }
+
+        .info-step-card ol li {
+            color: #9a3412;
+            font-size: 15px;
+            line-height: 1.7;
+            margin-bottom: 10px;
+        }
+
+        .info-step-card ol li strong {
+            color: #7c2d12;
+        }
+
+        .info-step-card ol li em {
+            font-style: normal;
+            background: #fed7aa;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
         /* Command Box */
         .command-box {
             background: #1e293b;
@@ -848,6 +891,39 @@
                 html += '<span class="cleanup-badge">Cleanup</span>';
             }
             html += '</div>';
+
+            // Info-only step (no terminal command needed)
+            if (cmd.type === 'info') {
+                html += '<div class="info-step-card">';
+                html += '<div class="info-step-title">🖱️ Action required in the ArgoCD UI — no terminal command needed</div>';
+                if (cmd.info_steps && cmd.info_steps.length > 0) {
+                    html += '<ol>';
+                    cmd.info_steps.forEach(function(step) {
+                        html += '<li>' + step + '</li>';
+                    });
+                    html += '</ol>';
+                } else if (cmd.description) {
+                    html += '<p style="color:#9a3412;font-size:15px;margin:0;">' + escapeHtml(cmd.description) + '</p>';
+                }
+                html += '</div>';
+
+                if (cmd.next_step) {
+                    html += '<div class="info-cards">';
+                    html += '<div class="info-card next">';
+                    html += '<h4><span>➡️</span> What\'s next</h4>';
+                    html += '<p>' + escapeHtml(cmd.next_step) + '</p>';
+                    html += '</div>';
+                    html += '</div>';
+                }
+
+                contentEl.innerHTML = html;
+                if (step > 1) {
+                    setTimeout(function() {
+                        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                    }, 300);
+                }
+                return;
+            }
 
             // ArgoCD UI reminder for ArgoCD steps
             if (isArgo) {

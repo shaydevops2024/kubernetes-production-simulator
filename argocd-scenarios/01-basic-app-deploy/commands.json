@@ -29,11 +29,19 @@
     },
     {
       "name": "Step 4: Open ArgoCD UI",
-      "command": "echo '>>> Open ArgoCD UI at http://localhost:30800 <<<\n>>> Click on sc01-basic-app to see its resources <<<\n>>> Click SYNC button to deploy the application <<<'",
+      "type": "info",
+      "command": "",
       "description": "Open ArgoCD UI and manually sync the application",
       "explanation": "In the ArgoCD UI, you'll see the application card showing 'OutOfSync'. Click on it to see the resource tree. Click the SYNC button at the top, then SYNCHRONIZE to deploy. Watch as ArgoCD creates the namespace, deployment, and service.",
       "what_it_does": "Guides you to interact with the ArgoCD web interface.",
-      "next_step": "After syncing in the UI, verify the resources were created."
+      "next_step": "After syncing in the UI, verify the resources were created.",
+      "info_steps": [
+        "Open ArgoCD UI (use the button above)",
+        "Find the <strong>sc01-basic-app</strong> application card — it will show <em>OutOfSync</em>",
+        "Click on it to see the resource tree",
+        "Click the <strong>SYNC</strong> button at the top, then <strong>SYNCHRONIZE</strong>",
+        "Watch as ArgoCD creates the namespace, deployment, and service"
+      ]
     },
     {
       "name": "Step 5: Verify Sync via CLI",
