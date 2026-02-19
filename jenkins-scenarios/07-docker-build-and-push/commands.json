@@ -28,7 +28,8 @@
       "explanation": "Building Docker images inside Jenkins requires careful consideration. Docker socket mounting (DooD) shares the host's Docker daemon, which is fast but creates security risks. Docker-in-Docker (DinD) runs an isolated daemon but requires privileged mode. Kaniko is the modern solution for Kubernetes environments because it builds images without a Docker daemon and without privileged containers.",
       "what_it_does": "Displays a comparison of three Docker build strategies (Docker socket, Docker-in-Docker, Kaniko) with their agent configuration, pros, cons, and a recommendation for each environment.",
       "next_step": "Simulate a Docker build process.",
-      "cleanup": false
+      "cleanup": false,
+      "type": "info"
     },
     {
       "name": "Step 4: Simulate Docker Build",
@@ -73,7 +74,8 @@
       "explanation": "Building and pushing Docker images is one of the most common Jenkins pipeline tasks. Understanding multi-stage Dockerfiles, proper tagging strategies, secure credential handling, and build strategies (socket vs DinD vs Kaniko) is essential for any CI/CD pipeline that produces container images.",
       "what_it_does": "Displays a formatted summary of all key Docker build and push concepts covered in this scenario.",
       "next_step": "Clean up all resources created during this scenario.",
-      "cleanup": false
+      "cleanup": false,
+      "type": "info"
     },
     {
       "name": "Step 9: Cleanup",

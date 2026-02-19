@@ -10,7 +10,8 @@
       "explanation": "This Jenkinsfile represents the standard production CI/CD pattern: checkout code, run tests, build and push a Docker image tagged with BUILD_NUMBER, deploy to Kubernetes using kubectl set image (which triggers a rolling update), verify the deployment health, and automatically rollback on failure. The post section handles notifications and disaster recovery.",
       "what_it_does": "Displays a complete production Jenkinsfile with all stages from checkout to deploy with rollback.",
       "next_step": "Understand the Kubernetes deployment strategy.",
-      "cleanup": false
+      "cleanup": false,
+      "type": "info"
     },
     {
       "name": "Step 2: Understand K8s Deployment Strategy",
@@ -19,7 +20,8 @@
       "explanation": "The combination of maxSurge:1 and maxUnavailable:0 is the safest rolling update config. It means Kubernetes will only add new pods (never remove old ones first), and only routes traffic once the new pod passes health checks. If the new pod crashes or fails readiness, the rollout stalls and Jenkins' timeout triggers the post{failure} block which runs kubectl rollout undo.",
       "what_it_does": "Shows the rolling update configuration and step-by-step flow during a zero-downtime deployment.",
       "next_step": "Create the K8s namespace and deploy v1.",
-      "cleanup": false
+      "cleanup": false,
+      "type": "info"
     },
     {
       "name": "Step 3: Create Namespace and Deploy v1",
@@ -64,7 +66,8 @@
       "explanation": "Production-grade CI/CD goes beyond basic deploy. Resource limits prevent runaway pods. Readiness probes ensure traffic only hits healthy pods. Observability (tracing build numbers, notifications) is essential for debugging production issues. Advanced patterns like canary deployments and GitOps represent the next level of deployment sophistication.",
       "what_it_does": "Displays a comprehensive production readiness checklist covering deployment, pipeline safety, observability, and advanced patterns.",
       "next_step": "Review the scenario summary.",
-      "cleanup": false
+      "cleanup": false,
+      "type": "info"
     },
     {
       "name": "Step 8: Scenario Summary",
@@ -73,7 +76,8 @@
       "explanation": "This scenario covered the complete lifecycle of a Jenkins-to-Kubernetes deployment pipeline. The key takeaway is the safety net: rolling updates with maxUnavailable:0 + automatic rollback in post{failure} means deployments can never cause downtime, even when things go wrong.",
       "what_it_does": "Prints a comprehensive summary of the CI/CD pipeline patterns covered in this scenario.",
       "next_step": "Clean up resources.",
-      "cleanup": false
+      "cleanup": false,
+      "type": "info"
     },
     {
       "name": "Cleanup: Remove Resources",

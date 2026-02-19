@@ -17,7 +17,8 @@
       "description": "Simulate a Jenkins console log showing a failed build with real error output",
       "explanation": "Jenkins console output is your primary debugging tool. Every command's stdout and stderr is captured. The key information is at the end of each failed stage: the actual error message and exit code. In this case, there are two distinct errors: a missing npm package and a syntax error in source code.",
       "what_it_does": "Shows a realistic Jenkins console log with a build failure caused by a missing dependency and a syntax error, exactly as you would see it in the Jenkins UI.",
-      "next_step": "Now let's identify and categorize the errors we found."
+      "next_step": "Now let's identify and categorize the errors we found.",
+      "type": "info"
     },
     {
       "name": "Step 3: Identify the Errors",
@@ -25,7 +26,8 @@
       "description": "Break down each error with root cause analysis and fix instructions",
       "explanation": "Effective debugging in Jenkins requires reading console logs methodically. Always start from the first error since later errors may be cascading side effects. The + prefix shows actual commands executed by sh steps. Exit code 1 means general failure, exit code 127 means command not found, and exit code 126 means permission denied.",
       "what_it_does": "Provides detailed analysis of both errors found in the console log, including root cause, file location, and exact fix required.",
-      "next_step": "Let's learn about the most common failure patterns in Jenkins pipelines."
+      "next_step": "Let's learn about the most common failure patterns in Jenkins pipelines.",
+      "type": "info"
     },
     {
       "name": "Step 4: Understand Common Failure Patterns",
@@ -33,7 +35,8 @@
       "description": "Learn the five most common categories of Jenkins pipeline failures",
       "explanation": "Understanding failure categories helps you diagnose problems faster. Each category has distinct symptoms and different fix strategies. Dependency and test failures are code issues (fix in the repo). Auth failures are Jenkins config issues (fix in Jenkins credentials). Infrastructure failures need cluster/ops attention. Syntax errors need Jenkinsfile fixes.",
       "what_it_does": "Lists the five main failure categories with their symptoms and where they typically occur in the pipeline.",
-      "next_step": "Let's fix the broken pipeline by addressing both errors."
+      "next_step": "Let's fix the broken pipeline by addressing both errors.",
+      "type": "info"
     },
     {
       "name": "Step 5: Simulate Fixing the Pipeline",
@@ -65,7 +68,8 @@
       "description": "Summarize all debugging techniques and key takeaways",
       "explanation": "This summary consolidates the debugging workflow: find the stage, read the error, check the exit code, categorize the failure, and apply the fix. The Replay feature is especially powerful for iterating on fixes without waiting for full git commit cycles.",
       "what_it_does": "Prints a complete summary of debugging techniques, a quick reference guide, and pro tips for efficient Jenkins troubleshooting.",
-      "next_step": "Run the cleanup step to remove all Kubernetes resources."
+      "next_step": "Run the cleanup step to remove all Kubernetes resources.",
+      "type": "info"
     },
     {
       "name": "Step 9: Cleanup",

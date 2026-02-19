@@ -10,7 +10,8 @@
       "explanation": "Shared Libraries solve the code duplication problem in Jenkins. When 50 microservices all need the same build-test-deploy pattern, you write it once in a Shared Library and import it everywhere. The vars/ directory holds global step definitions, src/ holds Groovy classes, and resources/ holds non-code files like templates.",
       "what_it_does": "Displays the standard directory structure of a Jenkins Shared Library with explanations of each directory's purpose and the key rules for organizing library code.",
       "next_step": "Review example global functions in the vars/ directory.",
-      "cleanup": false
+      "cleanup": false,
+      "type": "info"
     },
     {
       "name": "Step 2: Review vars/ Global Functions",
@@ -73,7 +74,8 @@
       "explanation": "Shared Libraries are how organizations scale Jenkins pipelines. They centralize complex logic, enforce standards, and dramatically reduce per-pipeline code. Understanding the vars/ vs src/ distinction, the @Library annotation, and version pinning are essential skills for Jenkins administrators and pipeline developers.",
       "what_it_does": "Displays a formatted summary of all key Shared Library concepts including structure, vars/ conventions, src/ requirements, import syntax, and best practices.",
       "next_step": "Clean up all resources created during this scenario.",
-      "cleanup": false
+      "cleanup": false,
+      "type": "info"
     },
     {
       "name": "Step 9: Cleanup",

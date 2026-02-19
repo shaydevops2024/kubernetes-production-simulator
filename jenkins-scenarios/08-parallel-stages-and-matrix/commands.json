@@ -37,7 +37,8 @@
       "explanation": "Sequential execution runs tests one after another, so total time is the sum of all durations. Parallel execution runs everything simultaneously, so total time equals the longest single stage. The more independent stages you have, the greater the time savings. Matrix builds benefit even more because they can have many combinations that would take extremely long sequentially.",
       "what_it_does": "Displays ASCII timeline charts comparing sequential execution (85s total), parallel execution (45s total), and matrix execution (48s vs 191s sequential), showing the percentage time savings for each approach.",
       "next_step": "Learn about the failFast option for early failure detection.",
-      "cleanup": false
+      "cleanup": false,
+      "type": "info"
     },
     {
       "name": "Step 5: Demonstrate failFast Option",
@@ -73,7 +74,8 @@
       "explanation": "Parallel stages and matrix builds are essential for efficient CI/CD pipelines. They dramatically reduce pipeline duration by running independent work concurrently. However, they require careful resource planning -- each parallel branch consumes an executor. The matrix directive is particularly powerful for cross-platform and multi-version testing.",
       "what_it_does": "Displays a formatted summary of all key concepts including parallel stage syntax, matrix directive usage, failFast behavior, appropriate use cases, and resource considerations.",
       "next_step": "Clean up all resources created during this scenario.",
-      "cleanup": false
+      "cleanup": false,
+      "type": "info"
     },
     {
       "name": "Step 9: Cleanup",

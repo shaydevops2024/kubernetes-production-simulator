@@ -10,7 +10,8 @@
       "explanation": "In traditional Jenkins, you create one pipeline job per repository. With Multibranch Pipeline, Jenkins automatically discovers every branch and PR, creating separate pipeline instances for each. This is essential for GitFlow and trunk-based development workflows where multiple branches coexist.",
       "what_it_does": "Displays an overview of the Multibranch Pipeline concept including how automatic branch discovery works and its key benefits.",
       "next_step": "Now review a Jenkinsfile that uses branch conditions to behave differently per branch.",
-      "cleanup": false
+      "cleanup": false,
+      "type": "info"
     },
     {
       "name": "Step 2: Review Jenkinsfile with Branch Conditions",
@@ -46,7 +47,8 @@
       "explanation": "Multibranch Pipelines treat Pull Requests as first-class citizens. When a PR is opened, Jenkins runs the pipeline against the PR branch. The 'when { changeRequest() }' directive can trigger PR-only stages like extra testing or ephemeral environment creation. Jenkins reports the result back to GitHub/GitLab as a status check, blocking merge if the pipeline fails.",
       "what_it_does": "Simulates a PR pipeline execution showing build, test, and quality stages passing, with deployment stages skipped since it is a PR branch, and the GitHub status check being updated.",
       "next_step": "Deploy a branch-specific application to Kubernetes to see the concept in action.",
-      "cleanup": false
+      "cleanup": false,
+      "type": "info"
     },
     {
       "name": "Step 6: Deploy Branch-Specific Apps to Kubernetes",
@@ -73,7 +75,8 @@
       "explanation": "Multibranch Pipelines are the standard way to implement CI/CD in Jenkins for teams using Git branching strategies. They eliminate manual job management, enforce consistent pipeline behavior via a shared Jenkinsfile, and integrate tightly with pull request workflows for code quality enforcement.",
       "what_it_does": "Displays a formatted summary of all key Multibranch Pipeline concepts covered in this scenario.",
       "next_step": "Clean up all resources created during this scenario.",
-      "cleanup": false
+      "cleanup": false,
+      "type": "info"
     },
     {
       "name": "Step 9: Cleanup",

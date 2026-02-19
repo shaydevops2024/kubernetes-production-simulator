@@ -20,7 +20,7 @@
         }
 
         .container {
-            max-width: 900px;
+            max-width: 1300px;
             margin: 0 auto;
         }
 
@@ -230,6 +230,7 @@
         .wizard-content {
             padding: 40px;
             min-height: 400px;
+            text-align: left;
         }
 
         .step-header {
@@ -737,8 +738,8 @@
                 html += '<p style="color: #7a2900; font-size: 15px; margin: 0; line-height: 1.6;">📖 <strong>Before you begin:</strong> This guide explains the GitLab CI and YAML configuration files used in this scenario. Understanding these files will help you grasp what each command does and why. Scroll down to read the full guide, then click "Next Step" to start the hands-on commands.</p>';
                 html += '</div>';
 
-                html += '<div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-height: 600px; overflow-y: auto; text-align: left; word-wrap: break-word; overflow-wrap: break-word;">';
-                html += parseMarkdownToHtml(scenarioData.yaml_explanation);
+                html += '<div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: left; word-wrap: break-word; overflow-wrap: break-word;">';
+                html += parseMarkdownToHtml(scenarioData.yaml_explanation, false);
                 html += '</div>';
 
                 html += '<div style="text-align: center; margin-top: 20px; padding: 15px; background: #fef3c7; border-radius: 10px; border: 1px solid #fde047;">';
@@ -768,12 +769,16 @@
 
             // Echo-only step (informational — same style as info steps)
             if (cmd.type !== 'info' && isEchoOnlyCommand(cmd.command)) {
-                html += '<div class="info-step-card">';
-                html += '<div class="info-step-title">ℹ️ Informational step — no command to run</div>';
-                if (cmd.description) {
-                    html += '<p style="color:#7a2900;font-size:14px;margin:0 0 15px 0;text-align:left;">' + escapeHtml(cmd.description) + '</p>';
-                }
-                html += '<pre style="background:#1e293b;color:#e2e8f0;padding:15px;border-radius:8px;font-family:\'Monaco\',\'Menlo\',\'Ubuntu Mono\',monospace;font-size:13px;white-space:pre;overflow-x:auto;margin:0;text-align:left;line-height:1.6;">' + escapeHtml(extractEchoOutput(cmd.command)) + '</pre>';
+                html += '<div class="command-box">';
+                html += '<div class="command-box-header">';
+                html += '<div class="terminal-dots">';
+                html += '<div class="terminal-dot red"></div>';
+                html += '<div class="terminal-dot yellow"></div>';
+                html += '<div class="terminal-dot green"></div>';
+                html += '</div>';
+                html += '<span style="color: #94a3b8; font-size: 12px; font-family: \'Monaco\', \'Menlo\', \'Ubuntu Mono\', monospace;">ℹ️ Informational step — no command to run</span>';
+                html += '</div>';
+                html += '<div class="command-code" style="white-space: pre-wrap;">' + escapeHtml(extractEchoOutput(cmd.command)) + '</div>';
                 html += '</div>';
 
                 if (cmd.explanation) {
@@ -807,17 +812,26 @@
 
             // Info-only step (no terminal command needed)
             if (cmd.type === 'info') {
-                html += '<div class="info-step-card">';
-                html += '<div class="info-step-title">ℹ️ Informational step — no command to run</div>';
+                html += '<div class="command-box">';
+                html += '<div class="command-box-header">';
+                html += '<div class="terminal-dots">';
+                html += '<div class="terminal-dot red"></div>';
+                html += '<div class="terminal-dot yellow"></div>';
+                html += '<div class="terminal-dot green"></div>';
+                html += '</div>';
+                html += '<span style="color: #94a3b8; font-size: 12px; font-family: \'Monaco\', \'Menlo\', \'Ubuntu Mono\', monospace;">ℹ️ Informational step — no command to run</span>';
+                html += '</div>';
+                html += '<div style="padding: 20px 25px;">';
                 if (cmd.info_steps && cmd.info_steps.length > 0) {
-                    html += '<ol>';
+                    html += '<ol style="padding-left: 22px; margin: 0; color: #e2e8f0; font-size: 14px; line-height: 1.7;">';
                     cmd.info_steps.forEach(function(s) {
-                        html += '<li>' + s + '</li>';
+                        html += '<li style="margin-bottom: 8px;">' + s + '</li>';
                     });
                     html += '</ol>';
                 } else if (cmd.description) {
-                    html += '<p style="color:#7a2900;font-size:15px;margin:0;text-align:left;">' + escapeHtml(cmd.description) + '</p>';
+                    html += '<p style="color: #e2e8f0; font-size: 14px; margin: 0; line-height: 1.6;">' + escapeHtml(cmd.description) + '</p>';
                 }
+                html += '</div>';
                 html += '</div>';
 
                 if (cmd.explanation) {
@@ -1070,7 +1084,8 @@
             }
         }
 
-        function parseMarkdownToHtml(markdown) {
+        function parseMarkdownToHtml(markdown, collapseCode) {
+            if (collapseCode === undefined) collapseCode = true;
             if (!markdown) return '<p style="text-align: left; color: #94a3b8;">No explanation available for this scenario.</p>';
 
             var html = '';
@@ -1091,9 +1106,9 @@
                         html += '<div style="border-radius: 8px; overflow: hidden; margin: 15px 0; border: 1px solid #334155;">';
                         html += '<div style="background: #334155; padding: 8px 15px; display: flex; justify-content: space-between; align-items: center;">';
                         html += '<span style="color: #94a3b8; font-size: 12px; font-family: monospace; font-weight: 600;">' + escapeHtml(lang) + '</span>';
-                        html += '<button id="toggle-' + id + '" onclick="toggleCodeBlock(' + id + ')" style="background: #475569; color: #e2e8f0; border: none; border-radius: 4px; padding: 4px 10px; font-size: 12px; cursor: pointer;">▶ Expand</button>';
+                        html += '<button id="toggle-' + id + '" onclick="toggleCodeBlock(' + id + ')" style="background: #475569; color: #e2e8f0; border: none; border-radius: 4px; padding: 4px 10px; font-size: 12px; cursor: pointer;">' + (collapseCode ? '▶ Expand' : '▲ Collapse') + '</button>';
                         html += '</div>';
-                        html += '<pre id="code-' + id + '" style="display: none; background: #1e293b; color: #e2e8f0; padding: 15px; margin: 0; overflow-x: auto; font-size: 13px; white-space: pre; text-align: left;">' + escapeHtml(codeContent.trim()) + '</pre>';
+                        html += '<pre id="code-' + id + '" style="display: ' + (collapseCode ? 'none' : 'block') + '; background: #1e293b; color: #e2e8f0; padding: 15px; margin: 0; overflow-x: auto; font-size: 13px; white-space: pre; text-align: left;">' + escapeHtml(codeContent.trim()) + '</pre>';
                         html += '</div>';
                         codeContent = '';
                         codeLanguage = '';

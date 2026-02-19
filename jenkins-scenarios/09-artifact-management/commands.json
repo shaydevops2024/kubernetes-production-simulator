@@ -9,7 +9,8 @@
       "description": "Overview of artifact types Jenkins can manage",
       "explanation": "Jenkins artifacts are any files produced during a build that need to be preserved. Understanding the different categories helps you decide what to archive, how long to retain them, and which plugins to use for publishing. Build artifacts are typically deployed, test reports feed into dashboards, and logs aid in post-mortem debugging.",
       "what_it_does": "Displays a categorized list of common Jenkins artifact types with explanations of where they are stored.",
-      "next_step": "Review the archiveArtifacts pipeline step."
+      "next_step": "Review the archiveArtifacts pipeline step.",
+      "type": "info"
     },
     {
       "name": "Step 2: Review archiveArtifacts Step",

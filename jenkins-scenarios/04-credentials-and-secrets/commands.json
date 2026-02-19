@@ -10,7 +10,8 @@
       "explanation": "Jenkins Credential Store is the secure way to manage secrets. Never hardcode passwords or tokens in Jenkinsfiles - they would be visible in source control. Instead, store them in Jenkins and reference them by ID. Jenkins encrypts credentials at rest and masks them in console output.",
       "what_it_does": "Displays a reference of all Jenkins credential types with their use cases and injection methods.",
       "next_step": "See how to use withCredentials() in a pipeline.",
-      "cleanup": false
+      "cleanup": false,
+      "type": "info"
     },
     {
       "name": "Step 2: Review withCredentials() Usage",
@@ -19,7 +20,8 @@
       "explanation": "withCredentials() creates a secure scope where credential values are bound to environment variables. Outside this block, the variables do not exist. Jenkins automatically detects and masks these values in build logs, so even if you accidentally echo a password, it appears as ****. This is why withCredentials() is preferred over the older environment { credentials() } syntax - it limits the scope of secret exposure.",
       "what_it_does": "Shows a complete Jenkinsfile example with three different credential types being used in a deploy stage.",
       "next_step": "Understand how Jenkins credentials map to Kubernetes secrets.",
-      "cleanup": false
+      "cleanup": false,
+      "type": "info"
     },
     {
       "name": "Step 3: Jenkins + Kubernetes Secrets Integration",
@@ -28,7 +30,8 @@
       "explanation": "In a real production environment, Jenkins acts as a bridge between your secret management system and Kubernetes. The pipeline reads credentials from Jenkins, creates Kubernetes secrets, and deploys apps that consume those secrets. Using --dry-run=client -o yaml | kubectl apply -f - makes the operation idempotent - it creates or updates the secret without failing if it already exists.",
       "what_it_does": "Shows the production pattern for flowing secrets from Jenkins into Kubernetes deployments.",
       "next_step": "Create a Kubernetes secret hands-on.",
-      "cleanup": false
+      "cleanup": false,
+      "type": "info"
     },
     {
       "name": "Step 4: Create a Kubernetes Secret",
@@ -64,7 +67,8 @@
       "explanation": "Proper credential management is one of the most critical aspects of CI/CD security. The scope hierarchy (Global > System > Folder > Pipeline) follows the principle of least privilege. In enterprise environments, integrating with HashiCorp Vault or AWS Secrets Manager adds rotation, TTL, and audit capabilities that Jenkins alone cannot provide.",
       "what_it_does": "Prints comprehensive do's, don'ts, and enterprise patterns for Jenkins credential management.",
       "next_step": "Clean up resources.",
-      "cleanup": false
+      "cleanup": false,
+      "type": "info"
     },
     {
       "name": "Cleanup: Remove Resources",

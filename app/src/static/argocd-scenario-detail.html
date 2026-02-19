@@ -20,7 +20,7 @@
         }
 
         .container {
-            max-width: 900px;
+            max-width: 1300px;
             margin: 0 auto;
         }
 
@@ -894,17 +894,26 @@
 
             // Info-only step (no terminal command needed)
             if (cmd.type === 'info') {
-                html += '<div class="info-step-card">';
-                html += '<div class="info-step-title">🖱️ Action required in the ArgoCD UI — no terminal command needed</div>';
+                html += '<div class="command-box">';
+                html += '<div class="command-box-header">';
+                html += '<div class="terminal-dots">';
+                html += '<div class="terminal-dot red"></div>';
+                html += '<div class="terminal-dot yellow"></div>';
+                html += '<div class="terminal-dot green"></div>';
+                html += '</div>';
+                html += '<span style="color: #94a3b8; font-size: 12px; font-family: \'Monaco\', \'Menlo\', \'Ubuntu Mono\', monospace;">🖱️ Action required in the ArgoCD UI — no terminal command needed</span>';
+                html += '</div>';
+                html += '<div style="padding: 20px 25px;">';
                 if (cmd.info_steps && cmd.info_steps.length > 0) {
-                    html += '<ol>';
+                    html += '<ol style="padding-left: 22px; margin: 0; color: #e2e8f0; font-size: 14px; line-height: 1.7;">';
                     cmd.info_steps.forEach(function(step) {
-                        html += '<li>' + step + '</li>';
+                        html += '<li style="margin-bottom: 8px;">' + step + '</li>';
                     });
                     html += '</ol>';
                 } else if (cmd.description) {
-                    html += '<p style="color:#9a3412;font-size:15px;margin:0;">' + escapeHtml(cmd.description) + '</p>';
+                    html += '<p style="color: #e2e8f0; font-size: 14px; margin: 0; line-height: 1.6;">' + escapeHtml(cmd.description) + '</p>';
                 }
+                html += '</div>';
                 html += '</div>';
 
                 if (cmd.next_step) {

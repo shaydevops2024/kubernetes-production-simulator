@@ -17,7 +17,8 @@
       "description": "Explain how pipeline stages work and their sequential execution model",
       "explanation": "Stages are the backbone of a Jenkins pipeline. They provide logical separation of concerns and visual progress tracking. Jenkins executes stages in order and stops the pipeline on the first failure. This fail-fast behavior prevents deploying broken code.",
       "what_it_does": "Displays a visual explanation of how stages flow sequentially and what happens when a stage fails.",
-      "next_step": "Next, let's look at what goes inside stages - the steps and sh blocks."
+      "next_step": "Next, let's look at what goes inside stages - the steps and sh blocks.",
+      "type": "info"
     },
     {
       "name": "Step 3: Understand Steps and Shell Blocks",
@@ -25,7 +26,8 @@
       "description": "Explore the different step types available inside pipeline stages",
       "explanation": "Steps are the individual actions Jenkins performs within a stage. The 'sh' step is the most common -- it runs shell commands on the build agent. Steps like retry() and timeout() add resilience to your pipeline. Each step's output is captured in the Jenkins console log for debugging.",
       "what_it_does": "Shows all common step types with examples, including error handling patterns like retry and timeout.",
-      "next_step": "Let's examine the post section that runs after all stages complete."
+      "next_step": "Let's examine the post section that runs after all stages complete.",
+      "type": "info"
     },
     {
       "name": "Step 4: Understand Post Actions",
@@ -33,7 +35,8 @@
       "description": "Understand the post block conditions: always, success, failure, unstable, changed",
       "explanation": "Post actions are critical for pipeline hygiene. The 'always' block ensures cleanup happens even on failure (like a finally block in programming). The 'success' and 'failure' blocks enable conditional notifications. Without post actions, failed builds could leave stale resources or go unnoticed.",
       "what_it_does": "Displays all post condition types with practical examples showing when each one triggers.",
-      "next_step": "Now let's simulate the Deploy stage by deploying a real app to Kubernetes."
+      "next_step": "Now let's simulate the Deploy stage by deploying a real app to Kubernetes.",
+      "type": "info"
     },
     {
       "name": "Step 5: Deploy a Sample App to Kubernetes",
@@ -57,7 +60,8 @@
       "description": "Review everything learned about declarative Jenkins pipelines",
       "explanation": "This summary reinforces the key concepts: pipeline structure, stage sequencing, step types, and post actions. The skeleton Jenkinsfile serves as a quick-start template for creating new pipelines.",
       "what_it_does": "Prints a complete summary of what was learned and provides a minimal Jenkinsfile template for reference.",
-      "next_step": "Run the cleanup step to remove all Kubernetes resources created in this scenario."
+      "next_step": "Run the cleanup step to remove all Kubernetes resources created in this scenario.",
+      "type": "info"
     },
     {
       "name": "Step 8: Cleanup",

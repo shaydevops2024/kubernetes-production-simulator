@@ -20,7 +20,7 @@
         }
 
         .container {
-            max-width: 900px;
+            max-width: 1300px;
             margin: 0 auto;
         }
 
@@ -230,6 +230,7 @@
         .wizard-content {
             padding: 40px;
             min-height: 400px;
+            text-align: left;
         }
 
         .step-header {
@@ -320,9 +321,8 @@
             font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
             font-size: 15px;
             line-height: 1.6;
-            white-space: pre-wrap;
-            word-break: break-word;
-            overflow-wrap: break-word;
+            white-space: pre;
+            overflow-x: auto;
             text-align: left;
         }
 
@@ -564,6 +564,128 @@
             font-family: monospace;
             margin: 0 2px;
         }
+
+        /* Info-only step card */
+        .info-step-card {
+            background: #f8fafc;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 15px;
+            padding: 25px 30px;
+            margin-bottom: 25px;
+            text-align: left;
+        }
+
+        .info-step-card .info-step-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-step-card ol {
+            padding-left: 22px;
+            margin: 0;
+        }
+
+        .info-step-card ol li {
+            color: #334155;
+            font-size: 15px;
+            line-height: 1.7;
+            margin-bottom: 10px;
+        }
+
+        .info-step-card ol li strong {
+            color: #1e293b;
+        }
+
+        .info-step-card ol li em {
+            font-style: normal;
+            background: #e2e8f0;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        /* Collapsible YAML blocks */
+        details.yaml-collapsible {
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 15px 0;
+            border: 1px solid #334155;
+        }
+
+        details.yaml-collapsible summary {
+            background: #334155;
+            padding: 8px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            list-style: none;
+        }
+
+        details.yaml-collapsible summary::-webkit-details-marker {
+            display: none;
+        }
+
+        details.yaml-collapsible summary::marker {
+            display: none;
+        }
+
+        details.yaml-collapsible summary:hover {
+            background: #3d4f63;
+        }
+
+        details.yaml-collapsible .yaml-expand-hint {
+            color: #94a3b8;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        details.yaml-collapsible .yaml-expand-hint .arrow {
+            display: inline-block;
+            transition: transform 0.2s;
+        }
+
+        details.yaml-collapsible[open] .yaml-expand-hint .arrow {
+            transform: rotate(90deg);
+        }
+
+        /* Collapsible pipeline command */
+        .toggle-pipeline-btn {
+            padding: 8px 14px;
+            background: #D33833;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .toggle-pipeline-btn:hover {
+            background: #8B1A1A;
+            transform: translateY(-1px);
+        }
+
+        .pipeline-collapsed-hint {
+            padding: 10px 25px;
+            background: #1e293b;
+            border-top: 1px solid #334155;
+            color: #64748b;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+        }
     </style>
 </head>
 <body>
@@ -591,6 +713,7 @@
         var totalSteps = 0;
         var scenarioData = null;
         var allCommands = [];
+        var hasYamlExplanation = false;
 
         async function loadScenario() {
             try {
@@ -598,20 +721,15 @@
                 var data = await response.json();
                 scenarioData = data;
 
+                hasYamlExplanation = !!(data.yaml_explanation && data.yaml_explanation.trim());
+
                 // Separate regular commands and cleanup commands
                 var regularCommands = data.commands.filter(function(cmd) { return !cmd.cleanup; });
                 var cleanupCommands = data.commands.filter(function(cmd) { return cmd.cleanup; });
                 allCommands = regularCommands.concat(cleanupCommands);
-                totalSteps = allCommands.length;
+                totalSteps = allCommands.length + (hasYamlExplanation ? 1 : 0);
 
                 renderScenario(data);
-
-                setTimeout(function() {
-                    window.scrollTo({
-                        top: document.body.scrollHeight,
-                        behavior: 'smooth'
-                    });
-                }, 2000);
             } catch (error) {
                 document.getElementById('scenario-content').innerHTML =
                     '<div class="error-message"><h3>Error Loading Scenario</h3><p>' + error.message + '</p></div>';
@@ -630,6 +748,9 @@
             html += '<span class="badge ' + difficultyClass + '">' + (scenario.difficulty || 'medium').toUpperCase() + '</span>';
             html += '<span class="badge badge-duration">' + (scenario.duration || '15 min') + '</span>';
             html += '<span class="badge badge-commands">' + allCommands.length + ' Commands</span>';
+            if (hasYamlExplanation) {
+                html += '<span class="badge badge-yaml">📖 Guide</span>';
+            }
             html += '</div>';
             html += '<h1 class="scenario-title">' + escapeHtml(scenario.name) + '</h1>';
             html += '<p class="scenario-subtitle">' + escapeHtml(scenario.description || 'Hands-on Jenkins learning scenario') + '</p>';
@@ -681,8 +802,33 @@
         }
 
         function renderStep(step) {
-            var cmd = allCommands[step - 1];
             var contentEl = document.getElementById('wizard-content');
+
+            // Step 1: show yaml explanation if it exists
+            if (step === 1 && hasYamlExplanation) {
+                var html = '<div class="step-header">';
+                html += '<div class="step-number">📚</div>';
+                html += '<h2 class="step-title">Jenkinsfile Configuration Guide</h2>';
+                html += '</div>';
+
+                html += '<div style="background: linear-gradient(135deg, #FDE8E8 0%, #ffd5d5 100%); border: 2px solid #D33833; border-radius: 15px; padding: 20px; margin-bottom: 20px;">';
+                html += '<p style="color: #8B1A1A; font-size: 15px; margin: 0; line-height: 1.6; text-align: left;">📖 <strong>Before you begin:</strong> This guide explains the Jenkinsfile and pipeline configuration used in this scenario. Read through it to understand the structure, then click "Next Step" to start the hands-on commands.</p>';
+                html += '</div>';
+
+                html += '<div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: left; word-wrap: break-word; overflow-wrap: break-word;">';
+                html += parseMarkdownToHtml(scenarioData.yaml_explanation);
+                html += '</div>';
+
+                html += '<div style="text-align: center; margin-top: 20px;">';
+                html += '<button onclick="window.scrollTo({ top: 0, behavior: \'smooth\' })" style="padding: 12px 24px; background: linear-gradient(135deg, #335061, #D33833); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer;">⬆️ Back to Top</button>';
+                html += '</div>';
+
+                contentEl.innerHTML = html;
+                return;
+            }
+
+            var cmd = allCommands[step - (hasYamlExplanation ? 2 : 1)];
+            if (!cmd) return;
 
             var html = '<div class="step-header">';
             html += '<div class="step-number">' + step + '</div>';
@@ -692,7 +838,47 @@
             }
             html += '</div>';
 
+            // Info-only step (no terminal command needed)
+            if (cmd.type === 'info') {
+                var infoContent = extractEchoContent(cmd.command);
+
+                html += '<div class="command-box">';
+                html += '<div class="command-box-header">';
+                html += '<div class="terminal-dots">';
+                html += '<div class="terminal-dot red"></div>';
+                html += '<div class="terminal-dot yellow"></div>';
+                html += '<div class="terminal-dot green"></div>';
+                html += '</div>';
+                html += '<span style="color: #94a3b8; font-size: 12px; font-family: \'Monaco\', \'Menlo\', \'Ubuntu Mono\', monospace;">&#128218; Informational step \u2014 no terminal command needed</span>';
+                html += '</div>';
+                html += '<div class="command-code" style="white-space: pre-wrap;">' + escapeHtml(infoContent) + '</div>';
+                html += '</div>';
+
+                if (cmd.explanation || cmd.next_step) {
+                    html += '<div class="info-cards">';
+                    if (cmd.explanation) {
+                        html += '<div class="info-card why">';
+                        html += '<h4><span>&#128161;</span> Why this matters</h4>';
+                        html += '<p>' + escapeHtml(cmd.explanation) + '</p>';
+                        html += '</div>';
+                    }
+                    if (cmd.next_step) {
+                        html += '<div class="info-card next">';
+                        html += '<h4><span>&#10145;&#65039;</span> What\'s next</h4>';
+                        html += '<p>' + escapeHtml(cmd.next_step) + '</p>';
+                        html += '</div>';
+                    }
+                    html += '</div>';
+                }
+
+                contentEl.innerHTML = html;
+                return;
+            }
+
             // Command Box
+            var cmdLines = cmd.command.split('\n');
+            var isLongCmd = cmdLines.length > 8;
+
             html += '<div class="command-box">';
             html += '<div class="command-box-header">';
             html += '<div class="terminal-dots">';
@@ -700,11 +886,28 @@
             html += '<div class="terminal-dot yellow"></div>';
             html += '<div class="terminal-dot green"></div>';
             html += '</div>';
+            html += '<div style="display: flex; gap: 8px; align-items: center;">';
+            if (isLongCmd) {
+                html += '<button class="toggle-pipeline-btn" id="toggle-pipeline-btn" onclick="togglePipeline()">';
+                html += '<span id="toggle-pipeline-icon">&#9660;</span><span id="toggle-pipeline-label"> Show Pipeline</span>';
+                html += '</button>';
+            }
             html += '<button class="copy-btn" onclick="copyCommand(this, \'' + btoa(cmd.command) + '\')">';
-            html += '<span>&#128203;</span><span>Copy Command</span>';
+            html += '<span>&#128203;</span><span>Copy</span>';
             html += '</button>';
             html += '</div>';
-            html += '<div class="command-code"><span class="prompt">$</span> ' + escapeHtml(cmd.command) + '</div>';
+            html += '</div>';
+
+            if (isLongCmd) {
+                var previewLines = cmdLines.slice(0, 5).join('\n');
+                var remainingCount = cmdLines.length - 5;
+                html += '<div class="command-code" id="pipeline-preview"><span class="prompt">$</span> ' + escapeHtml(previewLines) + '</div>';
+                html += '<div class="pipeline-collapsed-hint" id="pipeline-hint">&#8942; ' + remainingCount + ' more lines &mdash; click "Show Pipeline" to expand</div>';
+                html += '<div class="command-code" id="pipeline-full" style="display: none;"><span class="prompt">$</span> ' + escapeHtml(cmd.command) + '</div>';
+            } else {
+                html += '<div class="command-code"><span class="prompt">$</span> ' + escapeHtml(cmd.command) + '</div>';
+            }
+
             html += '</div>';
 
             // Info Cards
@@ -757,11 +960,19 @@
             contentEl.innerHTML = html;
         }
 
+        function scrollToTopIfNotYaml(step) {
+            var isYamlStep = step === 1 && hasYamlExplanation;
+            if (!isYamlStep) {
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            }
+        }
+
         function goToStep(step) {
             if (step < 1 || step > totalSteps) return;
             currentStep = step;
             updateUI();
             renderStep(step);
+            scrollToTopIfNotYaml(step);
         }
 
         function nextStep() {
@@ -769,6 +980,7 @@
                 currentStep++;
                 updateUI();
                 renderStep(currentStep);
+                scrollToTopIfNotYaml(currentStep);
             }
         }
 
@@ -777,6 +989,7 @@
                 currentStep--;
                 updateUI();
                 renderStep(currentStep);
+                scrollToTopIfNotYaml(currentStep);
             }
         }
 
@@ -860,11 +1073,174 @@
             document.body.removeChild(textarea);
         }
 
+        function extractEchoContent(command) {
+            if (!command) return '';
+
+            // Check if entire command is a single echo with embedded newlines
+            // (only when there are no multiple echo calls, to avoid greedy capture)
+            if (command.indexOf('\necho ') === -1) {
+                var mlMatch = command.match(/^echo\s+'([\s\S]+)'\s*$/);
+                if (mlMatch) {
+                    return mlMatch[1];
+                }
+            }
+
+            // Normalize && to newlines for chained echo commands
+            var normalized = command.replace(/\s*&&\s*/g, '\n');
+            var lines = normalized.split('\n');
+            var result = [];
+
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i].trim();
+                if (!line) continue;
+
+                // Empty echo
+                if (line === "echo ''" || line === 'echo ""' || line === 'echo') {
+                    result.push('');
+                    continue;
+                }
+
+                // echo 'text' (single quotes)
+                var m1 = line.match(/^echo\s+'(.*)'$/);
+                if (m1) {
+                    result.push(m1[1].replace(/\\"/g, '"'));
+                    continue;
+                }
+
+                // echo "text" (double quotes)
+                var m2 = line.match(/^echo\s+"(.*)"$/);
+                if (m2) {
+                    result.push(m2[1].replace(/\\"/g, '"'));
+                    continue;
+                }
+            }
+
+            var extracted = result.join('\n');
+            // Fallback: return raw command if extraction yielded nothing
+            return extracted.trim() ? extracted : command;
+        }
+
         function escapeHtml(text) {
             if (!text) return '';
             var div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        function parseInlineMarkdown(text) {
+            text = escapeHtml(text);
+            text = text.replace(/\*\*(.+?)\*\*/g, '<strong style="color: #1e293b; font-weight: 700;">$1</strong>');
+            text = text.replace(/\*(.+?)\*/g, '<em style="color: #475569;">$1</em>');
+            text = text.replace(/`(.+?)`/g, '<code style="background: #f1f5f9; color: #1e293b; padding: 2px 6px; border-radius: 3px; font-size: 13px; font-family: monospace;">$1</code>');
+            text = text.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" style="color: #D33833; text-decoration: underline;">$1</a>');
+            return text;
+        }
+
+        function parseMarkdownToHtml(markdown) {
+            if (!markdown) return '<p style="text-align: left; color: #94a3b8;">No explanation available for this scenario.</p>';
+
+            var html = '';
+            var lines = markdown.split('\n');
+            var inCodeBlock = false;
+            var codeContent = '';
+            var codeLanguage = '';
+            var inList = false;
+
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i];
+                var trimmedLine = line.trim();
+
+                if (trimmedLine.startsWith('```')) {
+                    if (inCodeBlock) {
+                        var lang = codeLanguage || 'code';
+                        var isYaml = lang.toLowerCase() === 'yaml' || lang.toLowerCase() === 'yml';
+                        var preHtml = '<pre style="background: #1e293b; color: #e2e8f0; padding: 15px; margin: 0; overflow-x: auto; font-size: 13px; white-space: pre; text-align: left; line-height: 1.6;">' + escapeHtml(codeContent.trim()) + '</pre>';
+                        if (isYaml) {
+                            html += '<details class="yaml-collapsible">';
+                            html += '<summary>';
+                            html += '<span style="color: #94a3b8; font-size: 12px; font-family: monospace; font-weight: 600;">' + escapeHtml(lang) + '</span>';
+                            html += '<span class="yaml-expand-hint"><span class="arrow">&#9658;</span> Click to expand</span>';
+                            html += '</summary>';
+                            html += preHtml;
+                            html += '</details>';
+                        } else {
+                            html += '<div style="border-radius: 8px; overflow: hidden; margin: 15px 0; border: 1px solid #334155;">';
+                            html += '<div style="background: #334155; padding: 8px 15px; display: flex; justify-content: space-between; align-items: center;">';
+                            html += '<span style="color: #94a3b8; font-size: 12px; font-family: monospace; font-weight: 600;">' + escapeHtml(lang) + '</span>';
+                            html += '</div>';
+                            html += preHtml;
+                            html += '</div>';
+                        }
+                        codeContent = '';
+                        codeLanguage = '';
+                        inCodeBlock = false;
+                    } else {
+                        codeLanguage = trimmedLine.substring(3).trim();
+                        inCodeBlock = true;
+                    }
+                    continue;
+                }
+
+                if (inCodeBlock) {
+                    codeContent += line + '\n';
+                    continue;
+                }
+
+                if (trimmedLine.startsWith('# ')) {
+                    html += '<h2 style="color: #1e293b; margin: 25px 0 15px 0; font-size: 24px; text-align: left; font-weight: 700;">' + escapeHtml(trimmedLine.substring(2)) + '</h2>';
+                } else if (trimmedLine.startsWith('## ')) {
+                    html += '<h3 style="color: #1e293b; font-size: 18px; font-weight: 600; margin: 20px 0 10px 0; text-align: left;">' + escapeHtml(trimmedLine.substring(3)) + '</h3>';
+                } else if (trimmedLine.startsWith('### ')) {
+                    html += '<h4 style="color: #475569; margin: 15px 0 8px 0; font-size: 15px; font-weight: 600; text-align: left;">' + escapeHtml(trimmedLine.substring(4)) + '</h4>';
+                } else if (trimmedLine.startsWith('---')) {
+                    html += '<hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;">';
+                } else if (trimmedLine.startsWith('| ')) {
+                    html += '<div style="font-family: monospace; font-size: 13px; color: #475569; margin: 4px 0; text-align: left;">' + escapeHtml(trimmedLine) + '</div>';
+                } else if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
+                    if (!inList) {
+                        html += '<ul style="padding-left: 20px; margin: 10px 0; text-align: left; color: #475569;">';
+                        inList = true;
+                    }
+                    html += '<li style="margin: 5px 0; text-align: left; color: #475569; font-size: 14px; line-height: 1.6;">' + parseInlineMarkdown(trimmedLine.substring(2)) + '</li>';
+                } else if (trimmedLine === '') {
+                    if (inList) {
+                        html += '</ul>';
+                        inList = false;
+                    }
+                    html += '<br>';
+                } else {
+                    if (inList) {
+                        html += '</ul>';
+                        inList = false;
+                    }
+                    html += '<p style="margin: 10px 0; text-align: left; color: #475569; font-size: 14px; line-height: 1.6;">' + parseInlineMarkdown(trimmedLine) + '</p>';
+                }
+            }
+
+            if (inList) html += '</ul>';
+            return html;
+        }
+
+        function togglePipeline() {
+            var preview = document.getElementById('pipeline-preview');
+            var hint = document.getElementById('pipeline-hint');
+            var full = document.getElementById('pipeline-full');
+            var icon = document.getElementById('toggle-pipeline-icon');
+            var label = document.getElementById('toggle-pipeline-label');
+
+            if (full.style.display === 'none') {
+                preview.style.display = 'none';
+                hint.style.display = 'none';
+                full.style.display = 'block';
+                icon.innerHTML = '&#9650;';
+                label.textContent = ' Hide Pipeline';
+            } else {
+                preview.style.display = 'block';
+                hint.style.display = 'block';
+                full.style.display = 'none';
+                icon.innerHTML = '&#9660;';
+                label.textContent = ' Show Pipeline';
+            }
         }
 
         document.addEventListener('keydown', function(e) {

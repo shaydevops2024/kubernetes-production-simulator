@@ -10,7 +10,8 @@
       "explanation": "JENKINS_HOME is the single most important directory in a Jenkins installation. Everything - configuration, credentials, job definitions, build history - lives here. Understanding this structure is essential for backup, migration, and troubleshooting. The secrets/ directory is especially critical: without master.key, all encrypted credentials become unrecoverable.",
       "what_it_does": "Displays the complete JENKINS_HOME directory tree with explanations of what each file and directory contains.",
       "next_step": "Identify which files are critical for backup.",
-      "cleanup": false
+      "cleanup": false,
+      "type": "info"
     },
     {
       "name": "Step 2: Review Critical Backup Files",
@@ -19,7 +20,8 @@
       "explanation": "Not everything in JENKINS_HOME needs to be backed up. The secrets/ directory is irreplaceable - losing master.key means all encrypted credentials are gone forever. Job configs can be recreated from Jenkinsfiles in Git, but build history is lost without backup. Plugins can be reinstalled, but having the exact versions saves time. Workspaces should always be excluded - they are large and fully reproducible.",
       "what_it_does": "Shows a priority matrix for Jenkins backup files, from critical (encryption keys) to skippable (workspaces).",
       "next_step": "Create a simulated JENKINS_HOME and perform a backup.",
-      "cleanup": false
+      "cleanup": false,
+      "type": "info"
     },
     {
       "name": "Step 3: Simulate JENKINS_HOME and Create Backup",
@@ -73,7 +75,8 @@
       "explanation": "Manual backups are unreliable - automate them. The three approaches offer different trade-offs: Jenkins self-backup is simplest but fails if Jenkins is down; Kubernetes CronJobs are independent of Jenkins health; cloud volume snapshots are fastest but cloud-provider specific. The retention policy balances storage cost with recovery flexibility. Always store backups off-site.",
       "what_it_does": "Shows three automated backup approaches (Jenkins pipeline, K8s CronJob, cloud snapshots) with retention policies.",
       "next_step": "Review the disaster recovery summary.",
-      "cleanup": false
+      "cleanup": false,
+      "type": "info"
     },
     {
       "name": "Step 9: Disaster Recovery Summary",
@@ -82,7 +85,8 @@
       "explanation": "Disaster recovery is not just about having backups - it is about having tested, verified, automated, off-site backups with a documented restoration procedure. The difference between a 30-minute recovery and a multi-day outage is preparation. Regular restore drills ensure your backup process actually works when you need it.",
       "what_it_does": "Prints a comprehensive disaster recovery summary with critical files, commands, time objectives, and a checklist.",
       "next_step": "Clean up resources.",
-      "cleanup": false
+      "cleanup": false,
+      "type": "info"
     },
     {
       "name": "Cleanup: Remove Resources",

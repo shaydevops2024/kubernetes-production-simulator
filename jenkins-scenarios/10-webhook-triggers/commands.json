@@ -9,7 +9,8 @@
       "description": "Overview of Jenkins build trigger mechanisms",
       "explanation": "Jenkins supports multiple ways to trigger builds. Webhooks are push-based - the SCM server notifies Jenkins immediately when changes occur, providing instant feedback. SCM polling is pull-based - Jenkins periodically checks the repository, introducing latency equal to the polling interval. Scheduled triggers use cron syntax for time-based builds. Understanding these options helps you design responsive CI/CD pipelines while balancing server load and network constraints.",
       "what_it_does": "Displays a categorized overview of all Jenkins build trigger types with recommendations for when to use each approach.",
-      "next_step": "Review webhook configuration in a Jenkinsfile."
+      "next_step": "Review webhook configuration in a Jenkinsfile.",
+      "type": "info"
     },
     {
       "name": "Step 2: Review Webhook Configuration",

@@ -17,7 +17,8 @@
       "description": "Explore all five Jenkins parameter types with syntax and usage examples",
       "explanation": "Jenkins supports five parameter types, each rendering as a different UI control. String and text are free-form input. Choice restricts to predefined options (safest for environments). Boolean is a simple toggle. Password masks input in the UI and logs. The first pipeline run always uses defaults because Jenkins needs to parse the Jenkinsfile to discover parameters.",
       "what_it_does": "Lists all parameter types with their Jenkinsfile syntax, UI rendering, and how to access values at runtime.",
-      "next_step": "Now let's see how the when{} block uses parameters to control stage execution."
+      "next_step": "Now let's see how the when{} block uses parameters to control stage execution.",
+      "type": "info"
     },
     {
       "name": "Step 3: Understand Conditional When Blocks",
@@ -25,7 +26,8 @@
       "description": "Learn how when{} blocks conditionally skip or execute pipeline stages",
       "explanation": "The when{} directive is the gatekeeper for conditional logic in declarative pipelines. It evaluates before a stage runs and either allows or skips it. allOf requires ALL conditions to be true (AND), while anyOf requires at least one (OR). Skipped stages appear gray in the Jenkins UI, distinct from failed (red) or successful (green) stages.",
       "what_it_does": "Shows all forms of when{} conditions: expression-based, built-in shortcuts, negation, and combined (allOf/anyOf) logic.",
-      "next_step": "Let's simulate running the pipeline with different parameter combinations."
+      "next_step": "Let's simulate running the pipeline with different parameter combinations.",
+      "type": "info"
     },
     {
       "name": "Step 4: Simulate Parameter-Based Deployment",
@@ -33,7 +35,8 @@
       "description": "Simulate three different pipeline runs showing how parameters change the flow",
       "explanation": "This shows the power of parameterized pipelines: one Jenkinsfile handles dev, staging, and production with different behaviors. Dev deployments skip approval. Production requires manual approval unless FORCE_DEPLOY overrides it (useful for hotfixes). Tests can be skipped for known-good builds. This flexibility eliminates the need for separate pipelines per environment.",
       "what_it_does": "Walks through three realistic parameter combinations showing which stages run, skip, or block for each scenario.",
-      "next_step": "Let's deploy a real app with environment-specific configuration."
+      "next_step": "Let's deploy a real app with environment-specific configuration.",
+      "type": "info"
     },
     {
       "name": "Step 5: Deploy with Environment-Specific Config",
@@ -57,7 +60,8 @@
       "description": "Review all concepts covered about parameters, when blocks, and environment-specific deployments",
       "explanation": "This summary reinforces the pattern of using parameters to create flexible, multi-environment pipelines. The skeleton provides a minimal template that includes the most common parameter types and conditional patterns.",
       "what_it_does": "Prints a complete summary of parameterized pipeline concepts and a reusable skeleton template.",
-      "next_step": "Run cleanup to remove all resources."
+      "next_step": "Run cleanup to remove all resources.",
+      "type": "info"
     },
     {
       "name": "Step 8: Cleanup",

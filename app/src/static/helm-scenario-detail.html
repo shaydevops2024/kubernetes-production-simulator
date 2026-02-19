@@ -20,7 +20,7 @@
         }
 
         .container {
-            max-width: 900px;
+            max-width: 1300px;
             margin: 0 auto;
         }
 
@@ -708,7 +708,9 @@
 
             html += '</div>';
 
-            document.getElementById('scenario-content').innerHTML = html;
+            var contentEl = document.getElementById('scenario-content');
+            contentEl.classList.remove('loading');
+            contentEl.innerHTML = html;
 
             renderProgressDots();
             renderStep(1);
@@ -741,7 +743,7 @@
                 html += '</div>';
 
                 // Render markdown content with max height and scroll
-                html += '<div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-height: 600px; overflow-y: auto; text-align: left; word-wrap: break-word; overflow-wrap: break-word;">';
+                html += '<div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: left; word-wrap: break-word; overflow-wrap: break-word;">';
                 html += parseMarkdownToHtml(scenarioData.yaml_explanation);
                 html += '</div>';
 
@@ -851,9 +853,10 @@
                 html += '<span id="yaml-toggle-icon">▶</span> 📄 Scenario Files <span style="font-size: 14px; color: #94a3b8; font-weight: normal;">(Click to expand)</span>';
                 html += '</h3>';
                 html += '<div id="yaml-files-container" style="display: none; margin-top: 15px;">';
+                html += '<div style="display: flex; flex-direction: row; flex-wrap: wrap; gap: 15px; align-items: flex-start;">';
 
                 scenarioData.yaml_files.forEach(function(file) {
-                    html += '<div class="yaml-box" style="margin-bottom: 15px;">';
+                    html += '<div class="yaml-box" style="flex: 1; min-width: 300px;">';
                     html += '<div class="yaml-header">';
                     html += '<span class="yaml-filename">' + escapeHtml(file.name) + '</span>';
                     html += '<button class="copy-btn" onclick="copyYaml(this, \'' + btoa(unescape(encodeURIComponent(file.content))) + '\')">';
@@ -864,6 +867,7 @@
                     html += '</div>';
                 });
 
+                html += '</div>';
                 html += '</div>';
                 html += '</div>';
             }
