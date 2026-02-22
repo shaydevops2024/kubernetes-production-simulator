@@ -1,0 +1,190 @@
+version: '3.9'
+
+# ============================================================
+#  ChatFlow — Local Development Stack
+#  Run: docker compose up --build
+#  UI:  http://localhost:8092
+#  MinIO Console: http://localhost:9001 (user: minioadmin / minioadmin)
+# ============================================================
+
+services:
+
+  # ── Infrastructure ─────────────────────────────────────────
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --save "" --appendonly no  # no persistence for local dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  postgres-chat:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB:       chat_db
+      POSTGRES_USER:     chatuser
+      POSTGRES_PASSWORD: chatpass
+    volumes:
+      - chat_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chatuser -d chat_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-notifications:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB:       notifications_db
+      POSTGRES_USER:     chatuser
+      POSTGRES_PASSWORD: chatpass
+    volumes:
+      - notifications_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chatuser -d notifications_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-files:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB:       files_db
+      POSTGRES_USER:     chatuser
+      POSTGRES_PASSWORD: chatpass
+    volumes:
+      - files_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chatuser -d files_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER:     minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"    # MinIO API (used by file-service internally + browser for presigned URLs)
+      - "9001:9001"    # MinIO Console — open http://localhost:9001 to explore your buckets
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ── Application Services ────────────────────────────────────
+
+  chat-service:
+    build:
+      context: ../app/chat-service
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://chatuser:chatpass@postgres-chat:5432/chat_db
+      REDIS_URL:    redis://redis:6379
+      PORT:         "8020"
+    depends_on:
+      postgres-chat:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8020/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  presence-service:
+    build:
+      context: ../app/presence-service
+      dockerfile: Dockerfile
+    environment:
+      REDIS_URL: redis://redis:6379
+      PORT:      "8021"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8021/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  notification-service:
+    build:
+      context: ../app/notification-service
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://chatuser:chatpass@postgres-notifications:5432/notifications_db
+      PORT:         "8022"
+    depends_on:
+      postgres-notifications:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8022/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  file-service:
+    build:
+      context: ../app/file-service
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL:    postgresql://chatuser:chatpass@postgres-files:5432/files_db
+      MINIO_ENDPOINT:  minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET:    chatfiles
+      PORT:            "8023"
+    depends_on:
+      postgres-files:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8023/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # ── Frontend ───────────────────────────────────────────────
+
+  frontend:
+    build:
+      context: ../app/frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - chat-service
+
+  # ── API Gateway ────────────────────────────────────────────
+
+  gateway:
+    image: nginx:alpine
+    ports:
+      - "8092:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - frontend
+      - chat-service
+      - presence-service
+      - notification-service
+      - file-service
+
+volumes:
+  chat_db_data:
+  notifications_db_data:
+  files_db_data:
+  minio_data:

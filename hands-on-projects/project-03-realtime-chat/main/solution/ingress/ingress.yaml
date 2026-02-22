@@ -1,0 +1,92 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: chatflow-ingress
+  namespace: chatflow
+  labels:
+    app: chatflow
+    component: ingress
+  annotations:
+    # -----------------------------------------------------------------------
+    # WebSocket support — CRITICAL
+    # Without these, nginx drops WebSocket connections after 60s.
+    # -----------------------------------------------------------------------
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    # Inject WebSocket upgrade headers for all proxied connections
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+
+    # -----------------------------------------------------------------------
+    # File uploads — allow up to 15MB (matches file-service validation limit)
+    # -----------------------------------------------------------------------
+    nginx.ingress.kubernetes.io/proxy-body-size: "15m"
+
+    # -----------------------------------------------------------------------
+    # Buffering — disable for streaming WebSocket traffic
+    # -----------------------------------------------------------------------
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      # -----------------------------------------------------------------------
+      # WebSocket endpoint — MUST come before /api/chat (more specific)
+      # Matches: /ws/{room_id}/{user_id}?username=xxx
+      # -----------------------------------------------------------------------
+      - path: /ws
+        pathType: Prefix
+        backend:
+          service:
+            name: chat-service
+            port:
+              number: 8020
+
+      # -----------------------------------------------------------------------
+      # REST API routes
+      # -----------------------------------------------------------------------
+      - path: /api/chat
+        pathType: Prefix
+        backend:
+          service:
+            name: chat-service
+            port:
+              number: 8020
+
+      - path: /api/presence
+        pathType: Prefix
+        backend:
+          service:
+            name: presence-service
+            port:
+              number: 8021
+
+      - path: /api/notifications
+        pathType: Prefix
+        backend:
+          service:
+            name: notification-service
+            port:
+              number: 8022
+
+      - path: /api/files
+        pathType: Prefix
+        backend:
+          service:
+            name: file-service
+            port:
+              number: 8023
+
+      # -----------------------------------------------------------------------
+      # Frontend — catch-all (must be last)
+      # -----------------------------------------------------------------------
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend
+            port:
+              number: 80

@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-files
+  namespace: chatflow
+  labels:
+    app: postgres-files
+    component: infrastructure
+spec:
+  serviceName: postgres-files
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-files
+  template:
+    metadata:
+      labels:
+        app: postgres-files
+        component: infrastructure
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16-alpine
+        envFrom:
+        - secretRef:
+            name: db-credentials
+        env:
+        - name: POSTGRES_DB
+          value: files_db
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        ports:
+        - containerPort: 5432
+          name: postgres
+        readinessProbe:
+          exec:
+            command: ["pg_isready", "-U", "chatuser", "-d", "files_db"]
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 6
+        livenessProbe:
+          exec:
+            command: ["pg_isready", "-U", "chatuser", "-d", "files_db"]
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 5Gi
+---
+# Headless service — file-service connects via: postgres-files:5432
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-files
+  namespace: chatflow
+  labels:
+    app: postgres-files
+    component: infrastructure
+spec:
+  clusterIP: None
+  selector:
+    app: postgres-files
+  ports:
+  - port: 5432
+    targetPort: 5432
+    name: postgres

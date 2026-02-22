@@ -25,19 +25,19 @@ Every project has three folders:
 | # | Project | Topics | Status |
 |---|---------|--------|--------|
 | 01 | [Production-Ready Microservices E-Commerce Platform](./project-01-ecommerce-platform/README.md) | Istio, Distributed Tracing, Circuit Breakers, Rate Limiting | ✅ Available |
-| 02 | GitOps CI/CD Pipeline | GitHub Actions, ArgoCD, Helm, Automated Testing | 🔜 Coming Soon |
-| 03 | Observability & Monitoring Platform | Prometheus, Grafana, Jaeger, EFK Stack | 🔜 Coming Soon |
-| 04 | Zero-Trust Security Platform | OPA, Network Policies, Pod Security Standards | 🔜 Coming Soon |
-| 05 | High-Availability Database Cluster | PostgreSQL HA, Redis Cluster, StatefulSets | 🔜 Coming Soon |
-| 06 | Multi-Region Active-Active Setup | Federation, Global Load Balancing | 🔜 Coming Soon |
-| 07 | Autoscaling & Cost Optimization | HPA, VPA, KEDA, Spot Instances | 🔜 Coming Soon |
-| 08 | Disaster Recovery System | Velero, Cross-Region Replication, RTO/RPO | 🔜 Coming Soon |
-| 09 | Platform Engineering (IDP) | Backstage, Self-Service Infrastructure | 🔜 Coming Soon |
-| 10 | MLOps Pipeline | Kubeflow, Model Serving, A/B Testing | 🔜 Coming Soon |
-| 11 | Serverless on Kubernetes | Knative, Event-Driven Architecture | 🔜 Coming Soon |
-| 12 | Multi-Tenant SaaS Platform | Namespace Isolation, Resource Quotas, Billing | 🔜 Coming Soon |
-| 13 | API Gateway & Rate Limiting | Kong, OAuth2, JWT, Traffic Policies | 🔜 Coming Soon |
-| 14 | Edge Computing Setup | K3s, Edge Nodes, CDN Integration | 🔜 Coming Soon |
+| 02 | [Multi-Tenant SaaS Application Infrastructure](./project-02-multitenant-saas/README.md) | Namespaces, RBAC, ResourceQuota, NetworkPolicy, Multi-tenancy | ✅ Available |
+| 03 | [Real-Time Chat / Messaging Platform](./project-03-realtime-chat/README.md) | WebSockets, Redis pub/sub, MinIO/S3, Horizontal Scaling, Presence | ✅ Available |
+| 04 | Observability & Monitoring Platform | Prometheus, Grafana, Jaeger, EFK Stack | 🔜 Coming Soon |
+| 05 | Zero-Trust Security Platform | OPA, Network Policies, Pod Security Standards | 🔜 Coming Soon |
+| 06 | High-Availability Database Cluster | PostgreSQL HA, Redis Cluster, StatefulSets | 🔜 Coming Soon |
+| 07 | Multi-Region Active-Active Setup | Federation, Global Load Balancing | 🔜 Coming Soon |
+| 08 | Autoscaling & Cost Optimization | HPA, VPA, KEDA, Spot Instances | 🔜 Coming Soon |
+| 09 | Disaster Recovery System | Velero, Cross-Region Replication, RTO/RPO | 🔜 Coming Soon |
+| 10 | Platform Engineering (IDP) | Backstage, Self-Service Infrastructure | 🔜 Coming Soon |
+| 11 | MLOps Pipeline | Kubeflow, Model Serving, A/B Testing | 🔜 Coming Soon |
+| 12 | Serverless on Kubernetes | Knative, Event-Driven Architecture | 🔜 Coming Soon |
+| 13 | Zero-Downtime Deployment Strategies | Argo Rollouts, Canary, Blue-Green | 🔜 Coming Soon |
+| 14 | API Gateway & Rate Limiting | Kong, OAuth2, JWT, Traffic Policies | 🔜 Coming Soon |
 | 15 | SRE Practices Platform | SLOs, Error Budgets, Chaos Engineering | 🔜 Coming Soon |
 | 16 | Security Compliance & Audit | Falco, OPA Gatekeeper, CIS Benchmarks | 🔜 Coming Soon |
 
@@ -57,6 +57,6 @@ Before starting any project:
 
 **Beginner:** Start with Project 01 (local/ folder only) → Project 02 → Project 07
 
-**Intermediate:** Projects 01-05 (full main/ deployment) → Project 03 (observability) → Project 04
+**Intermediate:** Projects 01–03 (full main/ deployment) → Project 04 (observability) → Project 05
 
-**Advanced:** Projects 06, 09, 10, 11, 15, 16
+**Advanced:** Projects 07, 10, 11, 12, 15, 16

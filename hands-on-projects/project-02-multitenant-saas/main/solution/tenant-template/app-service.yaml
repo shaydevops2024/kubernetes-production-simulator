@@ -1,0 +1,89 @@
+# ── Deployment — Tenant App Service ──────────────────────────────────────────
+#
+# Key differences from the local Docker Compose version:
+#   1. serviceAccountName: app-service-sa  (not the default SA — scoped RBAC)
+#   2. DATABASE_URL points to THIS tenant's postgres (not a shared one)
+#   3. BILLING_SERVICE_URL points to saas-platform namespace (cross-namespace DNS)
+#   4. X-Tenant-ID header is still required by the app code — the K8s isolation
+#      doesn't remove the need for it, it ADDS a second layer: even if a client
+#      sends the wrong tenant ID, NetworkPolicy prevents cross-tenant requests.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-service
+  namespace: tenant-TENANT_SLUG
+  labels:
+    app: app-service
+    saas.platform/tenant: "TENANT_SLUG"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app-service
+  template:
+    metadata:
+      labels:
+        app: app-service
+        saas.platform/tenant: "TENANT_SLUG"
+    spec:
+      # Use the tenant-specific ServiceAccount (not default)
+      serviceAccountName: app-service-sa
+      containers:
+      - name: app-service
+        image: app-service:v1
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8011
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: app-db-secret
+              key: url
+        - name: BILLING_SERVICE_URL
+          # Cross-namespace DNS: <service>.<namespace>.svc.cluster.local
+          value: "http://billing-service.saas-platform.svc.cluster.local:8012"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8011
+          initialDelaySeconds: 15
+          periodSeconds: 5
+          failureThreshold: 6
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8011
+          initialDelaySeconds: 30
+          periodSeconds: 15
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+---
+# ── Service ───────────────────────────────────────────────────────────────────
+# ClusterIP — only reachable within the cluster.
+# NetworkPolicy ensures only pods in this namespace can reach it
+# (plus the saas-platform namespace for admin/billing queries).
+#
+# DNS name: app-service.tenant-TENANT_SLUG.svc.cluster.local
+# Access locally: kubectl port-forward -n tenant-TENANT_SLUG svc/app-service 9001:8011
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-service
+  namespace: tenant-TENANT_SLUG
+  labels:
+    app: app-service
+    saas.platform/tenant: "TENANT_SLUG"
+spec:
+  selector:
+    app: app-service
+  ports:
+  - name: http
+    port: 8011
+    targetPort: 8011
+  type: ClusterIP

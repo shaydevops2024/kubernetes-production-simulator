@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-notifications
+  namespace: chatflow
+  labels:
+    app: postgres-notifications
+    component: infrastructure
+spec:
+  serviceName: postgres-notifications
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-notifications
+  template:
+    metadata:
+      labels:
+        app: postgres-notifications
+        component: infrastructure
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16-alpine
+        envFrom:
+        - secretRef:
+            name: db-credentials
+        env:
+        - name: POSTGRES_DB
+          value: notifications_db
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        ports:
+        - containerPort: 5432
+          name: postgres
+        readinessProbe:
+          exec:
+            command: ["pg_isready", "-U", "chatuser", "-d", "notifications_db"]
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 6
+        livenessProbe:
+          exec:
+            command: ["pg_isready", "-U", "chatuser", "-d", "notifications_db"]
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 5Gi
+---
+# Headless service — notification-service connects via: postgres-notifications:5432
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-notifications
+  namespace: chatflow
+  labels:
+    app: postgres-notifications
+    component: infrastructure
+spec:
+  clusterIP: None
+  selector:
+    app: postgres-notifications
+  ports:
+  - port: 5432
+    targetPort: 5432
+    name: postgres

@@ -502,3 +502,33 @@ kubectl get ingress -n saas-platform
 - If a pod can't start due to quota, `kubectl describe pod <name> -n <ns>` will show the quota error.
 - Use `kubectl auth can-i --as=system:serviceaccount:<ns>:app-service-sa get secrets -n <ns>` to test RBAC without actually running the pod.
 - Network policies only work if your cluster has a CNI plugin that supports them (Calico, Cilium, etc.). Kind with default settings supports them.
+
+---
+
+## Reference Solution
+
+If you get stuck, a complete working solution is available in the `solution/` folder:
+
+```
+main/solution/
+├── build-images.sh        ← Build and load all Docker images into Kind
+├── deploy-tenant.sh       ← Deploy one tenant namespace (TENANT=alice-corp PLAN=enterprise)
+├── platform/              ← All platform namespace manifests (ready to apply)
+└── tenant-template/       ← Tenant manifests with TENANT_SLUG placeholders
+```
+
+```bash
+# Quick apply — platform namespace
+kubectl apply -f main/solution/platform/namespace.yaml
+kubectl apply -f main/solution/platform/secrets.yaml
+kubectl apply -f main/solution/platform/databases/
+kubectl apply -f main/solution/platform/platform-api/
+kubectl apply -f main/solution/platform/billing-service/
+kubectl apply -f main/solution/platform/admin-ui/
+kubectl apply -f main/solution/platform/ingress.yaml
+
+# Quick apply — one tenant
+TENANT=alice-corp PLAN=enterprise bash main/solution/deploy-tenant.sh
+```
+
+Read `main/solution/README.md` for the full walkthrough.

@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: presence-service
+  namespace: chatflow
+  labels:
+    app: presence-service
+    component: application
+spec:
+  type: ClusterIP
+  selector:
+    app: presence-service
+  ports:
+  - port: 8021
+    targetPort: 8021
+    name: http

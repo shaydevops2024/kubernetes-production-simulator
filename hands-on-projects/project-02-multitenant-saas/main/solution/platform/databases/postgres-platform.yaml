@@ -1,0 +1,64 @@
+# ── Headless Service (required by StatefulSet) ────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-platform
+  namespace: saas-platform
+  labels:
+    app: postgres-platform
+spec:
+  clusterIP: None   # headless — DNS resolves directly to pod IP
+  selector:
+    app: postgres-platform
+  ports:
+  - port: 5432
+    targetPort: 5432
+---
+# ── StatefulSet ───────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-platform
+  namespace: saas-platform
+spec:
+  serviceName: postgres-platform
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-platform
+  template:
+    metadata:
+      labels:
+        app: postgres-platform
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16-alpine
+        envFrom:
+        - secretRef:
+            name: platform-db-secret
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+        readinessProbe:
+          exec:
+            command: ["pg_isready", "-U", "saas", "-d", "platform_db"]
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 2Gi

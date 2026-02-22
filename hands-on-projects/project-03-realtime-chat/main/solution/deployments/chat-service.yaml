@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat-service
+  namespace: chatflow
+  labels:
+    app: chat-service
+    component: application
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: chat-service
+  template:
+    metadata:
+      labels:
+        app: chat-service
+        component: application
+    spec:
+      containers:
+      - name: chat-service
+        # Build: docker build -t chatflow/chat-service:v1 app/chat-service/
+        # Load:  kind load docker-image chatflow/chat-service:v1 --name <cluster>
+        image: chatflow/chat-service:v1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8020
+          name: http
+        env:
+        # Inject credentials from Secret so they can be used in DATABASE_URL via $(VAR) substitution
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: POSTGRES_PASSWORD
+        # Kubernetes resolves $(POSTGRES_USER) and $(POSTGRES_PASSWORD) at pod startup
+        - name: DATABASE_URL
+          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres-chat:5432/chat_db"
+        - name: REDIS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-config
+              key: REDIS_URL
+        - name: PORT
+          value: "8020"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8020
+          initialDelaySeconds: 15
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8020
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"

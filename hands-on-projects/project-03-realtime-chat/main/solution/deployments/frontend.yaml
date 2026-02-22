@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: chatflow
+  labels:
+    app: frontend
+    component: application
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+        component: application
+    spec:
+      containers:
+      - name: frontend
+        # Build: docker build -t chatflow/chat-frontend:v1 app/frontend/
+        # Load:  kind load docker-image chatflow/chat-frontend:v1 --name <cluster>
+        image: chatflow/chat-frontend:v1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+          name: http
+        # The frontend is a static nginx server — no env vars needed.
+        # API calls from the browser go to relative paths (/ws, /api/...)
+        # which are routed by the Ingress to the correct backend services.
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "25m"
+          limits:
+            memory: "64Mi"
+            cpu: "100m"

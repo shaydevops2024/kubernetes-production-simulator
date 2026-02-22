@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatFlow — Real-Time Chat</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Username Modal (shown on first visit) -->
+<div id="username-overlay" class="modal-overlay">
+    <div class="modal username-modal">
+        <div class="modal-icon">💬</div>
+        <h2>Welcome to ChatFlow</h2>
+        <p>Enter your username to get started.</p>
+        <form id="username-form" onsubmit="setUsername(event)">
+            <input type="text" id="username-input" placeholder="Your name (e.g. alice)" maxlength="30" required autofocus>
+            <button type="submit" class="btn btn-primary btn-full">Start Chatting →</button>
+        </form>
+    </div>
+</div>
+
+<!-- App Shell -->
+<div id="app" class="app hidden">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <span class="logo-icon">💬</span>
+                <span class="logo-name">ChatFlow</span>
+            </div>
+            <div class="user-chip">
+                <span class="user-dot"></span>
+                <span id="current-username">—</span>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="section-label">Rooms</div>
+            <div id="rooms-list" class="rooms-list">
+                <div class="loading-small">Loading...</div>
+            </div>
+            <button class="add-room-btn" onclick="showNewRoomModal()">+ New Room</button>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="section-label">Online — <span id="online-count">0</span></div>
+            <div id="online-users" class="online-users">
+                <div class="loading-small">Loading...</div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Chat Area -->
+    <main class="chat-area">
+
+        <header class="chat-header">
+            <div class="chat-header-left">
+                <span id="current-room-name" class="room-name"># general</span>
+                <span id="current-room-desc" class="room-desc">General discussion</span>
+            </div>
+            <div class="chat-header-right">
+                <button class="icon-btn" id="notif-btn" onclick="toggleNotifications()" title="Notifications">
+                    🔔 <span id="notif-badge" class="notif-badge hidden">0</span>
+                </button>
+                <button class="icon-btn" onclick="switchPage('services')" title="Service Health">⚡</button>
+            </div>
+        </header>
+
+        <!-- Pages -->
+        <div id="page-chat" class="page active">
+            <div id="messages" class="messages">
+                <div class="loading">Connecting...</div>
+            </div>
+            <div id="typing-bar" class="typing-bar hidden"></div>
+            <div class="input-area">
+                <button class="attach-btn" onclick="document.getElementById('file-input').click()" title="Attach file">📎</button>
+                <input type="file" id="file-input" style="display:none" onchange="uploadFile(event)" accept="image/*,.pdf,.txt,.zip">
+                <input type="text" id="message-input" class="message-input" placeholder="Message # general…" maxlength="2000"
+                    oninput="handleTyping()" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}">
+                <button class="send-btn" onclick="sendMessage()" title="Send">▶</button>
+            </div>
+        </div>
+
+        <div id="page-services" class="page">
+            <div class="page-header-bar">
+                <button class="btn btn-secondary" onclick="switchPage('chat')">&larr; Back to Chat</button>
+                <h2>Service Health</h2>
+                <button class="btn btn-secondary" onclick="checkServices()">Refresh</button>
+            </div>
+            <div id="services-grid" class="services-grid">
+                <div class="loading">Checking...</div>
+            </div>
+            <div class="arch-note">
+                <h3>Architecture in this stack</h3>
+                <pre class="arch-diagram">Browser
+  │
+  ├── WebSocket ──→ /ws/{room}/{user}  ──→  chat-service   (FastAPI + WebSocket)
+  │                                               │
+  │                                         Redis pub/sub  ←── scales horizontally
+  │                                               │
+  │                                          PostgreSQL     ←── message persistence
+  │
+  ├── REST ──→ /api/presence/*          ──→  presence-service  (Redis TTL)
+  ├── REST ──→ /api/notifications/*     ──→  notification-service (PostgreSQL)
+  └── REST ──→ /api/files/*             ──→  file-service  (MinIO / S3)
+                                                   │
+                                              MinIO bucket  ←── S3-compatible</pre>
+            </div>
+        </div>
+
+    </main>
+
+</div>
+
+<!-- Notifications Panel -->
+<div id="notif-panel" class="notif-panel hidden">
+    <div class="notif-panel-header">
+        <span>Notifications</span>
+        <button onclick="markAllRead()">Mark all read</button>
+        <button onclick="toggleNotifications()" style="font-size:18px;padding:0 4px;">×</button>
+    </div>
+    <div id="notif-list" class="notif-list">
+        <div class="empty-state-small">No notifications</div>
+    </div>
+</div>
+
+<!-- New Room Modal -->
+<div id="new-room-overlay" class="modal-overlay hidden">
+    <div class="modal">
+        <h2>Create a Room</h2>
+        <form onsubmit="createRoom(event)">
+            <div class="form-group">
+                <label>Room ID (slug)</label>
+                <input type="text" id="new-room-id" placeholder="e.g. kubernetes-help" pattern="[a-z0-9-]+" required>
+            </div>
+            <div class="form-group">
+                <label>Display Name</label>
+                <input type="text" id="new-room-name" placeholder="e.g. # kubernetes-help" required>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <input type="text" id="new-room-desc" placeholder="What's this room for?">
+            </div>
+            <div class="form-row">
+                <button type="button" class="btn btn-secondary" onclick="hideNewRoomModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create Room</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast hidden"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+# Requires: NGINX Ingress Controller
+# Install in Kind: kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: saas-platform-ingress
+  namespace: saas-platform
+  annotations:
+    # Strip the prefix before forwarding to each service
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      # Platform API: /api/platform/tenants → platform-api:8010/tenants
+      - path: /api/platform(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: platform-api
+            port:
+              number: 8010
+
+      # Billing service: /api/billing/usage → billing-service:8012/usage
+      - path: /api/billing(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: billing-service
+            port:
+              number: 8012
+
+      # Admin UI: everything else goes to the dashboard
+      - path: (/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: admin-ui
+            port:
+              number: 80

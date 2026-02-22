@@ -1,0 +1,12 @@
+# Namespace for tenant: TENANT_SLUG
+# deploy-tenant.sh replaces TENANT_SLUG, PLAN_VALUE with real values
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tenant-TENANT_SLUG
+  labels:
+    saas.platform/tenant: "TENANT_SLUG"
+    saas.platform/plan:   "PLAN_VALUE"
+    app.kubernetes.io/part-of: saas-platform
+    # NOTE: This label is also used by NetworkPolicy namespaceSelector
+    kubernetes.io/metadata.name: tenant-TENANT_SLUG

@@ -1,0 +1,58 @@
+# ── NetworkPolicy — Tenant Isolation ─────────────────────────────────────────
+#
+# By default, ALL pods in a K8s cluster can reach ALL other pods.
+# This NetworkPolicy fixes that by:
+#   Ingress: only allow traffic FROM the same namespace OR from saas-platform
+#   Egress:  only allow traffic TO the same namespace, TO saas-platform (billing),
+#            and to DNS (port 53)
+#
+# Result: tenant-alice-corp pods CANNOT reach tenant-bob-industries pods.
+# Test it: kubectl exec -n tenant-alice-corp deploy/app-service --
+#            curl -s --max-time 3 http://app-service.tenant-bob-industries.svc.cluster.local:8011/health
+# Expected: connection timeout
+#
+# NOTE: NetworkPolicy requires a CNI plugin that supports it (Calico, Cilium).
+# Kind with default settings (kindnetd) supports NetworkPolicy.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tenant-isolation
+  namespace: tenant-TENANT_SLUG
+spec:
+  # Apply to ALL pods in this namespace
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+
+  ingress:
+  # ── Rule 1: Allow inbound traffic from other pods in this same namespace
+  - from:
+    - podSelector: {}
+
+  # ── Rule 2: Allow inbound from saas-platform (admin-ui, billing polling)
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: saas-platform
+
+  egress:
+  # ── Rule 1: Allow all outbound within the same namespace (app-service → postgres)
+  - to:
+    - podSelector: {}
+
+  # ── Rule 2: Allow talking to billing-service in saas-platform
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: saas-platform
+    ports:
+    - port: 8012
+      protocol: TCP
+
+  # ── Rule 3: Allow DNS resolution (essential — without this, no hostname works)
+  - ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP

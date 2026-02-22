@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-ui
+  namespace: saas-platform
+  labels:
+    app: admin-ui
+spec:
+  selector:
+    app: admin-ui
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+  type: ClusterIP

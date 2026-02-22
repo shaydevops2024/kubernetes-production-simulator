@@ -1,0 +1,43 @@
+# ── ServiceAccount ────────────────────────────────────────────────────────────
+# Every tenant's app-service runs under its own identity.
+# This prevents a compromised pod from using the default SA (which may have
+# broader permissions) to read secrets from other namespaces.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: app-service-sa
+  namespace: tenant-TENANT_SLUG
+---
+# ── Role ──────────────────────────────────────────────────────────────────────
+# Minimal permissions scoped to this namespace only.
+# The app-service only needs to read its own ConfigMaps and Secrets (e.g. DB URL).
+# It can also list Pods in its namespace for health dashboards.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: app-service-role
+  namespace: tenant-TENANT_SLUG
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+---
+# ── RoleBinding ───────────────────────────────────────────────────────────────
+# Bind the Role to the ServiceAccount — scoped to this namespace.
+# Without this, the SA has no API permissions at all.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: app-service-rb
+  namespace: tenant-TENANT_SLUG
+subjects:
+- kind: ServiceAccount
+  name: app-service-sa
+  namespace: tenant-TENANT_SLUG
+roleRef:
+  kind: Role
+  apiGroup: rbac.authorization.k8s.io
+  name: app-service-role

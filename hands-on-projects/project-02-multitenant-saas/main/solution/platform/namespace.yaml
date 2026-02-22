@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: saas-platform
+  labels:
+    app.kubernetes.io/part-of: saas-platform
+    kubernetes.io/metadata.name: saas-platform

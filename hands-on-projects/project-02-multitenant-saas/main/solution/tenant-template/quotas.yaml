@@ -1,0 +1,47 @@
+# ── ResourceQuota ─────────────────────────────────────────────────────────────
+# Enforces hard limits per plan tier. deploy-tenant.sh substitutes the right
+# values based on the PLAN env var.
+#
+# Plan reference (see deploy-tenant.sh):
+#   Starter:    requests.cpu=500m  requests.memory=512Mi  limits.cpu=1   pods=5
+#   Pro:        requests.cpu=2     requests.memory=2Gi    limits.cpu=4   pods=20
+#   Enterprise: requests.cpu=8     requests.memory=8Gi    limits.cpu=16  pods=100
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: tenant-quota
+  namespace: tenant-TENANT_SLUG
+spec:
+  hard:
+    requests.cpu:    "REQ_CPU_VALUE"
+    requests.memory: "REQ_MEM_VALUE"
+    limits.cpu:      "LIM_CPU_VALUE"
+    limits.memory:   "LIM_MEM_VALUE"
+    pods:            "PODS_VALUE"
+    services:        "SVCS_VALUE"
+    persistentvolumeclaims: "2"
+---
+# ── LimitRange ────────────────────────────────────────────────────────────────
+# Sets default requests/limits for containers that don't specify them.
+# Without LimitRange, a container with no requests/limits ignores the
+# ResourceQuota (quota only counts what's explicitly requested).
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: tenant-limits
+  namespace: tenant-TENANT_SLUG
+spec:
+  limits:
+  - type: Container
+    # Default limits applied automatically when not specified in a Pod spec
+    default:
+      cpu:    "200m"
+      memory: "256Mi"
+    defaultRequest:
+      cpu:    "100m"
+      memory: "128Mi"
+    # Hard cap per container — prevents any single container from consuming
+    # more than this regardless of the ResourceQuota
+    max:
+      cpu:    "1"
+      memory: "1Gi"

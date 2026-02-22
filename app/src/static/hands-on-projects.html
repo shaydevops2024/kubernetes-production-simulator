@@ -386,7 +386,7 @@
             <span class="stat-label">Projects</span>
         </div>
         <div class="stat">
-            <span class="stat-value">2</span>
+            <span class="stat-value">3</span>
             <span class="stat-label">Available</span>
         </div>
         <div class="stat">
@@ -408,7 +408,7 @@
             <span class="path-arrow">→</span>
             <span class="path-item">02 Multi-Tenant SaaS</span>
             <span class="path-arrow">→</span>
-            <span class="path-item">03 Observability</span>
+            <span class="path-item">03 Real-Time Chat</span>
             <span class="path-arrow">→</span>
             <span class="path-item">04 Security</span>
             <span class="path-arrow">→</span>
@@ -419,7 +419,7 @@
     <!-- Available -->
     <div class="section-header">
         <span class="section-title">Available Now</span>
-        <span class="section-badge badge-available">2 Projects</span>
+        <span class="section-badge badge-available">3 Projects</span>
     </div>
 
     <div class="projects-grid">
@@ -464,7 +464,7 @@
         </div>
 
         <!-- Project 02 — Available -->
-        <div class="project-card available" onclick="openProject02()">
+        <div class="project-card available" onclick="openProject02()" id="p02-card">
             <div class="card-banner available"></div>
             <div class="card-body">
                 <div class="card-header">
@@ -502,39 +502,56 @@
             </div>
         </div>
 
+        <!-- Project 03 — Available -->
+        <div class="project-card available" onclick="openProject03()">
+            <div class="card-banner available"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num">PROJECT 03</span>
+                    <span class="status-chip available">✓ Available</span>
+                </div>
+                <div class="card-title">Real-Time Chat / Messaging Platform</div>
+                <div class="card-description">
+                    Build a horizontally scalable WebSocket chat platform. Redis pub/sub keeps multiple replicas in sync. PostgreSQL persists messages. MinIO handles file uploads (S3-compatible). Presence detection and typing indicators included.
+                </div>
+                <div class="card-tags">
+                    <span class="tag highlight">WebSockets</span>
+                    <span class="tag highlight">Redis pub/sub</span>
+                    <span class="tag highlight">MinIO / S3</span>
+                    <span class="tag highlight">Horizontal Scaling</span>
+                    <span class="tag">Presence Detection</span>
+                    <span class="tag">File Uploads</span>
+                    <span class="tag">nginx WebSocket Proxy</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item">
+                        <div class="difficulty">
+                            <div class="dot filled-medium"></div>
+                            <div class="dot filled-medium"></div>
+                            <div class="dot filled-medium"></div>
+                        </div>
+                        Medium-Hard
+                    </span>
+                    <span class="meta-item">⏱ 6–9 hours</span>
+                    <span class="meta-item">🔧 4 services</span>
+                </div>
+                <button class="btn-start" onclick="openProject03()">Start Project →</button>
+            </div>
+        </div>
+
     </div>
 
     <!-- Coming Soon -->
     <div class="section-header" style="margin-top: 40px;">
         <span class="section-title">Coming Soon</span>
-        <span class="section-badge badge-coming">14 Projects</span>
+        <span class="section-badge badge-coming">13 Projects</span>
     </div>
 
     <div class="projects-grid">
 
-        <!-- Projects 03-16 -->
-
-        <div class="project-card coming-soon">
-            <div class="card-banner coming-soon"></div>
-            <div class="card-body">
-                <div class="card-header">
-                    <span class="project-num dim">PROJECT 03</span>
-                    <span class="status-chip coming">Coming Soon</span>
-                </div>
-                <div class="card-title">Observability & Monitoring Platform</div>
-                <div class="card-description">Deploy a full observability stack: Prometheus for metrics, Grafana for dashboards, Jaeger for tracing, and EFK for centralized logging.</div>
-                <div class="card-tags">
-                    <span class="tag">Prometheus</span><span class="tag">Grafana</span><span class="tag">Jaeger</span><span class="tag">EFK</span>
-                </div>
-            </div>
-            <div class="card-footer">
-                <div class="card-meta">
-                    <span class="meta-item"><div class="difficulty"><div class="dot filled-medium"></div><div class="dot filled-medium"></div><div class="dot"></div></div> Medium</span>
-                    <span class="meta-item">⏱ 5–7 hours</span>
-                </div>
-                <button class="btn-coming" disabled>Coming Soon</button>
-            </div>
-        </div>
+        <!-- Projects 04-16 -->
 
         <div class="project-card coming-soon">
             <div class="card-banner coming-soon"></div>
@@ -1237,6 +1254,145 @@ function openProject01() { showModal(); }
 // ── Project 02 entry ──────────────────────────────────────────────────────────
 function openProject02() { showModal02(); }
 
+// ── Project 03 entry ──────────────────────────────────────────────────────────
+function openProject03() { showModal03(); }
+
+function showModal03() {
+    const PATH      = 'hands-on-projects/project-03-realtime-chat/';
+    const DOCKER_CMD = 'docker compose up --build';
+    const QUICK_CMD  = 'cd hands-on-projects/project-03-realtime-chat/local\ndocker compose up --build\n# Open http://localhost:8092\n# MinIO Console: http://localhost:9001 (minioadmin/minioadmin)';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'p03-modal-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;';
+
+    overlay.innerHTML = `
+        <div style="background:white;border-radius:16px;max-width:580px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,.25);">
+
+            <!-- Header -->
+            <div style="padding:22px 28px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:white;z-index:1;border-radius:16px 16px 0 0;">
+                <h2 style="font-size:19px;font-weight:700;">💬 Project 03 — Real-Time Chat Platform</h2>
+                <button onclick="document.getElementById('p03-modal-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#6b7280;line-height:1;padding:0 4px;">&times;</button>
+            </div>
+
+            <div style="padding:24px 28px;display:flex;flex-direction:column;gap:20px;">
+
+                <!-- Path -->
+                <div style="background:#eef2ff;border-radius:10px;padding:16px;">
+                    <div style="font-weight:700;margin-bottom:10px;color:#4f46e5;font-size:13px;">📁 Project Location</div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <code style="font-size:12px;color:#374151;background:#e0e7ff;padding:8px 12px;border-radius:6px;font-family:'Courier New',Courier,monospace;flex:1;min-width:200px;word-break:break-all;">${PATH}</code>
+                        <button onclick="copyText('${PATH}', this)" style="font-size:12px;padding:7px 14px;border-radius:6px;border:1px solid #c7d2fe;background:white;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;transition:all .15s;flex-shrink:0;">📋 Copy</button>
+                    </div>
+                </div>
+
+                <!-- Steps -->
+                <div>
+                    <div style="font-weight:700;margin-bottom:12px;font-size:14px;">Where to start:</div>
+                    <div style="display:flex;flex-direction:column;gap:10px;">
+
+                        <div onclick="showWideReadme03('project')"
+                             style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;cursor:pointer;transition:all .15s;"
+                             onmouseover="this.style.borderColor='#6366f1';this.style.background='#f5f3ff';"
+                             onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#f9fafb';">
+                            <span style="font-size:24px;flex-shrink:0;">📖</span>
+                            <div style="flex:1;">
+                                <div style="font-weight:600;font-size:14px;">1. Read the Project README</div>
+                                <div style="color:#6b7280;font-size:12px;margin-top:2px;">Architecture overview, WebSocket pub/sub, MinIO design</div>
+                            </div>
+                            <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
+                        </div>
+
+                        <div onclick="showWideReadme03('app')"
+                             style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;cursor:pointer;transition:all .15s;"
+                             onmouseover="this.style.borderColor='#6366f1';this.style.background='#f5f3ff';"
+                             onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#f9fafb';">
+                            <span style="font-size:24px;flex-shrink:0;">🔍</span>
+                            <div style="flex:1;">
+                                <div style="font-weight:600;font-size:14px;">2. Explore the app/ folder</div>
+                                <div style="color:#6b7280;font-size:12px;margin-top:2px;">4 services: chat (WebSocket), presence (Redis), notifications, file upload</div>
+                            </div>
+                            <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
+                        </div>
+
+                        <div style="padding:14px 16px;background:#eef2ff;border-radius:10px;border:2px solid #6366f1;display:flex;flex-direction:column;gap:10px;">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <span style="font-size:24px;flex-shrink:0;">🐳</span>
+                                <div>
+                                    <div style="font-weight:600;font-size:14px;color:#4f46e5;">3. Build & run locally (local/ folder)</div>
+                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Full stack: chat at :8092, MinIO console at :9001</div>
+                                </div>
+                            </div>
+                            <div style="background:white;border-radius:8px;padding:10px 14px;border:1px solid #c7d2fe;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                                <code style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;flex:1;">${DOCKER_CMD}</code>
+                                <button onclick="copyText('${DOCKER_CMD}', this)" style="font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #c7d2fe;background:#eef2ff;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;flex-shrink:0;transition:all .15s;">📋 Copy</button>
+                            </div>
+                        </div>
+
+                        <div style="padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;display:flex;flex-direction:column;gap:10px;">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <span style="font-size:24px;flex-shrink:0;">☸️</span>
+                                <div>
+                                    <div style="font-weight:600;font-size:14px;">4. Deploy to Kubernetes (main/ folder)</div>
+                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">WebSocket Ingress config, Redis StatefulSet, MinIO, HPA for horizontal scaling</div>
+                                </div>
+                            </div>
+                            <div style="background:#fefce8;border:1px solid #fde047;border-radius:8px;padding:10px 14px;font-size:12px;color:#713f12;display:flex;align-items:flex-start;gap:8px;">
+                                <span style="font-size:15px;flex-shrink:0;">💡</span>
+                                <div><strong>Key challenge:</strong> WebSocket Ingress requires special annotations for <code style="background:#fef3c7;padding:1px 5px;border-radius:3px;font-family:monospace;">proxy-read-timeout</code> and the <code style="background:#fef3c7;padding:1px 5px;border-radius:3px;font-family:monospace;">Upgrade</code> header. The main/README.md walks you through it.</div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Quick start -->
+                <div style="background:#f0fdf4;border-radius:10px;padding:16px;border:1px solid #bbf7d0;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                        <div style="font-weight:700;font-size:13px;color:#065f46;">⚡ Quick Start — Run Locally</div>
+                        <button onclick="copyText('${QUICK_CMD.replace(/\n/g, '\\n')}', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">📋 Copy all</button>
+                    </div>
+                    <pre style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;line-height:1.9;margin:0;white-space:pre-wrap;">cd hands-on-projects/project-03-realtime-chat/local
+docker compose up --build
+# Chat UI:      http://localhost:8092
+# MinIO Console: http://localhost:9001 (minioadmin/minioadmin)</pre>
+                </div>
+
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+function showWideReadme03(which) {
+    const existing = document.getElementById('wide-readme-overlay');
+    if (existing) existing.remove();
+
+    const isProject = which === 'project';
+    const title   = isProject ? '📖 Project README — Real-Time Chat Platform' : '🔍 app/ README — Services & APIs';
+    const rawText = document.getElementById(isProject ? 'data-p03-project-readme' : 'data-p03-app-readme').textContent.trim();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'wide-readme-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:1200;display:flex;align-items:center;justify-content:center;padding:24px;';
+
+    overlay.innerHTML = `
+        <div style="background:white;border-radius:16px;max-width:920px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 25px 60px rgba(0,0,0,.35);">
+            <div style="padding:18px 28px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;border-radius:16px 16px 0 0;background:white;">
+                <h2 style="font-size:17px;font-weight:700;color:#1e1b4b;">${title}</h2>
+                <button onclick="document.getElementById('wide-readme-overlay').remove()" style="background:none;border:none;font-size:26px;cursor:pointer;color:#6b7280;line-height:1;padding:0 4px;">&times;</button>
+            </div>
+            <div style="padding:28px 32px;overflow-y:auto;flex:1;" id="wide-readme-body"></div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    document.getElementById('wide-readme-body').innerHTML = renderMd(rawText);
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
 function showModal02() {
     const PATH = 'hands-on-projects/project-02-multitenant-saas/';
     const DOCKER_CMD = 'docker compose up --build';
@@ -1319,7 +1475,7 @@ function showModal02() {
                             </div>
                             <div style="background:#fefce8;border:1px solid #fde047;border-radius:8px;padding:10px 14px;font-size:12px;color:#713f12;display:flex;align-items:flex-start;gap:8px;">
                                 <span style="font-size:15px;flex-shrink:0;">💡</span>
-                                <div><strong>Key insight:</strong> Local = one app-service for all tenants (header-based isolation). Kubernetes = one namespace + one database <em>per tenant</em> (infra-level isolation).</div>
+                                <div><strong>Hint:</strong> Ready-made K8s solution files are in the <code style="background:#fef3c7;padding:1px 5px;border-radius:3px;font-family:monospace;">solution/</code> folder — namespace, RBAC, quotas, NetworkPolicy, per-tenant StatefulSet, and app-service configs are all there.</div>
                             </div>
                         </div>
 
@@ -1330,7 +1486,7 @@ function showModal02() {
                 <div style="background:#f0fdf4;border-radius:10px;padding:16px;border:1px solid #bbf7d0;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
                         <div style="font-weight:700;font-size:13px;color:#065f46;">⚡ Quick Start — Run Locally</div>
-                        <button onclick="copyText('${QUICK_CMD}', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">📋 Copy all</button>
+                        <button onclick="copyText('${QUICK_CMD.replace(/\n/g, '\\n')}', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">📋 Copy all</button>
                     </div>
                     <pre style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;line-height:1.9;margin:0;white-space:pre-wrap;">cd hands-on-projects/project-02-multitenant-saas/local
 docker compose up --build
@@ -1470,7 +1626,7 @@ function showModal() {
                 <div style="background:#f0fdf4;border-radius:10px;padding:16px;border:1px solid #bbf7d0;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
                         <div style="font-weight:700;font-size:13px;color:#065f46;">⚡ Quick Start — Run Locally</div>
-                        <button onclick="copyText('${QUICK_CMD}', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">📋 Copy all</button>
+                        <button onclick="copyText('${QUICK_CMD.replace(/\n/g, '\\n')}', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">📋 Copy all</button>
                     </div>
                     <pre style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;line-height:1.9;margin:0;white-space:pre-wrap;">cd hands-on-projects/project-01-ecommerce-platform/local
 docker compose up --build
@@ -1700,6 +1856,230 @@ CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "<port>"]
 - What's missing for production? (non-root user, health check directive, multi-stage build)
 - How would you reduce the image size further?
 - Why --host 0.0.0.0 instead of the default 127.0.0.1?
+</script>
+
+<!-- ── README data for Project 03 ── -->
+<script type="text/plain" id="data-p03-project-readme">
+# Project 03: Real-Time Chat / Messaging Platform
+
+Build and deploy a production-grade real-time chat platform using WebSockets, Redis pub/sub, and S3-compatible file storage. You'll go from understanding the architecture all the way to a horizontally scalable Kubernetes deployment.
+
+---
+
+## What You're Building
+
+A working chat application that actually scales — because you'll build the infrastructure right:
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    API Gateway (nginx)                        │
+│         WebSocket + REST routing + file upload proxy          │
+└────┬───────────┬──────────────┬───────────────┬──────────────┘
+     │           │              │               │
+  /ws/*    /api/chat/*  /api/presence/*   /api/files/*
+     │           │              │               │
+ chat-service  chat-service  presence-service  file-service
+  (WebSocket)   (REST)         (Redis TTL)      (MinIO)
+     │                │                         │
+  Redis          PostgreSQL                  MinIO
+  pub/sub        (messages)               (S3-compatible)
+```
+
+| Service | What it does |
+|---------|-------------|
+| **chat-service** | WebSocket engine. Handles connections, broadcasts via Redis pub/sub, persists to PostgreSQL |
+| **presence-service** | Who's online + typing indicators. Pure Redis — TTL-based, handles disconnects automatically |
+| **notification-service** | Tracks mentions and system notifications. PostgreSQL-backed |
+| **file-service** | Upload images and files. Stores in MinIO (S3-compatible). Proxies downloads |
+| **frontend** | Single-page chat UI. WebSocket client + REST calls. Rooms, typing indicators, file uploads |
+
+---
+
+## Folder Structure
+
+```
+project-03-realtime-chat/
+├── README.md          ← You are here
+├── app/               ← Application source code (pre-built)
+│   ├── README.md      ← Services, APIs, env vars, design decisions
+│   ├── chat-service/
+│   ├── presence-service/
+│   ├── notification-service/
+│   ├── file-service/
+│   └── frontend/
+├── local/             ← Docker Compose for local development
+│   ├── README.md      ← Step-by-step local guide + DevOps tasks
+│   ├── docker-compose.yml
+│   └── nginx/nginx.conf
+└── main/              ← Production Kubernetes deployment
+    └── README.md      ← What you'll build in the K8s phase
+```
+
+---
+
+## Your DevOps Journey
+
+### Phase 1 — Understand the App (app/)
+
+Read app/README.md. Understand:
+- How WebSocket pub/sub works across multiple replicas
+- Why Redis TTL is better than connection-event presence tracking
+- How MinIO maps to AWS S3 in production
+
+**Skills:** WebSocket architecture, Redis pub/sub, object storage, service communication
+
+### Phase 2 — Run It Locally (local/)
+
+Get the full stack running with Docker Compose. Explore:
+- WebSocket traffic in browser DevTools
+- Redis pub/sub with `redis-cli SUBSCRIBE`
+- File storage in the MinIO Console (http://localhost:9001)
+- Horizontal scaling with `docker compose --scale chat-service=2`
+
+**Skills:** Docker Compose, nginx WebSocket proxying, Redis CLI, MinIO
+
+### Phase 3 — Deploy to Kubernetes (main/)
+
+Write K8s manifests for all services. The interesting challenges:
+- WebSocket-aware Ingress configuration (timeouts, Upgrade headers)
+- Redis as a StatefulSet (or use Redis Cluster for HA)
+- MinIO as a StatefulSet with persistent storage
+- HPA for chat-service (scale on connections/CPU)
+
+**Skills:** Deployments, StatefulSets, Services, Ingress (WebSocket), Secrets, HPA, PVCs
+
+### Phase 4 — Add Horizontal Scaling
+
+Deploy 3 replicas of chat-service. Verify that messages from one replica reach users on another — thanks to Redis pub/sub. This is real horizontal scaling without sticky sessions.
+
+**Skills:** HPA, ReplicaSets, Redis pub/sub validation, load testing
+
+---
+
+## Start Here
+
+**→ Go to app/README.md to understand the platform**
+
+Then follow: app/ → local/ → main/
+</script>
+
+<script type="text/plain" id="data-p03-app-readme">
+# App — Real-Time Chat Services
+
+This folder contains the source code for all 4 microservices and the frontend. Each service is a standalone Python FastAPI application. You don't write application code — your job is to containerize, run, and eventually deploy it.
+
+---
+
+## Services Overview
+
+| Service | Port | Language | Datastore | Description |
+|---------|------|----------|-----------|-------------|
+| **chat-service** | 8020 | Python/FastAPI | PostgreSQL + Redis | WebSocket chat engine with message persistence and pub/sub |
+| **presence-service** | 8021 | Python/FastAPI | Redis | Online status and typing indicators via Redis TTL keys |
+| **notification-service** | 8022 | Python/FastAPI | PostgreSQL | Push notification tracking for mentions and messages |
+| **file-service** | 8023 | Python/FastAPI | PostgreSQL + MinIO | File upload and storage (S3-compatible) |
+| **frontend** | 80 | HTML/CSS/JS + nginx | — | Single-page chat UI with WebSocket client |
+
+---
+
+## Key Design Decisions
+
+### Why Redis pub/sub for chat?
+
+When you run multiple chat-service replicas, each has its own in-memory WebSocket connections. Without Redis:
+- User A on Replica 1 sends a message → Replica 2 never knows → users on Replica 2 miss it
+
+With Redis pub/sub:
+- Replica 1 receives via WebSocket → publishes to Redis channel `room:general`
+- ALL replicas subscribe → each delivers to its local WebSocket clients
+- Every user sees the message regardless of which replica they're on
+
+This enables true horizontal scaling without sticky sessions.
+
+### Why Redis TTL for presence?
+
+Instead of tracking "user connected / disconnected" events (which miss crashes), presence uses heartbeat + TTL:
+- Frontend sends POST /presence/{user_id}/heartbeat every 15 seconds
+- Redis stores the key with 30-second TTL
+- Browser crash, network drop → no more heartbeats → key expires → user goes offline automatically
+
+More reliable than event-based presence tracking.
+
+### Why MinIO for file storage?
+
+MinIO is S3-compatible. The file-service code uses the MinIO Python client, but the same code works with AWS S3 by changing the endpoint and credentials. Swap for production:
+```
+MINIO_ENDPOINT=s3.amazonaws.com
+MINIO_ACCESS_KEY=your-aws-key
+MINIO_SECRET_KEY=your-aws-secret
+```
+
+---
+
+## API Contracts
+
+### chat-service WebSocket
+```
+ws://host/ws/{room_id}/{user_id}?username=alice
+```
+
+Client sends: {"type": "message", "content": "Hello!"}
+Client sends: {"type": "typing"}
+Client sends: {"type": "stop_typing"}
+
+Server sends: {"type": "message", "id", "room_id", "user_id", "username", "content", "timestamp"}
+Server sends: {"type": "typing", "user_id", "username", "room_id"}
+Server sends: {"type": "user_joined", "user_id", "username", "room_id"}
+
+### chat-service REST
+```
+GET    /rooms                          → List all rooms
+POST   /rooms                          → Create room {id, name, description}
+GET    /rooms/{room_id}/messages       → Get message history (?limit=50)
+GET    /health                         → Health check
+```
+
+### presence-service
+```
+POST   /presence/{user_id}/heartbeat   → Stay online (?username=alice)
+GET    /presence                       → List all online users
+DELETE /presence/{user_id}             → Go offline
+POST   /presence/{user_id}/typing      → Start typing (?room_id=general)
+GET    /presence/rooms/{room_id}/typing → Who is typing
+GET    /health                         → Health check
+```
+
+### notification-service
+```
+POST   /notifications                  → Create notification
+GET    /notifications/{user_id}        → Get notifications
+GET    /notifications/{user_id}/unread-count → Count unread
+PATCH  /notifications/{id}/read        → Mark as read
+PATCH  /notifications/{user_id}/read-all → Mark all read
+GET    /health                         → Health check
+```
+
+### file-service
+```
+POST   /upload                         → Upload file (multipart/form-data)
+GET    /files                          → List files (?room_id=general)
+GET    /{file_id}                      → Get file metadata
+GET    /{file_id}/download             → Download file (proxied from MinIO)
+GET    /health                         → Health check (includes MinIO status)
+```
+
+---
+
+## Running a Single Service
+
+```bash
+cd chat-service
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8020
+# Open http://localhost:8020/docs for Swagger UI
+```
+
+The chat-service uses SQLite and falls back to single-node mode (no Redis pub/sub) if Redis is unavailable — safe for local dev without Docker.
 </script>
 
 </body>
