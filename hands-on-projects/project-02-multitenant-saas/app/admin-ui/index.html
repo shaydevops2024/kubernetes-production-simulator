@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SaaSPlatform — Admin Dashboard</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --navy:       #0f172a;
+            --navy-light: #1e293b;
+            --indigo:     #6366f1;
+            --indigo-dark:#4f46e5;
+            --green:      #10b981;
+            --red:        #ef4444;
+            --amber:      #f59e0b;
+            --blue:       #3b82f6;
+            --purple:     #8b5cf6;
+            --gray-50:    #f8fafc;
+            --gray-100:   #f1f5f9;
+            --gray-200:   #e2e8f0;
+            --gray-400:   #94a3b8;
+            --gray-600:   #475569;
+            --gray-700:   #334155;
+            --gray-900:   #0f172a;
+            --white:      #ffffff;
+            --shadow:     0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+            --shadow-md:  0 4px 6px rgba(0,0,0,.06), 0 2px 4px rgba(0,0,0,.04);
+            --shadow-lg:  0 10px 25px rgba(0,0,0,.1), 0 4px 6px rgba(0,0,0,.05);
+            --radius:     10px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-900);
+            min-height: 100vh;
+        }
+
+        /* ── Topbar ── */
+        .topbar {
+            background: var(--navy);
+            padding: 0 28px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid rgba(255,255,255,.06);
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo {
+            font-size: 18px;
+            font-weight: 800;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--indigo);
+            border-radius: 50%;
+        }
+
+        .health-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: rgba(255,255,255,.6);
+            background: rgba(255,255,255,.06);
+            padding: 4px 12px;
+            border-radius: 99px;
+        }
+
+        .health-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 6px var(--green);
+            animation: pulse 2s infinite;
+        }
+
+        .health-dot.warn { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+        .health-dot.error { background: var(--red); box-shadow: 0 0 6px var(--red); animation: none; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .refresh-info {
+            font-size: 12px;
+            color: rgba(255,255,255,.4);
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--indigo);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: background .15s;
+        }
+
+        .btn-primary:hover { background: var(--indigo-dark); }
+
+        /* ── Stats bar ── */
+        .stats-bar {
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 0 28px;
+            display: flex;
+            gap: 0;
+        }
+
+        .stat-item {
+            padding: 16px 32px 16px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .stat-item + .stat-item {
+            padding-left: 32px;
+            border-left: 1px solid var(--gray-200);
+        }
+
+        .stat-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .stat-icon.total  { background: #eef2ff; }
+        .stat-icon.active { background: #ecfdf5; }
+        .stat-icon.suspended { background: #fef2f2; }
+        .stat-icon.calls  { background: #fffbeb; }
+
+        .stat-text {}
+        .stat-value {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--gray-900);
+            line-height: 1.1;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: var(--gray-400);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            margin-top: 2px;
+        }
+
+        /* ── Main content ── */
+        .content {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 28px 28px 64px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--gray-700);
+        }
+
+        /* ── Tenant grid ── */
+        .tenants-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 18px;
+        }
+
+        /* ── Tenant card ── */
+        .tenant-card {
+            background: white;
+            border-radius: var(--radius);
+            border: 1px solid var(--gray-200);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            transition: box-shadow .2s, transform .2s;
+        }
+
+        .tenant-card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+
+        .tenant-card.suspended {
+            opacity: .7;
+        }
+
+        .card-top {
+            padding: 18px 20px 14px;
+        }
+
+        .card-row1 {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .plan-badge {
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: .8px;
+            padding: 3px 9px;
+            border-radius: 6px;
+        }
+
+        .plan-enterprise { background: #f3e8ff; color: #7c3aed; }
+        .plan-pro        { background: #dbeafe; color: #1d4ed8; }
+        .plan-starter    { background: #dcfce7; color: #166534; }
+
+        .status-chip {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 9px;
+            border-radius: 99px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .status-active    { background: #ecfdf5; color: #065f46; }
+        .status-suspended { background: #fef2f2; color: #991b1b; }
+
+        .status-led {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        .led-green { background: var(--green); }
+        .led-red   { background: var(--red); }
+
+        .tenant-name {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 2px;
+        }
+
+        .tenant-slug {
+            font-size: 12px;
+            color: var(--gray-400);
+            font-family: monospace;
+        }
+
+        .card-divider {
+            border: none;
+            border-top: 1px solid var(--gray-100);
+            margin: 14px 0 12px;
+        }
+
+        .card-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .metric {
+            background: var(--gray-50);
+            border-radius: 8px;
+            padding: 10px 12px;
+        }
+
+        .metric-value {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--gray-900);
+        }
+
+        .metric-label {
+            font-size: 11px;
+            color: var(--gray-400);
+            font-weight: 500;
+            margin-top: 1px;
+        }
+
+        .card-actions {
+            padding: 12px 20px;
+            border-top: 1px solid var(--gray-100);
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-tasks {
+            flex: 1;
+            padding: 8px 12px;
+            background: var(--indigo);
+            color: white;
+            border: none;
+            border-radius: 7px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .15s;
+        }
+
+        .btn-tasks:hover { background: var(--indigo-dark); }
+
+        .btn-suspend, .btn-activate {
+            flex: 1;
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 7px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--gray-700);
+            transition: all .15s;
+        }
+
+        .btn-suspend:hover { border-color: var(--red); color: var(--red); background: #fef2f2; }
+        .btn-activate:hover { border-color: var(--green); color: var(--green); background: #ecfdf5; }
+
+        /* ── Loading / empty states ── */
+        .loading-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray-400);
+            font-size: 14px;
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--gray-200);
+            border-top-color: var(--indigo);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin: 0 auto 12px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Modals ── */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.5);
+            z-index: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 25px 50px rgba(0,0,0,.2);
+            display: flex;
+            flex-direction: column;
+            max-height: 90vh;
+        }
+
+        .modal-sm { width: 100%; max-width: 440px; }
+        .modal-lg { width: 100%; max-width: 680px; }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .modal-title {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 22px;
+            cursor: pointer;
+            color: var(--gray-400);
+            line-height: 1;
+            padding: 0 4px;
+            transition: color .1s;
+        }
+
+        .modal-close:hover { color: var(--gray-700); }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        /* ── Form elements ── */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 6px;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--gray-900);
+            background: white;
+            outline: none;
+            transition: border-color .15s;
+        }
+
+        .form-input:focus, .form-select:focus {
+            border-color: var(--indigo);
+            box-shadow: 0 0 0 3px rgba(99,102,241,.1);
+        }
+
+        .slug-hint {
+            font-size: 11px;
+            color: var(--gray-400);
+            margin-top: 4px;
+        }
+
+        /* ── Tasks panel ── */
+        .task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 14px;
+            background: var(--gray-50);
+            border-radius: 8px;
+            border: 1px solid var(--gray-200);
+        }
+
+        .task-status-btn {
+            flex-shrink: 0;
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            border: 2px solid var(--gray-300);
+            background: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            transition: all .15s;
+            margin-top: 1px;
+        }
+
+        .task-status-btn.done { background: var(--green); border-color: var(--green); color: white; }
+        .task-status-btn.in_progress { background: #fffbeb; border-color: var(--amber); color: var(--amber); }
+
+        .task-content { flex: 1; min-width: 0; }
+
+        .task-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-900);
+            line-height: 1.4;
+        }
+
+        .task-title.done-text {
+            text-decoration: line-through;
+            color: var(--gray-400);
+        }
+
+        .task-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .priority-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .p-high   { background: var(--red); }
+        .p-medium { background: var(--amber); }
+        .p-low    { background: var(--gray-400); }
+
+        .status-tag {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 7px;
+            border-radius: 4px;
+        }
+
+        .s-todo        { background: var(--gray-100); color: var(--gray-600); }
+        .s-in_progress { background: #fffbeb; color: #92400e; }
+        .s-done        { background: #ecfdf5; color: #065f46; }
+
+        .task-delete {
+            flex-shrink: 0;
+            background: none;
+            border: none;
+            color: var(--gray-400);
+            cursor: pointer;
+            font-size: 15px;
+            line-height: 1;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: color .1s, background .1s;
+        }
+
+        .task-delete:hover { color: var(--red); background: #fef2f2; }
+
+        .new-task-form {
+            margin-top: 16px;
+            padding: 16px;
+            background: #eef2ff;
+            border-radius: 10px;
+            border: 1px dashed #a5b4fc;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .new-task-form.visible { display: flex; }
+
+        .btn-add-task {
+            width: 100%;
+            margin-top: 12px;
+            padding: 9px;
+            border: 2px dashed var(--gray-300);
+            background: none;
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--gray-400);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all .15s;
+        }
+
+        .btn-add-task:hover {
+            border-color: var(--indigo);
+            color: var(--indigo);
+            background: #eef2ff;
+        }
+
+        .btn-secondary {
+            padding: 8px 16px;
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-700);
+            cursor: pointer;
+            transition: all .15s;
+        }
+
+        .btn-secondary:hover { background: var(--gray-100); }
+
+        /* ── Isolation note ── */
+        .isolation-note {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 12px;
+            color: #92400e;
+            margin-bottom: 14px;
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+        }
+
+        /* ── Misc ── */
+        @media (max-width: 640px) {
+            .stats-bar { flex-wrap: wrap; }
+            .tenants-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ── Topbar ───────────────────────────────────────────────────────────── -->
+<header class="topbar">
+    <div class="topbar-left">
+        <div class="logo">
+            <div class="logo-dot"></div>
+            SaaSPlatform <span style="font-weight:400;opacity:.5;font-size:14px;margin-left:4px;">Admin</span>
+        </div>
+        <div class="health-badge" id="health-badge">
+            <div class="health-dot" id="health-dot"></div>
+            <span id="health-text">Checking...</span>
+        </div>
+    </div>
+    <div class="topbar-right">
+        <span class="refresh-info" id="refresh-info">Refreshing in 15s</span>
+        <button class="btn-primary" onclick="openCreateModal()">+ New Tenant</button>
+    </div>
+</header>
+
+<!-- ── Stats bar ────────────────────────────────────────────────────────── -->
+<div class="stats-bar">
+    <div class="stat-item">
+        <div class="stat-icon total">🏢</div>
+        <div class="stat-text">
+            <div class="stat-value" id="stat-total">—</div>
+            <div class="stat-label">Total Tenants</div>
+        </div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-icon active">✅</div>
+        <div class="stat-text">
+            <div class="stat-value" id="stat-active">—</div>
+            <div class="stat-label">Active</div>
+        </div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-icon suspended">⏸</div>
+        <div class="stat-text">
+            <div class="stat-value" id="stat-suspended">—</div>
+            <div class="stat-label">Suspended</div>
+        </div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-icon calls">📊</div>
+        <div class="stat-text">
+            <div class="stat-value" id="stat-calls">—</div>
+            <div class="stat-label">API Calls Today</div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Main content ──────────────────────────────────────────────────────── -->
+<div class="content">
+
+    <div class="section-header">
+        <span class="section-title">Tenants</span>
+    </div>
+
+    <div class="tenants-grid" id="tenants-grid">
+        <div class="loading-state">
+            <div class="spinner"></div>
+            Loading tenants...
+        </div>
+    </div>
+
+</div>
+
+<!-- ── Create Tenant Modal ───────────────────────────────────────────────── -->
+<div class="overlay" id="create-overlay" style="display:none;" onclick="closeCreateModal(event)">
+    <div class="modal modal-sm">
+        <div class="modal-header">
+            <span class="modal-title">New Tenant</span>
+            <button class="modal-close" onclick="closeCreateModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Company Name</label>
+                <input class="form-input" id="new-name" type="text" placeholder="e.g. Acme Corp" oninput="updateSlugPreview()">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Slug (auto-generated)</label>
+                <input class="form-input" id="new-slug" type="text" placeholder="acme-corp">
+                <div class="slug-hint">Used as the Kubernetes namespace name: <code>tenant-<span id="slug-preview">acme-corp</span></code></div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Plan</label>
+                <select class="form-select" id="new-plan">
+                    <option value="starter">Starter — 500m CPU / 512Mi RAM / 5 pods</option>
+                    <option value="pro">Pro — 2 CPU / 2Gi RAM / 20 pods</option>
+                    <option value="enterprise">Enterprise — 8 CPU / 8Gi RAM / 100 pods</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Contact Email</label>
+                <input class="form-input" id="new-email" type="email" placeholder="admin@company.com">
+            </div>
+            <div id="create-error" style="color:#ef4444;font-size:12px;margin-top:4px;display:none;"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeCreateModal()">Cancel</button>
+            <button class="btn-primary" onclick="createTenant()">Create Tenant</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Tasks Modal ───────────────────────────────────────────────────────── -->
+<div class="overlay" id="tasks-overlay" style="display:none;" onclick="closeTasksModal(event)">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <div>
+                <div class="modal-title" id="tasks-modal-title">Tasks</div>
+                <div style="font-size:12px;color:var(--gray-400);margin-top:2px;" id="tasks-modal-subtitle"></div>
+            </div>
+            <button class="modal-close" onclick="closeTasksModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <!-- Isolation note -->
+            <div class="isolation-note">
+                <span>💡</span>
+                <div>
+                    <strong>Local mode:</strong> All tenants share one <code>app-service</code> instance. Isolation is enforced by the <code>X-Tenant-ID</code> header in every API request.
+                    In <strong>Kubernetes</strong> (main/), each tenant gets a dedicated deployment + database in their own namespace — no headers needed.
+                </div>
+            </div>
+
+            <div class="task-list" id="task-list">
+                <div class="loading-state"><div class="spinner"></div>Loading tasks...</div>
+            </div>
+
+            <!-- New task form -->
+            <div class="new-task-form" id="new-task-form">
+                <div>
+                    <label class="form-label">Task Title</label>
+                    <input class="form-input" id="new-task-title" type="text" placeholder="e.g. Set up monitoring" onkeydown="if(event.key==='Enter') submitNewTask()">
+                </div>
+                <div style="display:flex;gap:10px;">
+                    <div style="flex:1;">
+                        <label class="form-label">Priority</label>
+                        <select class="form-select" id="new-task-priority">
+                            <option value="high">High</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                    <div style="flex:1;display:flex;align-items:flex-end;gap:8px;">
+                        <button class="btn-primary" style="flex:1;" onclick="submitNewTask()">Add</button>
+                        <button class="btn-secondary" onclick="hideNewTaskForm()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-add-task" id="btn-add-task" onclick="showNewTaskForm()">+ Add Task</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let allTenants = [];
+let allUsage   = [];
+let currentTenantSlug = null;
+let refreshTimer = null;
+let countdown = 15;
+
+// ── API helpers ───────────────────────────────────────────────────────────────
+const api = {
+    get:    (url, opts={}) => fetch(url, {...opts}).then(r => r.json()),
+    post:   (url, body)    => fetch(url, { method:'POST',  headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }),
+    put:    (url, body)    => fetch(url, { method:'PUT',   headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }),
+    patch:  (url)          => fetch(url, { method:'PATCH'  }),
+    delete: (url)          => fetch(url, { method:'DELETE' }),
+
+    getTasks(slug) {
+        return fetch('/api/app/tasks', { headers: { 'X-Tenant-ID': slug } }).then(r => r.json());
+    },
+    createTask(slug, body) {
+        return fetch('/api/app/tasks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Tenant-ID': slug },
+            body: JSON.stringify(body),
+        }).then(r => r.json());
+    },
+    updateTask(slug, id, body) {
+        return fetch(`/api/app/tasks/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-Tenant-ID': slug },
+            body: JSON.stringify(body),
+        }).then(r => r.json());
+    },
+    deleteTask(slug, id) {
+        return fetch(`/api/app/tasks/${id}`, {
+            method: 'DELETE',
+            headers: { 'X-Tenant-ID': slug },
+        });
+    },
+};
+
+// ── Load and render ───────────────────────────────────────────────────────────
+async function loadAll() {
+    try {
+        const [tenants, usage] = await Promise.all([
+            api.get('/api/platform/tenants'),
+            api.get('/api/billing/usage').catch(() => []),
+        ]);
+        allTenants = tenants;
+        allUsage   = usage;
+        renderStats();
+        renderGrid();
+        checkHealth();
+    } catch (err) {
+        document.getElementById('tenants-grid').innerHTML =
+            `<div class="loading-state" style="color:#ef4444;">Failed to load: ${err.message}</div>`;
+    }
+}
+
+async function checkHealth() {
+    const services = ['platform', 'app', 'billing'];
+    const results = await Promise.allSettled(
+        services.map(s => api.get(`/api/${s}/health`))
+    );
+    const allOk = results.every(r => r.status === 'fulfilled' && r.value?.status === 'healthy');
+    const anyFail = results.some(r => r.status === 'rejected');
+    const dot  = document.getElementById('health-dot');
+    const text = document.getElementById('health-text');
+    if (allOk) {
+        dot.className = 'health-dot';
+        text.textContent = 'All systems healthy';
+    } else if (anyFail) {
+        dot.className = 'health-dot error';
+        text.textContent = 'Service degraded';
+    } else {
+        dot.className = 'health-dot warn';
+        text.textContent = 'Partial degradation';
+    }
+}
+
+function usageFor(slug) {
+    return allUsage.find(u => u.tenant_id === slug) || { today_calls: 0, total_calls: 0 };
+}
+
+function renderStats() {
+    const active    = allTenants.filter(t => t.status === 'active').length;
+    const suspended = allTenants.filter(t => t.status === 'suspended').length;
+    const callsToday = allUsage.reduce((s, u) => s + (u.today_calls || 0), 0);
+    document.getElementById('stat-total').textContent     = allTenants.length;
+    document.getElementById('stat-active').textContent    = active;
+    document.getElementById('stat-suspended').textContent = suspended;
+    document.getElementById('stat-calls').textContent     = callsToday.toLocaleString();
+}
+
+function planBadge(plan) {
+    return `<span class="plan-badge plan-${plan}">${plan.toUpperCase()}</span>`;
+}
+
+function statusChip(status) {
+    const cls = status === 'active' ? 'status-active' : 'status-suspended';
+    const led = status === 'active' ? 'led-green' : 'led-red';
+    const label = status === 'active' ? 'Active' : 'Suspended';
+    return `<span class="status-chip ${cls}"><span class="status-led ${led}"></span>${label}</span>`;
+}
+
+function renderGrid() {
+    const grid = document.getElementById('tenants-grid');
+    if (!allTenants.length) {
+        grid.innerHTML = `<div class="loading-state" style="color:var(--gray-400)">No tenants yet — create one!</div>`;
+        return;
+    }
+
+    grid.innerHTML = allTenants.map(t => {
+        const usage = usageFor(t.slug);
+        const limits = t.resource_limits || {};
+        const cardClass = t.status === 'suspended' ? 'tenant-card suspended' : 'tenant-card';
+        const suspendBtn = t.status === 'active'
+            ? `<button class="btn-suspend" onclick="suspendTenant('${t.id}', event)">Suspend</button>`
+            : `<button class="btn-activate" onclick="activateTenant('${t.id}', event)">Activate</button>`;
+
+        return `
+        <div class="${cardClass}">
+            <div class="card-top">
+                <div class="card-row1">
+                    ${planBadge(t.plan)}
+                    ${statusChip(t.status)}
+                </div>
+                <div class="tenant-name">${t.name}</div>
+                <div class="tenant-slug">${t.slug}</div>
+                <hr class="card-divider">
+                <div class="card-metrics">
+                    <div class="metric">
+                        <div class="metric-value">${usage.today_calls}</div>
+                        <div class="metric-label">API calls today</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${limits.pods || '—'}</div>
+                        <div class="metric-label">Pod quota</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${limits.cpu || '—'}</div>
+                        <div class="metric-label">CPU limit</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${limits.memory || '—'}</div>
+                        <div class="metric-label">Memory limit</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-actions">
+                <button class="btn-tasks" onclick="openTasksModal('${t.slug}', '${t.name}')">📋 View Tasks</button>
+                ${suspendBtn}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ── Tenant actions ────────────────────────────────────────────────────────────
+async function suspendTenant(id, e) {
+    e.stopPropagation();
+    await api.patch(`/api/platform/tenants/${id}/suspend`);
+    await loadAll();
+}
+
+async function activateTenant(id, e) {
+    e.stopPropagation();
+    await api.patch(`/api/platform/tenants/${id}/activate`);
+    await loadAll();
+}
+
+// ── Create tenant modal ───────────────────────────────────────────────────────
+function openCreateModal() {
+    document.getElementById('create-overlay').style.display = 'flex';
+    document.getElementById('new-name').value = '';
+    document.getElementById('new-slug').value = '';
+    document.getElementById('new-email').value = '';
+    document.getElementById('create-error').style.display = 'none';
+    document.getElementById('slug-preview').textContent = '';
+    setTimeout(() => document.getElementById('new-name').focus(), 50);
+}
+
+function closeCreateModal(e) {
+    if (e && e.target !== document.getElementById('create-overlay')) return;
+    document.getElementById('create-overlay').style.display = 'none';
+}
+
+function updateSlugPreview() {
+    const name = document.getElementById('new-name').value;
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    document.getElementById('new-slug').value = slug;
+    document.getElementById('slug-preview').textContent = slug || 'your-company';
+}
+
+async function createTenant() {
+    const name  = document.getElementById('new-name').value.trim();
+    const slug  = document.getElementById('new-slug').value.trim();
+    const plan  = document.getElementById('new-plan').value;
+    const email = document.getElementById('new-email').value.trim();
+    const errEl = document.getElementById('create-error');
+
+    if (!name) { errEl.textContent = 'Name is required'; errEl.style.display = 'block'; return; }
+
+    const res = await api.post('/api/platform/tenants', { name, slug: slug || undefined, plan, contact_email: email || undefined });
+    if (res.ok) {
+        document.getElementById('create-overlay').style.display = 'none';
+        await loadAll();
+    } else {
+        const data = await res.json().catch(() => ({}));
+        errEl.textContent = data.detail || 'Failed to create tenant';
+        errEl.style.display = 'block';
+    }
+}
+
+// ── Tasks modal ───────────────────────────────────────────────────────────────
+async function openTasksModal(slug, name) {
+    currentTenantSlug = slug;
+    document.getElementById('tasks-modal-title').textContent = `${name} — Tasks`;
+    document.getElementById('tasks-modal-subtitle').textContent = `X-Tenant-ID: ${slug}`;
+    document.getElementById('tasks-overlay').style.display = 'flex';
+    hideNewTaskForm();
+    await loadTasks();
+}
+
+function closeTasksModal(e) {
+    if (e && e.target !== document.getElementById('tasks-overlay')) return;
+    document.getElementById('tasks-overlay').style.display = 'none';
+    currentTenantSlug = null;
+}
+
+async function loadTasks() {
+    if (!currentTenantSlug) return;
+    const list = document.getElementById('task-list');
+    list.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading...</div>';
+    const tasks = await api.getTasks(currentTenantSlug);
+    renderTasks(tasks);
+}
+
+function renderTasks(tasks) {
+    const list = document.getElementById('task-list');
+    if (!tasks.length) {
+        list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--gray-400);font-size:14px;">No tasks yet — add one!</div>';
+        return;
+    }
+
+    const order = { in_progress: 0, todo: 1, done: 2 };
+    tasks.sort((a, b) => (order[a.status] ?? 3) - (order[b.status] ?? 3));
+
+    list.innerHTML = tasks.map(t => {
+        const statusIcon = t.status === 'done' ? '✓' : t.status === 'in_progress' ? '~' : '';
+        const btnCls = `task-status-btn ${t.status}`;
+        const titleCls = t.status === 'done' ? 'task-title done-text' : 'task-title';
+        const pDot = `priority-dot p-${t.priority}`;
+        const sCls = `status-tag s-${t.status}`;
+        const sLabel = t.status.replace('_', ' ');
+
+        return `
+        <div class="task-item" id="task-${t.id}">
+            <button class="${btnCls}" onclick="cycleStatus('${t.id}', '${t.status}')" title="Click to change status">${statusIcon}</button>
+            <div class="task-content">
+                <div class="${titleCls}">${esc(t.title)}</div>
+                <div class="task-meta">
+                    <span class="${pDot}"></span>
+                    <span style="font-size:11px;color:var(--gray-400);">${t.priority}</span>
+                    <span class="${sCls}">${sLabel}</span>
+                </div>
+            </div>
+            <button class="task-delete" onclick="deleteTask('${t.id}')" title="Delete task">✕</button>
+        </div>`;
+    }).join('');
+}
+
+async function cycleStatus(taskId, currentStatus) {
+    const next = { todo: 'in_progress', in_progress: 'done', done: 'todo' };
+    await api.updateTask(currentTenantSlug, taskId, { status: next[currentStatus] });
+    await loadTasks();
+}
+
+async function deleteTask(taskId) {
+    await api.deleteTask(currentTenantSlug, taskId);
+    await loadTasks();
+}
+
+function showNewTaskForm() {
+    document.getElementById('new-task-form').classList.add('visible');
+    document.getElementById('btn-add-task').style.display = 'none';
+    document.getElementById('new-task-title').value = '';
+    document.getElementById('new-task-title').focus();
+}
+
+function hideNewTaskForm() {
+    document.getElementById('new-task-form').classList.remove('visible');
+    document.getElementById('btn-add-task').style.display = 'block';
+}
+
+async function submitNewTask() {
+    const title    = document.getElementById('new-task-title').value.trim();
+    const priority = document.getElementById('new-task-priority').value;
+    if (!title) return;
+    await api.createTask(currentTenantSlug, { title, priority });
+    hideNewTaskForm();
+    await loadTasks();
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Auto-refresh ──────────────────────────────────────────────────────────────
+function startRefreshTimer() {
+    countdown = 15;
+    clearInterval(refreshTimer);
+    refreshTimer = setInterval(async () => {
+        countdown--;
+        document.getElementById('refresh-info').textContent = `Refreshing in ${countdown}s`;
+        if (countdown <= 0) {
+            countdown = 15;
+            await loadAll();
+        }
+    }, 1000);
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+loadAll().then(startRefreshTimer);
+</script>
+</body>
+</html>

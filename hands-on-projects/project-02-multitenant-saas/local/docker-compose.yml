@@ -1,0 +1,145 @@
+version: '3.9'
+
+# ============================================================
+#  SaaSPlatform — Local Development Stack
+#  Run: docker compose up --build
+#  UI:  http://localhost:8090
+# ============================================================
+
+services:
+
+  # ── Databases ──────────────────────────────────────────────
+
+  postgres-platform:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB:       platform_db
+      POSTGRES_USER:     saas
+      POSTGRES_PASSWORD: saaspass
+    volumes:
+      - platform_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U saas -d platform_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-app:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB:       app_db
+      POSTGRES_USER:     saas
+      POSTGRES_PASSWORD: saaspass
+    volumes:
+      - app_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U saas -d app_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-billing:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB:       billing_db
+      POSTGRES_USER:     saas
+      POSTGRES_PASSWORD: saaspass
+    volumes:
+      - billing_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U saas -d billing_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Services ────────────────────────────────────────────────
+
+  platform-api:
+    build:
+      context: ../app/platform-api
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://saas:saaspass@postgres-platform:5432/platform_db
+      PORT:         "8010"
+    depends_on:
+      postgres-platform:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8010/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  billing-service:
+    build:
+      context: ../app/billing-service
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://saas:saaspass@postgres-billing:5432/billing_db
+      PORT:         "8012"
+    depends_on:
+      postgres-billing:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8012/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  app-service:
+    build:
+      context: ../app/app-service
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL:        postgresql://saas:saaspass@postgres-app:5432/app_db
+      BILLING_SERVICE_URL: http://billing-service:8012
+      PORT:                "8011"
+    depends_on:
+      postgres-app:
+        condition: service_healthy
+      billing-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8011/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # ── Frontend ────────────────────────────────────────────────
+
+  admin-ui:
+    build:
+      context: ../app/admin-ui
+      dockerfile: Dockerfile
+    depends_on:
+      - platform-api
+      - app-service
+      - billing-service
+
+  # ── API Gateway ─────────────────────────────────────────────
+
+  gateway:
+    image: nginx:alpine
+    ports:
+      - "8090:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - admin-ui
+      - platform-api
+      - app-service
+      - billing-service
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/api/platform/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  platform_db_data:
+  app_db_data:
+  billing_db_data:

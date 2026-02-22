@@ -386,7 +386,7 @@
             <span class="stat-label">Projects</span>
         </div>
         <div class="stat">
-            <span class="stat-value">1</span>
+            <span class="stat-value">2</span>
             <span class="stat-label">Available</span>
         </div>
         <div class="stat">
@@ -406,7 +406,7 @@
             <span class="path-arrow">→</span>
             <span class="path-item">01 E-Commerce (K8s)</span>
             <span class="path-arrow">→</span>
-            <span class="path-item">02 GitOps CI/CD</span>
+            <span class="path-item">02 Multi-Tenant SaaS</span>
             <span class="path-arrow">→</span>
             <span class="path-item">03 Observability</span>
             <span class="path-arrow">→</span>
@@ -419,7 +419,7 @@
     <!-- Available -->
     <div class="section-header">
         <span class="section-title">Available Now</span>
-        <span class="section-badge badge-available">1 Project</span>
+        <span class="section-badge badge-available">2 Projects</span>
     </div>
 
     <div class="projects-grid">
@@ -463,39 +463,56 @@
             </div>
         </div>
 
+        <!-- Project 02 — Available -->
+        <div class="project-card available" onclick="openProject02()">
+            <div class="card-banner available"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num">PROJECT 02</span>
+                    <span class="status-chip available">✓ Available</span>
+                </div>
+                <div class="card-title">Multi-Tenant SaaS Application Infrastructure</div>
+                <div class="card-description">
+                    Build a multi-tenant platform with namespace isolation per tenant, RBAC policies, resource quotas, network policies, tenant-specific databases, and usage metering. Includes a live admin dashboard.
+                </div>
+                <div class="card-tags">
+                    <span class="tag highlight">Namespaces</span>
+                    <span class="tag highlight">RBAC</span>
+                    <span class="tag highlight">ResourceQuota</span>
+                    <span class="tag highlight">NetworkPolicy</span>
+                    <span class="tag">Multi-tenancy</span>
+                    <span class="tag">Billing</span>
+                    <span class="tag">Admin Dashboard</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item">
+                        <div class="difficulty">
+                            <div class="dot filled-medium"></div>
+                            <div class="dot filled-medium"></div>
+                            <div class="dot"></div>
+                        </div>
+                        Medium
+                    </span>
+                    <span class="meta-item">⏱ 5–8 hours</span>
+                    <span class="meta-item">🔧 4 services</span>
+                </div>
+                <button class="btn-start" onclick="openProject02()">Start Project →</button>
+            </div>
+        </div>
+
     </div>
 
     <!-- Coming Soon -->
     <div class="section-header" style="margin-top: 40px;">
         <span class="section-title">Coming Soon</span>
-        <span class="section-badge badge-coming">15 Projects</span>
+        <span class="section-badge badge-coming">14 Projects</span>
     </div>
 
     <div class="projects-grid">
 
-        <!-- Projects 02-16 -->
-
-        <div class="project-card coming-soon">
-            <div class="card-banner coming-soon"></div>
-            <div class="card-body">
-                <div class="card-header">
-                    <span class="project-num dim">PROJECT 02</span>
-                    <span class="status-chip coming">Coming Soon</span>
-                </div>
-                <div class="card-title">GitOps CI/CD Pipeline</div>
-                <div class="card-description">Build a complete GitOps workflow: code push triggers GitHub Actions, ArgoCD syncs to Kubernetes, automated tests gate every deployment.</div>
-                <div class="card-tags">
-                    <span class="tag">GitHub Actions</span><span class="tag">ArgoCD</span><span class="tag">Helm</span><span class="tag">GitOps</span>
-                </div>
-            </div>
-            <div class="card-footer">
-                <div class="card-meta">
-                    <span class="meta-item"><div class="difficulty"><div class="dot filled-medium"></div><div class="dot filled-medium"></div><div class="dot"></div></div> Medium</span>
-                    <span class="meta-item">⏱ 4–6 hours</span>
-                </div>
-                <button class="btn-coming" disabled>Coming Soon</button>
-            </div>
-        </div>
+        <!-- Projects 03-16 -->
 
         <div class="project-card coming-soon">
             <div class="card-banner coming-soon"></div>
@@ -702,16 +719,16 @@
                     <span class="project-num dim">PROJECT 12</span>
                     <span class="status-chip coming">Coming Soon</span>
                 </div>
-                <div class="card-title">Multi-Tenant SaaS Platform</div>
-                <div class="card-description">Configure namespace isolation, resource quotas, tenant-level RBAC, cost allocation, and automated tenant onboarding for a multi-tenant K8s platform.</div>
+                <div class="card-title">Zero-Downtime Deployment Strategies</div>
+                <div class="card-description">Implement blue-green, canary, and rolling deployments with automated rollback. Use Argo Rollouts for progressive delivery with real traffic analysis.</div>
                 <div class="card-tags">
-                    <span class="tag">Multi-tenancy</span><span class="tag">RBAC</span><span class="tag">Resource Quotas</span>
+                    <span class="tag">Argo Rollouts</span><span class="tag">Canary</span><span class="tag">Blue-Green</span><span class="tag">Progressive Delivery</span>
                 </div>
             </div>
             <div class="card-footer">
                 <div class="card-meta">
                     <span class="meta-item"><div class="difficulty"><div class="dot filled-medium"></div><div class="dot filled-medium"></div><div class="dot"></div></div> Medium</span>
-                    <span class="meta-item">⏱ 5–7 hours</span>
+                    <span class="meta-item">⏱ 4–6 hours</span>
                 </div>
                 <button class="btn-coming" disabled>Coming Soon</button>
             </div>
@@ -1217,6 +1234,144 @@ function renderMd(text) {
 // ── Project 01 entry ──────────────────────────────────────────────────────────
 function openProject01() { showModal(); }
 
+// ── Project 02 entry ──────────────────────────────────────────────────────────
+function openProject02() { showModal02(); }
+
+function showModal02() {
+    const PATH = 'hands-on-projects/project-02-multitenant-saas/';
+    const DOCKER_CMD = 'docker compose up --build';
+    const QUICK_CMD  = 'cd hands-on-projects/project-02-multitenant-saas/local\ndocker compose up --build\n# Open http://localhost:8090';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'p02-modal-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;';
+
+    overlay.innerHTML = `
+        <div style="background:white;border-radius:16px;max-width:580px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,.25);">
+
+            <!-- Header -->
+            <div style="padding:22px 28px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:white;z-index:1;border-radius:16px 16px 0 0;">
+                <h2 style="font-size:19px;font-weight:700;">🏢 Project 02 — Multi-Tenant SaaS</h2>
+                <button onclick="document.getElementById('p02-modal-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#6b7280;line-height:1;padding:0 4px;">&times;</button>
+            </div>
+
+            <div style="padding:24px 28px;display:flex;flex-direction:column;gap:20px;">
+
+                <!-- 1. Path + copy button -->
+                <div style="background:#eef2ff;border-radius:10px;padding:16px;">
+                    <div style="font-weight:700;margin-bottom:10px;color:#4f46e5;font-size:13px;">📁 Project Location</div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <code style="font-size:12px;color:#374151;background:#e0e7ff;padding:8px 12px;border-radius:6px;font-family:'Courier New',Courier,monospace;flex:1;min-width:200px;word-break:break-all;">${PATH}</code>
+                        <button onclick="copyText('${PATH}', this)" style="font-size:12px;padding:7px 14px;border-radius:6px;border:1px solid #c7d2fe;background:white;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;transition:all .15s;flex-shrink:0;">📋 Copy</button>
+                    </div>
+                </div>
+
+                <!-- 2. Steps -->
+                <div>
+                    <div style="font-weight:700;margin-bottom:12px;font-size:14px;">Where to start:</div>
+                    <div style="display:flex;flex-direction:column;gap:10px;">
+
+                        <div onclick="showWideReadme02('project')"
+                             style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;cursor:pointer;transition:all .15s;"
+                             onmouseover="this.style.borderColor='#6366f1';this.style.background='#f5f3ff';"
+                             onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#f9fafb';">
+                            <span style="font-size:24px;flex-shrink:0;">📖</span>
+                            <div style="flex:1;">
+                                <div style="font-weight:600;font-size:14px;">1. Read the Project README</div>
+                                <div style="color:#6b7280;font-size:12px;margin-top:2px;">Architecture overview and your DevOps journey</div>
+                            </div>
+                            <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
+                        </div>
+
+                        <div onclick="showWideReadme02('app')"
+                             style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;cursor:pointer;transition:all .15s;"
+                             onmouseover="this.style.borderColor='#6366f1';this.style.background='#f5f3ff';"
+                             onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#f9fafb';">
+                            <span style="font-size:24px;flex-shrink:0;">🔍</span>
+                            <div style="flex:1;">
+                                <div style="font-weight:600;font-size:14px;">2. Explore the app/ folder</div>
+                                <div style="color:#6b7280;font-size:12px;margin-top:2px;">Understand the 4 services and the multi-tenancy concept</div>
+                            </div>
+                            <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
+                        </div>
+
+                        <div style="padding:14px 16px;background:#eef2ff;border-radius:10px;border:2px solid #6366f1;display:flex;flex-direction:column;gap:10px;">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <span style="font-size:24px;flex-shrink:0;">🐳</span>
+                                <div>
+                                    <div style="font-weight:600;font-size:14px;color:#4f46e5;">3. Build & run locally (local/ folder)</div>
+                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Get all services running with Docker Compose. Admin dashboard at :8090</div>
+                                </div>
+                            </div>
+                            <div style="background:white;border-radius:8px;padding:10px 14px;border:1px solid #c7d2fe;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                                <code style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;flex:1;">${DOCKER_CMD}</code>
+                                <button onclick="copyText('${DOCKER_CMD}', this)" style="font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #c7d2fe;background:#eef2ff;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;flex-shrink:0;transition:all .15s;">📋 Copy</button>
+                            </div>
+                        </div>
+
+                        <div style="padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;display:flex;flex-direction:column;gap:10px;">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <span style="font-size:24px;flex-shrink:0;">☸️</span>
+                                <div>
+                                    <div style="font-weight:600;font-size:14px;">4. Deploy to Kubernetes (main/ folder)</div>
+                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Namespaces, RBAC, ResourceQuota, NetworkPolicy, per-tenant databases</div>
+                                </div>
+                            </div>
+                            <div style="background:#fefce8;border:1px solid #fde047;border-radius:8px;padding:10px 14px;font-size:12px;color:#713f12;display:flex;align-items:flex-start;gap:8px;">
+                                <span style="font-size:15px;flex-shrink:0;">💡</span>
+                                <div><strong>Key insight:</strong> Local = one app-service for all tenants (header-based isolation). Kubernetes = one namespace + one database <em>per tenant</em> (infra-level isolation).</div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Quick start -->
+                <div style="background:#f0fdf4;border-radius:10px;padding:16px;border:1px solid #bbf7d0;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                        <div style="font-weight:700;font-size:13px;color:#065f46;">⚡ Quick Start — Run Locally</div>
+                        <button onclick="copyText('${QUICK_CMD}', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">📋 Copy all</button>
+                    </div>
+                    <pre style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;line-height:1.9;margin:0;white-space:pre-wrap;">cd hands-on-projects/project-02-multitenant-saas/local
+docker compose up --build
+# Open http://localhost:8090</pre>
+                </div>
+
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+function showWideReadme02(which) {
+    const existing = document.getElementById('wide-readme-overlay');
+    if (existing) existing.remove();
+
+    const isProject = which === 'project';
+    const title   = isProject ? '📖 Project README — Multi-Tenant SaaS' : '🔍 app/ README — Services & APIs';
+    const rawText = document.getElementById(isProject ? 'data-p02-project-readme' : 'data-p02-app-readme').textContent.trim();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'wide-readme-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:1200;display:flex;align-items:center;justify-content:center;padding:24px;';
+
+    overlay.innerHTML = `
+        <div style="background:white;border-radius:16px;max-width:920px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 25px 60px rgba(0,0,0,.35);">
+            <div style="padding:18px 28px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;border-radius:16px 16px 0 0;background:white;">
+                <h2 style="font-size:17px;font-weight:700;color:#1e1b4b;">${title}</h2>
+                <button onclick="document.getElementById('wide-readme-overlay').remove()" style="background:none;border:none;font-size:26px;cursor:pointer;color:#6b7280;line-height:1;padding:0 4px;">&times;</button>
+            </div>
+            <div style="padding:28px 32px;overflow-y:auto;flex:1;" id="wide-readme-body"></div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    document.getElementById('wide-readme-body').innerHTML = renderMd(rawText);
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
 // ── Main modal ────────────────────────────────────────────────────────────────
 function showModal() {
     const PATH = 'hands-on-projects/project-01-ecommerce-platform/';
@@ -1262,7 +1417,7 @@ function showModal() {
                                 <div style="font-weight:600;font-size:14px;">1. Read the Project README</div>
                                 <div style="color:#6b7280;font-size:12px;margin-top:2px;">Understand the architecture and your DevOps journey</div>
                             </div>
-                            <span style="color:#6366f1;font-weight:700;font-size:16px;flex-shrink:0;">→</span>
+                            <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
                         </div>
 
                         <!-- Step 2 — clickable opens app/README popup -->
@@ -1275,7 +1430,7 @@ function showModal() {
                                 <div style="font-weight:600;font-size:14px;">2. Explore the app/ folder</div>
                                 <div style="color:#6b7280;font-size:12px;margin-top:2px;">Read the service code and understand the APIs</div>
                             </div>
-                            <span style="color:#6366f1;font-weight:700;font-size:16px;flex-shrink:0;">→</span>
+                            <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
                         </div>
 
                         <!-- Step 3 — run locally with copy button -->
@@ -1314,7 +1469,7 @@ function showModal() {
                 <!-- 3. Quick Start with copy -->
                 <div style="background:#f0fdf4;border-radius:10px;padding:16px;border:1px solid #bbf7d0;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <div style="font-weight:700;font-size:13px;color:#065f46;">⚡ Quick Start</div>
+                        <div style="font-weight:700;font-size:13px;color:#065f46;">⚡ Quick Start — Run Locally</div>
                         <button onclick="copyText('${QUICK_CMD}', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">📋 Copy all</button>
                     </div>
                     <pre style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;line-height:1.9;margin:0;white-space:pre-wrap;">cd hands-on-projects/project-01-ecommerce-platform/local
@@ -1359,6 +1514,192 @@ function showWideReadme(which) {
     document.getElementById('wide-readme-body').innerHTML = renderMd(rawText);
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
+</script>
+
+<!-- ── README data for Project 02 ── -->
+<script type="text/plain" id="data-p02-project-readme">
+# Project 02: Multi-Tenant SaaS Application Infrastructure
+
+Build and operate a complete multi-tenant SaaS platform. You'll go from a single shared stack on Docker Compose all the way to a production Kubernetes setup with namespace isolation, RBAC, resource quotas, network policies, and tenant-specific databases.
+
+---
+
+## What You're Building
+
+A SaaS platform where companies ("tenants") each get their own isolated environment:
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│                    Admin Dashboard (nginx + HTML)                  │
+│            Shows all tenants, their usage, and task counts         │
+└──────────────┬─────────────────────┬──────────────────────────────┘
+               │                     │
+        /api/platform/*        /api/billing/*       /api/app/*
+               │                     │                    │
+        platform-api          billing-service        app-service
+       (tenant CRUD)           (metering)           (task manager)
+               │                     │                    │
+       postgres-platform      postgres-billing       postgres-app
+```
+
+| Service | What it does |
+|---------|-------------|
+| **platform-api** | Create, suspend, and delete tenants. Stores plan limits (CPU, memory, pods) |
+| **app-service** | The actual SaaS product — a task manager. Each tenant sees only their own tasks |
+| **billing-service** | Records every API call per tenant. Shows usage and estimated cost |
+| **admin-ui** | Admin dashboard showing all tenants, resource limits, task counts, and usage |
+
+---
+
+## Folder Structure
+
+```
+project-02-multitenant-saas/
+├── README.md           ← You are here
+├── app/                ← Application source code (pre-built)
+│   ├── README.md       ← Service overview, API contracts, env vars
+│   ├── platform-api/   ← Tenant management API (FastAPI)
+│   ├── app-service/    ← Multi-tenant task manager (FastAPI)
+│   ├── billing-service/← Usage metering API (FastAPI)
+│   └── admin-ui/       ← Admin dashboard (HTML/CSS/JS + nginx)
+├── local/              ← Docker Compose — run everything locally
+│   ├── README.md       ← Step-by-step local guide + DevOps tasks
+│   ├── docker-compose.yml
+│   └── nginx/nginx.conf
+└── main/               ← Production Kubernetes deployment
+    └── README.md       ← Namespaces, RBAC, quotas, network policies
+```
+
+---
+
+## The Core Learning: Two Types of Multi-Tenancy
+
+### Application-Level (local/)
+One shared service, one shared database. Tenant isolation via `X-Tenant-ID` header and `tenant_id` DB column.
+
+### Infrastructure-Level (main/)
+Each tenant is a Kubernetes namespace with their own pods, database, resource limits, and network isolation.
+
+---
+
+## Start Here
+
+**→ Go to app/README.md to understand the platform**
+
+Then follow: `app/` → `local/` → `main/`
+</script>
+
+<script type="text/plain" id="data-p02-app-readme">
+# App — Multi-Tenant SaaS Services
+
+This folder contains the source code for all services. Everything is pre-built — your job is to containerize, run, and deploy it.
+
+---
+
+## Services Overview
+
+| Service | Port | Language | Database | Role |
+|---------|------|----------|----------|------|
+| **platform-api** | 8010 | Python/FastAPI | PostgreSQL | Tenant management |
+| **app-service** | 8011 | Python/FastAPI | PostgreSQL | Task manager (multi-tenant) |
+| **billing-service** | 8012 | Python/FastAPI | PostgreSQL | Usage metering |
+| **admin-ui** | 80 | HTML/CSS/JS + nginx | — | Admin dashboard |
+
+---
+
+## The Core Concept: Two Modes of Tenant Isolation
+
+### Mode 1 — Local (Docker Compose)
+One shared `app-service` for all tenants. Isolation via the `X-Tenant-ID` header:
+
+```
+POST /tasks   X-Tenant-ID: alice-corp      → Alice's tasks
+POST /tasks   X-Tenant-ID: bob-industries  → Bob's tasks
+```
+
+Both stored in one DB, separated by `tenant_id` column.
+
+### Mode 2 — Kubernetes (main/)
+Each tenant gets their own namespace + dedicated database. No header needed — the namespace IS the isolation:
+
+```
+namespace: tenant-alice-corp    → app-service → postgres (alice's data)
+namespace: tenant-bob-industries→ app-service → postgres (bob's data)
+```
+
+---
+
+## API Contracts
+
+### platform-api
+```
+GET    /tenants              → List all tenants
+POST   /tenants              → Create tenant
+PATCH  /tenants/{id}/suspend → Suspend tenant
+PATCH  /tenants/{id}/activate→ Activate tenant
+DELETE /tenants/{id}         → Delete tenant
+GET    /plans                → List plans with resource limits
+GET    /health               → Health check
+```
+
+### app-service (requires X-Tenant-ID header)
+```
+GET    /tasks        → List tasks for this tenant
+POST   /tasks        → Create a task
+PUT    /tasks/{id}   → Update a task (status, priority, title)
+DELETE /tasks/{id}   → Delete a task
+GET    /stats        → Task counts by status
+GET    /health       → Health check
+```
+
+### billing-service
+```
+POST   /record             → Record one API call
+GET    /usage              → Usage for all tenants (today + total)
+GET    /usage/{tenant_id}  → Detailed usage breakdown
+GET    /health             → Health check
+```
+
+---
+
+## Seed Data
+
+All services auto-seed on first run:
+- **3 tenants**: Alice Corp (enterprise/active), Bob Industries (pro/active), Charlie Ltd (starter/suspended)
+- **10 tasks** spread across all tenants
+- **300 API call events** over the past 7 days, weighted toward Alice Corp
+
+---
+
+## Running a Single Service
+
+```bash
+cd platform-api
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8010
+# → http://localhost:8010/docs (Swagger UI)
+```
+
+---
+
+## Dockerfiles
+
+All services follow the same pattern:
+
+```dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+EXPOSE <port>
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "<port>"]
+```
+
+**DevOps questions to think about:**
+- What's missing for production? (non-root user, health check directive, multi-stage build)
+- How would you reduce the image size further?
+- Why --host 0.0.0.0 instead of the default 127.0.0.1?
 </script>
 
 </body>
