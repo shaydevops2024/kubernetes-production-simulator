@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cart-service
+  namespace: ecommerce
+  labels:
+    app: cart-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cart-service
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: cart-service
+        version: v1
+    spec:
+      containers:
+      - name: cart-service
+        image: your-registry/cart-service:v1  # replace with your image
+        ports:
+        - containerPort: 8002
+        env:
+        - name: PRODUCT_SERVICE_URL
+          value: "http://product-service:8001"
+        - name: PORT
+          value: "8002"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8002
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8002
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"

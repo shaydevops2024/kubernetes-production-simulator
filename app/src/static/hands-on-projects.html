@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hands-On Projects — DevOps Simulator</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #eef2ff;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-500: #6b7280;
+            --gray-700: #374151;
+            --gray-900: #111827;
+            --white: #ffffff;
+            --shadow: 0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
+            --shadow-md: 0 4px 6px rgba(0,0,0,.07);
+            --shadow-lg: 0 10px 15px rgba(0,0,0,.1), 0 4px 6px rgba(0,0,0,.05);
+            --radius: 10px;
+            --radius-lg: 16px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%);
+            min-height: 100vh;
+            color: var(--gray-900);
+        }
+
+        /* ── Header ── */
+        .header {
+            padding: 48px 24px 40px;
+            text-align: center;
+            color: white;
+            position: relative;
+        }
+
+        .back-btn {
+            position: absolute;
+            left: 24px;
+            top: 32px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: rgba(255,255,255,.7);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            background: rgba(255,255,255,.1);
+            border: 1px solid rgba(255,255,255,.2);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,255,255,.2);
+            color: white;
+        }
+
+        .header-icon {
+            font-size: 56px;
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        .header h1 {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #fff 0%, #c7d2fe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            font-size: 18px;
+            color: rgba(255,255,255,.75);
+            max-width: 600px;
+            margin: 0 auto 24px;
+            line-height: 1.6;
+        }
+
+        .header-stats {
+            display: inline-flex;
+            gap: 32px;
+            background: rgba(255,255,255,.08);
+            border: 1px solid rgba(255,255,255,.15);
+            border-radius: var(--radius);
+            padding: 16px 32px;
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 800;
+            color: #a5b4fc;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: rgba(255,255,255,.6);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: .8px;
+        }
+
+        /* ── Content ── */
+        .content {
+            max-width: 1320px;
+            margin: 0 auto;
+            padding: 0 24px 64px;
+        }
+
+        /* ── Section header ── */
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 40px 0 20px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .section-badge {
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 99px;
+            font-weight: 600;
+        }
+
+        .badge-available { background: #d1fae5; color: #065f46; }
+        .badge-coming { background: rgba(255,255,255,.15); color: rgba(255,255,255,.7); }
+
+        /* ── Projects Grid ── */
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 20px;
+        }
+
+        /* ── Project Card ── */
+        .project-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            transition: transform .25s cubic-bezier(.4,0,.2,1), box-shadow .25s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .project-card.available {
+            cursor: pointer;
+        }
+
+        .project-card.available:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .project-card.coming-soon {
+            opacity: .72;
+        }
+
+        .card-banner {
+            height: 6px;
+        }
+
+        .card-banner.available { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
+        .card-banner.coming-soon { background: var(--gray-200); }
+
+        .card-body {
+            padding: 24px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .project-num {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--primary);
+            background: var(--primary-light);
+            padding: 4px 10px;
+            border-radius: 6px;
+            flex-shrink: 0;
+        }
+
+        .project-num.dim { background: var(--gray-100); color: var(--gray-500); }
+
+        .status-chip {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 99px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .status-chip.available { background: #d1fae5; color: #065f46; }
+        .status-chip.coming { background: var(--gray-100); color: var(--gray-500); }
+
+        .card-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--gray-900);
+            line-height: 1.4;
+        }
+
+        .card-description {
+            font-size: 14px;
+            color: var(--gray-500);
+            line-height: 1.6;
+            flex: 1;
+        }
+
+        .card-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .tag {
+            font-size: 11px;
+            padding: 3px 9px;
+            border-radius: 6px;
+            font-weight: 500;
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        .tag.highlight { background: var(--primary-light); color: var(--primary-dark); }
+
+        .card-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--gray-100);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .card-meta {
+            display: flex;
+            gap: 16px;
+        }
+
+        .meta-item {
+            font-size: 12px;
+            color: var(--gray-500);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-start {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--primary);
+            color: white;
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: background .15s;
+            text-decoration: none;
+        }
+
+        .btn-start:hover { background: var(--primary-dark); }
+
+        .btn-coming {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--gray-100);
+            color: var(--gray-400);
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            border: none;
+            cursor: not-allowed;
+        }
+
+        /* ── Difficulty dots ── */
+        .difficulty {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--gray-200);
+        }
+
+        .dot.filled-easy { background: #22c55e; }
+        .dot.filled-medium { background: #f59e0b; }
+        .dot.filled-hard { background: #ef4444; }
+
+        /* ── Learning path callout ── */
+        .learning-path {
+            background: rgba(255,255,255,.08);
+            border: 1px solid rgba(255,255,255,.15);
+            border-radius: var(--radius-lg);
+            padding: 24px 28px;
+            margin-bottom: 8px;
+            color: white;
+        }
+
+        .learning-path h3 {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #a5b4fc;
+        }
+
+        .path-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            font-size: 14px;
+            color: rgba(255,255,255,.7);
+        }
+
+        .path-item {
+            background: rgba(255,255,255,.12);
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+
+        .path-arrow { color: rgba(255,255,255,.4); }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 28px; }
+            .header-stats { gap: 20px; padding: 12px 20px; }
+            .projects-grid { grid-template-columns: 1fr; }
+            .back-btn { position: static; margin-bottom: 24px; display: inline-flex; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <a class="back-btn" onclick="window.close()" href="#">← Back to Simulator</a>
+    <span class="header-icon">🚀</span>
+    <h1>Hands-On DevOps Projects</h1>
+    <p>Production-grade projects you build from scratch. Real applications, real infrastructure, real DevOps skills.</p>
+    <div class="header-stats">
+        <div class="stat">
+            <span class="stat-value">16</span>
+            <span class="stat-label">Projects</span>
+        </div>
+        <div class="stat">
+            <span class="stat-value">1</span>
+            <span class="stat-label">Available</span>
+        </div>
+        <div class="stat">
+            <span class="stat-value">50+</span>
+            <span class="stat-label">DevOps Tasks</span>
+        </div>
+    </div>
+</div>
+
+<div class="content">
+
+    <!-- Learning path -->
+    <div class="learning-path">
+        <h3>Recommended Learning Path</h3>
+        <div class="path-row">
+            <span class="path-item">01 E-Commerce (local)</span>
+            <span class="path-arrow">→</span>
+            <span class="path-item">01 E-Commerce (K8s)</span>
+            <span class="path-arrow">→</span>
+            <span class="path-item">02 GitOps CI/CD</span>
+            <span class="path-arrow">→</span>
+            <span class="path-item">03 Observability</span>
+            <span class="path-arrow">→</span>
+            <span class="path-item">04 Security</span>
+            <span class="path-arrow">→</span>
+            <span class="path-item">Advanced Projects</span>
+        </div>
+    </div>
+
+    <!-- Available -->
+    <div class="section-header">
+        <span class="section-title">Available Now</span>
+        <span class="section-badge badge-available">1 Project</span>
+    </div>
+
+    <div class="projects-grid">
+
+        <!-- Project 01 — Available -->
+        <div class="project-card available" onclick="openProject01()">
+            <div class="card-banner available"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num">PROJECT 01</span>
+                    <span class="status-chip available">✓ Available</span>
+                </div>
+                <div class="card-title">Production-Ready Microservices E-Commerce Platform</div>
+                <div class="card-description">
+                    Build and deploy a complete online store with 5 microservices. Start with Docker Compose locally, then deploy to Kubernetes with Istio service mesh, distributed tracing, circuit breakers, and rate limiting.
+                </div>
+                <div class="card-tags">
+                    <span class="tag highlight">Docker Compose</span>
+                    <span class="tag highlight">Kubernetes</span>
+                    <span class="tag highlight">Istio</span>
+                    <span class="tag highlight">Jaeger</span>
+                    <span class="tag">Circuit Breakers</span>
+                    <span class="tag">Rate Limiting</span>
+                    <span class="tag">mTLS</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item">
+                        <div class="difficulty">
+                            <div class="dot filled-hard"></div>
+                            <div class="dot filled-hard"></div>
+                            <div class="dot filled-hard"></div>
+                        </div>
+                        Hard
+                    </span>
+                    <span class="meta-item">⏱ 6–10 hours</span>
+                    <span class="meta-item">🔧 5 services</span>
+                </div>
+                <button class="btn-start" onclick="openProject01()">Start Project →</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Coming Soon -->
+    <div class="section-header" style="margin-top: 40px;">
+        <span class="section-title">Coming Soon</span>
+        <span class="section-badge badge-coming">15 Projects</span>
+    </div>
+
+    <div class="projects-grid">
+
+        <!-- Projects 02-16 -->
+
+        <div class="project-card coming-soon">
+            <div class="card-banner coming-soon"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num dim">PROJECT 02</span>
+                    <span class="status-chip coming">Coming Soon</span>
+                </div>
+                <div class="card-title">GitOps CI/CD Pipeline</div>
+                <div class="card-description">Build a complete GitOps workflow: code push triggers GitHub Actions, ArgoCD syncs to Kubernetes, automated tests gate every deployment.</div>
+                <div class="card-tags">
+                    <span class="tag">GitHub Actions</span><span class="tag">ArgoCD</span><span class="tag">Helm</span><span class="tag">GitOps</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item"><div class="difficulty"><div class="dot filled-medium"></div><div class="dot filled-medium"></div><div class="dot"></div></div> Medium</span>
+                    <span class="meta-item">⏱ 4–6 hours</span>
+                </div>
+                <button class="btn-coming" disabled>Coming Soon</button>
+            </div>
+        </div>
+
+        <div class="project-card coming-soon">
+            <div class="card-banner coming-soon"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num dim">PROJECT 03</span>
+                    <span class="status-chip coming">Coming Soon</span>
+                </div>
+                <div class="card-title">Observability & Monitoring Platform</div>
+                <div class="card-description">Deploy a full observability stack: Prometheus for metrics, Grafana for dashboards, Jaeger for tracing, and EFK for centralized logging.</div>
+                <div class="card-tags">
+                    <span class="tag">Prometheus</span><span class="tag">Grafana</span><span class="tag">Jaeger</span><span class="tag">EFK</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item"><div class="difficulty"><div class="dot filled-medium"></div><div class="dot filled-medium"></div><div class="dot"></div></div> Medium</span>
+                    <span class="meta-item">⏱ 5–7 hours</span>
+                </div>
+                <button class="btn-coming" disabled>Coming Soon</button>
+            </div>
+        </div>
+
+        <div class="project-card coming-soon">
+            <div class="card-banner coming-soon"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num dim">PROJECT 04</span>
+                    <span class="status-chip coming">Coming Soon</span>
+                </div>
+                <div class="card-title">Zero-Trust Security Platform</div>
+                <div class="card-description">Harden a Kubernetes cluster with OPA Gatekeeper policies, network policies, Pod Security Standards, and Falco runtime security.</div>
+                <div class="card-tags">
+                    <span class="tag">OPA</span><span class="tag">Network Policies</span><span class="tag">Falco</span><span class="tag">RBAC</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item"><div class="difficulty"><div class="dot filled-hard"></div><div class="dot filled-hard"></div><div class="dot filled-hard"></div></div> Hard</span>
+                    <span class="meta-item">⏱ 6–8 hours</span>
+                </div>
+                <button class="btn-coming" disabled>Coming Soon</button>
+            </div>
+        </div>
+
+        <div class="project-card coming-soon">
+            <div class="card-banner coming-soon"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num dim">PROJECT 05</span>
+                    <span class="status-chip coming">Coming Soon</span>
+                </div>
+                <div class="card-title">High-Availability Database Cluster</div>
+                <div class="card-description">Deploy PostgreSQL with high availability using StatefulSets, persistent volumes, automatic failover, and Redis Cluster for caching.</div>
+                <div class="card-tags">
+                    <span class="tag">StatefulSets</span><span class="tag">PVC</span><span class="tag">PostgreSQL HA</span><span class="tag">Redis Cluster</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item"><div class="difficulty"><div class="dot filled-medium"></div><div class="dot filled-medium"></div><div class="dot"></div></div> Medium</span>
+                    <span class="meta-item">⏱ 5–7 hours</span>
+                </div>
+                <button class="btn-coming" disabled>Coming Soon</button>
+            </div>
+        </div>
+
+        <div class="project-card coming-soon">
+            <div class="card-banner coming-soon"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num dim">PROJECT 06</span>
+                    <span class="status-chip coming">Coming Soon</span>
+                </div>
+                <div class="card-title">Multi-Region Active-Active Setup</div>
+                <div class="card-description">Configure Kubernetes federation across multiple regions, global load balancing, and data replication for zero-downtime geo-distributed deployments.</div>
+                <div class="card-tags">
+                    <span class="tag">Federation</span><span class="tag">Global LB</span><span class="tag">Geo-Routing</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item"><div class="difficulty"><div class="dot filled-hard"></div><div class="dot filled-hard"></div><div class="dot filled-hard"></div></div> Hard</span>
+                    <span class="meta-item">⏱ 8–12 hours</span>
+                </div>
+                <button class="btn-coming" disabled>Coming Soon</button>
+            </div>
+        </div>
+
+        <div class="project-card coming-soon">
+            <div class="card-banner coming-soon"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num dim">PROJECT 07</span>
+                    <span class="status-chip coming">Coming Soon</span>
+                </div>
+                <div class="card-title">Autoscaling & Cost Optimization</div>
+                <div class="card-description">Implement HPA, VPA, and KEDA event-driven autoscaling. Configure cluster autoscaler, spot instance handling, and resource right-sizing.</div>
+                <div class="card-tags">
+                    <span class="tag">HPA</span><span class="tag">VPA</span><span class="tag">KEDA</span><span class="tag">Spot Instances</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item"><div class="difficulty"><div class="dot filled-medium"></div><div class="dot filled-medium"></div><div class="dot"></div></div> Medium</span>
+                    <span class="meta-item">⏱ 4–6 hours</span>
+                </div>
+                <button class="btn-coming" disabled>Coming Soon</button>
+            </div>
+        </div>
+
+        <div class="project-card coming-soon">
+            <div class="card-banner coming-soon"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num dim">PROJECT 08</span>
+                    <span class="status-chip coming">Coming Soon</span>
+                </div>
+                <div class="card-title">Disaster Recovery System</div>
+                <div class="card-description">Implement backup and recovery using Velero, cross-region replication, chaos engineering tests, and documented RTO/RPO runbooks.</div>
+                <div class="card-tags">
+                    <span class="tag">Velero</span><span class="tag">Backup</span><span class="tag">Chaos Engineering</span><span class="tag">RTO/RPO</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item"><div class="difficulty"><div class="dot filled-hard"></div><div class="dot filled-hard"></div><div class="dot filled-hard"></div></div> Hard</span>
+                    <span class="meta-item">⏱ 6–8 hours</span>
+                </div>
+                <button class="btn-coming" disabled>Coming Soon</button>
+            </div>
+        </div>
+
+        <div class="project-card coming-soon">
+            <div class="card-banner coming-soon"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num dim">PROJECT 09</span>
+                    <span class="status-chip coming">Coming Soon</span>
+                </div>
+                <div class="card-title">Platform Engineering (IDP)</div>
+                <div class="card-description">Build an Internal Developer Platform with Backstage, self-service templates, automated scaffolding, and golden paths for new services.</div>
+                <div class="card-tags">
+                    <span class="tag">Backstage</span><span class="tag">Templates</span><span class="tag">IDP</span><span class="tag">Self-Service</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item"><div class="difficulty"><div class="dot filled-hard"></div><div class="dot filled-hard"></div><div class="dot filled-hard"></div></div> Hard</span>
+                    <span class="meta-item">⏱ 8–12 hours</span>
+                </div>
+                <button class="btn-coming" disabled>Coming Soon</button>
+            </div>
+        </div>
+
+        <div class="project-card coming-soon">
+            <div class="card-banner coming-soon"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num dim">PROJECT 10</span>
+                    <span class="status-chip coming">Coming Soon</span>
+                </div>
+                <div class="card-title">MLOps Pipeline</div>
+                <div class="card-description">Deploy a machine learning pipeline on Kubernetes with Kubeflow, model versioning, A/B testing, and automated retraining triggers.</div>
+                <div class="card-tags">
+                    <span class="tag">Kubeflow</span><span class="tag">Model Serving</span><span class="tag">A/B Testing</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item"><div class="difficulty"><div class="dot filled-hard"></div><div class="dot filled-hard"></div><div class="dot filled-hard"></div></div> Hard</span>
+                    <span class="meta-item">⏱ 8–10 hours</span>
+                </div>
+                <button class="btn-coming" disabled>Coming Soon</button>
+            </div>
+        </div>
+
+        <div class="project-card coming-soon">
+            <div class="card-banner coming-soon"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num dim">PROJECT 11</span>
+                    <span class="status-chip coming">Coming Soon</span>
+                </div>
+                <div class="card-title">Serverless on Kubernetes</div>
+                <div class="card-description">Build event-driven serverless functions with Knative, auto-scaling to zero, event brokers, and integration with Kafka and CloudEvents.</div>
+                <div class="card-tags">
+                    <span class="tag">Knative</span><span class="tag">Serverless</span><span class="tag">Kafka</span><span class="tag">CloudEvents</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item"><div class="difficulty"><div class="dot filled-hard"></div><div class="dot filled-hard"></div><div class="dot"></div></div> Hard</span>
+                    <span class="meta-item">⏱ 6–8 hours</span>
+                </div>
+                <button class="btn-coming" disabled>Coming Soon</button>
+            </div>
+        </div>
+
+        <div class="project-card coming-soon">
+            <div class="card-banner coming-soon"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num dim">PROJECT 12</span>
+                    <span class="status-chip coming">Coming Soon</span>
+                </div>
+                <div class="card-title">Multi-Tenant SaaS Platform</div>
+                <div class="card-description">Configure namespace isolation, resource quotas, tenant-level RBAC, cost allocation, and automated tenant onboarding for a multi-tenant K8s platform.</div>
+                <div class="card-tags">
+                    <span class="tag">Multi-tenancy</span><span class="tag">RBAC</span><span class="tag">Resource Quotas</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item"><div class="difficulty"><div class="dot filled-medium"></div><div class="dot filled-medium"></div><div class="dot"></div></div> Medium</span>
+                    <span class="meta-item">⏱ 5–7 hours</span>
+                </div>
+                <button class="btn-coming" disabled>Coming Soon</button>
+            </div>
+        </div>
+
+        <div class="project-card coming-soon">
+            <div class="card-banner coming-soon"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num dim">PROJECT 13</span>
+                    <span class="status-chip coming">Coming Soon</span>
+                </div>
+                <div class="card-title">API Gateway & Rate Limiting</div>
+                <div class="card-description">Deploy Kong API Gateway, configure OAuth2/JWT authentication, request transformation, rate limiting, and API versioning strategies.</div>
+                <div class="card-tags">
+                    <span class="tag">Kong</span><span class="tag">OAuth2</span><span class="tag">JWT</span><span class="tag">Rate Limiting</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item"><div class="difficulty"><div class="dot filled-medium"></div><div class="dot filled-medium"></div><div class="dot"></div></div> Medium</span>
+                    <span class="meta-item">⏱ 4–6 hours</span>
+                </div>
+                <button class="btn-coming" disabled>Coming Soon</button>
+            </div>
+        </div>
+
+        <div class="project-card coming-soon">
+            <div class="card-banner coming-soon"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num dim">PROJECT 14</span>
+                    <span class="status-chip coming">Coming Soon</span>
+                </div>
+                <div class="card-title">Edge Computing Setup</div>
+                <div class="card-description">Deploy a K3s edge cluster, configure lightweight workloads for edge nodes, CDN integration, and edge-to-cloud data synchronization.</div>
+                <div class="card-tags">
+                    <span class="tag">K3s</span><span class="tag">Edge Nodes</span><span class="tag">CDN</span><span class="tag">IoT</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item"><div class="difficulty"><div class="dot filled-hard"></div><div class="dot filled-hard"></div><div class="dot"></div></div> Hard</span>
+                    <span class="meta-item">⏱ 6–8 hours</span>
+                </div>
+                <button class="btn-coming" disabled>Coming Soon</button>
+            </div>
+        </div>
+
+        <div class="project-card coming-soon">
+            <div class="card-banner coming-soon"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num dim">PROJECT 15</span>
+                    <span class="status-chip coming">Coming Soon</span>
+                </div>
+                <div class="card-title">SRE Practices Platform</div>
+                <div class="card-description">Define SLOs and error budgets, build alerting on burn rate, implement chaos engineering with Chaos Mesh, and create operational runbooks.</div>
+                <div class="card-tags">
+                    <span class="tag">SLOs</span><span class="tag">Error Budgets</span><span class="tag">Chaos Mesh</span><span class="tag">Runbooks</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item"><div class="difficulty"><div class="dot filled-hard"></div><div class="dot filled-hard"></div><div class="dot filled-hard"></div></div> Hard</span>
+                    <span class="meta-item">⏱ 8–10 hours</span>
+                </div>
+                <button class="btn-coming" disabled>Coming Soon</button>
+            </div>
+        </div>
+
+        <div class="project-card coming-soon">
+            <div class="card-banner coming-soon"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num dim">PROJECT 16</span>
+                    <span class="status-chip coming">Coming Soon</span>
+                </div>
+                <div class="card-title">Security Compliance & Audit</div>
+                <div class="card-description">Implement Falco runtime security, OPA Gatekeeper admission control, CIS benchmark scanning, and automated compliance reporting.</div>
+                <div class="card-tags">
+                    <span class="tag">Falco</span><span class="tag">OPA Gatekeeper</span><span class="tag">CIS Benchmarks</span><span class="tag">Compliance</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item"><div class="difficulty"><div class="dot filled-hard"></div><div class="dot filled-hard"></div><div class="dot filled-hard"></div></div> Hard</span>
+                    <span class="meta-item">⏱ 8–10 hours</span>
+                </div>
+                <button class="btn-coming" disabled>Coming Soon</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ── README data for popup rendering (plain text, not parsed as HTML) ── -->
+<script type="text/plain" id="data-project-readme">
+# Project 01: Production-Ready Microservices E-Commerce Platform
+
+Build and deploy a fully containerized e-commerce platform using microservices architecture. You'll go from raw application code all the way to a production Kubernetes deployment with Istio service mesh, distributed tracing, circuit breakers, and rate limiting.
+
+---
+
+## What You're Building
+
+A working online store with 5 backend services and a UI:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    API Gateway (nginx)                   │
+└──────┬──────┬──────┬───────────┬──────────────────────-─┘
+       │      │      │           │           │
+  Products  Cart  Orders  Payments  Inventory
+  Service  Service Service  Service   Service
+       │      │      │           │           │
+  PostgreSQL Redis PostgreSQL PostgreSQL PostgreSQL
+```
+
+| Service | Responsibility |
+|---------|---------------|
+| **Product Service** | Product catalog — browse, search, filter |
+| **Cart Service** | Shopping cart — add, remove, view items |
+| **Order Service** | Order management — create, track orders |
+| **Payment Service** | Payment processing (mock gateway) |
+| **Inventory Service** | Stock management — track and reserve inventory |
+| **Frontend** | Simple web UI to see everything in action |
+
+---
+
+## Folder Structure
+
+```
+project-01-ecommerce-platform/
+├── README.md          ← You are here
+├── app/               ← Application source code (pre-built)
+│   ├── README.md      ← How to run each service individually
+│   ├── product-service/
+│   ├── cart-service/
+│   ├── order-service/
+│   ├── payment-service/
+│   ├── inventory-service/
+│   └── frontend/
+├── local/             ← Docker Compose for local development
+│   ├── README.md      ← Step-by-step local setup guide
+│   └── docker-compose.yml
+├── main/              ← Production Kubernetes deployment
+│   └── README.md      ← What you'll build in the K8s phase
+└── solution/          ← Ready-made K8s manifests (reference)
+    ├── namespace.yaml
+    ├── deployments/
+    ├── services/
+    ├── statefulsets/
+    ├── ingress/
+    └── istio/
+```
+
+---
+
+## Your DevOps Journey
+
+### Phase 1 — Understand the App (app/)
+Read the app README and understand what each service does. You don't write application code, but you need to know what you're deploying.
+
+**Skills:** Reading architecture docs, understanding microservices, API contracts
+
+### Phase 2 — Run It Locally (local/)
+Use Docker Compose to get the entire stack running on your machine. Inspect how services discover each other, how the API gateway routes traffic, and how data flows between services.
+
+**Skills:** Docker Compose, service networking, volume mounts, environment variables, health checks
+
+### Phase 3 — Deploy to Kubernetes (main/)
+Write Kubernetes manifests for every service. Deploy to a real cluster. Add ConfigMaps, Secrets, Services, Ingress, PersistentVolumeClaims.
+
+**Skills:** Deployments, Services, Ingress, ConfigMaps, Secrets, PVCs, namespaces
+
+### Phase 4 — Add Istio Service Mesh
+Install Istio, enable sidecar injection, configure traffic management, canary deployments, and mutual TLS between services.
+
+**Skills:** Istio, VirtualService, DestinationRule, mTLS, traffic shifting
+
+### Phase 5 — Circuit Breakers & Rate Limiting
+Protect your services from cascade failures and abuse. Configure Istio circuit breakers, outlier detection, and rate limiting with Envoy filters.
+
+**Skills:** Circuit breakers, outlier detection, rate limiting, Envoy filters
+
+### Phase 6 — Distributed Tracing
+Deploy Jaeger, configure Istio tracing, and follow a request as it flows through all 5 services.
+
+**Skills:** Jaeger, OpenTelemetry, trace sampling, span correlation
+
+---
+
+## What the Final Architecture Looks Like
+
+```
+Internet
+    │
+    ▼
+[Ingress / Istio Gateway]
+    │
+    ▼
+[Frontend - nginx]
+    │  (calls /api/* routes)
+    ▼
+[Istio Envoy Sidecar] ← Rate Limiting, mTLS, Tracing
+    │
+    ├──→ product-service  ──→ PostgreSQL
+    ├──→ cart-service     ──→ Redis
+    ├──→ order-service    ──→ PostgreSQL  ──→ (calls payment + inventory)
+    ├──→ payment-service  ──→ PostgreSQL
+    └──→ inventory-service──→ PostgreSQL
+         │
+         ▼
+    [Jaeger] ← All traces collected here
+    [Prometheus + Grafana] ← Metrics from Istio + services
+```
+
+---
+
+## Prerequisites
+
+- Docker and Docker Compose (for Phase 2)
+- kubectl and a Kubernetes cluster (for Phase 3+)
+- Helm (for Istio installation)
+- Basic Python knowledge (to understand the services, not write them)
+
+---
+
+## Start Here
+
+**→ Go to app/README.md to understand the application**
+
+Then follow: app/ → local/ → main/
+</script>
+
+<script type="text/plain" id="data-app-readme">
+# App — E-Commerce Microservices
+
+This folder contains the source code for all 5 microservices and the frontend. Each service is a standalone FastAPI application that you can run individually or together via Docker Compose (see ../local/).
+
+---
+
+## Services Overview
+
+| Service | Port | Language | Database | Description |
+|---------|------|----------|----------|-------------|
+| product-service | 8001 | Python/FastAPI | SQLite/PostgreSQL | Product catalog CRUD |
+| cart-service | 8002 | Python/FastAPI | In-Memory/Redis | Shopping cart management |
+| order-service | 8003 | Python/FastAPI | SQLite/PostgreSQL | Order creation and tracking |
+| payment-service | 8004 | Python/FastAPI | SQLite/PostgreSQL | Mock payment gateway |
+| inventory-service | 8005 | Python/FastAPI | SQLite/PostgreSQL | Stock level management |
+| frontend | 80 | HTML/CSS/JS | — | Browser UI served by nginx |
+
+---
+
+## Running a Single Service (without Docker)
+
+Useful for development and understanding the code.
+
+```bash
+# Example: run the product service
+cd product-service
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8001
+```
+
+Then open: http://localhost:8001/docs — every service has an automatic Swagger UI.
+
+---
+
+## Running All Services Together
+
+Use the Docker Compose setup in ../local/. That's the intended way to run the full stack.
+
+---
+
+## Environment Variables
+
+Each service is configured via environment variables (with sane defaults for local dev):
+
+### product-service
+| Variable | Default | Description |
+|----------|---------|-------------|
+| DATABASE_URL | sqlite:///./products.db | Database connection string |
+| PORT | 8001 | Port to listen on |
+
+### cart-service
+| Variable | Default | Description |
+|----------|---------|-------------|
+| PRODUCT_SERVICE_URL | http://localhost:8001 | URL to call product service |
+| PORT | 8002 | Port to listen on |
+
+### order-service
+| Variable | Default | Description |
+|----------|---------|-------------|
+| DATABASE_URL | sqlite:///./orders.db | Database connection string |
+| CART_SERVICE_URL | http://localhost:8002 | URL to call cart service |
+| PAYMENT_SERVICE_URL | http://localhost:8004 | URL to call payment service |
+| INVENTORY_SERVICE_URL | http://localhost:8005 | URL to call inventory service |
+| PORT | 8003 | Port to listen on |
+
+### payment-service
+| Variable | Default | Description |
+|----------|---------|-------------|
+| DATABASE_URL | sqlite:///./payments.db | Database connection string |
+| PORT | 8004 | Port to listen on |
+
+### inventory-service
+| Variable | Default | Description |
+|----------|---------|-------------|
+| DATABASE_URL | sqlite:///./inventory.db | Database connection string |
+| PORT | 8005 | Port to listen on |
+
+---
+
+## API Contracts
+
+### product-service
+```
+GET    /products              → List all products (supports ?category=&search=)
+GET    /products/{id}         → Get single product
+POST   /products              → Create product
+PUT    /products/{id}         → Update product
+DELETE /products/{id}         → Delete product
+GET    /health                → Health check
+```
+
+### cart-service
+```
+GET    /cart/{user_id}                      → Get cart for user
+POST   /cart/{user_id}/items                → Add item to cart
+DELETE /cart/{user_id}/items/{product_id}   → Remove item from cart
+DELETE /cart/{user_id}                      → Clear cart
+GET    /health                              → Health check
+```
+
+### order-service
+```
+GET    /orders                → List all orders
+GET    /orders/{id}           → Get single order
+POST   /orders                → Create order from cart
+PATCH  /orders/{id}/status    → Update order status
+GET    /health                → Health check
+```
+
+### payment-service
+```
+POST   /payments/process      → Process a payment
+GET    /payments/{id}         → Get payment status
+GET    /health                → Health check
+```
+
+### inventory-service
+```
+GET    /inventory                       → List all inventory
+GET    /inventory/{product_id}          → Get stock for product
+PUT    /inventory/{product_id}          → Update stock level
+POST   /inventory/{product_id}/reserve  → Reserve stock for order
+GET    /health                          → Health check
+```
+
+---
+
+## Dockerfiles
+
+Each service has a Dockerfile. Your first DevOps task is understanding them:
+
+```dockerfile
+# All services follow this pattern
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+EXPOSE <port>
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "<port>"]
+```
+
+**Questions to think about:**
+- Why python:3.11-slim and not python:3.11?
+- What does --no-cache-dir do and why does it matter in containers?
+- Why --host 0.0.0.0 instead of the default 127.0.0.1?
+- How would you reduce the image size further?
+- What's missing for production? (hints: non-root user, health check, multi-stage build)
+</script>
+
+<script>
+// ── Copy helper ──────────────────────────────────────────────────────────────
+function copyText(text, btn) {
+    const doFeedback = () => {
+        const orig = btn.innerHTML;
+        btn.innerHTML = '✓ Copied';
+        btn.style.background = '#22c55e';
+        btn.style.color = 'white';
+        setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; btn.style.color = ''; }, 2000);
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(doFeedback).catch(() => fallbackCopy(text, btn, doFeedback));
+    } else {
+        fallbackCopy(text, btn, doFeedback);
+    }
+}
+function fallbackCopy(text, btn, cb) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    try { document.execCommand('copy'); } catch(e) {}
+    document.body.removeChild(ta);
+    cb();
+}
+
+// ── Markdown renderer ─────────────────────────────────────────────────────────
+function renderMd(text) {
+    const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const inline = s => s
+        .replace(/`([^`\n]+)`/g, '<code style="background:#e0e7ff;color:#4f46e5;padding:1px 5px;border-radius:4px;font-family:monospace;font-size:12px;">$1</code>')
+        .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color:#6366f1;text-decoration:underline;">$1</a>');
+
+    const lines = text.split('\n');
+    let html = '';
+    let inCode = false, codeLang = '', codeLines = [];
+    let inTable = false, tableRows = [], tableHeaderDone = false;
+
+    const flushTable = () => {
+        if (!tableRows.length) return;
+        let t = '<table style="border-collapse:collapse;width:100%;font-size:12px;margin:8px 0;border:1px solid #e5e7eb;">';
+        tableRows.forEach((row, i) => {
+            t += '<tr>';
+            row.forEach(cell => {
+                const tag = i === 0 ? 'th' : 'td';
+                const style = i === 0
+                    ? 'padding:7px 12px;background:#f3f4f6;font-weight:700;border:1px solid #e5e7eb;text-align:left;'
+                    : 'padding:6px 12px;border:1px solid #e5e7eb;';
+                t += `<${tag} style="${style}">${inline(esc(cell.trim()))}</${tag}>`;
+            });
+            t += '</tr>';
+        });
+        t += '</table>';
+        html += t;
+        tableRows = [];
+        inTable = false;
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        // Code block toggle
+        if (line.startsWith('```')) {
+            if (!inCode) {
+                inCode = true;
+                codeLang = line.slice(3).trim();
+                codeLines = [];
+            } else {
+                const code = esc(codeLines.join('\n'));
+                html += `<pre style="background:#1a1a2e;color:#a5b4fc;padding:14px 16px;border-radius:8px;overflow-x:auto;font-size:12px;line-height:1.6;margin:8px 0;font-family:'Courier New',Courier,monospace;">${code}</pre>`;
+                inCode = false; codeLines = [];
+            }
+            continue;
+        }
+        if (inCode) { codeLines.push(line); continue; }
+
+        // Table
+        if (line.startsWith('|')) {
+            if (line.match(/^\|[\s:|-]+\|/)) { tableHeaderDone = true; continue; } // separator
+            const cells = line.split('|').slice(1, -1);
+            tableRows.push(cells);
+            inTable = true;
+            continue;
+        }
+        if (inTable) { flushTable(); }
+
+        // Headers
+        const m1 = line.match(/^### (.+)/);
+        const m2 = line.match(/^## (.+)/);
+        const m3 = line.match(/^# (.+)/);
+
+        if (m3) {
+            html += `<h1 style="font-size:19px;font-weight:800;color:#1e1b4b;margin:20px 0 8px;padding-bottom:8px;border-bottom:2px solid #e0e7ff;">${inline(esc(m3[1]))}</h1>`;
+        } else if (m2) {
+            html += `<h2 style="font-size:15px;font-weight:700;color:#4f46e5;margin:18px 0 6px;">${inline(esc(m2[1]))}</h2>`;
+        } else if (m1) {
+            html += `<h3 style="font-size:13px;font-weight:700;color:#374151;margin:14px 0 4px;">${inline(esc(m1[1]))}</h3>`;
+        } else if (line.match(/^-{3,}$/)) {
+            html += '<hr style="border:none;border-top:1px solid #e5e7eb;margin:14px 0;">';
+        } else if (line.match(/^[-*] /)) {
+            html += `<div style="padding:1px 0 1px 20px;position:relative;font-size:13px;line-height:1.6;"><span style="position:absolute;left:6px;color:#6366f1;">•</span>${inline(esc(line.replace(/^[-*] /, '')))}</div>`;
+        } else if (line.match(/^\d+\. /)) {
+            html += `<div style="padding:1px 0 1px 20px;font-size:13px;line-height:1.6;">${inline(esc(line))}</div>`;
+        } else if (line.trim() === '') {
+            html += '<div style="height:6px;"></div>';
+        } else {
+            html += `<p style="margin:2px 0;font-size:13px;line-height:1.65;">${inline(esc(line))}</p>`;
+        }
+    }
+    if (inTable) flushTable();
+    return html;
+}
+
+// ── Project 01 entry ──────────────────────────────────────────────────────────
+function openProject01() { showModal(); }
+
+// ── Main modal ────────────────────────────────────────────────────────────────
+function showModal() {
+    const PATH = 'hands-on-projects/project-01-ecommerce-platform/';
+    const DOCKER_CMD = 'docker compose up --build';
+    const QUICK_CMD  = 'cd hands-on-projects/project-01-ecommerce-platform/local\ndocker compose up --build';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'p01-modal-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;';
+
+    overlay.innerHTML = `
+        <div style="background:white;border-radius:16px;max-width:580px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,.25);">
+
+            <!-- Header -->
+            <div style="padding:22px 28px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:white;z-index:1;border-radius:16px 16px 0 0;">
+                <h2 style="font-size:19px;font-weight:700;">🚀 Project 01 — E-Commerce Platform</h2>
+                <button onclick="document.getElementById('p01-modal-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#6b7280;line-height:1;padding:0 4px;">&times;</button>
+            </div>
+
+            <div style="padding:24px 28px;display:flex;flex-direction:column;gap:20px;">
+
+                <!-- 1. Path + copy button -->
+                <div style="background:#eef2ff;border-radius:10px;padding:16px;">
+                    <div style="font-weight:700;margin-bottom:10px;color:#4f46e5;font-size:13px;">📁 Project Location</div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <code style="font-size:12px;color:#374151;background:#e0e7ff;padding:8px 12px;border-radius:6px;font-family:'Courier New',Courier,monospace;flex:1;min-width:200px;word-break:break-all;">${PATH}</code>
+                        <button onclick="copyText('${PATH}', this)" style="font-size:12px;padding:7px 14px;border-radius:6px;border:1px solid #c7d2fe;background:white;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;transition:all .15s;flex-shrink:0;">📋 Copy</button>
+                    </div>
+                </div>
+
+                <!-- 2. Steps -->
+                <div>
+                    <div style="font-weight:700;margin-bottom:12px;font-size:14px;">Where to start:</div>
+                    <div style="display:flex;flex-direction:column;gap:10px;">
+
+                        <!-- Step 1 — clickable opens README popup -->
+                        <div onclick="showWideReadme('project')"
+                             style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;cursor:pointer;transition:all .15s;"
+                             onmouseover="this.style.borderColor='#6366f1';this.style.background='#f5f3ff';"
+                             onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#f9fafb';">
+                            <span style="font-size:24px;flex-shrink:0;">📖</span>
+                            <div style="flex:1;">
+                                <div style="font-weight:600;font-size:14px;">1. Read the Project README</div>
+                                <div style="color:#6b7280;font-size:12px;margin-top:2px;">Understand the architecture and your DevOps journey</div>
+                            </div>
+                            <span style="color:#6366f1;font-weight:700;font-size:16px;flex-shrink:0;">→</span>
+                        </div>
+
+                        <!-- Step 2 — clickable opens app/README popup -->
+                        <div onclick="showWideReadme('app')"
+                             style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;cursor:pointer;transition:all .15s;"
+                             onmouseover="this.style.borderColor='#6366f1';this.style.background='#f5f3ff';"
+                             onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#f9fafb';">
+                            <span style="font-size:24px;flex-shrink:0;">🔍</span>
+                            <div style="flex:1;">
+                                <div style="font-weight:600;font-size:14px;">2. Explore the app/ folder</div>
+                                <div style="color:#6b7280;font-size:12px;margin-top:2px;">Read the service code and understand the APIs</div>
+                            </div>
+                            <span style="color:#6366f1;font-weight:700;font-size:16px;flex-shrink:0;">→</span>
+                        </div>
+
+                        <!-- Step 3 — run locally with copy button -->
+                        <div style="padding:14px 16px;background:#eef2ff;border-radius:10px;border:2px solid #6366f1;display:flex;flex-direction:column;gap:10px;">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <span style="font-size:24px;flex-shrink:0;">🐳</span>
+                                <div>
+                                    <div style="font-weight:600;font-size:14px;color:#4f46e5;">3. Build & run locally (local/ folder)</div>
+                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Your first task: get the full stack running with Docker Compose</div>
+                                </div>
+                            </div>
+                            <div style="background:white;border-radius:8px;padding:10px 14px;border:1px solid #c7d2fe;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                                <code style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;flex:1;">${DOCKER_CMD}</code>
+                                <button onclick="copyText('${DOCKER_CMD}', this)" style="font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #c7d2fe;background:#eef2ff;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;flex-shrink:0;transition:all .15s;">📋 Copy</button>
+                            </div>
+                        </div>
+
+                        <!-- Step 4 — K8s with solution hint -->
+                        <div style="padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;display:flex;flex-direction:column;gap:10px;">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <span style="font-size:24px;flex-shrink:0;">☸️</span>
+                                <div>
+                                    <div style="font-weight:600;font-size:14px;">4. Deploy to Kubernetes (main/ folder)</div>
+                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Write K8s manifests, add Istio, observability, security</div>
+                                </div>
+                            </div>
+                            <div style="background:#fefce8;border:1px solid #fde047;border-radius:8px;padding:10px 14px;font-size:12px;color:#713f12;display:flex;align-items:flex-start;gap:8px;">
+                                <span style="font-size:15px;flex-shrink:0;">💡</span>
+                                <div><strong>Hint:</strong> Ready-made K8s solution files are available in the <code style="background:#fef3c7;padding:1px 5px;border-radius:3px;font-family:monospace;">solution/</code> folder if you need a reference — namespace, deployments, services, StatefulSets, Ingress, and Istio configs are all there.</div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- 3. Quick Start with copy -->
+                <div style="background:#f0fdf4;border-radius:10px;padding:16px;border:1px solid #bbf7d0;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                        <div style="font-weight:700;font-size:13px;color:#065f46;">⚡ Quick Start</div>
+                        <button onclick="copyText('${QUICK_CMD}', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">📋 Copy all</button>
+                    </div>
+                    <pre style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;line-height:1.9;margin:0;white-space:pre-wrap;">cd hands-on-projects/project-01-ecommerce-platform/local
+docker compose up --build
+# Open http://localhost:8088</pre>
+                </div>
+
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+// ── Wide README popup ─────────────────────────────────────────────────────────
+function showWideReadme(which) {
+    const existing = document.getElementById('wide-readme-overlay');
+    if (existing) existing.remove();
+
+    const isProject = which === 'project';
+    const title   = isProject ? '📖 Project README — E-Commerce Platform' : '🔍 app/ README — Microservices & APIs';
+    const rawText = document.getElementById(isProject ? 'data-project-readme' : 'data-app-readme').textContent.trim();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'wide-readme-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:1200;display:flex;align-items:center;justify-content:center;padding:24px;';
+
+    overlay.innerHTML = `
+        <div style="background:white;border-radius:16px;max-width:920px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 25px 60px rgba(0,0,0,.35);">
+            <!-- header -->
+            <div style="padding:18px 28px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;border-radius:16px 16px 0 0;background:white;">
+                <h2 style="font-size:17px;font-weight:700;color:#1e1b4b;">${title}</h2>
+                <button onclick="document.getElementById('wide-readme-overlay').remove()" style="background:none;border:none;font-size:26px;cursor:pointer;color:#6b7280;line-height:1;padding:0 4px;">&times;</button>
+            </div>
+            <!-- body -->
+            <div style="padding:28px 32px;overflow-y:auto;flex:1;" id="wide-readme-body"></div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    document.getElementById('wide-readme-body').innerHTML = renderMd(rawText);
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+</script>
+
+</body>
+</html>

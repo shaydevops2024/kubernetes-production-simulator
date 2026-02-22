@@ -1,0 +1,19 @@
+# Istio Gateway — exposes the ecommerce namespace on port 80
+# Prerequisite: Istio installed and namespace labelled istio-injection=enabled
+#   istioctl install --set profile=demo -y
+#   kubectl label namespace ecommerce istio-injection=enabled
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: ecommerce-gateway
+  namespace: ecommerce
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"

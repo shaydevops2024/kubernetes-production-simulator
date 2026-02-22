@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-products
+  namespace: ecommerce
+  labels:
+    app: postgres-products
+spec:
+  serviceName: postgres-products
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-products
+  template:
+    metadata:
+      labels:
+        app: postgres-products
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16-alpine
+        envFrom:
+        - secretRef:
+            name: db-credentials
+        env:
+        - name: POSTGRES_DB
+          value: products_db
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+        readinessProbe:
+          exec:
+            command: ["pg_isready", "-U", "shop", "-d", "products_db"]
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          failureThreshold: 5
+        livenessProbe:
+          exec:
+            command: ["pg_isready", "-U", "shop", "-d", "products_db"]
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 1Gi
+---
+# Headless service required by the StatefulSet
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-products
+  namespace: ecommerce
+  labels:
+    app: postgres-products
+spec:
+  selector:
+    app: postgres-products
+  ports:
+  - port: 5432
+    targetPort: 5432
+  clusterIP: None   # headless — required for StatefulSet DNS

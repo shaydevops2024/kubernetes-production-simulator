@@ -1,0 +1,117 @@
+# Istio DestinationRules — circuit breakers, connection pools, mTLS
+# These rules protect services from cascade failures and enforce mTLS
+---
+# product-service
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: product-service-dr
+  namespace: ecommerce
+spec:
+  host: product-service
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL   # enforce mTLS between services
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 100
+        http2MaxRequests: 1000
+    outlierDetection:      # circuit breaker
+      consecutive5xxErrors: 3
+      interval: 10s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+---
+# cart-service
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: cart-service-dr
+  namespace: ecommerce
+spec:
+  host: cart-service
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 100
+        http2MaxRequests: 1000
+    outlierDetection:
+      consecutive5xxErrors: 3
+      interval: 10s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+---
+# order-service
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: order-service-dr
+  namespace: ecommerce
+spec:
+  host: order-service
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    connectionPool:
+      tcp:
+        maxConnections: 50
+      http:
+        http1MaxPendingRequests: 50
+        http2MaxRequests: 500
+    outlierDetection:
+      consecutive5xxErrors: 2
+      interval: 10s
+      baseEjectionTime: 60s
+      maxEjectionPercent: 30
+---
+# payment-service — extra conservative circuit breaker (financial transactions)
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: payment-service-dr
+  namespace: ecommerce
+spec:
+  host: payment-service
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    connectionPool:
+      tcp:
+        maxConnections: 50
+      http:
+        http1MaxPendingRequests: 50
+        http2MaxRequests: 500
+    outlierDetection:
+      consecutive5xxErrors: 2
+      interval: 5s
+      baseEjectionTime: 120s
+      maxEjectionPercent: 100  # eject all pods if payment service is degraded
+---
+# inventory-service
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: inventory-service-dr
+  namespace: ecommerce
+spec:
+  host: inventory-service
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 100
+        http2MaxRequests: 1000
+    outlierDetection:
+      consecutive5xxErrors: 3
+      interval: 10s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50

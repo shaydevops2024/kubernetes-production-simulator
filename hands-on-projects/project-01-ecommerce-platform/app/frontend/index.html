@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopCloud — Microservices E-Commerce</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+    <div class="header-inner">
+        <div class="logo">
+            <span class="logo-icon">☁</span>
+            <span class="logo-text">ShopCloud</span>
+            <span class="logo-badge">Microservices Demo</span>
+        </div>
+        <nav class="nav-tabs">
+            <button class="nav-tab active" data-page="products">Products</button>
+            <button class="nav-tab" data-page="orders">My Orders</button>
+            <button class="nav-tab" data-page="inventory">Inventory</button>
+            <button class="nav-tab" data-page="services">Services</button>
+        </nav>
+        <div class="cart-btn-wrap">
+            <button class="cart-btn" id="cart-btn">
+                <span>🛒</span>
+                <span id="cart-count" class="cart-count hidden">0</span>
+            </button>
+        </div>
+    </div>
+</header>
+
+<!-- Cart Drawer -->
+<div id="cart-overlay" class="cart-overlay" onclick="closeCart()"></div>
+<div id="cart-drawer" class="cart-drawer">
+    <div class="cart-header">
+        <h3>Shopping Cart</h3>
+        <button onclick="closeCart()" class="close-btn">&times;</button>
+    </div>
+    <div id="cart-items" class="cart-items">
+        <div class="empty-state">Your cart is empty</div>
+    </div>
+    <div id="cart-footer" class="cart-footer hidden">
+        <div class="cart-total">
+            Total: <strong id="cart-total">$0.00</strong>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="showCheckout()">Proceed to Checkout</button>
+    </div>
+</div>
+
+<!-- Checkout Modal -->
+<div id="checkout-overlay" class="modal-overlay" onclick="closeCheckout()"></div>
+<div id="checkout-modal" class="modal">
+    <div class="modal-header">
+        <h3>Checkout</h3>
+        <button onclick="closeCheckout()" class="close-btn">&times;</button>
+    </div>
+    <div class="modal-body">
+        <form id="checkout-form" onsubmit="placeOrder(event)">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="customer-name" placeholder="John Doe" required>
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="customer-email" placeholder="john@example.com" required>
+            </div>
+            <div class="form-group">
+                <label>Shipping Address</label>
+                <textarea id="shipping-address" placeholder="123 Main St, New York, NY 10001" rows="3" required></textarea>
+            </div>
+            <div class="order-summary">
+                <div class="summary-row">
+                    <span>Items</span>
+                    <span id="summary-items">0</span>
+                </div>
+                <div class="summary-row total">
+                    <span>Total</span>
+                    <span id="summary-total">$0.00</span>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full" id="place-order-btn">Place Order</button>
+        </form>
+        <div id="order-result" class="order-result hidden"></div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<main class="main">
+
+    <!-- Products Page -->
+    <div id="page-products" class="page active">
+        <div class="page-header">
+            <h2>Products</h2>
+            <div class="filters">
+                <input type="text" id="search-input" class="search-input" placeholder="Search products..." oninput="filterProducts()">
+                <select id="category-filter" class="select-input" onchange="filterProducts()">
+                    <option value="">All Categories</option>
+                </select>
+            </div>
+        </div>
+        <div id="products-grid" class="products-grid">
+            <div class="loading">Loading products...</div>
+        </div>
+    </div>
+
+    <!-- Orders Page -->
+    <div id="page-orders" class="page">
+        <div class="page-header">
+            <h2>My Orders</h2>
+            <button class="btn btn-secondary" onclick="loadOrders()">Refresh</button>
+        </div>
+        <div id="orders-list" class="orders-list">
+            <div class="loading">Loading orders...</div>
+        </div>
+    </div>
+
+    <!-- Inventory Page -->
+    <div id="page-inventory" class="page">
+        <div class="page-header">
+            <h2>Inventory Status</h2>
+            <button class="btn btn-secondary" onclick="loadInventory()">Refresh</button>
+        </div>
+        <div id="inventory-table-wrap" class="table-wrap">
+            <div class="loading">Loading inventory...</div>
+        </div>
+    </div>
+
+    <!-- Services Health Page -->
+    <div id="page-services" class="page">
+        <div class="page-header">
+            <h2>Service Health</h2>
+            <button class="btn btn-secondary" onclick="checkServices()">Refresh</button>
+        </div>
+        <div id="services-grid" class="services-grid">
+            <div class="loading">Checking services...</div>
+        </div>
+    </div>
+
+</main>
+
+<!-- Toast -->
+<div id="toast" class="toast hidden"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

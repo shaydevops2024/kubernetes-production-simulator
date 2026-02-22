@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cart-service
+  namespace: ecommerce
+  labels:
+    app: cart-service
+spec:
+  selector:
+    app: cart-service
+  ports:
+  - name: http
+    port: 8002
+    targetPort: 8002
+  type: ClusterIP

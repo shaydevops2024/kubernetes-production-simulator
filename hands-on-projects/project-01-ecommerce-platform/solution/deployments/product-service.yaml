@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-service
+  namespace: ecommerce
+  labels:
+    app: product-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: product-service
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: product-service
+        version: v1
+    spec:
+      containers:
+      - name: product-service
+        image: your-registry/product-service:v1  # replace with your image
+        ports:
+        - containerPort: 8001
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres-products:5432/products_db"
+        - name: PORT
+          value: "8001"
+        envFrom:
+        - secretRef:
+            name: db-credentials
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"

@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-payments
+  namespace: ecommerce
+  labels:
+    app: postgres-payments
+spec:
+  serviceName: postgres-payments
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-payments
+  template:
+    metadata:
+      labels:
+        app: postgres-payments
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16-alpine
+        envFrom:
+        - secretRef:
+            name: db-credentials
+        env:
+        - name: POSTGRES_DB
+          value: payments_db
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+        readinessProbe:
+          exec:
+            command: ["pg_isready", "-U", "shop", "-d", "payments_db"]
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          failureThreshold: 5
+        livenessProbe:
+          exec:
+            command: ["pg_isready", "-U", "shop", "-d", "payments_db"]
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-payments
+  namespace: ecommerce
+  labels:
+    app: postgres-payments
+spec:
+  selector:
+    app: postgres-payments
+  ports:
+  - port: 5432
+    targetPort: 5432
+  clusterIP: None

@@ -1,0 +1,102 @@
+# Istio VirtualServices — route traffic from the Gateway to each service
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: ecommerce-vs
+  namespace: ecommerce
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - ecommerce-gateway
+  http:
+  # Product service
+  - match:
+    - uri:
+        prefix: /api/products
+    rewrite:
+      uri: /products
+    route:
+    - destination:
+        host: product-service
+        port:
+          number: 8001
+    timeout: 10s
+    retries:
+      attempts: 3
+      perTryTimeout: 3s
+      retryOn: gateway-error,connect-failure,retriable-4xx
+
+  # Cart service
+  - match:
+    - uri:
+        prefix: /api/cart
+    rewrite:
+      uri: /cart
+    route:
+    - destination:
+        host: cart-service
+        port:
+          number: 8002
+    timeout: 10s
+    retries:
+      attempts: 3
+      perTryTimeout: 3s
+
+  # Order service
+  - match:
+    - uri:
+        prefix: /api/orders
+    rewrite:
+      uri: /orders
+    route:
+    - destination:
+        host: order-service
+        port:
+          number: 8003
+    timeout: 30s
+    retries:
+      attempts: 2
+      perTryTimeout: 10s
+
+  # Payment service
+  - match:
+    - uri:
+        prefix: /api/payments
+    rewrite:
+      uri: /payments
+    route:
+    - destination:
+        host: payment-service
+        port:
+          number: 8004
+    timeout: 15s
+    retries:
+      attempts: 2
+      perTryTimeout: 7s
+
+  # Inventory service
+  - match:
+    - uri:
+        prefix: /api/inventory
+    rewrite:
+      uri: /inventory
+    route:
+    - destination:
+        host: inventory-service
+        port:
+          number: 8005
+    timeout: 10s
+    retries:
+      attempts: 3
+      perTryTimeout: 3s
+
+  # Frontend — catch-all
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: frontend
+        port:
+          number: 80

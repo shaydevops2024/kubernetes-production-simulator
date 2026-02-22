@@ -1,0 +1,13 @@
+# ConfigMap — internal service URLs
+# Services discover each other by Kubernetes DNS:
+#   <service-name>.<namespace>.svc.cluster.local
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: service-urls
+  namespace: ecommerce
+data:
+  PRODUCT_SERVICE_URL:   "http://product-service:8001"
+  CART_SERVICE_URL:      "http://cart-service:8002"
+  PAYMENT_SERVICE_URL:   "http://payment-service:8004"
+  INVENTORY_SERVICE_URL: "http://inventory-service:8005"

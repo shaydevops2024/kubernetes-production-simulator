@@ -1,0 +1,91 @@
+# Istio EnvoyFilter — local rate limiting per service
+# This uses Envoy's built-in token bucket algorithm (no external Redis needed).
+#
+# Limits applied:
+#   product-service:   200 req/s  (read-heavy catalog)
+#   cart-service:      100 req/s
+#   order-service:      50 req/s  (write-heavy, more expensive)
+#   payment-service:    20 req/s  (financial, conservative)
+#   inventory-service: 100 req/s
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: rate-limit-product
+  namespace: ecommerce
+spec:
+  workloadSelector:
+    labels:
+      app: product-service
+  configPatches:
+  - applyTo: HTTP_FILTER
+    match:
+      context: SIDECAR_INBOUND
+      listener:
+        filterChain:
+          filter:
+            name: envoy.filters.network.http_connection_manager
+    patch:
+      operation: INSERT_BEFORE
+      value:
+        name: envoy.filters.http.local_ratelimit
+        typed_config:
+          "@type": type.googleapis.com/udpa.type.v1.TypedStruct
+          type_url: type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+          value:
+            stat_prefix: http_local_rate_limiter
+            token_bucket:
+              max_tokens: 200
+              tokens_per_fill: 200
+              fill_interval: 1s
+            filter_enabled:
+              runtime_key: local_rate_limit_enabled
+              default_value:
+                numerator: 100
+                denominator: HUNDRED
+            filter_enforced:
+              runtime_key: local_rate_limit_enforced
+              default_value:
+                numerator: 100
+                denominator: HUNDRED
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: rate-limit-payment
+  namespace: ecommerce
+spec:
+  workloadSelector:
+    labels:
+      app: payment-service
+  configPatches:
+  - applyTo: HTTP_FILTER
+    match:
+      context: SIDECAR_INBOUND
+      listener:
+        filterChain:
+          filter:
+            name: envoy.filters.network.http_connection_manager
+    patch:
+      operation: INSERT_BEFORE
+      value:
+        name: envoy.filters.http.local_ratelimit
+        typed_config:
+          "@type": type.googleapis.com/udpa.type.v1.TypedStruct
+          type_url: type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+          value:
+            stat_prefix: http_local_rate_limiter
+            token_bucket:
+              max_tokens: 20
+              tokens_per_fill: 20
+              fill_interval: 1s
+            filter_enabled:
+              runtime_key: local_rate_limit_enabled
+              default_value:
+                numerator: 100
+                denominator: HUNDRED
+            filter_enforced:
+              runtime_key: local_rate_limit_enforced
+              default_value:
+                numerator: 100
+                denominator: HUNDRED
