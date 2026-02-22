@@ -2384,6 +2384,7 @@ async def get_ansible_scenario(scenario_id: str):
             "readme": "",
             "commands": [],
             "yaml_files": [],
+            "yaml_explanation": None,
             "difficulty": "medium",
             "duration": "20 min",
             "namespace": "ansible-scenarios"
@@ -2444,6 +2445,16 @@ async def get_ansible_scenario(scenario_id: str):
                     "name": yaml_file.name,
                     "content": f"# Error loading file: {str(e)}"
                 })
+
+        # Read YAML explanation if exists
+        yaml_explanation_path = scenario_dir / "yaml-explanation.md"
+        if yaml_explanation_path.exists():
+            try:
+                with open(yaml_explanation_path, 'r', encoding='utf-8') as f:
+                    scenario_info["yaml_explanation"] = f.read()
+                    logger.info(f"Loaded yaml-explanation.md for Ansible scenario {scenario_id}")
+            except Exception as e:
+                logger.error(f"Error reading yaml-explanation.md for Ansible scenario {scenario_id}: {e}")
 
         logger.info(f"Ansible scenario {scenario_id}: {len(scenario_info['commands'])} commands, {len(scenario_info['yaml_files'])} YAML files")
         return scenario_info
