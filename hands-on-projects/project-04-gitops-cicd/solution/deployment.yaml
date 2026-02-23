@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: projects-hub
+  namespace: gitops-cicd
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: projects-hub
+  template:
+    metadata:
+      labels:
+        app: projects-hub
+        version: v1    # Flagger uses this label during canary analysis
+    spec:
+      containers:
+        - name: projects-hub
+          image: ghcr.io/shaydevops2024/projects-hub:latest   # CI pipeline replaces this tag
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: projects-hub-config
+          env:
+            - name: APP_VERSION
+              value: "v1"
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"

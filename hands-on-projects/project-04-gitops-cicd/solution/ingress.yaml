@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: projects-hub
+  namespace: gitops-cicd
+  annotations:
+    # Flagger uses this annotation to detect which ingress to clone for the canary
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: projects-hub.local   # Add to /etc/hosts: 127.0.0.1 projects-hub.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: projects-hub
+                port:
+                  number: 80

@@ -386,7 +386,7 @@
             <span class="stat-label">Projects</span>
         </div>
         <div class="stat">
-            <span class="stat-value">3</span>
+            <span class="stat-value">5</span>
             <span class="stat-label">Available</span>
         </div>
         <div class="stat">
@@ -410,7 +410,9 @@
             <span class="path-arrow">→</span>
             <span class="path-item">03 Real-Time Chat</span>
             <span class="path-arrow">→</span>
-            <span class="path-item">04 Security</span>
+            <span class="path-item">04 GitOps CI/CD</span>
+            <span class="path-arrow">→</span>
+            <span class="path-item">05 Observability</span>
             <span class="path-arrow">→</span>
             <span class="path-item">Advanced Projects</span>
         </div>
@@ -419,7 +421,7 @@
     <!-- Available -->
     <div class="section-header">
         <span class="section-title">Available Now</span>
-        <span class="section-badge badge-available">3 Projects</span>
+        <span class="section-badge badge-available">5 Projects</span>
     </div>
 
     <div class="projects-grid">
@@ -541,45 +543,102 @@
             </div>
         </div>
 
+        <!-- Project 04 — Available -->
+        <div class="project-card available" onclick="openProject04()">
+            <div class="card-banner available"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num">PROJECT 04</span>
+                    <span class="status-chip available">✓ Available</span>
+                </div>
+                <div class="card-title">Full GitOps CI/CD Pipeline with Progressive Delivery</div>
+                <div class="card-description">
+                    Build a complete end-to-end GitOps pipeline. GitHub Actions runs tests, builds, and scans your image. ArgoCD syncs your cluster. Flagger shifts traffic progressively with automated rollback — and you see it live in the browser.
+                </div>
+                <div class="card-tags">
+                    <span class="tag highlight">GitHub Actions</span>
+                    <span class="tag highlight">ArgoCD</span>
+                    <span class="tag highlight">Flagger</span>
+                    <span class="tag highlight">Canary Deployments</span>
+                    <span class="tag">Image Scanning</span>
+                    <span class="tag">GitOps</span>
+                    <span class="tag">Rollback</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item">
+                        <div class="difficulty">
+                            <div class="dot filled-hard"></div>
+                            <div class="dot filled-hard"></div>
+                            <div class="dot filled-hard"></div>
+                        </div>
+                        Hard
+                    </span>
+                    <span class="meta-item">⏱ 6–10 hours</span>
+                    <span class="meta-item">🔧 1 service + pipeline</span>
+                </div>
+                <button class="btn-start" onclick="openProject04()">Start Project →</button>
+            </div>
+        </div>
+
+        <!-- Project 05 — Available -->
+        <div class="project-card available" onclick="openProject05()">
+            <div class="card-banner available"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num">PROJECT 05</span>
+                    <span class="status-chip available">✓ Available</span>
+                </div>
+                <div class="card-title">Complete Observability Stack</div>
+                <div class="card-description">
+                    Build production monitoring from scratch. Prometheus scrapes metrics, Loki aggregates logs, Jaeger traces requests end-to-end. Grafana unifies everything in dashboards. AlertManager pages you on SLO breaches. Thanos keeps metrics forever.
+                </div>
+                <div class="card-tags">
+                    <span class="tag highlight">Prometheus</span>
+                    <span class="tag highlight">Grafana</span>
+                    <span class="tag highlight">Loki</span>
+                    <span class="tag highlight">Jaeger / Tempo</span>
+                    <span class="tag">AlertManager</span>
+                    <span class="tag">Thanos</span>
+                    <span class="tag">SLO / SLI</span>
+                    <span class="tag">PromQL / LogQL</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item">
+                        <div class="difficulty">
+                            <div class="dot filled-hard"></div>
+                            <div class="dot filled-hard"></div>
+                            <div class="dot filled-hard"></div>
+                        </div>
+                        Hard
+                    </span>
+                    <span class="meta-item">⏱ 7–12 hours</span>
+                    <span class="meta-item">🔧 1 app + full stack</span>
+                </div>
+                <button class="btn-start" onclick="openProject05()">Start Project →</button>
+            </div>
+        </div>
+
     </div>
 
     <!-- Coming Soon -->
     <div class="section-header" style="margin-top: 40px;">
         <span class="section-title">Coming Soon</span>
-        <span class="section-badge badge-coming">13 Projects</span>
+        <span class="section-badge badge-coming">11 Projects</span>
     </div>
 
     <div class="projects-grid">
 
-        <!-- Projects 04-16 -->
+        <!-- Projects 06-16 -->
 
         <div class="project-card coming-soon">
             <div class="card-banner coming-soon"></div>
             <div class="card-body">
                 <div class="card-header">
-                    <span class="project-num dim">PROJECT 04</span>
-                    <span class="status-chip coming">Coming Soon</span>
-                </div>
-                <div class="card-title">Zero-Trust Security Platform</div>
-                <div class="card-description">Harden a Kubernetes cluster with OPA Gatekeeper policies, network policies, Pod Security Standards, and Falco runtime security.</div>
-                <div class="card-tags">
-                    <span class="tag">OPA</span><span class="tag">Network Policies</span><span class="tag">Falco</span><span class="tag">RBAC</span>
-                </div>
-            </div>
-            <div class="card-footer">
-                <div class="card-meta">
-                    <span class="meta-item"><div class="difficulty"><div class="dot filled-hard"></div><div class="dot filled-hard"></div><div class="dot filled-hard"></div></div> Hard</span>
-                    <span class="meta-item">⏱ 6–8 hours</span>
-                </div>
-                <button class="btn-coming" disabled>Coming Soon</button>
-            </div>
-        </div>
-
-        <div class="project-card coming-soon">
-            <div class="card-banner coming-soon"></div>
-            <div class="card-body">
-                <div class="card-header">
-                    <span class="project-num dim">PROJECT 05</span>
+                    <span class="project-num dim">PROJECT 06</span>
                     <span class="status-chip coming">Coming Soon</span>
                 </div>
                 <div class="card-title">High-Availability Database Cluster</div>
@@ -601,7 +660,7 @@
             <div class="card-banner coming-soon"></div>
             <div class="card-body">
                 <div class="card-header">
-                    <span class="project-num dim">PROJECT 06</span>
+                    <span class="project-num dim">PROJECT 07</span>
                     <span class="status-chip coming">Coming Soon</span>
                 </div>
                 <div class="card-title">Multi-Region Active-Active Setup</div>
@@ -623,7 +682,7 @@
             <div class="card-banner coming-soon"></div>
             <div class="card-body">
                 <div class="card-header">
-                    <span class="project-num dim">PROJECT 07</span>
+                    <span class="project-num dim">PROJECT 08</span>
                     <span class="status-chip coming">Coming Soon</span>
                 </div>
                 <div class="card-title">Autoscaling & Cost Optimization</div>
@@ -645,7 +704,7 @@
             <div class="card-banner coming-soon"></div>
             <div class="card-body">
                 <div class="card-header">
-                    <span class="project-num dim">PROJECT 08</span>
+                    <span class="project-num dim">PROJECT 09</span>
                     <span class="status-chip coming">Coming Soon</span>
                 </div>
                 <div class="card-title">Disaster Recovery System</div>
@@ -667,7 +726,7 @@
             <div class="card-banner coming-soon"></div>
             <div class="card-body">
                 <div class="card-header">
-                    <span class="project-num dim">PROJECT 09</span>
+                    <span class="project-num dim">PROJECT 10</span>
                     <span class="status-chip coming">Coming Soon</span>
                 </div>
                 <div class="card-title">Platform Engineering (IDP)</div>
@@ -689,7 +748,7 @@
             <div class="card-banner coming-soon"></div>
             <div class="card-body">
                 <div class="card-header">
-                    <span class="project-num dim">PROJECT 10</span>
+                    <span class="project-num dim">PROJECT 11</span>
                     <span class="status-chip coming">Coming Soon</span>
                 </div>
                 <div class="card-title">MLOps Pipeline</div>
@@ -711,7 +770,7 @@
             <div class="card-banner coming-soon"></div>
             <div class="card-body">
                 <div class="card-header">
-                    <span class="project-num dim">PROJECT 11</span>
+                    <span class="project-num dim">PROJECT 12</span>
                     <span class="status-chip coming">Coming Soon</span>
                 </div>
                 <div class="card-title">Serverless on Kubernetes</div>
@@ -733,7 +792,7 @@
             <div class="card-banner coming-soon"></div>
             <div class="card-body">
                 <div class="card-header">
-                    <span class="project-num dim">PROJECT 12</span>
+                    <span class="project-num dim">PROJECT 13</span>
                     <span class="status-chip coming">Coming Soon</span>
                 </div>
                 <div class="card-title">Zero-Downtime Deployment Strategies</div>
@@ -755,7 +814,7 @@
             <div class="card-banner coming-soon"></div>
             <div class="card-body">
                 <div class="card-header">
-                    <span class="project-num dim">PROJECT 13</span>
+                    <span class="project-num dim">PROJECT 14</span>
                     <span class="status-chip coming">Coming Soon</span>
                 </div>
                 <div class="card-title">API Gateway & Rate Limiting</div>
@@ -768,28 +827,6 @@
                 <div class="card-meta">
                     <span class="meta-item"><div class="difficulty"><div class="dot filled-medium"></div><div class="dot filled-medium"></div><div class="dot"></div></div> Medium</span>
                     <span class="meta-item">⏱ 4–6 hours</span>
-                </div>
-                <button class="btn-coming" disabled>Coming Soon</button>
-            </div>
-        </div>
-
-        <div class="project-card coming-soon">
-            <div class="card-banner coming-soon"></div>
-            <div class="card-body">
-                <div class="card-header">
-                    <span class="project-num dim">PROJECT 14</span>
-                    <span class="status-chip coming">Coming Soon</span>
-                </div>
-                <div class="card-title">Edge Computing Setup</div>
-                <div class="card-description">Deploy a K3s edge cluster, configure lightweight workloads for edge nodes, CDN integration, and edge-to-cloud data synchronization.</div>
-                <div class="card-tags">
-                    <span class="tag">K3s</span><span class="tag">Edge Nodes</span><span class="tag">CDN</span><span class="tag">IoT</span>
-                </div>
-            </div>
-            <div class="card-footer">
-                <div class="card-meta">
-                    <span class="meta-item"><div class="difficulty"><div class="dot filled-hard"></div><div class="dot filled-hard"></div><div class="dot"></div></div> Hard</span>
-                    <span class="meta-item">⏱ 6–8 hours</span>
                 </div>
                 <button class="btn-coming" disabled>Coming Soon</button>
             </div>
@@ -1257,6 +1294,12 @@ function openProject02() { showModal02(); }
 // ── Project 03 entry ──────────────────────────────────────────────────────────
 function openProject03() { showModal03(); }
 
+// ── Project 04 entry ──────────────────────────────────────────────────────────
+function openProject04() { showModal04(); }
+
+// ── Project 05 entry ──────────────────────────────────────────────────────────
+function openProject05() { showModal05(); }
+
 function showModal03() {
     const PATH      = 'hands-on-projects/project-03-realtime-chat/';
     const DOCKER_CMD = 'docker compose up --build';
@@ -1382,6 +1425,282 @@ function showWideReadme03(which) {
         <div style="background:white;border-radius:16px;max-width:920px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 25px 60px rgba(0,0,0,.35);">
             <div style="padding:18px 28px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;border-radius:16px 16px 0 0;background:white;">
                 <h2 style="font-size:17px;font-weight:700;color:#1e1b4b;">${title}</h2>
+                <button onclick="document.getElementById('wide-readme-overlay').remove()" style="background:none;border:none;font-size:26px;cursor:pointer;color:#6b7280;line-height:1;padding:0 4px;">&times;</button>
+            </div>
+            <div style="padding:28px 32px;overflow-y:auto;flex:1;" id="wide-readme-body"></div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    document.getElementById('wide-readme-body').innerHTML = renderMd(rawText);
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+function showModal04() {
+    const PATH      = 'hands-on-projects/project-04-gitops-cicd/';
+    const DOCKER_CMD = 'docker compose up --build';
+    const QUICK_CMD  = 'cd hands-on-projects/project-04-gitops-cicd/local\ndocker compose up --build\n# Open http://localhost:8080\n# Refresh multiple times to see v1 (blue) and v2 (green) — canary simulation';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'p04-modal-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;';
+
+    overlay.innerHTML = `
+        <div style="background:white;border-radius:16px;max-width:580px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,.25);">
+
+            <!-- Header -->
+            <div style="padding:22px 28px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:white;z-index:1;border-radius:16px 16px 0 0;">
+                <h2 style="font-size:19px;font-weight:700;">⎈ Project 04 — GitOps CI/CD Pipeline</h2>
+                <button onclick="document.getElementById('p04-modal-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#6b7280;line-height:1;padding:0 4px;">&times;</button>
+            </div>
+
+            <div style="padding:24px 28px;display:flex;flex-direction:column;gap:20px;">
+
+                <!-- Path -->
+                <div style="background:#eef2ff;border-radius:10px;padding:16px;">
+                    <div style="font-weight:700;margin-bottom:10px;color:#4f46e5;font-size:13px;">📁 Project Location</div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <code style="font-size:12px;color:#374151;background:#e0e7ff;padding:8px 12px;border-radius:6px;font-family:'Courier New',Courier,monospace;flex:1;min-width:200px;word-break:break-all;">${PATH}</code>
+                        <button onclick="copyText('${PATH}', this)" style="font-size:12px;padding:7px 14px;border-radius:6px;border:1px solid #c7d2fe;background:white;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;transition:all .15s;flex-shrink:0;">📋 Copy</button>
+                    </div>
+                </div>
+
+                <!-- Steps -->
+                <div>
+                    <div style="font-weight:700;margin-bottom:12px;font-size:14px;">Where to start:</div>
+                    <div style="display:flex;flex-direction:column;gap:10px;">
+
+                        <div onclick="showWideReadme04('project')"
+                             style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;cursor:pointer;transition:all .15s;"
+                             onmouseover="this.style.borderColor='#6366f1';this.style.background='#f5f3ff';"
+                             onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#f9fafb';">
+                            <span style="font-size:24px;flex-shrink:0;">📖</span>
+                            <div style="flex:1;">
+                                <div style="font-weight:600;font-size:14px;">1. Read the Project README</div>
+                                <div style="color:#6b7280;font-size:12px;margin-top:2px;">GitOps pipeline overview, CI → ArgoCD → Flagger architecture</div>
+                            </div>
+                            <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
+                        </div>
+
+                        <div onclick="showWideReadme04('app')"
+                             style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;cursor:pointer;transition:all .15s;"
+                             onmouseover="this.style.borderColor='#6366f1';this.style.background='#f5f3ff';"
+                             onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#f9fafb';">
+                            <span style="font-size:24px;flex-shrink:0;">🔍</span>
+                            <div style="flex:1;">
+                                <div style="font-weight:600;font-size:14px;">2. Explore the app/ folder</div>
+                                <div style="color:#6b7280;font-size:12px;margin-top:2px;">Projects Hub app: /health /api/version /api/projects endpoints</div>
+                            </div>
+                            <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
+                        </div>
+
+                        <div style="padding:14px 16px;background:#eef2ff;border-radius:10px;border:2px solid #6366f1;display:flex;flex-direction:column;gap:10px;">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <span style="font-size:24px;flex-shrink:0;">🐳</span>
+                                <div>
+                                    <div style="font-weight:600;font-size:14px;color:#4f46e5;">3. Simulate a canary locally (local/ folder)</div>
+                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Runs v1 + v2 with nginx splitting traffic. Refresh to see both versions.</div>
+                                </div>
+                            </div>
+                            <div style="background:white;border-radius:8px;padding:10px 14px;border:1px solid #c7d2fe;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                                <code style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;flex:1;">${DOCKER_CMD}</code>
+                                <button onclick="copyText('${DOCKER_CMD}', this)" style="font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #c7d2fe;background:#eef2ff;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;flex-shrink:0;transition:all .15s;">📋 Copy</button>
+                            </div>
+                        </div>
+
+                        <div style="padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;display:flex;flex-direction:column;gap:10px;">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <span style="font-size:24px;flex-shrink:0;">☸️</span>
+                                <div>
+                                    <div style="font-weight:600;font-size:14px;">4. Build the GitOps pipeline (main/ folder)</div>
+                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">K8s → ArgoCD → GitHub Actions CI → Flagger canary</div>
+                                </div>
+                            </div>
+                            <div style="background:#fefce8;border:1px solid #fde047;border-radius:8px;padding:10px 14px;font-size:12px;color:#713f12;display:flex;align-items:flex-start;gap:8px;">
+                                <span style="font-size:15px;flex-shrink:0;">💡</span>
+                                <div><strong>Hint:</strong> Ready-made solution files are in the <code style="background:#fef3c7;padding:1px 5px;border-radius:3px;font-family:monospace;">solution/</code> folder — K8s manifests, ArgoCD Application, Flagger Canary CRD, and the full GitHub Actions workflow are all there.</div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Quick start -->
+                <div style="background:#f0fdf4;border-radius:10px;padding:16px;border:1px solid #bbf7d0;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                        <div style="font-weight:700;font-size:13px;color:#065f46;">⚡ Quick Start — Canary Simulation</div>
+                        <button onclick="copyText('${QUICK_CMD.replace(/\n/g, '\\n')}', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">📋 Copy all</button>
+                    </div>
+                    <pre style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;line-height:1.9;margin:0;white-space:pre-wrap;">cd hands-on-projects/project-04-gitops-cicd/local
+docker compose up --build
+# Open http://localhost:8080
+# Refresh multiple times — v1 (blue) or v2 (green) = canary in action</pre>
+                </div>
+
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+function showWideReadme04(which) {
+    const existing = document.getElementById('wide-readme-overlay');
+    if (existing) existing.remove();
+
+    const isProject = which === 'project';
+    const title   = isProject ? '📖 Project README — GitOps CI/CD Pipeline' : '🔍 app/ README — DevOps Projects Hub';
+    const rawText = document.getElementById(isProject ? 'data-p04-project-readme' : 'data-p04-app-readme').textContent.trim();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'wide-readme-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:1200;display:flex;align-items:center;justify-content:center;padding:24px;';
+
+    overlay.innerHTML = `
+        <div style="background:white;border-radius:16px;max-width:920px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 25px 60px rgba(0,0,0,.35);">
+            <div style="padding:18px 28px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;border-radius:16px 16px 0 0;background:white;">
+                <h2 style="font-size:17px;font-weight:700;color:#1e1b4b;">${title}</h2>
+                <button onclick="document.getElementById('wide-readme-overlay').remove()" style="background:none;border:none;font-size:26px;cursor:pointer;color:#6b7280;line-height:1;padding:0 4px;">&times;</button>
+            </div>
+            <div style="padding:28px 32px;overflow-y:auto;flex:1;" id="wide-readme-body"></div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    document.getElementById('wide-readme-body').innerHTML = renderMd(rawText);
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+// ── Project 05 ────────────────────────────────────────────────────────────────
+function showModal05() {
+    const PATH       = 'hands-on-projects/project-05-observability-stack/';
+    const DOCKER_CMD = 'docker compose up --build';
+    const QUICK_CMD  = 'cd hands-on-projects/project-05-observability-stack/local\ndocker compose up --build\n# App dashboard: http://localhost:8000\n# Grafana:       http://localhost:3000  (admin / admin)\n# Prometheus:    http://localhost:9090\n# Jaeger UI:     http://localhost:16686\n# AlertManager:  http://localhost:9093';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'p05-modal-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;';
+
+    overlay.innerHTML = `
+        <div style="background:white;border-radius:16px;max-width:580px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,.25);">
+
+            <!-- Header -->
+            <div style="padding:22px 28px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:white;z-index:1;border-radius:16px 16px 0 0;">
+                <h2 style="font-size:19px;font-weight:700;">📊 Project 05 — Complete Observability Stack</h2>
+                <button onclick="document.getElementById('p05-modal-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#6b7280;line-height:1;padding:0 4px;">&times;</button>
+            </div>
+
+            <div style="padding:24px 28px;display:flex;flex-direction:column;gap:20px;">
+
+                <!-- Path -->
+                <div style="background:#eef2ff;border-radius:10px;padding:16px;">
+                    <div style="font-weight:700;margin-bottom:10px;color:#4f46e5;font-size:13px;">📁 Project Location</div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <code style="font-size:12px;color:#374151;background:#e0e7ff;padding:8px 12px;border-radius:6px;font-family:'Courier New',Courier,monospace;flex:1;min-width:200px;word-break:break-all;">${PATH}</code>
+                        <button onclick="copyText('${PATH}', this)" style="font-size:12px;padding:7px 14px;border-radius:6px;border:1px solid #c7d2fe;background:white;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;transition:all .15s;flex-shrink:0;">📋 Copy</button>
+                    </div>
+                </div>
+
+                <!-- Steps -->
+                <div>
+                    <div style="font-weight:700;margin-bottom:12px;font-size:14px;">Where to start:</div>
+                    <div style="display:flex;flex-direction:column;gap:10px;">
+
+                        <div onclick="showWideReadme05('project')"
+                             style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;cursor:pointer;transition:all .15s;"
+                             onmouseover="this.style.borderColor='#6366f1';this.style.background='#f5f3ff';"
+                             onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#f9fafb';">
+                            <span style="font-size:24px;flex-shrink:0;">📖</span>
+                            <div style="flex:1;">
+                                <div style="font-weight:600;font-size:14px;">1. Read the Project README</div>
+                                <div style="color:#6b7280;font-size:12px;margin-top:2px;">Full architecture: Prometheus, Grafana, Loki, Jaeger, Thanos, AlertManager</div>
+                            </div>
+                            <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
+                        </div>
+
+                        <div onclick="showWideReadme05('app')"
+                             style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;cursor:pointer;transition:all .15s;"
+                             onmouseover="this.style.borderColor='#6366f1';this.style.background='#f5f3ff';"
+                             onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#f9fafb';">
+                            <span style="font-size:24px;flex-shrink:0;">🔍</span>
+                            <div style="flex:1;">
+                                <div style="font-weight:600;font-size:14px;">2. Explore the app/ folder</div>
+                                <div style="color:#6b7280;font-size:12px;margin-top:2px;">Pre-instrumented FastAPI app: Prometheus metrics, OTel tracing, JSON logs</div>
+                            </div>
+                            <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
+                        </div>
+
+                        <div style="padding:14px 16px;background:#eef2ff;border-radius:10px;border:2px solid #6366f1;display:flex;flex-direction:column;gap:10px;">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <span style="font-size:24px;flex-shrink:0;">🐳</span>
+                                <div>
+                                    <div style="font-weight:600;font-size:14px;color:#4f46e5;">3. Run the full observability stack (local/)</div>
+                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">App + Prometheus + Grafana + Loki + Jaeger + AlertManager</div>
+                                </div>
+                            </div>
+                            <div style="background:white;border-radius:8px;padding:10px 14px;border:1px solid #c7d2fe;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                                <code style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;flex:1;">${DOCKER_CMD}</code>
+                                <button onclick="copyText('${DOCKER_CMD}', this)" style="font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #c7d2fe;background:#eef2ff;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;flex-shrink:0;transition:all .15s;">📋 Copy</button>
+                            </div>
+                        </div>
+
+                        <div style="padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;display:flex;flex-direction:column;gap:10px;">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <span style="font-size:24px;flex-shrink:0;">☸️</span>
+                                <div>
+                                    <div style="font-weight:600;font-size:14px;">4. Deploy to Kubernetes (main/)</div>
+                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">kube-prometheus-stack, Loki Stack, Tempo, Jaeger, Thanos via Helm</div>
+                                </div>
+                            </div>
+                            <div style="background:#fefce8;border:1px solid #fde047;border-radius:8px;padding:10px 14px;font-size:12px;color:#713f12;display:flex;align-items:flex-start;gap:8px;">
+                                <span style="font-size:15px;flex-shrink:0;">💡</span>
+                                <div><strong>Key challenge:</strong> Writing a <code style="background:#fef3c7;padding:1px 5px;border-radius:3px;font-family:monospace;">ServiceMonitor</code> and <code style="background:#fef3c7;padding:1px 5px;border-radius:3px;font-family:monospace;">PrometheusRule</code> for SLO-based multi-window burn-rate alerting. The solution is in <code style="background:#fef3c7;padding:1px 5px;border-radius:3px;font-family:monospace;">main/solution/</code>.</div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Quick start -->
+                <div style="background:#f0fdf4;border-radius:10px;padding:16px;border:1px solid #bbf7d0;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                        <div style="font-weight:700;font-size:13px;color:#065f46;">⚡ Quick Start — Run Locally</div>
+                        <button onclick="copyText('\${QUICK_CMD.replace(/\\n/g, String.fromCharCode(10))}', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">📋 Copy all</button>
+                    </div>
+                    <pre style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;line-height:1.9;margin:0;white-space:pre-wrap;">cd hands-on-projects/project-05-observability-stack/local
+docker compose up --build
+# App dashboard: http://localhost:8000
+# Grafana:       http://localhost:3000  (admin / admin)
+# Prometheus:    http://localhost:9090
+# Jaeger UI:     http://localhost:16686
+# AlertManager:  http://localhost:9093</pre>
+                </div>
+
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+function showWideReadme05(which) {
+    const existing = document.getElementById('wide-readme-overlay');
+    if (existing) existing.remove();
+
+    const isProject = which === 'project';
+    const title   = isProject ? '📖 Project README — Complete Observability Stack' : '🔍 app/ README — ObserveApp Instrumentation';
+    const rawText = document.getElementById(isProject ? 'data-p05-project-readme' : 'data-p05-app-readme').textContent.trim();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'wide-readme-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:1200;display:flex;align-items:center;justify-content:center;padding:24px;';
+
+    overlay.innerHTML = `
+        <div style="background:white;border-radius:16px;max-width:920px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 25px 60px rgba(0,0,0,.35);">
+            <div style="padding:18px 28px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;border-radius:16px 16px 0 0;background:white;">
+                <h2 style="font-size:17px;font-weight:700;color:#1e1b4b;">\${title}</h2>
                 <button onclick="document.getElementById('wide-readme-overlay').remove()" style="background:none;border:none;font-size:26px;cursor:pointer;color:#6b7280;line-height:1;padding:0 4px;">&times;</button>
             </div>
             <div style="padding:28px 32px;overflow-y:auto;flex:1;" id="wide-readme-body"></div>
@@ -1641,7 +1960,7 @@ docker compose up --build
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 
-// ── Wide README popup ─────────────────────────────────────────────────────────
+// ── Wide README popup (project 01) ────────────────────────────────────────────
 function showWideReadme(which) {
     const existing = document.getElementById('wide-readme-overlay');
     if (existing) existing.remove();
@@ -2080,6 +2399,428 @@ uvicorn main:app --reload --port 8020
 ```
 
 The chat-service uses SQLite and falls back to single-node mode (no Redis pub/sub) if Redis is unavailable — safe for local dev without Docker.
+</script>
+
+<!-- ── README data for Project 04 ── -->
+<script type="text/plain" id="data-p04-project-readme">
+# Project 04: Full GitOps CI/CD Pipeline with Progressive Delivery
+
+Build a complete end-to-end GitOps pipeline — from code commit to production canary deployment. You'll wire up GitHub Actions for CI, ArgoCD for GitOps sync, and Flagger for progressive delivery with automated rollback.
+
+The application you deploy is the **DevOps Projects Hub**: a live dashboard listing all 16 hands-on projects. It displays its own version number prominently — which means when you do a canary deployment, you can literally watch traffic shifting between v1 (blue) and v2 (green) by refreshing your browser.
+
+---
+
+## What You're Building
+
+```
+Developer pushes code
+        │
+        ▼
+[GitHub Actions — CI Pipeline]
+  ├── Run tests
+  ├── Build Docker image
+  ├── Scan image (Trivy)
+  └── Push image + update GitOps repo
+        │
+        ▼
+[ArgoCD — GitOps Sync]
+  └── Detects manifest change → syncs to cluster
+        │
+        ▼
+[Flagger — Progressive Delivery]
+  ├── Canary: 10% → 30% → 50% → 100% traffic
+  ├── Automated analysis (success rate, latency)
+  └── Auto-rollback on failure
+        │
+        ▼
+[DevOps Projects Hub — Live UI]
+  └── Users see v1 (blue) or v2 (green) depending on traffic split
+```
+
+| Component | Role |
+|-----------|------|
+| **GitHub Actions** | CI pipeline — test, build, scan, push |
+| **ArgoCD** | GitOps operator — watches Git, syncs cluster |
+| **Flagger** | Progressive delivery — canary, analysis, rollback |
+| **Prometheus** | Metrics source for Flagger analysis |
+| **DevOps Projects Hub** | The app being deployed — your live test subject |
+
+---
+
+## Folder Structure
+
+```
+project-04-gitops-cicd/
+├── README.md
+├── app/               ← Application source code (pre-built)
+│   ├── README.md
+│   ├── main.py        ← FastAPI: /health /ready /api/version /api/projects
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   └── static/        ← Projects Hub UI (index.html, style.css, app.js)
+├── local/             ← Canary simulation with Docker Compose
+│   ├── README.md
+│   ├── docker-compose.yml   ← Runs v1 + v2 + nginx load balancer
+│   └── nginx/nginx.conf     ← 90/10 weight split
+└── main/              ← Production GitOps deployment (what you build)
+    └── README.md      ← Phase-by-phase: K8s → ArgoCD → CI → Flagger
+```
+
+---
+
+## Your DevOps Journey
+
+### Phase 1 — Understand the App (app/)
+Read the app README. Understand what the Projects Hub does, what endpoints it exposes, and how APP_VERSION controls which version users see.
+
+### Phase 2 — Run It Locally (local/)
+Run two versions simultaneously with nginx splitting traffic 90/10. Refresh the browser — you'll see blue (v1) or green (v2). This is canary delivery, before touching Kubernetes.
+
+**Skills:** Docker Compose, nginx weighted load balancing, canary traffic simulation
+
+### Phase 3A — Deploy to Kubernetes (main/)
+Write the Deployment, Service, and Ingress. Get the app running on a real cluster.
+
+**Skills:** Deployments, Services, Ingress, ConfigMaps, namespaces, probes
+
+### Phase 3B — Add ArgoCD GitOps
+Install ArgoCD. Point it at your manifest repo. Let Git become the source of truth — no more `kubectl apply` by hand.
+
+**Skills:** ArgoCD Application, automated sync, selfHeal, prune
+
+### Phase 3C — Wire Up GitHub Actions
+Build the CI pipeline: test → build → scan with Trivy → push → update GitOps repo → ArgoCD detects and syncs.
+
+**Skills:** GitHub Actions workflows, Docker build/push, Trivy image scanning, GitOps promotion
+
+### Phase 3D — Progressive Delivery with Flagger
+Install Flagger. Define a Canary resource. Watch it automatically shift traffic from v1 to v2. Trigger a failure and watch the automated rollback.
+
+**Skills:** Flagger Canary CRD, traffic analysis, success-rate thresholds, automated rollback
+
+---
+
+## Start Here
+
+**→ Go to app/README.md to understand the application**
+
+Then follow: app/ → local/ → main/
+</script>
+
+<script type="text/plain" id="data-p04-app-readme">
+# App — DevOps Projects Hub
+
+This folder contains the source code for the **DevOps Projects Hub**: a FastAPI web application that serves a dashboard listing all 16 hands-on projects in this series.
+
+This is the application you will deploy through a full GitOps CI/CD pipeline with progressive delivery. You don't write this code — you containerize it, automate its build, scan its image, and deploy it with canary releases.
+
+---
+
+## What It Does
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| / | GET | Projects Hub web UI (HTML) |
+| /health | GET | Health check (K8s liveness probe) |
+| /ready | GET | Readiness check (K8s readiness probe) |
+| /api/version | GET | Returns version, build date, git commit, environment |
+| /api/projects | GET | Returns all 16 projects with status |
+
+The UI displays:
+- All 16 projects with status (Available / Coming Soon)
+- Current version in the header and banner — key for canary demos
+- A deployment info panel with build date, git commit, and replica ID
+- During a canary: refreshing shows v1 (blue) or v2 (green) randomly
+
+---
+
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| APP_VERSION | v1 | Version label shown in the UI |
+| BUILD_DATE | unknown | Set by CI pipeline at build time |
+| GIT_COMMIT | unknown | Git SHA injected by CI |
+| ENVIRONMENT | local | local, staging, or production |
+| HOSTNAME | (auto) | Pod name in Kubernetes (replica ID) |
+
+---
+
+## Running Without Docker
+
+```bash
+cd app/
+pip install -r requirements.txt
+APP_VERSION=v1 uvicorn main:app --reload --port 8080
+# Open http://localhost:8080
+```
+
+---
+
+## Dockerfile
+
+```dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY main.py .
+COPY static/ static/
+EXPOSE 8080
+
+ARG APP_VERSION=v1
+ARG BUILD_DATE=unknown
+ARG GIT_COMMIT=unknown
+ENV APP_VERSION=$APP_VERSION
+ENV BUILD_DATE=$BUILD_DATE
+ENV GIT_COMMIT=$GIT_COMMIT
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+```
+
+**Questions to think about:**
+- Why are APP_VERSION, BUILD_DATE, and GIT_COMMIT build args and not just env vars?
+- What is the difference between ARG and ENV in a Dockerfile?
+- How would the CI pipeline pass the git commit SHA into the image?
+- What's missing for production? (non-root user, multi-stage build, .dockerignore)
+
+---
+
+## The v1 → v2 Story
+
+This app is designed to demonstrate progressive delivery:
+
+- **v1** — Blue accent theme. This is the stable version.
+- **v2** — Green accent theme. Same content, visually distinct version.
+
+When Flagger does a canary deployment (10% → 100%), some requests hit v1 pods and some hit v2. Refreshing the browser lets you see the traffic split in real time — color and version badge change.
+
+The CI pipeline builds v2 with:
+```bash
+docker build \
+  --build-arg APP_VERSION=v2 \
+  --build-arg BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+  --build-arg GIT_COMMIT=$(git rev-parse --short HEAD) \
+  -t yourregistry/projects-hub:v2 .
+```
+</script>
+
+<script type="text/plain" id="data-p05-project-readme">
+# Project 05: Complete Observability Stack
+
+Build a production-grade observability platform from scratch — metrics, logs, traces, dashboards, and alerting all working together.
+
+---
+
+## What You're Building
+
+You'll deploy a real observability stack around a pre-built web application. By the end you'll have:
+
+```
+ObserveApp (pre-built SaaS analytics app)
+   │
+   ├── Prometheus metrics  ──→ Prometheus  ──→ Thanos (long-term storage)
+   ├── JSON logs           ──→ Promtail   ──→ Loki
+   └── OTLP traces         ──→ Jaeger     ──→ Tempo (K8s)
+                                                   │
+                                          Grafana ◄┘ (unified dashboards)
+                                                   │
+                                         AlertManager → PagerDuty
+```
+
+---
+
+## Folder Structure
+
+```
+project-05-observability-stack/
+├── README.md          ← You are here
+├── app/               ← Pre-instrumented FastAPI app + live dashboard UI
+│   ├── README.md      ← Metrics exposed, log format, tracing setup
+│   ├── main.py        ← App code (don't modify — observe it)
+│   └── static/        ← Browser dashboard at http://localhost:8000
+├── local/             ← Full stack via Docker Compose
+│   ├── README.md      ← Step-by-step guide with PromQL + LogQL examples
+│   ├── docker-compose.yml
+│   ├── prometheus/    ← Scrape config + alerting rules
+│   ├── grafana/       ← Pre-built dashboard + datasource provisioning
+│   ├── loki/          ← Log aggregation config
+│   ├── promtail/      ← Collect Docker logs → Loki
+│   └── alertmanager/  ← Alert routing config
+└── main/              ← Production Kubernetes deployment
+    ├── README.md      ← What you'll build + learning phases
+    └── solution/      ← Complete reference solution
+        ├── deploy.sh                   ← One-shot deploy
+        ├── app/                        ← Deployment + ServiceMonitor
+        ├── kube-prometheus-stack/      ← Helm values
+        ├── loki/ tempo/ jaeger/        ← Helm values
+        ├── thanos/                     ← Long-term storage
+        ├── alertmanager/               ← PagerDuty config
+        ├── grafana/                    ← Dashboard ConfigMap
+        └── prometheusrules/            ← SLO alerting rules
+```
+
+---
+
+## Your DevOps Journey
+
+### Phase 1 — Understand the App (app/)
+
+Read `app/README.md`. The app is already instrumented — your job is to observe it.
+
+**Key metrics exposed:**
+- `http_requests_total` — labeled by method, path, status
+- `http_request_duration_seconds` — histogram for latency
+- `app_active_sessions` — simulated user sessions
+- `app_events_tracked_total` — analytics events by type
+- `app_reports_generated_total` — report jobs by status
+
+### Phase 2 — Run Locally (local/)
+
+One command brings up the full stack. Explore each tool, trigger scenarios with the app's built-in simulation controls, and watch signals appear in Grafana.
+
+**Skills:** Docker Compose, Prometheus scraping, PromQL queries, LogQL queries, Jaeger traces, AlertManager routing
+
+### Phase 3 — Deploy to Kubernetes (main/)
+
+Write the K8s manifests for the app, install the monitoring stack via Helm, configure SLO alerts, and wire up long-term storage with Thanos.
+
+**Skills:** ServiceMonitor CRD, PrometheusRule CRD, Helm values, burn-rate alerting, Thanos sidecar pattern
+
+---
+
+## Key Concepts You'll Practice
+
+| Concept | Tool |
+|---------|------|
+| Metrics scraping | Prometheus + ServiceMonitor |
+| RED method (Rate, Errors, Duration) | PromQL |
+| Log aggregation | Loki + Promtail |
+| Distributed tracing | Jaeger / Tempo + OpenTelemetry |
+| Unified dashboards | Grafana |
+| SLO-based alerting (burn rate) | PrometheusRule |
+| Alert routing | AlertManager |
+| Long-term storage | Thanos |
+
+---
+
+## Prerequisites
+
+- Docker and Docker Compose (for Phase 2)
+- kubectl + Helm v3 + Kubernetes cluster (for Phase 3)
+- Basic understanding of containers
+
+---
+
+## Start Here
+
+**→ Go to app/README.md to understand what ObserveApp exposes**
+
+Then follow: app/ → local/ → main/
+</script>
+
+<script type="text/plain" id="data-p05-app-readme">
+# App — ObserveApp
+
+ObserveApp is a pre-built Python/FastAPI application simulating a SaaS analytics platform. It is instrumented with Prometheus metrics, OpenTelemetry tracing, and structured JSON logging. You do not write application code — you observe it.
+
+---
+
+## What the App Does
+
+Simulates a SaaS analytics platform with continuous background activity:
+
+- **Active sessions** — gauge drifting between 20–80 users (or 300 in high traffic mode)
+- **Event tracking** — counters for page_view, button_click, form_submit, api_call, error_thrown
+- **Report generation** — periodic jobs with measurable duration and failure rates
+- **Processing queue** — fluctuating depth gauge
+
+The app has a live dashboard at `http://localhost:8000` with simulation controls.
+
+---
+
+## Prometheus Metrics (/metrics)
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `http_requests_total` | Counter | HTTP requests by method, path, status |
+| `http_request_duration_seconds` | Histogram | Request latency (10 buckets) |
+| `app_active_sessions` | Gauge | Simulated concurrent users |
+| `app_events_tracked_total` | Counter | Analytics events by type |
+| `app_reports_generated_total` | Counter | Reports by status (success/error) |
+| `app_report_generation_seconds` | Histogram | Report duration |
+| `app_queue_depth` | Gauge | Processing queue size |
+| `observe_app_info` | Info | Version and environment labels |
+
+Key PromQL queries to practice:
+```
+rate(http_requests_total{job="observe-app"}[1m])
+100 * sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m]))
+histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))
+1 - (sum(rate(http_requests_total{status=~"5.."}[30m])) / sum(rate(http_requests_total[30m])))
+```
+
+---
+
+## Structured JSON Logs
+
+Every request generates a JSON log line (collected by Promtail → Loki):
+```json
+{"timestamp": "...", "level": "INFO", "message": "request completed",
+ "method": "GET", "path": "/api/stats", "status": 200, "duration_ms": 4.2}
+```
+
+LogQL queries to try in Grafana:
+```
+{container="observe-app"}
+{container="observe-app"} |= "error"
+{container="observe-app"} | json | level = "ERROR"
+```
+
+---
+
+## Distributed Traces
+
+When `OTLP_ENDPOINT` is set, traces are sent to Jaeger (local) or Tempo (K8s) via OTLP HTTP.
+
+In Jaeger UI: search service `observe-app`.
+
+---
+
+## Simulation Controls
+
+| Endpoint | Effect |
+|----------|--------|
+| POST /api/simulate/errors | Toggle 30% HTTP 500 injection |
+| POST /api/simulate/slowdown | Toggle 0.8–3s latency injection |
+| POST /api/simulate/traffic | Toggle 3× session + event volume |
+| POST /api/simulate/reset | Reset all simulations |
+| POST /api/report | Trigger a report generation job |
+
+Use the app's dashboard at http://localhost:8000 to trigger these visually.
+
+---
+
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ENVIRONMENT` | `local` | Label on all metrics and logs |
+| `OTLP_ENDPOINT` | `` (disabled) | OTLP HTTP URL (e.g. `http://jaeger:4318`) |
+
+---
+
+## Running Standalone
+
+```bash
+cd app
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+# Dashboard: http://localhost:8000
+# Metrics:   http://localhost:8000/metrics
+# API docs:  http://localhost:8000/docs
+```
 </script>
 
 </body>

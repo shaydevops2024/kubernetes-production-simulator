@@ -1,0 +1,72 @@
+# AlertManager configuration for production
+# This overrides the config set in kube-prometheus-stack values.
+#
+# The Prometheus Operator reads AlertmanagerConfig resources.
+# Apply this to update the routing tree without reinstalling the Helm chart.
+
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: observability-routing
+  namespace: observability
+  labels:
+    # Must match alertmanagerConfigSelector in kube-prometheus-stack
+    alertmanagerConfig: observability
+spec:
+  route:
+    # Match all alerts in the observability namespace
+    matchers:
+      - name: namespace
+        value: observability
+        matchType: "="
+    groupBy: ['alertname', 'severity']
+    groupWait: 30s
+    groupInterval: 5m
+    repeatInterval: 3h
+    receiver: default
+    routes:
+      - matchers:
+          - name: severity
+            value: critical
+            matchType: "="
+        receiver: pagerduty
+        groupWait: 10s
+        repeatInterval: 1h
+
+      - matchers:
+          - name: slo
+            value: availability
+            matchType: "="
+        receiver: pagerduty
+        groupWait: 10s
+
+  receivers:
+    - name: default
+      # Add Slack webhook here for non-critical alerts:
+      # slackConfigs:
+      #   - apiURL:
+      #       name: slack-webhook
+      #       key: url
+      #     channel: '#alerts'
+      #     sendResolved: true
+      #     title: '[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
+
+    - name: pagerduty
+      pagerdutyConfigs:
+        - routingKey:
+            name: pagerduty-key
+            key: routingKey
+          description: '{{ .CommonAnnotations.summary }}'
+          severity: '{{ if .CommonLabels.severity }}{{ .CommonLabels.severity }}{{ else }}warning{{ end }}'
+          sendResolved: true
+
+  inhibitRules:
+    - sourceMatch:
+        - name: severity
+          value: critical
+          matchType: "="
+      targetMatch:
+        - name: severity
+          value: warning
+          matchType: "="
+      equal: ['alertname', 'namespace']

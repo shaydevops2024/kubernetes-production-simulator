@@ -1,0 +1,53 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+
+  # Collect logs from all Docker containers using the Docker socket
+  - job_name: containers
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+        filters:
+          - name: label
+            values: ["logging=promtail"]   # Only collect from containers with this label
+
+    relabel_configs:
+      # Use the container name as the "container" label in Loki
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: 'container'
+
+      # Keep the Docker Compose service name
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: 'service'
+
+      # Log stream (stdout/stderr)
+      - source_labels: ['__meta_docker_container_log_stream']
+        target_label: 'logstream'
+
+    pipeline_stages:
+      # Try to parse JSON logs (our app emits JSON)
+      - json:
+          expressions:
+            level: level
+            message: message
+            timestamp: timestamp
+
+      # Promote the "level" field to a Loki label so you can filter by log level
+      - labels:
+          level:
+
+      # Use the log's own timestamp instead of ingestion time
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+          fallback_formats:
+            - RFC3339

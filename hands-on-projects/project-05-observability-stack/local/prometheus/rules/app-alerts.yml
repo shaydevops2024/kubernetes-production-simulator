@@ -1,0 +1,79 @@
+groups:
+  - name: observe-app
+    interval: 30s
+    rules:
+
+      # ── Availability ──────────────────────────────────────────────────────────
+      - alert: AppHighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{job="observe-app", status=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total{job="observe-app"}[5m]))
+          ) * 100 > 10
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on observe-app"
+          description: "Error rate is {{ $value | printf \"%.1f\" }}% (threshold: 10%)"
+
+      - alert: AppCriticalErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{job="observe-app", status=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total{job="observe-app"}[5m]))
+          ) * 100 > 30
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical error rate on observe-app"
+          description: "Error rate is {{ $value | printf \"%.1f\" }}% — SLO breach likely"
+
+      # ── Latency ───────────────────────────────────────────────────────────────
+      - alert: AppHighP99Latency
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(http_request_duration_seconds_bucket{job="observe-app"}[5m])) by (le)
+          ) > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "P99 latency above 1 second"
+          description: "P99 latency is {{ $value | printf \"%.2f\" }}s"
+
+      # ── Business ──────────────────────────────────────────────────────────────
+      - alert: AppReportFailureRate
+        expr: |
+          (
+            sum(rate(app_reports_generated_total{status="error"}[5m]))
+            /
+            sum(rate(app_reports_generated_total[5m]))
+          ) * 100 > 25
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High report failure rate"
+          description: "{{ $value | printf \"%.1f\" }}% of reports are failing"
+
+      # ── SLO: 99% availability ─────────────────────────────────────────────────
+      - alert: AppSLOBreach
+        expr: |
+          (
+            1 - (
+              sum(rate(http_requests_total{job="observe-app", status=~"5.."}[30m]))
+              /
+              sum(rate(http_requests_total{job="observe-app"}[30m]))
+            )
+          ) < 0.99
+        for: 5m
+        labels:
+          severity: critical
+          slo: availability
+        annotations:
+          summary: "SLO breach: availability below 99%"
+          description: "30-minute availability is {{ $value | printf \"%.3f\" }} (SLO: 0.990)"

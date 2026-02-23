@@ -1,0 +1,170 @@
+# Helm values for kube-prometheus-stack
+# https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack
+#
+# Install:
+#   helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+#   helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+#     --namespace observability --create-namespace \
+#     -f kube-prometheus-stack/values.yaml
+
+# ── Prometheus ──────────────────────────────────────────────────────────────
+prometheus:
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - prometheus.localhost
+    paths:
+      - /
+
+  prometheusSpec:
+    # How long to retain metrics locally (Thanos will handle long-term storage)
+    retention: 2d
+    retentionSize: "10GB"
+
+    # Scrape all ServiceMonitors in all namespaces
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelector: {}
+    serviceMonitorNamespaceSelector: {}
+
+    # Scrape all PodMonitors in all namespaces
+    podMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelector: {}
+    podMonitorNamespaceSelector: {}
+
+    # PrometheusRules selector — pick up rules from all namespaces
+    ruleSelectorNilUsesHelmValues: false
+    ruleSelector: {}
+    ruleNamespaceSelector: {}
+
+    # Thanos sidecar for long-term storage (requires object store secret)
+    thanos:
+      image: "quay.io/thanos/thanos:v0.32.5"
+      objectStorageConfig:
+        secret:
+          name: thanos-object-store
+          key: objstore.yml
+
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 20Gi
+
+# ── AlertManager ────────────────────────────────────────────────────────────
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+
+  config:
+    global:
+      resolve_timeout: 5m
+    route:
+      group_by: ['alertname', 'namespace', 'severity']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 3h
+      receiver: 'default'
+      routes:
+        - match:
+            severity: critical
+          receiver: pagerduty
+          group_wait: 10s
+          repeat_interval: 1h
+    receivers:
+      - name: 'default'
+      - name: 'pagerduty'
+        pagerduty_configs:
+          - routing_key_secret:
+              name: pagerduty-key
+              key: routingKey
+            description: '{{ .CommonAnnotations.summary }}'
+            severity: '{{ if .CommonLabels.severity }}{{ .CommonLabels.severity }}{{ else }}warning{{ end }}'
+    inhibit_rules:
+      - source_match:
+          severity: 'critical'
+        target_match:
+          severity: 'warning'
+        equal: ['alertname', 'namespace']
+
+# ── Grafana ─────────────────────────────────────────────────────────────────
+grafana:
+  enabled: true
+  adminPassword: "admin-change-me"
+
+  sidecar:
+    dashboards:
+      enabled: true
+      searchNamespace: ALL     # Look for dashboard ConfigMaps in all namespaces
+    datasources:
+      enabled: true
+
+  additionalDataSources:
+    - name: Loki
+      uid: loki
+      type: loki
+      url: http://loki-gateway.observability.svc.cluster.local
+      access: proxy
+      isDefault: false
+
+    - name: Tempo
+      uid: tempo
+      type: tempo
+      url: http://tempo.observability.svc.cluster.local:3100
+      access: proxy
+      isDefault: false
+      jsonData:
+        tracesToLogsV2:
+          datasourceUid: loki
+          spanStartTimeShift: '-1m'
+          spanEndTimeShift: '1m'
+        serviceMap:
+          datasourceUid: prometheus
+
+    - name: Jaeger
+      uid: jaeger
+      type: jaeger
+      url: http://jaeger-query.observability.svc.cluster.local:80
+      access: proxy
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  persistence:
+    enabled: true
+    size: 5Gi
+
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - grafana.localhost
+
+# ── Node Exporter ────────────────────────────────────────────────────────────
+nodeExporter:
+  enabled: true
+
+# ── Kube State Metrics ───────────────────────────────────────────────────────
+kubeStateMetrics:
+  enabled: true

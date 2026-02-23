@@ -1,0 +1,85 @@
+# Helm values for Bitnami Thanos
+# https://github.com/bitnami/charts/tree/main/bitnami/thanos
+#
+# Thanos adds long-term storage to Prometheus by:
+# 1. Running a sidecar next to Prometheus that uploads blocks to object storage
+# 2. Running a Store Gateway that serves historical data from object storage
+# 3. Running a Query layer that merges real-time (Prometheus) + historical (Store) data
+#
+# Install:
+#   helm repo add bitnami https://charts.bitnami.com/bitnami
+#   kubectl apply -f thanos/object-store-secret.yaml
+#   helm upgrade --install thanos bitnami/thanos \
+#     --namespace observability \
+#     -f thanos/values.yaml
+
+# ── Object Store Configuration ────────────────────────────────────────────────
+objstoreConfig: ""   # Inline config (use existingObjstoreSecret instead)
+
+existingObjstoreSecret: thanos-object-store
+existingObjstoreSecretItems:
+  - key: objstore.yml
+    path: objstore.yml
+
+# ── Query (unified query layer) ───────────────────────────────────────────────
+query:
+  enabled: true
+  replicaCount: 1
+  dnsDiscovery:
+    enabled: true
+    sidecarsService: kube-prometheus-stack-thanos-discovery
+    sidecarsNamespace: observability
+  stores:
+    - thanos-storegateway.observability.svc.cluster.local:10901
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hostname: thanos.localhost
+
+# ── Store Gateway (serves historical data from object store) ──────────────────
+storegateway:
+  enabled: true
+  replicaCount: 1
+  persistence:
+    enabled: true
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+# ── Compactor (merges and downsamples blocks in object store) ─────────────────
+compactor:
+  enabled: true
+  retentionResolutionRaw: 30d
+  retentionResolution5m: 90d
+  retentionResolution1h: 1y
+  persistence:
+    enabled: true
+    size: 20Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+# ── Ruler (evaluates recording rules against long-term data) ──────────────────
+ruler:
+  enabled: false   # Enable if you want SLO recording rules to use historical data
+
+# ── Receive (alternative to sidecar — receives remote write from Prometheus) ──
+receive:
+  enabled: false   # We use the sidecar approach (configured in kube-prometheus-stack values)
+
+# ── Sidecar — runs inside the Prometheus pod (configured in kube-prometheus-stack) ──
+# The sidecar is NOT deployed by this chart — it's configured as part of kube-prometheus-stack.
+# This chart only deploys Query, Store Gateway, and Compactor.

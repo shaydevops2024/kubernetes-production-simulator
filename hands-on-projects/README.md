@@ -27,8 +27,8 @@ Every project has three folders:
 | 01 | [Production-Ready Microservices E-Commerce Platform](./project-01-ecommerce-platform/README.md) | Istio, Distributed Tracing, Circuit Breakers, Rate Limiting | ✅ Available |
 | 02 | [Multi-Tenant SaaS Application Infrastructure](./project-02-multitenant-saas/README.md) | Namespaces, RBAC, ResourceQuota, NetworkPolicy, Multi-tenancy | ✅ Available |
 | 03 | [Real-Time Chat / Messaging Platform](./project-03-realtime-chat/README.md) | WebSockets, Redis pub/sub, MinIO/S3, Horizontal Scaling, Presence | ✅ Available |
-| 04 | Observability & Monitoring Platform | Prometheus, Grafana, Jaeger, EFK Stack | 🔜 Coming Soon |
-| 05 | Zero-Trust Security Platform | OPA, Network Policies, Pod Security Standards | 🔜 Coming Soon |
+| 04 | [Full GitOps CI/CD Pipeline with Progressive Delivery](./project-04-gitops-cicd/README.md) | GitHub Actions, ArgoCD, Flagger, Canary Deployments, Rollback | ✅ Available |
+| 05 | [Complete Observability Stack](./project-05-observability-stack/README.md) | Prometheus, Grafana, Loki, Tempo, Jaeger, AlertManager, Thanos, SLO/SLI | ✅ Available |
 | 06 | High-Availability Database Cluster | PostgreSQL HA, Redis Cluster, StatefulSets | 🔜 Coming Soon |
 | 07 | Multi-Region Active-Active Setup | Federation, Global Load Balancing | 🔜 Coming Soon |
 | 08 | Autoscaling & Cost Optimization | HPA, VPA, KEDA, Spot Instances | 🔜 Coming Soon |
@@ -57,6 +57,6 @@ Before starting any project:
 
 **Beginner:** Start with Project 01 (local/ folder only) → Project 02 → Project 07
 
-**Intermediate:** Projects 01–03 (full main/ deployment) → Project 04 (observability) → Project 05
+**Intermediate:** Projects 01–03 (full main/ deployment) → Project 04 → Project 05 (observability)
 
 **Advanced:** Projects 07, 10, 11, 12, 15, 16

@@ -1,0 +1,58 @@
+# Helm values for Grafana Tempo
+# https://github.com/grafana/helm-charts/tree/main/charts/tempo
+#
+# Install:
+#   helm repo add grafana https://grafana.github.io/helm-charts
+#   helm upgrade --install tempo grafana/tempo \
+#     --namespace observability \
+#     -f tempo/values.yaml
+
+tempo:
+  reportingEnabled: false
+  metricsGenerator:
+    enabled: true
+    remoteWriteUrl: "http://kube-prometheus-stack-prometheus.observability.svc.cluster.local:9090/api/v1/write"
+
+  # Trace storage — local filesystem for this setup
+  # For production: use S3 or GCS
+  storage:
+    trace:
+      backend: local
+      local:
+        path: /var/tempo/traces
+      wal:
+        path: /var/tempo/wal
+
+  # Accept traces via OTLP (HTTP and gRPC)
+  receivers:
+    otlp:
+      protocols:
+        http:
+          endpoint: 0.0.0.0:4318
+        grpc:
+          endpoint: 0.0.0.0:4317
+
+    # Also accept Jaeger format (useful for compatibility)
+    jaeger:
+      protocols:
+        thrift_http:
+          endpoint: 0.0.0.0:14268
+        grpc:
+          endpoint: 0.0.0.0:14250
+
+  # Retention
+  compactor:
+    compaction:
+      block_retention: 48h
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+persistence:
+  enabled: true
+  size: 10Gi

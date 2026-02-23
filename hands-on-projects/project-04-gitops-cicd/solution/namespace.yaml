@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gitops-cicd
+  labels:
+    # Enable Istio sidecar injection (only needed if using Istio for traffic splitting)
+    # Remove this label if using NGINX Ingress Controller with Flagger instead
+    istio-injection: enabled

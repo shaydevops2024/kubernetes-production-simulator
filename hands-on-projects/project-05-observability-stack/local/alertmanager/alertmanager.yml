@@ -1,0 +1,69 @@
+global:
+  # How long to wait before resending an alert that hasn't been resolved
+  resolve_timeout: 5m
+  # SMTP settings for email notifications (fill in your own for production)
+  # smtp_smarthost: 'smtp.gmail.com:587'
+  # smtp_from: 'alerts@example.com'
+  # smtp_auth_username: 'alerts@example.com'
+  # smtp_auth_password: 'your-app-password'
+
+# ── Templates ──────────────────────────────────────────────────────────────────
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# ── Route tree ─────────────────────────────────────────────────────────────────
+# AlertManager routes incoming alerts through this tree to decide who to notify.
+route:
+  # Default receiver (catches everything not matched below)
+  receiver: 'default-receiver'
+  group_by: ['alertname', 'severity']
+  group_wait: 30s          # Wait 30s before sending the first notification
+  group_interval: 5m       # Wait 5m before sending a new notification for the same group
+  repeat_interval: 3h      # Re-notify after 3h if still firing
+
+  routes:
+    # Critical alerts go to a dedicated receiver immediately
+    - match:
+        severity: critical
+      receiver: 'critical-receiver'
+      group_wait: 10s
+      repeat_interval: 1h
+
+    # SLO-related alerts
+    - match:
+        slo: availability
+      receiver: 'slo-receiver'
+      group_wait: 10s
+
+# ── Receivers ─────────────────────────────────────────────────────────────────
+# In this local setup all receivers just log to the console.
+# In production you'd configure PagerDuty, Slack, email, OpsGenie, etc.
+receivers:
+
+  - name: 'default-receiver'
+    # Uncomment and configure to send to Slack:
+    # slack_configs:
+    #   - api_url: 'https://hooks.slack.com/services/XXXX'
+    #     channel: '#alerts'
+    #     send_resolved: true
+    #     title: '[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
+    #     text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+
+  - name: 'critical-receiver'
+    # Uncomment to send to PagerDuty:
+    # pagerduty_configs:
+    #   - routing_key: '<your-integration-key>'
+    #     description: '{{ .CommonAnnotations.summary }}'
+    #     severity: critical
+
+  - name: 'slo-receiver'
+    # SLO breach notifications would go to on-call rotation
+
+# ── Inhibition rules ───────────────────────────────────────────────────────────
+# Suppress warning-level alerts when a critical alert is already firing for the same service.
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname']

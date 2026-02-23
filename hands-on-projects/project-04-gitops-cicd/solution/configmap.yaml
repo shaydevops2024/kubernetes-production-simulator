@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: projects-hub-config
+  namespace: gitops-cicd
+data:
+  ENVIRONMENT: production

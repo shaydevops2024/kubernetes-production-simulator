@@ -1,0 +1,154 @@
+# SLO Alerting Rules for observe-app
+#
+# These PrometheusRule resources are picked up by the Prometheus Operator
+# and loaded into Prometheus automatically.
+#
+# SLO target: 99% availability (99 successful requests per 100)
+# Error budget: 1% of requests can fail per month
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: observe-app-slo
+  namespace: observability
+  labels:
+    app: observe-app
+    # Must match ruleSelector in kube-prometheus-stack
+    release: kube-prometheus-stack
+spec:
+  groups:
+
+    # ── Availability SLO ───────────────────────────────────────────────────────
+    - name: observe-app.availability
+      interval: 30s
+      rules:
+
+        # Multi-window, multi-burn-rate alerting (Google SRE Book approach)
+        # Fast burn: 14.4x burn rate for 1h → fires when budget depletes in < 2 days
+        - alert: ObserveAppSLOFastBurn
+          expr: |
+            (
+              sum(rate(http_requests_total{job="observe-app", status=~"5.."}[1h]))
+              /
+              sum(rate(http_requests_total{job="observe-app"}[1h]))
+            ) > 14.4 * 0.01
+            and
+            (
+              sum(rate(http_requests_total{job="observe-app", status=~"5.."}[5m]))
+              /
+              sum(rate(http_requests_total{job="observe-app"}[5m]))
+            ) > 14.4 * 0.01
+          for: 2m
+          labels:
+            severity: critical
+            slo: availability
+            service: observe-app
+          annotations:
+            summary: "SLO fast burn: observe-app availability burning budget"
+            description: |
+              Error rate is {{ $value | printf "%.3f" }} (14.4x burn rate).
+              At this rate, the monthly error budget will be exhausted in < 2 days.
+
+        # Slow burn: 6x burn rate for 6h → fires when budget depletes in < 5 days
+        - alert: ObserveAppSLOSlowBurn
+          expr: |
+            (
+              sum(rate(http_requests_total{job="observe-app", status=~"5.."}[6h]))
+              /
+              sum(rate(http_requests_total{job="observe-app"}[6h]))
+            ) > 6 * 0.01
+            and
+            (
+              sum(rate(http_requests_total{job="observe-app", status=~"5.."}[30m]))
+              /
+              sum(rate(http_requests_total{job="observe-app"}[30m]))
+            ) > 6 * 0.01
+          for: 15m
+          labels:
+            severity: warning
+            slo: availability
+            service: observe-app
+          annotations:
+            summary: "SLO slow burn: observe-app error budget at risk"
+            description: |
+              Error rate is {{ $value | printf "%.3f" }} (6x burn rate).
+              At this rate, the monthly error budget will be exhausted in < 5 days.
+
+    # ── Latency SLO ───────────────────────────────────────────────────────────
+    - name: observe-app.latency
+      interval: 30s
+      rules:
+
+        - alert: ObserveAppHighP99Latency
+          expr: |
+            histogram_quantile(0.99,
+              sum(rate(http_request_duration_seconds_bucket{job="observe-app"}[5m])) by (le)
+            ) > 1.0
+          for: 5m
+          labels:
+            severity: warning
+            slo: latency
+            service: observe-app
+          annotations:
+            summary: "P99 latency above 1s on observe-app"
+            description: "P99 request latency is {{ $value | printf \"%.2f\" }}s (SLO: < 1s)"
+
+        - alert: ObserveAppCriticalLatency
+          expr: |
+            histogram_quantile(0.99,
+              sum(rate(http_request_duration_seconds_bucket{job="observe-app"}[5m])) by (le)
+            ) > 3.0
+          for: 2m
+          labels:
+            severity: critical
+            slo: latency
+            service: observe-app
+          annotations:
+            summary: "P99 latency critically high on observe-app"
+            description: "P99 request latency is {{ $value | printf \"%.2f\" }}s — users severely impacted"
+
+    # ── Business Metrics ──────────────────────────────────────────────────────
+    - name: observe-app.business
+      interval: 60s
+      rules:
+
+        - alert: ObserveAppReportFailureHigh
+          expr: |
+            sum(rate(app_reports_generated_total{status="error"}[10m]))
+            /
+            sum(rate(app_reports_generated_total[10m])) > 0.25
+          for: 5m
+          labels:
+            severity: warning
+            service: observe-app
+          annotations:
+            summary: "High report failure rate on observe-app"
+            description: "{{ $value | printf \"%.0f\" }}% of reports are failing (threshold: 25%)"
+
+        - alert: ObserveAppQueueDepthHigh
+          expr: app_queue_depth > 50
+          for: 10m
+          labels:
+            severity: warning
+            service: observe-app
+          annotations:
+            summary: "Processing queue depth is high"
+            description: "Queue depth is {{ $value }} items (threshold: 50)"
+
+    # ── Recording Rules (pre-compute expensive queries) ────────────────────────
+    - name: observe-app.recording
+      interval: 30s
+      rules:
+        - record: job:http_requests:rate5m
+          expr: sum(rate(http_requests_total{job="observe-app"}[5m])) by (status)
+
+        - record: job:http_request_duration_p99:rate5m
+          expr: histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job="observe-app"}[5m])) by (le))
+
+        - record: job:http_availability:rate30m
+          expr: |
+            1 - (
+              sum(rate(http_requests_total{job="observe-app", status=~"5.."}[30m]))
+              /
+              sum(rate(http_requests_total{job="observe-app"}[30m]))
+            )

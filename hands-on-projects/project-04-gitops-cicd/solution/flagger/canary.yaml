@@ -1,0 +1,60 @@
+apiVersion: flagger.app/v1beta1
+kind: Canary
+metadata:
+  name: projects-hub
+  namespace: gitops-cicd
+spec:
+  # The Deployment Flagger will manage
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: projects-hub
+
+  # The Ingress to clone for canary traffic splitting
+  # Flagger creates a projects-hub-canary ingress automatically
+  ingressRef:
+    apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    name: projects-hub
+
+  progressDeadlineSeconds: 120
+
+  service:
+    port: 80
+    targetPort: 8080
+
+  analysis:
+    # Run a check every 30 seconds
+    interval: 30s
+
+    # Promote after 5 consecutive successful checks (5 × 30s = 2.5 min minimum)
+    threshold: 5
+
+    # Maximum traffic weight to give the canary (50% = always keep some stable traffic)
+    maxWeight: 50
+
+    # Increment by 10% per step: 10% → 20% → 30% → 40% → 50% → promote
+    stepWeight: 10
+
+    metrics:
+      # Success rate must be >= 99% (measured over the last minute)
+      - name: request-success-rate
+        thresholdRange:
+          min: 99
+        interval: 1m
+
+      # P99 latency must be <= 500ms
+      - name: request-duration
+        thresholdRange:
+          max: 500
+        interval: 1m
+
+    # Optional: run a webhook to validate the canary externally
+    # webhooks:
+    #   - name: acceptance-test
+    #     type: pre-rollout
+    #     url: http://flagger-loadtester.flagger-system/
+    #     timeout: 30s
+    #     metadata:
+    #       type: bash
+    #       cmd: "curl -sd 'test' http://projects-hub-canary.gitops-cicd/health | grep healthy"

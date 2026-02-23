@@ -1,0 +1,48 @@
+# Helm values for Jaeger (all-in-one mode)
+# https://github.com/jaegertracing/helm-charts/tree/main/charts/jaeger
+#
+# Uses allInOne mode with in-memory storage — one pod, no external dependencies.
+# Perfect for learning: traces are visible immediately, no plugin setup needed.
+# Note: traces are lost on pod restart (acceptable for a demo environment).
+#
+# Install:
+#   helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
+#   helm upgrade --install jaeger jaegertracing/jaeger \
+#     --namespace observability \
+#     -f jaeger/values.yaml
+
+provisionDataStore:
+  cassandra: false
+  elasticsearch: false
+  kafka: false
+
+# All-in-one: collector + query + agent in a single pod with in-memory storage
+allInOne:
+  enabled: true
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - jaeger.localhost
+    paths:
+      - /
+
+storage:
+  type: memory
+
+# Disable separate components (all-in-one handles everything)
+collector:
+  enabled: false
+
+query:
+  enabled: false
+
+agent:
+  enabled: false

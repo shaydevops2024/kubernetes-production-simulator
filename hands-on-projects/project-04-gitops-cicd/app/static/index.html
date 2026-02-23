@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DevOps Projects Hub</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── Version Banner ─────────────────────────────────────── -->
+  <div class="version-banner" id="versionBanner">
+    <span class="version-dot"></span>
+    <span id="bannerText">Loading version info...</span>
+  </div>
+
+  <!-- ── Header ────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">⎈</span>
+        <div>
+          <div class="logo-title">DevOps Projects Hub</div>
+          <div class="logo-sub">Kubernetes Production Simulator</div>
+        </div>
+      </div>
+      <div class="version-badge" id="versionBadge">
+        <span class="badge-label">VERSION</span>
+        <span class="badge-value" id="versionValue">—</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Main Content ──────────────────────────────────────── -->
+  <main class="main">
+
+    <!-- Stats bar -->
+    <section class="stats-bar">
+      <div class="stat">
+        <div class="stat-value" id="statTotal">16</div>
+        <div class="stat-label">Total Projects</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value available" id="statAvailable">—</div>
+        <div class="stat-label">Available Now</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value coming" id="statComing">—</div>
+        <div class="stat-label">Coming Soon</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value env" id="statEnv">—</div>
+        <div class="stat-label">Environment</div>
+      </div>
+    </section>
+
+    <!-- Section title -->
+    <div class="section-header">
+      <h2>All Projects</h2>
+      <p>Each project is a production-grade hands-on challenge. Work through them in order or jump to the topics you need.</p>
+    </div>
+
+    <!-- Projects grid -->
+    <div class="projects-grid" id="projectsGrid">
+      <!-- Populated by app.js -->
+      <div class="loading">Loading projects...</div>
+    </div>
+
+  </main>
+
+  <!-- ── Footer ─────────────────────────────────────────────── -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <span>⎈ DevOps Projects Hub</span>
+        <span class="footer-sep">·</span>
+        <span id="footerVersion">—</span>
+        <span class="footer-sep">·</span>
+        <span id="footerCommit">—</span>
+      </div>
+      <div class="footer-right">
+        <span id="footerReplica">—</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ── Deployment Info Panel ──────────────────────────────── -->
+  <div class="info-toggle" id="infoToggle" title="Deployment info">ℹ</div>
+  <div class="info-panel" id="infoPanel">
+    <div class="info-panel-header">
+      <span>Deployment Info</span>
+      <button class="info-close" id="infoClose">✕</button>
+    </div>
+    <div class="info-panel-body">
+      <div class="info-row"><span class="info-key">Version</span><span class="info-val" id="infoVersion">—</span></div>
+      <div class="info-row"><span class="info-key">Environment</span><span class="info-val" id="infoEnv">—</span></div>
+      <div class="info-row"><span class="info-key">Build Date</span><span class="info-val" id="infoBuild">—</span></div>
+      <div class="info-row"><span class="info-key">Git Commit</span><span class="info-val" id="infoCommit">—</span></div>
+      <div class="info-row"><span class="info-key">Replica / Pod</span><span class="info-val" id="infoReplica">—</span></div>
+      <div class="info-note">
+        During a canary deployment, refresh this page multiple times — you'll see requests hitting different versions.
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

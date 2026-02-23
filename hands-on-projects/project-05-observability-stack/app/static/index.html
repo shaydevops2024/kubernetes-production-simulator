@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ObserveApp — Observability Demo</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="app">
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <div class="logo">
+                <div class="logo-icon">◉</div>
+                <span class="logo-text">ObserveApp</span>
+            </div>
+            <span class="status-badge status-healthy" id="status-badge">● Healthy</span>
+        </div>
+        <div class="header-right">
+            <span class="header-subtitle">SaaS Analytics Platform — Observability Demo</span>
+            <span class="header-ts" id="header-ts">—</span>
+        </div>
+    </header>
+
+    <main class="main">
+
+        <!-- Stats row -->
+        <section class="stats-row">
+            <div class="stat-card">
+                <div class="stat-label">Active Sessions</div>
+                <div class="stat-value" id="stat-sessions">—</div>
+                <div class="stat-sub">live users</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Queue Depth</div>
+                <div class="stat-value" id="stat-queue">—</div>
+                <div class="stat-sub">pending jobs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Error Mode</div>
+                <div class="stat-value state-off" id="stat-error-mode">OFF</div>
+                <div class="stat-sub">30% error injection</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Slow Mode</div>
+                <div class="stat-value state-off" id="stat-slow-mode">OFF</div>
+                <div class="stat-sub">0.8–3s latency added</div>
+            </div>
+        </section>
+
+        <!-- Mid grid -->
+        <div class="grid">
+
+            <!-- Simulation controls -->
+            <section class="panel controls-panel">
+                <div class="panel-header">
+                    <span class="panel-title">Simulation Controls</span>
+                    <span class="panel-subtitle">Trigger scenarios to generate observable signals in Grafana &amp; Jaeger</span>
+                </div>
+                <div class="controls">
+                    <div class="control-item">
+                        <div class="control-info">
+                            <div class="control-name">High Traffic</div>
+                            <div class="control-desc">Spike active sessions 3× and increase event volume</div>
+                        </div>
+                        <button class="toggle-btn" id="btn-traffic" onclick="toggle('traffic')">Enable</button>
+                    </div>
+                    <div class="control-item">
+                        <div class="control-info">
+                            <div class="control-name">Error Mode</div>
+                            <div class="control-desc">Inject 30% HTTP 500 errors and report failures</div>
+                        </div>
+                        <button class="toggle-btn" id="btn-errors" onclick="toggle('errors')">Enable</button>
+                    </div>
+                    <div class="control-item">
+                        <div class="control-info">
+                            <div class="control-name">Slow Mode</div>
+                            <div class="control-desc">Add 0.8–3 second latency to every request</div>
+                        </div>
+                        <button class="toggle-btn" id="btn-slowdown" onclick="toggle('slowdown')">Enable</button>
+                    </div>
+                    <div class="control-item">
+                        <div class="control-info">
+                            <div class="control-name">Generate Report</div>
+                            <div class="control-desc">Trigger a report generation task immediately</div>
+                        </div>
+                        <button class="action-btn" id="btn-report" onclick="generateReport()">Run</button>
+                    </div>
+                </div>
+                <button class="reset-btn" onclick="resetAll()">↺ Reset All Simulations</button>
+            </section>
+
+            <!-- Monitoring links -->
+            <section class="panel links-panel">
+                <div class="panel-header">
+                    <span class="panel-title">Monitoring Tools</span>
+                    <span class="panel-subtitle">Your observability stack — click to explore what you deployed</span>
+                </div>
+                <div class="links">
+                    <a class="link-card" href="http://localhost:3000" target="_blank">
+                        <span class="link-icon">📊</span>
+                        <div class="link-content">
+                            <div class="link-name">Grafana</div>
+                            <div class="link-desc">Dashboards for metrics, logs &amp; traces — admin / admin</div>
+                        </div>
+                        <span class="link-port">:3000</span>
+                    </a>
+                    <a class="link-card" href="http://localhost:9090" target="_blank">
+                        <span class="link-icon">🔥</span>
+                        <div class="link-content">
+                            <div class="link-name">Prometheus</div>
+                            <div class="link-desc">Metrics storage — try querying http_requests_total</div>
+                        </div>
+                        <span class="link-port">:9090</span>
+                    </a>
+                    <a class="link-card" href="http://localhost:16686" target="_blank">
+                        <span class="link-icon">🔍</span>
+                        <div class="link-content">
+                            <div class="link-name">Jaeger UI</div>
+                            <div class="link-desc">Distributed traces — search for service "observe-app"</div>
+                        </div>
+                        <span class="link-port">:16686</span>
+                    </a>
+                    <a class="link-card" href="http://localhost:9093" target="_blank">
+                        <span class="link-icon">🔔</span>
+                        <div class="link-content">
+                            <div class="link-name">AlertManager</div>
+                            <div class="link-desc">Active alerts and silence management</div>
+                        </div>
+                        <span class="link-port">:9093</span>
+                    </a>
+                    <a class="link-card" href="/metrics" target="_blank">
+                        <span class="link-icon">📈</span>
+                        <div class="link-content">
+                            <div class="link-name">Raw Metrics</div>
+                            <div class="link-desc">Prometheus exposition format — what Prometheus scrapes</div>
+                        </div>
+                        <span class="link-port">/metrics</span>
+                    </a>
+                    <a class="link-card" href="/docs" target="_blank">
+                        <span class="link-icon">📝</span>
+                        <div class="link-content">
+                            <div class="link-name">API Docs</div>
+                            <div class="link-desc">Swagger UI — explore all available endpoints</div>
+                        </div>
+                        <span class="link-port">/docs</span>
+                    </a>
+                </div>
+            </section>
+        </div>
+
+        <!-- Log stream -->
+        <section class="panel log-panel">
+            <div class="panel-header log-panel-header">
+                <div>
+                    <span class="panel-title">Live Log Stream</span>
+                    <span class="panel-subtitle">Structured JSON logs — same data flowing into Loki right now</span>
+                </div>
+                <span class="log-updated" id="log-updated">—</span>
+            </div>
+            <div class="log-stream" id="log-stream">
+                <div class="log-empty">Waiting for logs…</div>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
