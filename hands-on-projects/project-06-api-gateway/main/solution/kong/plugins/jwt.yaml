@@ -1,0 +1,15 @@
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: jwt-auth
+  namespace: api-gateway
+  annotations:
+    kubernetes.io/ingress.class: kong
+plugin: jwt
+config:
+  secret_is_base64: false
+  key_claim_name: iss
+  claims_to_verify:
+    - exp
+  anonymous: null
+  run_on_preflight: true

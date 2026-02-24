@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gatewayhub
+  namespace: argocd
+  labels:
+    project: gatewayhub
+    env: production
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/YOUR_ORG/kubernetes-production-simulator
+    targetRevision: main
+    path: hands-on-projects/project-06-api-gateway/main/solution
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: api-gateway
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10

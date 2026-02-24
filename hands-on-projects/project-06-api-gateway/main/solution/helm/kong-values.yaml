@@ -1,0 +1,73 @@
+# Kong Ingress Controller Helm Values
+# Install: helm install kong kong/ingress -n api-gateway -f kong-values.yaml
+#
+# Add repo first:
+#   helm repo add kong https://charts.konghq.com
+#   helm repo update
+
+gateway:
+  enabled: true
+  image:
+    repository: kong
+    tag: "3.5"
+
+  replicaCount: 1
+
+  env:
+    database: "off"
+    plugins: "bundled"
+    admin_listen: "0.0.0.0:8001"
+    proxy_listen: "0.0.0.0:8000"
+
+  ingressController:
+    enabled: true
+    image:
+      repository: kong/kubernetes-ingress-controller
+      tag: "3.0"
+    env:
+      publish_service: "api-gateway/kong-kong-proxy"
+
+  proxy:
+    type: LoadBalancer
+    http:
+      enabled: true
+      servicePort: 80
+      containerPort: 8000
+    tls:
+      enabled: false
+
+  admin:
+    enabled: true
+    type: ClusterIP
+    http:
+      enabled: true
+      servicePort: 8001
+      containerPort: 8001
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8100"
+    prometheus.io/path: "/metrics"
+
+  # Health probes
+  readinessProbe:
+    httpGet:
+      path: /status
+      port: 8001
+    initialDelaySeconds: 15
+    periodSeconds: 10
+
+  livenessProbe:
+    httpGet:
+      path: /status
+      port: 8001
+    initialDelaySeconds: 30
+    periodSeconds: 10

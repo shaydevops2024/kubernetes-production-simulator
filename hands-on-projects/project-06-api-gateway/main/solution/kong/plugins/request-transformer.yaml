@@ -1,0 +1,14 @@
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: request-transformer-v2
+  namespace: api-gateway
+  annotations:
+    kubernetes.io/ingress.class: kong
+plugin: request-transformer
+config:
+  add:
+    headers:
+      - "X-API-Version:2.0"
+      - "X-Enhanced-Response:true"
+      - "X-Gateway:GatewayHub/Kong-K8s"

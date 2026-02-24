@@ -1,0 +1,132 @@
+version: '3.9'
+
+# ============================================================
+#  GatewayHub — Local Development Stack
+#
+#  Services:
+#    - postgres      -> API service database
+#    - redis         -> Kong rate limiting backend
+#    - api-service   -> FastAPI REST API (behind Kong)
+#    - analytics     -> Analytics service (reads Kong Admin)
+#    - frontend      -> Web UI dashboard (port 3000)
+#    - kong          -> Kong API Gateway (port 8888)
+#
+#  Start: docker compose up --build
+#  UI:    http://localhost:3000
+#  Kong:  http://localhost:8888/v1/products
+#  Admin: http://localhost:8081
+# ============================================================
+
+services:
+
+  # ── PostgreSQL — API service database ──────────────────────
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: gateway_db
+      POSTGRES_USER: gateway
+      POSTGRES_PASSWORD: gatewaypass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gateway -d gateway_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis — Kong rate limiting backend ─────────────────────
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── API Service ────────────────────────────────────────────
+  api-service:
+    build:
+      context: ../app/api-service
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://gateway:gatewaypass@postgres:5432/gateway_db
+      JWT_SECRET: gateway-demo-secret-key-2024
+      PORT: "8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ── Kong API Gateway ────────────────────────────────────────
+  kong:
+    image: kong:3.5-ubuntu
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yml
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+      KONG_PROXY_LISTEN: "0.0.0.0:8000"
+      KONG_PLUGINS: "bundled"
+    volumes:
+      - ./kong/kong.yml:/etc/kong/kong.yml:ro
+    ports:
+      - "8888:8000"    # Kong proxy — main entry point
+      - "8081:8001"    # Kong Admin API — for exploration
+    depends_on:
+      redis:
+        condition: service_healthy
+      api-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ── Analytics Service ───────────────────────────────────────
+  analytics-service:
+    build:
+      context: ../app/analytics-service
+      dockerfile: Dockerfile
+    environment:
+      KONG_ADMIN_URL: http://kong:8001
+      API_SERVICE_URL: http://api-service:8001
+      PORT: "8002"
+    depends_on:
+      api-service:
+        condition: service_healthy
+      kong:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # ── Frontend Dashboard ──────────────────────────────────────
+  frontend:
+    build:
+      context: ../app/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-service
+      - analytics-service
+
+volumes:
+  postgres_data:
+  redis_data:

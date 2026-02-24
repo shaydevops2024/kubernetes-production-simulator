@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: api-gateway
+data:
+  DATABASE_HOST: "postgres"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "gateway_db"
+  DATABASE_USER: "gateway"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  KONG_ADMIN_URL: "http://kong-kong-admin:8001"
+  API_SERVICE_URL: "http://api-service:8001"
+  PORT_API: "8001"
+  PORT_ANALYTICS: "8002"
+  ENVIRONMENT: "production"

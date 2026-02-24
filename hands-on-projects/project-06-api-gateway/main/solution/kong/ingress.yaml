@@ -1,0 +1,129 @@
+# Public API v1 products route
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-v1-public
+  namespace: api-gateway
+  annotations:
+    konghq.com/plugins: "cors-global,rate-limiting-public,prometheus-metrics"
+    konghq.com/strip-path: "false"
+spec:
+  ingressClassName: kong
+  rules:
+    - http:
+        paths:
+          - path: /v1/products
+            pathType: Prefix
+            backend:
+              service:
+                name: api-service
+                port:
+                  number: 8001
+          - path: /health
+            pathType: Prefix
+            backend:
+              service:
+                name: api-service
+                port:
+                  number: 8001
+          - path: /auth
+            pathType: Prefix
+            backend:
+              service:
+                name: api-service
+                port:
+                  number: 8001
+---
+# Protected API v1 route (JWT required)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-v1-protected
+  namespace: api-gateway
+  annotations:
+    konghq.com/plugins: "cors-global,jwt-auth,rate-limiting-consumer,prometheus-metrics"
+    konghq.com/strip-path: "false"
+spec:
+  ingressClassName: kong
+  rules:
+    - http:
+        paths:
+          - path: /v1/users
+            pathType: Prefix
+            backend:
+              service:
+                name: api-service
+                port:
+                  number: 8001
+          - path: /v1/orders
+            pathType: Prefix
+            backend:
+              service:
+                name: api-service
+                port:
+                  number: 8001
+---
+# API v2 route (JWT + enhanced headers)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-v2
+  namespace: api-gateway
+  annotations:
+    konghq.com/plugins: "cors-global,jwt-auth,rate-limiting-consumer,request-transformer-v2,prometheus-metrics"
+    konghq.com/strip-path: "false"
+spec:
+  ingressClassName: kong
+  rules:
+    - http:
+        paths:
+          - path: /v2
+            pathType: Prefix
+            backend:
+              service:
+                name: api-service
+                port:
+                  number: 8001
+---
+# Analytics route
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: analytics-ingress
+  namespace: api-gateway
+  annotations:
+    konghq.com/plugins: "cors-global"
+    konghq.com/strip-path: "false"
+spec:
+  ingressClassName: kong
+  rules:
+    - http:
+        paths:
+          - path: /analytics
+            pathType: Prefix
+            backend:
+              service:
+                name: analytics-service
+                port:
+                  number: 8002
+---
+# Frontend
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontend-ingress
+  namespace: api-gateway
+  annotations:
+    konghq.com/strip-path: "false"
+spec:
+  ingressClassName: kong
+  rules:
+    - http:
+        paths:
+          - path: /ui
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

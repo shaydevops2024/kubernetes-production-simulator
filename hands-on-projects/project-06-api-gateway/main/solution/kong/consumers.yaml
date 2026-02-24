@@ -1,0 +1,49 @@
+apiVersion: configuration.konghq.com/v1
+kind: KongConsumer
+metadata:
+  name: demo-user
+  namespace: api-gateway
+  annotations:
+    kubernetes.io/ingress.class: kong
+username: demo-user
+credentials:
+  - demo-user-jwt
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: demo-user-jwt
+  namespace: api-gateway
+  labels:
+    konghq.com/credential: jwt
+type: Opaque
+stringData:
+  kongCredType: jwt
+  key: demo-user-key
+  secret: gateway-demo-secret-key-2024
+  algorithm: HS256
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongConsumer
+metadata:
+  name: premium-user
+  namespace: api-gateway
+  annotations:
+    kubernetes.io/ingress.class: kong
+username: premium-user
+credentials:
+  - premium-user-jwt
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: premium-user-jwt
+  namespace: api-gateway
+  labels:
+    konghq.com/credential: jwt
+type: Opaque
+stringData:
+  kongCredType: jwt
+  key: premium-user-key
+  secret: gateway-demo-secret-key-2024
+  algorithm: HS256

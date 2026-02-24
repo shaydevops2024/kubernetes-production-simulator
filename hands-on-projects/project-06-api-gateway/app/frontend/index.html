@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GatewayHub — API Gateway Lab</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <span class="sidebar-logo">🛡️</span>
+                <div>
+                    <div class="sidebar-title">GatewayHub</div>
+                    <div class="sidebar-subtitle">API Gateway Lab</div>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a class="nav-item active" data-tab="dashboard" onclick="switchTab('dashboard', this)">
+                    <span class="nav-icon">📊</span> Dashboard
+                </a>
+                <a class="nav-item" data-tab="explorer" onclick="switchTab('explorer', this)">
+                    <span class="nav-icon">🔭</span> API Explorer
+                </a>
+                <a class="nav-item" data-tab="ratelimit" onclick="switchTab('ratelimit', this)">
+                    <span class="nav-icon">⚡</span> Rate Limiting
+                </a>
+                <a class="nav-item" data-tab="auth" onclick="switchTab('auth', this)">
+                    <span class="nav-icon">🔐</span> Auth &amp; JWT
+                </a>
+                <a class="nav-item" data-tab="traffic" onclick="switchTab('traffic', this)">
+                    <span class="nav-icon">🗺️</span> Gateway Config
+                </a>
+            </nav>
+
+            <div class="sidebar-status">
+                <div class="status-row">
+                    <span id="kong-status-dot" class="status-dot"></span>
+                    <span id="kong-status-text">Checking Kong...</span>
+                </div>
+                <div class="status-row" style="margin-top:6px">
+                    <span id="api-status-dot" class="status-dot"></span>
+                    <span id="api-status-text">Checking API...</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main content -->
+        <main class="main-content">
+
+            <!-- ============================================================
+                 Dashboard tab
+                 ============================================================ -->
+            <div id="tab-dashboard" class="tab-panel active">
+                <div class="page-header">
+                    <h1>Dashboard</h1>
+                    <p>Real-time API Gateway overview — updated every 10 seconds</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: var(--primary-light); color: var(--primary)">🛡️</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-services">—</div>
+                            <div class="stat-label">Services</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: var(--success-light); color: var(--success)">🗺️</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-routes">—</div>
+                            <div class="stat-label">Routes</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: var(--warning-light); color: var(--warning)">🔌</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-plugins">—</div>
+                            <div class="stat-label">Plugins Active</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: var(--danger-light); color: var(--danger)">👥</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-consumers">—</div>
+                            <div class="stat-label">Consumers</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>API Service Metrics</h3>
+                            <span id="last-updated" class="badge badge-gray">—</span>
+                        </div>
+                        <div class="metrics-list" id="metrics-list">
+                            <div class="loading-state">
+                                <span class="spinner"></span> Loading metrics...
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Active Routes</h3>
+                            <span class="badge badge-primary" id="routes-count">0</span>
+                        </div>
+                        <div id="dashboard-routes">
+                            <div class="loading-state">
+                                <span class="spinner"></span> Loading routes...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 20px;">
+                    <div class="card-header">
+                        <h3>Active Plugins</h3>
+                        <span class="badge badge-primary" id="plugins-count">0</span>
+                    </div>
+                    <div id="dashboard-plugins" class="plugin-grid">
+                        <div class="loading-state">
+                            <span class="spinner"></span> Loading plugins...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================================
+                 API Explorer tab
+                 ============================================================ -->
+            <div id="tab-explorer" class="tab-panel">
+                <div class="page-header">
+                    <h1>API Explorer</h1>
+                    <p>Test endpoints directly through Kong Gateway — observe headers, versioning, and auth enforcement</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Request Builder</h3>
+                        <div class="auth-toggle">
+                            <label>
+                                <input type="checkbox" id="use-auth" onchange="toggleAuth()">
+                                Use JWT Token
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="explorer-form">
+                        <div class="form-row">
+                            <select id="http-method" class="method-select">
+                                <option value="GET">GET</option>
+                                <option value="POST">POST</option>
+                            </select>
+                            <select id="endpoint-select" class="endpoint-select" onchange="updateEndpoint()">
+                                <optgroup label="Public (no auth)">
+                                    <option value="/v1/products">GET /v1/products — List products (v1, rate limited)</option>
+                                    <option value="/v1/products/categories">GET /v1/products/categories — List categories</option>
+                                    <option value="/v1/products/1">GET /v1/products/1 — Get single product</option>
+                                    <option value="/health">GET /health — Service health check</option>
+                                </optgroup>
+                                <optgroup label="Protected (JWT required)">
+                                    <option value="/v1/users/me">GET /v1/users/me — Current user (v1)</option>
+                                    <option value="/v1/orders">GET /v1/orders — My orders (v1)</option>
+                                    <option value="/v2/products">GET /v2/products — Products enhanced (v2)</option>
+                                    <option value="/v2/users/me">GET /v2/users/me — Current user (v2, enhanced)</option>
+                                </optgroup>
+                                <optgroup label="Auth">
+                                    <option value="/auth/validate">GET /auth/validate — Validate current token</option>
+                                </optgroup>
+                            </select>
+                            <button class="btn btn-primary" onclick="sendRequest()">Send &#9654;</button>
+                        </div>
+
+                        <div class="form-note" id="endpoint-note">
+                            This endpoint is public — no authentication required.
+                        </div>
+                    </div>
+
+                    <div class="explorer-response" id="explorer-response" style="display:none">
+                        <div class="response-split">
+                            <div class="response-section">
+                                <div class="response-label">Request Headers</div>
+                                <pre id="req-headers" class="code-block"></pre>
+                            </div>
+                            <div class="response-section">
+                                <div class="response-label">
+                                    Response
+                                    <span id="resp-status" class="status-badge"></span>
+                                    <span id="resp-time" class="time-badge"></span>
+                                </div>
+                                <pre id="resp-body" class="code-block"></pre>
+                            </div>
+                        </div>
+                        <div class="kong-headers-section">
+                            <div class="response-label">Kong Headers</div>
+                            <div id="kong-headers" class="kong-headers-list"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 20px">
+                    <div class="card-header"><h3>Versioning Comparison</h3></div>
+                    <div class="version-compare">
+                        <div class="version-col">
+                            <div class="version-badge v1">API v1</div>
+                            <ul class="feature-list">
+                                <li>&#x2713; Basic product fields</li>
+                                <li>&#x2713; No authentication (public)</li>
+                                <li>&#x2713; Rate limit: 10 req/min</li>
+                                <li>&#x2717; No stock info</li>
+                                <li>&#x2717; No ratings</li>
+                                <li>&#x2717; No metadata</li>
+                            </ul>
+                        </div>
+                        <div class="version-arrow">&#8594;</div>
+                        <div class="version-col">
+                            <div class="version-badge v2">API v2</div>
+                            <ul class="feature-list">
+                                <li>&#x2713; All v1 fields</li>
+                                <li>&#x2713; JWT authentication required</li>
+                                <li>&#x2713; Rate limit: 60 req/min (consumer)</li>
+                                <li>&#x2713; Stock levels included</li>
+                                <li>&#x2713; Ratings included</li>
+                                <li>&#x2713; Rich metadata object</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================================
+                 Rate Limiting tab
+                 ============================================================ -->
+            <div id="tab-ratelimit" class="tab-panel">
+                <div class="page-header">
+                    <h1>Rate Limiting</h1>
+                    <p>Watch Kong enforce rate limits in real-time — hit the limit and see 429 responses</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Rate Limit Demo</h3>
+                        <span class="badge badge-warning">10 requests / minute</span>
+                    </div>
+
+                    <div style="padding: 20px 20px 0">
+                        <div class="rate-limit-info">
+                            <div class="rl-stat">
+                                <div class="rl-stat-value" id="rl-total">0</div>
+                                <div class="rl-stat-label">Requests Sent</div>
+                            </div>
+                            <div class="rl-stat">
+                                <div class="rl-stat-value success" id="rl-ok">0</div>
+                                <div class="rl-stat-label">200 OK</div>
+                            </div>
+                            <div class="rl-stat">
+                                <div class="rl-stat-value danger" id="rl-blocked">0</div>
+                                <div class="rl-stat-label">429 Rate Limited</div>
+                            </div>
+                            <div class="rl-stat">
+                                <div class="rl-stat-value warning" id="rl-remaining">—</div>
+                                <div class="rl-stat-label">Remaining (this min)</div>
+                            </div>
+                        </div>
+
+                        <div class="rate-bar-container">
+                            <div class="rate-bar" id="rate-bar"></div>
+                            <div class="rate-bar-label" id="rate-bar-label">0 / 10 requests used</div>
+                        </div>
+
+                        <div class="rate-actions">
+                            <button class="btn btn-primary btn-lg" onclick="spamRequest()">&#9889; Send 1 Request</button>
+                            <button class="btn btn-warning btn-lg" onclick="spamBurst()">&#128165; Burst (15 requests)</button>
+                            <button class="btn btn-ghost" onclick="resetRateLimit()">&#8635; Reset Counter</button>
+                        </div>
+                    </div>
+
+                    <div style="padding: 0 20px 20px">
+                        <div id="rate-log" class="rate-log"></div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top:20px">
+                    <div class="card-header"><h3>How Kong Rate Limiting Works</h3></div>
+                    <div class="explainer" style="padding: 0 20px">
+                        <div class="explainer-step">
+                            <div class="step-num">1</div>
+                            <div class="step-content">
+                                <strong>Request arrives at Kong</strong>
+                                <p>Kong intercepts every request before it reaches your API service.</p>
+                            </div>
+                        </div>
+                        <div class="explainer-step">
+                            <div class="step-num">2</div>
+                            <div class="step-content">
+                                <strong>Rate limit counter checked in Redis</strong>
+                                <p>Kong queries Redis to check how many requests this IP/consumer has made in the current window.</p>
+                            </div>
+                        </div>
+                        <div class="explainer-step">
+                            <div class="step-num">3</div>
+                            <div class="step-content">
+                                <strong>Under limit → forward to API</strong>
+                                <p>Kong adds <code>X-RateLimit-Remaining-minute</code> header and proxies the request.</p>
+                            </div>
+                        </div>
+                        <div class="explainer-step">
+                            <div class="step-num">4</div>
+                            <div class="step-content">
+                                <strong>Over limit → 429 Too Many Requests</strong>
+                                <p>Kong returns 429 immediately — the API service never even sees the request.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================================
+                 Auth & JWT tab
+                 ============================================================ -->
+            <div id="tab-auth" class="tab-panel">
+                <div class="page-header">
+                    <h1>Auth &amp; JWT</h1>
+                    <p>Login to get a JWT — then use it to access protected endpoints and decode the token</p>
+                </div>
+
+                <div class="auth-grid">
+                    <div class="card">
+                        <div class="card-header"><h3>Login</h3></div>
+                        <div style="padding: 16px 20px">
+                            <div class="login-form">
+                                <div class="user-presets">
+                                    <p style="font-size:13px;color:var(--gray-500);margin-bottom:10px">Select a demo user:</p>
+                                    <div class="preset-grid">
+                                        <button class="preset-btn" onclick="selectUser('alice', 'premium')">
+                                            <span class="preset-name">alice</span>
+                                            <span class="preset-badge premium">premium</span>
+                                        </button>
+                                        <button class="preset-btn" onclick="selectUser('bob', 'free')">
+                                            <span class="preset-name">bob</span>
+                                            <span class="preset-badge free">free</span>
+                                        </button>
+                                        <button class="preset-btn" onclick="selectUser('charlie', 'free')">
+                                            <span class="preset-name">charlie</span>
+                                            <span class="preset-badge free">free</span>
+                                        </button>
+                                        <button class="preset-btn" onclick="selectUser('diana', 'premium')">
+                                            <span class="preset-name">diana</span>
+                                            <span class="preset-badge premium">premium</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Username</label>
+                                    <input type="text" id="login-username" placeholder="alice" class="form-input">
+                                </div>
+                                <div class="form-group">
+                                    <label>Password <span style="color:var(--gray-400)">(any value works in demo)</span></label>
+                                    <input type="password" id="login-password" value="demo123" class="form-input">
+                                </div>
+                                <button class="btn btn-primary btn-full" onclick="doLogin()">Login &#8594; Get JWT</button>
+                            </div>
+
+                            <div id="login-error" class="alert alert-danger" style="display:none"></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Current Token</h3>
+                            <button id="logout-btn" class="btn btn-ghost btn-sm" onclick="logout()" style="display:none">Logout</button>
+                        </div>
+                        <div style="padding: 16px 20px">
+                            <div id="token-empty" class="empty-state">
+                                <span class="empty-icon">🔒</span>
+                                <p>No token — login to get started</p>
+                            </div>
+                            <div id="token-info" style="display:none">
+                                <div class="token-meta">
+                                    <div class="meta-row">
+                                        <span class="meta-key">User</span>
+                                        <span id="token-user" class="meta-val"></span>
+                                    </div>
+                                    <div class="meta-row">
+                                        <span class="meta-key">Plan</span>
+                                        <span id="token-plan" class="meta-val"></span>
+                                    </div>
+                                    <div class="meta-row">
+                                        <span class="meta-key">Consumer</span>
+                                        <span id="token-consumer" class="meta-val"></span>
+                                    </div>
+                                    <div class="meta-row">
+                                        <span class="meta-key">Expires</span>
+                                        <span id="token-expires" class="meta-val"></span>
+                                    </div>
+                                </div>
+                                <div class="token-display-label">Bearer Token</div>
+                                <div class="token-display">
+                                    <code id="token-value"></code>
+                                    <button class="copy-btn" onclick="copyToken()">Copy</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top:20px" id="jwt-decode-card">
+                    <div class="card-header"><h3>JWT Token Decoded</h3></div>
+                    <div style="padding: 16px 20px">
+                        <div class="jwt-parts">
+                            <div class="jwt-part">
+                                <div class="jwt-part-label red">Header</div>
+                                <pre id="jwt-header" class="code-block"></pre>
+                            </div>
+                            <div class="jwt-part">
+                                <div class="jwt-part-label blue">Payload</div>
+                                <pre id="jwt-payload" class="code-block"></pre>
+                            </div>
+                            <div class="jwt-part">
+                                <div class="jwt-part-label green">Signature</div>
+                                <div id="jwt-signature" class="code-block signature-block">HMACSHA256(<br>&nbsp;&nbsp;base64url(header) + "." + base64url(payload),<br>&nbsp;&nbsp;<strong>secret</strong><br>)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top:20px" id="protected-tests">
+                    <div class="card-header"><h3>Test Protected Endpoints</h3></div>
+                    <div style="padding: 16px 20px">
+                        <div class="protected-btns">
+                            <button class="btn btn-primary" onclick="testProtected('/v1/users/me')">GET /v1/users/me</button>
+                            <button class="btn btn-primary" onclick="testProtected('/v2/users/me')">GET /v2/users/me</button>
+                            <button class="btn btn-primary" onclick="testProtected('/v2/products')">GET /v2/products</button>
+                            <button class="btn btn-primary" onclick="testProtected('/auth/validate')">Validate Token</button>
+                        </div>
+                        <div id="protected-result" class="code-block" style="margin-top:16px;display:none"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================================
+                 Gateway Config tab
+                 ============================================================ -->
+            <div id="tab-traffic" class="tab-panel">
+                <div class="page-header">
+                    <h1>Gateway Configuration</h1>
+                    <p>Live Kong configuration — services, routes, and plugins loaded from Kong Admin API</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Services</h3>
+                        <span class="badge badge-primary" id="tc-services-count">0</span>
+                    </div>
+                    <table class="data-table" id="services-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Host</th>
+                                <th>Port</th>
+                                <th>Protocol</th>
+                                <th>Retries</th>
+                            </tr>
+                        </thead>
+                        <tbody id="services-tbody"></tbody>
+                    </table>
+                </div>
+
+                <div class="card" style="margin-top:20px">
+                    <div class="card-header">
+                        <h3>Routes</h3>
+                        <span class="badge badge-primary" id="tc-routes-count">0</span>
+                    </div>
+                    <table class="data-table" id="routes-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Paths</th>
+                                <th>Methods</th>
+                            </tr>
+                        </thead>
+                        <tbody id="routes-tbody"></tbody>
+                    </table>
+                </div>
+
+                <div class="card" style="margin-top:20px">
+                    <div class="card-header">
+                        <h3>Active Plugins</h3>
+                        <span class="badge badge-primary" id="tc-plugins-count">0</span>
+                    </div>
+                    <div style="padding: 16px 20px">
+                        <div id="plugins-grid" class="plugin-cards-grid"></div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top:20px">
+                    <div class="card-header">
+                        <h3>Consumers</h3>
+                        <span class="badge badge-primary" id="tc-consumers-count">0</span>
+                    </div>
+                    <div style="padding: 16px 20px">
+                        <div id="consumers-list" class="consumers-grid"></div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
