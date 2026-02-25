@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FaaSHub — Serverless Functions Platform</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-layout">
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <span class="sidebar-logo">&#955;</span>
+                <div>
+                    <div class="sidebar-title">FaaSHub</div>
+                    <div class="sidebar-subtitle">Serverless Platform</div>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a class="nav-item active" data-tab="dashboard" onclick="switchTab('dashboard', this)">
+                    <span class="nav-icon">&#128202;</span> Dashboard
+                </a>
+                <a class="nav-item" data-tab="marketplace" onclick="switchTab('marketplace', this)">
+                    <span class="nav-icon">&#128722;</span> Marketplace
+                </a>
+                <a class="nav-item" data-tab="invoke" onclick="switchTab('invoke', this)">
+                    <span class="nav-icon">&#9889;</span> Invoke
+                </a>
+                <a class="nav-item" data-tab="scaling" onclick="switchTab('scaling', this)">
+                    <span class="nav-icon">&#128200;</span> Scaling Demo
+                </a>
+                <a class="nav-item" data-tab="triggers" onclick="switchTab('triggers', this)">
+                    <span class="nav-icon">&#8987;</span> Triggers
+                </a>
+            </nav>
+
+            <div class="sidebar-status">
+                <div class="status-row">
+                    <span id="svc-dot" class="status-dot"></span>
+                    <span id="svc-text">Checking service...</span>
+                </div>
+                <div class="status-row" style="margin-top:6px">
+                    <span id="runner-dot" class="status-dot"></span>
+                    <span id="runner-text">Checking runner...</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main content -->
+        <main class="main-content">
+
+            <!-- ============================================================
+                 Dashboard
+                 ============================================================ -->
+            <div id="tab-dashboard" class="tab-panel active">
+                <div class="page-header">
+                    <h1>Dashboard</h1>
+                    <p>Live overview of your serverless platform — refreshes every 10 seconds</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:#eef2ff;color:#6366f1">&#955;</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-functions">—</div>
+                            <div class="stat-label">Functions</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:#d1fae5;color:#059669">&#9654;</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-invocations">—</div>
+                            <div class="stat-label">Total Invocations</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:#fef3c7;color:#d97706">&#9200;</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-avg-latency">—</div>
+                            <div class="stat-label">Avg Latency (ms)</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:#fce7f3;color:#db2777">&#128308;</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-triggers">3</div>
+                            <div class="stat-label">Trigger Types</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Function Registry</h3>
+                            <span id="last-updated" class="badge badge-gray">—</span>
+                        </div>
+                        <div id="function-list" class="function-list">
+                            <div class="loading-state"><span class="spinner"></span> Loading...</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Invocation Stats</h3>
+                            <button class="btn btn-ghost btn-sm" onclick="loadDashboard()">&#8635; Refresh</button>
+                        </div>
+                        <div id="invocation-stats" class="invocation-stats">
+                            <div class="loading-state"><span class="spinner"></span> Loading...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top:20px">
+                    <div class="card-header"><h3>What is FaaS?</h3></div>
+                    <div class="explainer" style="padding:0 20px">
+                        <div class="explainer-step">
+                            <div class="step-num">1</div>
+                            <div class="step-content">
+                                <strong>You deploy a function, not a server</strong>
+                                <p>Instead of managing a running process 24/7, you upload code. The platform handles everything else: containers, scaling, networking.</p>
+                            </div>
+                        </div>
+                        <div class="explainer-step">
+                            <div class="step-num">2</div>
+                            <div class="step-content">
+                                <strong>An event triggers execution</strong>
+                                <p>HTTP request, Kafka message, Cron schedule — any event can trigger your function. No event = no running container = no cost.</p>
+                            </div>
+                        </div>
+                        <div class="explainer-step">
+                            <div class="step-num">3</div>
+                            <div class="step-content">
+                                <strong>Platform scales from zero automatically</strong>
+                                <p>First request might be slow (cold start). Subsequent requests hit a warm container. Under high load, Kubernetes scales out replicas automatically.</p>
+                            </div>
+                        </div>
+                        <div class="explainer-step">
+                            <div class="step-num">4</div>
+                            <div class="step-content">
+                                <strong>Your DevOps job: deploy &amp; configure the platform</strong>
+                                <p>Install OpenFaaS or Knative, configure ingress, set up autoscaling policies, manage the function lifecycle via CI/CD. The app is pre-built — the infrastructure is yours to build.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================================
+                 Marketplace
+                 ============================================================ -->
+            <div id="tab-marketplace" class="tab-panel">
+                <div class="page-header">
+                    <h1>Function Marketplace</h1>
+                    <p>Browse available functions — click any card to jump to the Invoke tab with it pre-selected</p>
+                </div>
+
+                <div id="marketplace-grid" class="marketplace-grid">
+                    <div class="loading-state"><span class="spinner"></span> Loading functions...</div>
+                </div>
+            </div>
+
+            <!-- ============================================================
+                 Invoke
+                 ============================================================ -->
+            <div id="tab-invoke" class="tab-panel">
+                <div class="page-header">
+                    <h1>Invoke a Function</h1>
+                    <p>Send a request directly to a function and see the response in real-time</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><h3>Function Invoker</h3></div>
+                    <div style="padding:16px 20px">
+                        <div class="invoke-form">
+                            <div class="form-row">
+                                <label class="form-label">Function</label>
+                                <select id="invoke-fn-select" class="form-select" onchange="onFunctionSelect()">
+                                    <option value="hello-world">hello-world</option>
+                                    <option value="fibonacci">fibonacci</option>
+                                    <option value="text-processor">text-processor</option>
+                                    <option value="image-info">image-info</option>
+                                    <option value="weather-report">weather-report</option>
+                                </select>
+                            </div>
+
+                            <div class="form-row">
+                                <label class="form-label">Payload (JSON)</label>
+                                <textarea id="invoke-payload" class="form-textarea" rows="5" spellcheck="false">{"name": "DevOps Engineer"}</textarea>
+                            </div>
+
+                            <div id="invoke-hint" class="form-hint">
+                                Try: <code>{"name": "DevOps Engineer"}</code>
+                            </div>
+
+                            <div style="display:flex;gap:10px;margin-top:16px">
+                                <button class="btn btn-primary btn-lg" onclick="invokeFunction()">
+                                    &#9654; Invoke Function
+                                </button>
+                                <button class="btn btn-ghost" onclick="loadExamplePayload()">
+                                    &#128196; Load Example
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="invoke-result" class="invoke-result" style="display:none">
+                        <div class="result-meta">
+                            <span id="result-fn-name" class="result-badge"></span>
+                            <span id="result-latency" class="result-latency"></span>
+                            <span id="result-count" class="result-count"></span>
+                        </div>
+                        <pre id="result-body" class="code-block"></pre>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top:20px">
+                    <div class="card-header"><h3>Invocation History</h3></div>
+                    <div id="invoke-history" style="padding:0 20px 16px">
+                        <div class="empty-state">
+                            <span class="empty-icon">&#9654;</span>
+                            <p>No invocations yet — invoke a function above</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================================
+                 Scaling Demo
+                 ============================================================ -->
+            <div id="tab-scaling" class="tab-panel">
+                <div class="page-header">
+                    <h1>Scaling Demo</h1>
+                    <p>Understand cold starts, warm containers, and auto-scaling by running load against the fibonacci function</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Load Test</h3>
+                        <span class="badge badge-warning">fibonacci(35) — CPU intensive</span>
+                    </div>
+                    <div style="padding:20px 20px 0">
+                        <div class="scaling-stats">
+                            <div class="scale-stat">
+                                <div class="scale-stat-value" id="sc-total">0</div>
+                                <div class="scale-stat-label">Requests Sent</div>
+                            </div>
+                            <div class="scale-stat">
+                                <div class="scale-stat-value success" id="sc-success">0</div>
+                                <div class="scale-stat-label">Successful</div>
+                            </div>
+                            <div class="scale-stat">
+                                <div class="scale-stat-value warning" id="sc-min">—</div>
+                                <div class="scale-stat-label">Min Latency (ms)</div>
+                            </div>
+                            <div class="scale-stat">
+                                <div class="scale-stat-value" id="sc-avg">—</div>
+                                <div class="scale-stat-label">Avg Latency (ms)</div>
+                            </div>
+                            <div class="scale-stat">
+                                <div class="scale-stat-value danger" id="sc-max">—</div>
+                                <div class="scale-stat-label">Max Latency (ms)</div>
+                            </div>
+                        </div>
+
+                        <div class="scale-actions">
+                            <button class="btn btn-primary btn-lg" onclick="scaleRunOne()">&#9654; Single Request</button>
+                            <button class="btn btn-warning btn-lg" onclick="scaleRunBurst(10)">&#128165; Burst (10 req)</button>
+                            <button class="btn btn-danger btn-lg" onclick="scaleRunBurst(30)">&#128293; Heavy Load (30 req)</button>
+                            <button class="btn btn-ghost" onclick="resetScaling()">&#8635; Reset</button>
+                        </div>
+                    </div>
+                    <div id="scale-log" class="scale-log" style="padding:0 20px 20px;margin-top:12px"></div>
+                </div>
+
+                <div class="card" style="margin-top:20px">
+                    <div class="card-header"><h3>Scaling Concepts</h3></div>
+                    <div class="concepts-grid">
+                        <div class="concept-card">
+                            <div class="concept-icon">&#10052;</div>
+                            <div class="concept-title">Cold Start</div>
+                            <div class="concept-body">First request to a scaled-to-zero function. Kubernetes must schedule a pod, pull the image, start the container. Adds 1–10s latency. Solution: keep-alive probes, pre-warming, min replicas.</div>
+                        </div>
+                        <div class="concept-card">
+                            <div class="concept-icon">&#9728;</div>
+                            <div class="concept-title">Warm Container</div>
+                            <div class="concept-body">Subsequent requests hit an already-running container. Near-instant response. Kubernetes keeps the pod alive for a configurable idle timeout before scaling to zero.</div>
+                        </div>
+                        <div class="concept-card">
+                            <div class="concept-icon">&#128200;</div>
+                            <div class="concept-title">Scale-Out (HPA)</div>
+                            <div class="concept-body">Under high load, HPA (Horizontal Pod Autoscaler) adds replicas based on CPU/memory/custom metrics. With KEDA, you can scale on HTTP request queue depth too.</div>
+                        </div>
+                        <div class="concept-card">
+                            <div class="concept-icon">&#128308;</div>
+                            <div class="concept-title">Scale-to-Zero</div>
+                            <div class="concept-body">Knative and OpenFaaS can scale pods to zero when idle. Zero cost, zero resource usage — but at the cost of cold starts. Configurable per function.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================================
+                 Triggers
+                 ============================================================ -->
+            <div id="tab-triggers" class="tab-panel">
+                <div class="page-header">
+                    <h1>Trigger Types</h1>
+                    <p>Functions can be invoked by different event sources — this tab explains each one</p>
+                </div>
+
+                <div class="triggers-grid">
+                    <div class="trigger-card">
+                        <div class="trigger-header">
+                            <span class="trigger-icon">&#127760;</span>
+                            <div>
+                                <div class="trigger-name">HTTP Trigger</div>
+                                <span class="trigger-badge http">Active in this demo</span>
+                            </div>
+                        </div>
+                        <div class="trigger-body">
+                            <p>The most common trigger. An HTTP request (GET, POST, etc.) to a URL invokes the function. OpenFaaS and Knative both expose an HTTP endpoint per function.</p>
+                            <div class="trigger-example">
+                                <div class="te-label">Example (curl)</div>
+                                <pre class="code-block">curl -X POST http://faashub/function/hello-world \
+  -H "Content-Type: application/json" \
+  -d '{"name": "DevOps"}'</pre>
+                            </div>
+                            <div class="trigger-k8s">
+                                <div class="te-label">What you configure in K8s</div>
+                                <pre class="code-block">kind: Function   # OpenFaaS CRD
+metadata:
+  name: hello-world
+spec:
+  image: your-registry/hello-world:v1
+  labels:
+    com.openfaas.scale.zero: "true"</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="trigger-card">
+                        <div class="trigger-header">
+                            <span class="trigger-icon">&#9201;</span>
+                            <div>
+                                <div class="trigger-name">Cron Trigger</div>
+                                <span class="trigger-badge cron">Scheduled</span>
+                            </div>
+                        </div>
+                        <div class="trigger-body">
+                            <p>Schedule a function to run on a cron expression. Perfect for periodic tasks: reports, data sync, cache warming, health checks. In Kubernetes, this is a <code>CronJob</code> or a KEDA <code>ScaledJob</code>.</p>
+                            <div class="trigger-example">
+                                <div class="te-label">Example (Kubernetes CronJob)</div>
+                                <pre class="code-block">apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: weather-report-cron
+spec:
+  schedule: "0 * * * *"   # every hour
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: invoker
+            image: curlimages/curl
+            args:
+            - curl -X POST http://faashub/function/weather-report
+              -d '{"city": "Tel Aviv"}'</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="trigger-card">
+                        <div class="trigger-header">
+                            <span class="trigger-icon">&#128228;</span>
+                            <div>
+                                <div class="trigger-name">Kafka Trigger</div>
+                                <span class="trigger-badge kafka">Event-Driven</span>
+                            </div>
+                        </div>
+                        <div class="trigger-body">
+                            <p>A message on a Kafka topic triggers function invocation. KEDA watches the consumer group lag and scales replicas accordingly. Zero messages = zero pods. Burst of messages = instant scale-out.</p>
+                            <div class="trigger-example">
+                                <div class="te-label">KEDA ScaledObject for Kafka</div>
+                                <pre class="code-block">apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: text-processor-kafka
+spec:
+  scaleTargetRef:
+    name: text-processor
+  triggers:
+  - type: kafka
+    metadata:
+      topic: text-events
+      bootstrapServers: kafka:9092
+      consumerGroup: text-processor
+      lagThreshold: "5"</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top:24px">
+                    <div class="card-header"><h3>Simulate a Cron Trigger</h3></div>
+                    <div style="padding:16px 20px">
+                        <p style="color:var(--gray-500);font-size:14px;margin-bottom:16px">
+                            Click the button below to simulate what happens when a Cron job fires. It invokes the <strong>weather-report</strong> function with a rotating set of cities — just like a scheduled job would.
+                        </p>
+                        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+                            <button class="btn btn-primary" onclick="simulateCron()">&#9201; Fire Cron Trigger (weather-report)</button>
+                            <button class="btn btn-ghost" onclick="startAutoCron()" id="auto-cron-btn">&#9654; Start Auto (every 5s)</button>
+                            <button class="btn btn-ghost btn-sm" onclick="stopAutoCron()" id="stop-cron-btn" style="display:none">&#9646;&#9646; Stop Auto</button>
+                        </div>
+                        <div id="cron-log" class="scale-log"></div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <div id="toast" class="toast"></div>
+    <script src="app.js"></script>
+</body>
+</html>

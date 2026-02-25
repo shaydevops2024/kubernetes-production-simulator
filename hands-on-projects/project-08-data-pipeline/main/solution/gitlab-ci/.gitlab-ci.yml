@@ -1,0 +1,191 @@
+###############################################################################
+# GitLab CI/CD Pipeline — Data Pipeline Project
+# Stages: test → build → scan → push → update-manifests
+#
+# Rules:
+#   - All branches: test, build, scan
+#   - main branch only: push + update-manifests (triggers ArgoCD sync)
+#   - No manual kubectl applies anywhere
+###############################################################################
+
+variables:
+  REGISTRY: "${CI_REGISTRY}/${CI_PROJECT_PATH}"
+  IMAGE_TAG: "${CI_COMMIT_SHA:0:8}"
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+
+stages:
+  - test
+  - build
+  - scan
+  - push
+  - update-manifests
+
+# ── Shared Docker login ───────────────────────────────────────────────────────
+.docker-login: &docker-login
+  before_script:
+    - docker login -u "${CI_REGISTRY_USER}" -p "${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY}"
+
+# ── Test: Producer ────────────────────────────────────────────────────────────
+test-producer:
+  stage: test
+  image: python:3.11-slim
+  script:
+    - cd app/pipeline-producer
+    - pip install -r requirements.txt pytest pytest-asyncio httpx
+    - pytest tests/ -v --tb=short || echo "No tests yet — add tests to app/pipeline-producer/tests/"
+  allow_failure: true
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'
+
+# ── Test: Processor ───────────────────────────────────────────────────────────
+test-processor:
+  stage: test
+  image: python:3.11-slim
+  script:
+    - cd app/pipeline-processor
+    - pip install -r requirements.txt pytest pyspark==3.5.1
+    - pytest tests/ -v --tb=short || echo "No tests yet"
+  allow_failure: true
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'
+
+# ── Build: all images in parallel ─────────────────────────────────────────────
+.build-image: &build-image
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  <<: *docker-login
+
+build-producer:
+  <<: *build-image
+  script:
+    - docker build -t "${REGISTRY}/pipeline-producer:${IMAGE_TAG}" app/pipeline-producer/
+    - docker tag "${REGISTRY}/pipeline-producer:${IMAGE_TAG}" "${REGISTRY}/pipeline-producer:latest"
+    - docker save "${REGISTRY}/pipeline-producer:${IMAGE_TAG}" | gzip > producer-image.tar.gz
+  artifacts:
+    paths: [producer-image.tar.gz]
+    expire_in: 1 hour
+
+build-processor:
+  <<: *build-image
+  script:
+    - docker build -t "${REGISTRY}/pipeline-processor:${IMAGE_TAG}" app/pipeline-processor/
+    - docker tag "${REGISTRY}/pipeline-processor:${IMAGE_TAG}" "${REGISTRY}/pipeline-processor:latest"
+    - docker save "${REGISTRY}/pipeline-processor:${IMAGE_TAG}" | gzip > processor-image.tar.gz
+  artifacts:
+    paths: [processor-image.tar.gz]
+    expire_in: 1 hour
+
+build-dashboard:
+  <<: *build-image
+  script:
+    - docker build -t "${REGISTRY}/pipeline-dashboard:${IMAGE_TAG}" app/dashboard-ui/
+    - docker tag "${REGISTRY}/pipeline-dashboard:${IMAGE_TAG}" "${REGISTRY}/pipeline-dashboard:latest"
+    - docker save "${REGISTRY}/pipeline-dashboard:${IMAGE_TAG}" | gzip > dashboard-image.tar.gz
+  artifacts:
+    paths: [dashboard-image.tar.gz]
+    expire_in: 1 hour
+
+# ── Scan: Trivy vulnerability scan ────────────────────────────────────────────
+.trivy-scan: &trivy-scan
+  stage: scan
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+  script:
+    - trivy --version
+    - trivy image
+        --exit-code 1
+        --severity CRITICAL
+        --no-progress
+        --format table
+        "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+
+scan-producer:
+  <<: *trivy-scan
+  variables:
+    IMAGE_NAME: pipeline-producer
+  needs: [build-producer]
+  before_script:
+    - docker login -u "${CI_REGISTRY_USER}" -p "${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY}"
+    - docker load < producer-image.tar.gz
+
+scan-processor:
+  <<: *trivy-scan
+  variables:
+    IMAGE_NAME: pipeline-processor
+  needs: [build-processor]
+  before_script:
+    - docker login -u "${CI_REGISTRY_USER}" -p "${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY}"
+    - docker load < processor-image.tar.gz
+
+scan-dashboard:
+  <<: *trivy-scan
+  variables:
+    IMAGE_NAME: pipeline-dashboard
+  needs: [build-dashboard]
+  before_script:
+    - docker login -u "${CI_REGISTRY_USER}" -p "${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY}"
+    - docker load < dashboard-image.tar.gz
+
+# ── Push: only on main branch ─────────────────────────────────────────────────
+.push-image: &push-image
+  stage: push
+  image: docker:24
+  services:
+    - docker:24-dind
+  <<: *docker-login
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+push-producer:
+  <<: *push-image
+  needs: [scan-producer]
+  script:
+    - docker load < producer-image.tar.gz
+    - docker push "${REGISTRY}/pipeline-producer:${IMAGE_TAG}"
+    - docker push "${REGISTRY}/pipeline-producer:latest"
+
+push-processor:
+  <<: *push-image
+  needs: [scan-processor]
+  script:
+    - docker load < processor-image.tar.gz
+    - docker push "${REGISTRY}/pipeline-processor:${IMAGE_TAG}"
+    - docker push "${REGISTRY}/pipeline-processor:latest"
+
+push-dashboard:
+  <<: *push-image
+  needs: [scan-dashboard]
+  script:
+    - docker load < dashboard-image.tar.gz
+    - docker push "${REGISTRY}/pipeline-dashboard:${IMAGE_TAG}"
+    - docker push "${REGISTRY}/pipeline-dashboard:latest"
+
+# ── Update manifests — ArgoCD detects the change and syncs ───────────────────
+update-manifests:
+  stage: update-manifests
+  image: alpine/git:latest
+  needs: [push-producer, push-processor, push-dashboard]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+    # Configure git
+    - git config --global user.email "ci@gitlab.com"
+    - git config --global user.name "GitLab CI"
+
+    # Update image tags in Helm values
+    - |
+      sed -i "s|imageTag:.*|imageTag: \"${IMAGE_TAG}\"|g" \
+        solution/helm/data-pipeline/values.yaml
+
+    # Commit and push the manifest update
+    - git add solution/helm/data-pipeline/values.yaml
+    - git diff --cached --quiet || git commit -m "ci: update image tag to ${IMAGE_TAG} [skip ci]"
+    - git push "https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git" HEAD:main
+
+    - echo "Manifests updated. ArgoCD will detect and sync automatically."

@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pipeline-producer
+  namespace: data-pipeline
+  labels:
+    app: pipeline-producer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pipeline-producer
+  template:
+    metadata:
+      labels:
+        app: pipeline-producer
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "8090"
+    spec:
+      containers:
+        - name: producer
+          image: "registry.gitlab.com/YOUR_ORG/data-pipeline/pipeline-producer:latest"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8090
+              name: http
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "pipeline-kafka-kafka-bootstrap.data-pipeline.svc:9092"
+            - name: KAFKA_TOPIC
+              value: "sensor-events"
+            - name: EVENTS_PER_SECOND
+              value: "10"
+            - name: NUM_SENSORS
+              value: "50"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8090
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8090
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              memory: 128Mi
+              cpu: 100m
+            limits:
+              memory: 256Mi
+              cpu: 500m
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pipeline-producer
+  namespace: data-pipeline
+  labels:
+    app: pipeline-producer
+spec:
+  selector:
+    app: pipeline-producer
+  ports:
+    - port: 8090
+      targetPort: 8090
+      name: http

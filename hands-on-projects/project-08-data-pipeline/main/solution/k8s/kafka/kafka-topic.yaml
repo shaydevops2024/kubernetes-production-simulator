@@ -1,0 +1,16 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: sensor-events
+  namespace: data-pipeline
+  labels:
+    strimzi.io/cluster: pipeline-kafka
+spec:
+  partitions: 6
+  replicas: 3
+  config:
+    retention.ms: "86400000"      # 24 hours
+    retention.bytes: "1073741824" # 1 GB per partition
+    cleanup.policy: delete
+    compression.type: lz4
+    min.insync.replicas: "2"

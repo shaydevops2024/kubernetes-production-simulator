@@ -1,0 +1,131 @@
+services:
+
+  # ── Kafka (KRaft mode — no ZooKeeper needed) ─────────────────────────────────
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    hostname: kafka
+    container_name: kafka
+    ports:
+      - "9092:9092"
+      - "9101:9101"   # JMX for metrics
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_JMX_PORT: 9101
+      KAFKA_JMX_HOSTNAME: localhost
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qg"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # ── Kafka UI (browse topics, view messages) ───────────────────────────────────
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8085:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  # ── TimescaleDB (PostgreSQL + time-series extension) ──────────────────────────
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: timescaledb
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: pipeline
+      POSTGRES_USER: pipeline
+      POSTGRES_PASSWORD: pipeline123
+    volumes:
+      - timescale-data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pipeline -d pipeline"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── Pipeline Producer (IoT sensor event generator) ────────────────────────────
+  producer:
+    build:
+      context: ../app/pipeline-producer
+      dockerfile: Dockerfile
+    container_name: pipeline-producer
+    ports:
+      - "8090:8090"
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_TOPIC: sensor-events
+      EVENTS_PER_SECOND: "10"
+      NUM_SENSORS: "50"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: on-failure
+
+  # ── Pipeline Processor (Spark Structured Streaming) ───────────────────────────
+  processor:
+    build:
+      context: ../app/pipeline-processor
+      dockerfile: Dockerfile
+    container_name: pipeline-processor
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_TOPIC: sensor-events
+      KAFKA_GROUP_ID: spark-processor
+      TIMESCALE_URL: jdbc:postgresql://timescaledb:5432/pipeline
+      TIMESCALE_USER: pipeline
+      TIMESCALE_PASSWORD: pipeline123
+      WINDOW_DURATION: "5 seconds"
+      TRIGGER_INTERVAL: "5 seconds"
+    volumes:
+      - spark-checkpoints:/tmp/checkpoint
+    depends_on:
+      kafka:
+        condition: service_healthy
+      timescaledb:
+        condition: service_healthy
+    restart: on-failure
+
+  # ── Dashboard UI ──────────────────────────────────────────────────────────────
+  dashboard:
+    build:
+      context: ../app/dashboard-ui
+      dockerfile: Dockerfile
+    container_name: pipeline-dashboard
+    ports:
+      - "3000:3000"
+    environment:
+      TIMESCALE_URL: postgresql://pipeline:pipeline123@timescaledb:5432/pipeline
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    restart: on-failure
+
+volumes:
+  kafka-data:
+  timescale-data:
+  spark-checkpoints:

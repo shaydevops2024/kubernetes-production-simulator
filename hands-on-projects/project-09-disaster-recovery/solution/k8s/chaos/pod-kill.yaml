@@ -1,0 +1,34 @@
+# LitmusChaos — Pod Kill Experiment
+# Kills one dr-app pod to test Kubernetes self-healing and readinessProbe recovery time.
+#
+# Prerequisites:
+#   helm install chaos litmuschaos/litmus --namespace litmus --create-namespace
+#   kubectl apply -f https://hub.litmuschaos.io/api/chaos/master?file=charts/generic/pod-delete/experiment.yaml
+#
+# Apply: kubectl apply -f pod-kill.yaml
+
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: dr-app-pod-kill
+  namespace: dr-lab
+spec:
+  appinfo:
+    appns: dr-lab
+    applabel: "app=dr-app"
+    appkind: deployment
+  engineState: "active"
+  chaosServiceAccount: litmus-admin
+  experiments:
+  - name: pod-delete
+    spec:
+      components:
+        env:
+        - name: TOTAL_CHAOS_DURATION
+          value: "30"          # Kill pods for 30 seconds
+        - name: CHAOS_INTERVAL
+          value: "10"          # Kill every 10 seconds
+        - name: FORCE
+          value: "false"       # Graceful termination
+        - name: PODS_AFFECTED_PERC
+          value: "50"          # Kill 50% of pods (1 out of 2)

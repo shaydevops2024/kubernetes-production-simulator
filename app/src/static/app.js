@@ -125,7 +125,7 @@ function openPlayAnsible() {
 
 // Open Hands-On Projects page
 function openHandsOnProjects() {
-    window.open('/static/hands-on-projects.html', '_blank');
+    window.open('/hands-on-projects', '_blank');
 }
 
 // Open ArgoCD with automatic fallback

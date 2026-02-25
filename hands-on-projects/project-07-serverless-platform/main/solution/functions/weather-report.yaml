@@ -1,0 +1,47 @@
+apiVersion: openfaas.com/v1
+kind: Function
+metadata:
+  name: weather-report
+  namespace: openfaas-fn
+spec:
+  name: weather-report
+  image: <your-dockerhub>/function-runner:v1
+  labels:
+    com.openfaas.scale.zero: "true"
+    com.openfaas.scale.zero-duration: "60s"    # Longer idle — Cron triggers are infrequent
+    com.openfaas.scale.min: "0"
+    com.openfaas.scale.max: "3"
+    com.openfaas.scale.target: "10"
+  environment:
+    FUNCTION_NAME: "weather-report"
+  requests:
+    memory: "64Mi"
+    cpu: "50m"
+  limits:
+    memory: "128Mi"
+    cpu: "200m"
+  readOnlyRootFilesystem: false
+---
+# CronJob to fire weather-report every hour
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: weather-report-cron
+  namespace: faashub
+spec:
+  schedule: "0 * * * *"    # Every hour at :00
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: invoker
+            image: curlimages/curl:8.6.0
+            command:
+            - sh
+            - -c
+            - |
+              curl -s -X POST http://function-service.faashub:8001/functions/weather-report/invoke \
+                -H "Content-Type: application/json" \
+                -d '{"payload": {"city": "Tel Aviv"}}' | head -c 500

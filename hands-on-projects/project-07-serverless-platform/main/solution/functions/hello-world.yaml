@@ -1,0 +1,27 @@
+# OpenFaaS Function definition — hello-world
+# Deploy with: kubectl apply -f hello-world.yaml
+# Or via CLI:  faas-cli deploy -f hello-world.yaml
+
+apiVersion: openfaas.com/v1
+kind: Function
+metadata:
+  name: hello-world
+  namespace: openfaas-fn
+spec:
+  name: hello-world
+  image: <your-dockerhub>/function-runner:v1   # Your function-runner handles all functions
+  labels:
+    com.openfaas.scale.zero: "true"            # Enable scale-to-zero
+    com.openfaas.scale.zero-duration: "30s"    # Scale to zero after 30s idle
+    com.openfaas.scale.min: "0"
+    com.openfaas.scale.max: "5"
+    com.openfaas.scale.target: "10"            # Target concurrent requests per replica
+  environment:
+    FUNCTION_NAME: "hello-world"
+  requests:
+    memory: "64Mi"
+    cpu: "100m"
+  limits:
+    memory: "128Mi"
+    cpu: "500m"
+  readOnlyRootFilesystem: false

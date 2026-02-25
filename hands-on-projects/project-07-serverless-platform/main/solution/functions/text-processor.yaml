@@ -1,0 +1,23 @@
+apiVersion: openfaas.com/v1
+kind: Function
+metadata:
+  name: text-processor
+  namespace: openfaas-fn
+spec:
+  name: text-processor
+  image: <your-dockerhub>/function-runner:v1
+  labels:
+    com.openfaas.scale.zero: "true"
+    com.openfaas.scale.zero-duration: "30s"
+    com.openfaas.scale.min: "0"
+    com.openfaas.scale.max: "5"
+    com.openfaas.scale.target: "10"
+  environment:
+    FUNCTION_NAME: "text-processor"
+  requests:
+    memory: "64Mi"
+    cpu: "100m"
+  limits:
+    memory: "128Mi"
+    cpu: "500m"
+  readOnlyRootFilesystem: false

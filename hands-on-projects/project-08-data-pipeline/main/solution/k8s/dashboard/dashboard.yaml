@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pipeline-dashboard
+  namespace: data-pipeline
+  labels:
+    app: pipeline-dashboard
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: pipeline-dashboard
+  template:
+    metadata:
+      labels:
+        app: pipeline-dashboard
+    spec:
+      containers:
+        - name: dashboard
+          image: "registry.gitlab.com/YOUR_ORG/data-pipeline/pipeline-dashboard:latest"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+              name: http
+          env:
+            - name: TIMESCALE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: timescale-secret
+                  key: url
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              memory: 128Mi
+              cpu: 100m
+            limits:
+              memory: 256Mi
+              cpu: 250m
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pipeline-dashboard
+  namespace: data-pipeline
+  labels:
+    app: pipeline-dashboard
+spec:
+  selector:
+    app: pipeline-dashboard
+  ports:
+    - port: 80
+      targetPort: 3000
+      name: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pipeline-dashboard
+  namespace: data-pipeline
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: pipeline.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: pipeline-dashboard
+                port:
+                  number: 80

@@ -30,9 +30,9 @@ Every project has three folders:
 | 04 | [Full GitOps CI/CD Pipeline with Progressive Delivery](./project-04-gitops-cicd/README.md) | GitHub Actions, ArgoCD, Flagger, Canary Deployments, Rollback | ✅ Available |
 | 05 | [Complete Observability Stack](./project-05-observability-stack/README.md) | Prometheus, Grafana, Loki, Tempo, Jaeger, AlertManager, Thanos, SLO/SLI | ✅ Available |
 | 06 | [GatewayHub — API Gateway with Advanced Traffic Management](./project-06-api-gateway/README.md) | Kong, JWT Auth, Rate Limiting, Request Transform, API Versioning, Helm, ArgoCD | ✅ Available |
-| 07 | Multi-Region Active-Active Setup | Federation, Global Load Balancing | 🔜 Coming Soon |
-| 08 | Autoscaling & Cost Optimization | HPA, VPA, KEDA, Spot Instances | 🔜 Coming Soon |
-| 09 | Disaster Recovery System | Velero, Cross-Region Replication, RTO/RPO | 🔜 Coming Soon |
+| 07 | [Serverless Functions Platform on Kubernetes](./project-07-serverless-platform/README.md) | OpenFaaS, KEDA, Scale-to-Zero, HPA, CronJob, ArgoCD | ✅ Available |
+| 08 | [Real-Time Data Pipeline on Kubernetes](./project-08-data-pipeline/README.md) | Kafka/Strimzi, Apache Spark, TimescaleDB, GitLab CI, ArgoCD, KEDA, Vault, Chaos Engineering | ✅ Available |
+| 09 | [Kubernetes Disaster Recovery System](./project-09-disaster-recovery/README.md) | Velero, MinIO/S3, LitmusChaos, Prometheus, Terraform/EKS, RPO/RTO Runbooks | ✅ Available |
 | 10 | Platform Engineering (IDP) | Backstage, Self-Service Infrastructure | 🔜 Coming Soon |
 | 11 | MLOps Pipeline | Kubeflow, Model Serving, A/B Testing | 🔜 Coming Soon |
 | 12 | Serverless on Kubernetes | Knative, Event-Driven Architecture | 🔜 Coming Soon |
@@ -57,6 +57,6 @@ Before starting any project:
 
 **Beginner:** Start with Project 01 (local/ folder only) → Project 02 → Project 07
 
-**Intermediate:** Projects 01–03 (full main/ deployment) → Project 04 → Project 05 (observability) → Project 06 (API gateway)
+**Intermediate:** Projects 01–03 (full main/ deployment) → Project 04 → Project 05 (observability) → Project 06 (API gateway) → Project 07 (serverless)
 
-**Advanced:** Projects 07, 10, 11, 12, 15, 16
+**Advanced:** Project 08 (data pipeline) → Projects 10, 11, 15, 16

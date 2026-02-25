@@ -64,6 +64,9 @@ COPY terraform-scenarios/ /terraform-scenarios/
 # Copy Ansible scenarios into the image
 COPY ansible-scenarios/ /ansible-scenarios/
 
+# Copy Hands-On Projects into the image
+COPY hands-on-projects/ /hands-on-projects/
+
 # Now create non-root user and set ownership
 RUN useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /app && \
@@ -80,7 +83,9 @@ RUN useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /terraform-scenarios && \
     chmod -R 755 /terraform-scenarios && \
     chown -R appuser:appuser /ansible-scenarios && \
-    chmod -R 755 /ansible-scenarios
+    chmod -R 755 /ansible-scenarios && \
+    chown -R appuser:appuser /hands-on-projects && \
+    chmod -R 755 /hands-on-projects
 
 # Switch to non-root user
 USER appuser

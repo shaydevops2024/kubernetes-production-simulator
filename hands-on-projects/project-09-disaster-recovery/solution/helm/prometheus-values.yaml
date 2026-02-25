@@ -1,0 +1,74 @@
+# kube-prometheus-stack Helm values — tuned for Kind / local cluster
+# Install command:
+#   helm install monitoring prometheus-community/kube-prometheus-stack \
+#     --namespace monitoring \
+#     --create-namespace \
+#     --values prometheus-values.yaml
+
+# Grafana
+grafana:
+  enabled: true
+  adminPassword: "prom-operator"
+  service:
+    type: NodePort
+    nodePort: 32300
+  # Pre-load DR dashboards
+  dashboardsConfigMaps:
+    dr-lab: "dr-grafana-dashboard"
+  persistence:
+    enabled: false   # Disable for Kind (ephemeral is fine)
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+# Prometheus
+prometheus:
+  prometheusSpec:
+    retention: 7d
+    retentionSize: "2GB"
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+    # Scrape the dr-lab namespace
+    additionalScrapeConfigs:
+    - job_name: 'dr-lab-app'
+      kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names: [dr-lab]
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        regex: dr-app
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_ip]
+        target_label: __address__
+        replacement: $1:4545
+
+# Alertmanager — simple config, no external routing
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+
+# Disable components not needed for this lab
+kubeStateMetrics:
+  enabled: true
+nodeExporter:
+  enabled: true
+kubeApiServer:
+  enabled: false  # Reduces noise in Kind
+kubelet:
+  enabled: true

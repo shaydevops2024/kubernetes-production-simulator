@@ -1,0 +1,66 @@
+# PrometheusRule — DR Lab alerting rules
+# Applied when kube-prometheus-stack is installed
+# kubectl apply -f prometheus-rules.yaml
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: dr-lab-rules
+  namespace: monitoring
+  labels:
+    release: monitoring    # Must match the Helm release name
+spec:
+  groups:
+  - name: dr-lab.availability
+    interval: 30s
+    rules:
+    # Alert if the DR app has no healthy pods
+    - alert: DRAppDown
+      expr: kube_deployment_status_replicas_available{namespace="dr-lab", deployment="dr-app"} == 0
+      for: 1m
+      labels:
+        severity: critical
+        project: disaster-recovery
+      annotations:
+        summary: "DR App is down"
+        description: "No healthy dr-app pods in the dr-lab namespace for more than 1 minute."
+
+    # Alert if primary database pod is not running
+    - alert: PrimaryDatabaseDown
+      expr: kube_pod_status_ready{namespace="dr-lab", pod=~"postgres-primary-.*"} == 0
+      for: 2m
+      labels:
+        severity: critical
+        project: disaster-recovery
+      annotations:
+        summary: "Primary database is down"
+        description: "postgres-primary pod is not ready — recovery may be required."
+
+    # Alert if no Velero backup completed successfully in the last 2 hours
+    - alert: VeleroBackupMissing
+      expr: time() - velero_backup_last_successful_timestamp{schedule="dr-lab-hourly"} > 7200
+      for: 5m
+      labels:
+        severity: warning
+        project: disaster-recovery
+      annotations:
+        summary: "No recent Velero backup"
+        description: "RPO target may be breached — last successful backup was more than 2 hours ago."
+
+  - name: dr-lab.rpo_rto
+    interval: 60s
+    rules:
+    # Track time since last backup (RPO indicator)
+    - record: dr_lab:time_since_last_backup_minutes
+      expr: (time() - velero_backup_last_successful_timestamp{schedule="dr-lab-hourly"}) / 60
+
+    # Alert if RPO exceeds 60 minutes
+    - alert: RPOBreached
+      expr: dr_lab:time_since_last_backup_minutes > 60
+      for: 0m
+      labels:
+        severity: warning
+        project: disaster-recovery
+      annotations:
+        summary: "RPO target breached"
+        description: "Time since last backup is {{ $value | printf \"%.0f\" }} minutes — exceeds 60 minute RPO target."

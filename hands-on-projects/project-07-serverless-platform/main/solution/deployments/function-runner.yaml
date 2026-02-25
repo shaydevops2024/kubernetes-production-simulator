@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: function-runner
+  namespace: faashub
+  labels:
+    app: function-runner
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: function-runner
+  template:
+    metadata:
+      labels:
+        app: function-runner
+    spec:
+      containers:
+      - name: function-runner
+        image: <your-dockerhub>/function-runner:v1   # Replace with your image
+        ports:
+        - containerPort: 8002
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8002
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8002
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+      terminationGracePeriodSeconds: 30

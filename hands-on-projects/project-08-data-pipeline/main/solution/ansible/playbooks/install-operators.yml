@@ -1,0 +1,182 @@
+---
+# Ansible Playbook: Install and configure K8s operators for the data pipeline
+# Run: ansible-playbook playbooks/install-operators.yml -i inventory/production
+
+- name: Install Data Pipeline Kubernetes Operators
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    namespace: data-pipeline
+    strimzi_version: "0.39.0"
+    spark_operator_version: "1.3.3"
+    keda_version: "2.13.0"
+    argocd_version: "stable"
+
+  tasks:
+
+    # ── Namespace ──────────────────────────────────────────────────────────────
+    - name: Create data-pipeline namespace
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ namespace }}"
+            labels:
+              project: data-pipeline
+
+    # ── Helm repos ─────────────────────────────────────────────────────────────
+    - name: Add Helm repositories
+      community.kubernetes.helm_repository:
+        name: "{{ item.name }}"
+        repo_url: "{{ item.url }}"
+      loop:
+        - { name: strimzi,             url: "https://strimzi.io/charts/" }
+        - { name: spark-operator,      url: "https://kubeflow.github.io/spark-operator" }
+        - { name: kedacore,            url: "https://kedacore.github.io/charts" }
+        - { name: argo,                url: "https://argoproj.github.io/argo-helm" }
+        - { name: prometheus-community, url: "https://prometheus-community.github.io/helm-charts" }
+        - { name: grafana,             url: "https://grafana.github.io/helm-charts" }
+        - { name: hashicorp,           url: "https://helm.releases.hashicorp.com" }
+        - { name: chaos-mesh,          url: "https://charts.chaos-mesh.org" }
+
+    # ── Strimzi ────────────────────────────────────────────────────────────────
+    - name: Install Strimzi Kafka Operator
+      community.kubernetes.helm:
+        name: strimzi-operator
+        chart_ref: strimzi/strimzi-kafka-operator
+        chart_version: "{{ strimzi_version }}"
+        release_namespace: "{{ namespace }}"
+        create_namespace: false
+        values:
+          watchNamespaces:
+            - "{{ namespace }}"
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: 100m
+            limits:
+              memory: 512Mi
+              cpu: 500m
+
+    - name: Wait for Strimzi operator to be ready
+      kubernetes.core.k8s_info:
+        kind: Deployment
+        name: strimzi-cluster-operator
+        namespace: "{{ namespace }}"
+        wait: true
+        wait_condition:
+          type: Available
+          status: "True"
+        wait_timeout: 120
+
+    # ── Spark Operator ─────────────────────────────────────────────────────────
+    - name: Install Spark Operator
+      community.kubernetes.helm:
+        name: spark-operator
+        chart_ref: spark-operator/spark-operator
+        chart_version: "{{ spark_operator_version }}"
+        release_namespace: "{{ namespace }}"
+        values:
+          sparkJobNamespace: "{{ namespace }}"
+          webhook:
+            enable: true
+          metrics:
+            enable: true
+            port: 10254
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: 100m
+
+    # ── KEDA ───────────────────────────────────────────────────────────────────
+    - name: Install KEDA
+      community.kubernetes.helm:
+        name: keda
+        chart_ref: kedacore/keda
+        chart_version: "{{ keda_version }}"
+        release_namespace: keda
+        create_namespace: true
+
+    # ── ArgoCD ─────────────────────────────────────────────────────────────────
+    - name: Create ArgoCD namespace
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: argocd
+
+    - name: Install ArgoCD
+      community.kubernetes.helm:
+        name: argo-cd
+        chart_ref: argo/argo-cd
+        release_namespace: argocd
+        values:
+          server:
+            extraArgs:
+              - --insecure   # Remove in production; use TLS termination at load balancer
+          configs:
+            params:
+              server.insecure: "true"
+
+    - name: Wait for ArgoCD to be ready
+      kubernetes.core.k8s_info:
+        kind: Deployment
+        name: argo-cd-argocd-server
+        namespace: argocd
+        wait: true
+        wait_condition:
+          type: Available
+          status: "True"
+        wait_timeout: 180
+
+    - name: Get ArgoCD initial admin password
+      kubernetes.core.k8s_info:
+        kind: Secret
+        name: argocd-initial-admin-secret
+        namespace: argocd
+      register: argocd_secret
+
+    - name: Display ArgoCD admin password
+      debug:
+        msg: "ArgoCD admin password: {{ argocd_secret.resources[0].data.password | b64decode }}"
+
+    # ── kube-prometheus-stack ──────────────────────────────────────────────────
+    - name: Install kube-prometheus-stack
+      community.kubernetes.helm:
+        name: kube-prometheus-stack
+        chart_ref: prometheus-community/kube-prometheus-stack
+        release_namespace: monitoring
+        create_namespace: true
+        values:
+          grafana:
+            enabled: true
+            adminPassword: "admin"   # Change in production
+          prometheus:
+            prometheusSpec:
+              retention: 7d
+              storageSpec:
+                volumeClaimTemplate:
+                  spec:
+                    resources:
+                      requests:
+                        storage: 50Gi
+
+    - name: Print installation summary
+      debug:
+        msg:
+          - "✅ Strimzi Kafka Operator installed in {{ namespace }}"
+          - "✅ Spark Operator installed in {{ namespace }}"
+          - "✅ KEDA installed in keda namespace"
+          - "✅ ArgoCD installed in argocd namespace"
+          - "✅ kube-prometheus-stack installed in monitoring namespace"
+          - ""
+          - "Next steps:"
+          - "  1. Apply Kafka cluster: kubectl apply -f solution/k8s/kafka/"
+          - "  2. Apply TimescaleDB: kubectl apply -f solution/k8s/postgresql/"
+          - "  3. Create ArgoCD Application: kubectl apply -f solution/argocd/"

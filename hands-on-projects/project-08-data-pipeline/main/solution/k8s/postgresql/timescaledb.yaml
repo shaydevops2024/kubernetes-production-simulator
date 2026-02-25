@@ -1,0 +1,119 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: timescale-secret
+  namespace: data-pipeline
+type: Opaque
+stringData:
+  user: pipeline
+  password: pipeline123
+  jdbc_url: "jdbc:postgresql://timescaledb.data-pipeline.svc:5432/pipeline"
+  url: "postgresql://pipeline:pipeline123@timescaledb.data-pipeline.svc:5432/pipeline"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: timescale-init
+  namespace: data-pipeline
+data:
+  init.sql: |
+    CREATE EXTENSION IF NOT EXISTS timescaledb;
+
+    CREATE TABLE IF NOT EXISTS sensor_aggregates (
+        time            TIMESTAMPTZ NOT NULL,
+        sensor_id       TEXT NOT NULL,
+        location        TEXT,
+        avg_temperature DOUBLE PRECISION,
+        max_pressure    DOUBLE PRECISION,
+        avg_humidity    DOUBLE PRECISION,
+        event_count     INTEGER
+    );
+    SELECT create_hypertable('sensor_aggregates', 'time', if_not_exists => TRUE);
+    CREATE INDEX IF NOT EXISTS idx_agg_sensor ON sensor_aggregates (sensor_id, time DESC);
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: timescaledb
+  namespace: data-pipeline
+  labels:
+    app: timescaledb
+spec:
+  serviceName: timescaledb
+  replicas: 1
+  selector:
+    matchLabels:
+      app: timescaledb
+  template:
+    metadata:
+      labels:
+        app: timescaledb
+    spec:
+      containers:
+        - name: timescaledb
+          image: timescale/timescaledb:latest-pg16
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRES_DB
+              value: pipeline
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: timescale-secret
+                  key: user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: timescale-secret
+                  key: password
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: init
+              mountPath: /docker-entrypoint-initdb.d
+          readinessProbe:
+            exec:
+              command: [pg_isready, -U, pipeline, -d, pipeline]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: [pg_isready, -U, pipeline, -d, pipeline]
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 250m
+            limits:
+              memory: 2Gi
+              cpu: "1"
+      volumes:
+        - name: init
+          configMap:
+            name: timescale-init
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 20Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: timescaledb
+  namespace: data-pipeline
+  labels:
+    app: timescaledb
+spec:
+  selector:
+    app: timescaledb
+  ports:
+    - port: 5432
+      targetPort: 5432
+  clusterIP: None

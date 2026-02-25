@@ -1,0 +1,40 @@
+# LitmusChaos Helm values — local Kind cluster
+# Install command:
+#   helm install chaos litmuschaos/litmus \
+#     --namespace litmus \
+#     --create-namespace \
+#     --values litmus-values.yaml
+
+# Expose the chaos portal UI via NodePort
+portal:
+  frontend:
+    service:
+      type: NodePort
+      nodePort: 30000
+
+# Enable the chaos center
+adminConfig:
+  ADMIN_USERNAME: "admin"
+  ADMIN_PASSWORD: "litmus"
+
+# Resource tuning for Kind cluster
+mongo:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 300Mi
+    limits:
+      cpu: 550m
+      memory: 700Mi
+
+server:
+  resources:
+    requests:
+      cpu: 125m
+      memory: 300Mi
+    limits:
+      cpu: 550m
+      memory: 600Mi
+
+# Access the chaos portal at http://localhost:30000
+# Default credentials: admin / litmus

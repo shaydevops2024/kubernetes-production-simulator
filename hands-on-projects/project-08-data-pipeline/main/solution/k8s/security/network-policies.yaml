@@ -1,0 +1,87 @@
+# Only Spark driver/executor + dashboard can reach TimescaleDB
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-timescale-access
+  namespace: data-pipeline
+spec:
+  podSelector:
+    matchLabels:
+      app: timescaledb
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              spark-role: driver
+        - podSelector:
+            matchLabels:
+              spark-role: executor
+        - podSelector:
+            matchLabels:
+              app: pipeline-dashboard
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+# Only producer + Spark can reach Kafka
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-kafka-access
+  namespace: data-pipeline
+spec:
+  podSelector:
+    matchLabels:
+      strimzi.io/cluster: pipeline-kafka
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: pipeline-producer
+        - podSelector:
+            matchLabels:
+              spark-role: driver
+        - podSelector:
+            matchLabels:
+              spark-role: executor
+      ports:
+        - protocol: TCP
+          port: 9092
+        - protocol: TCP
+          port: 9093
+---
+# Dashboard only accepts HTTP from ingress controller
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dashboard-ingress
+  namespace: data-pipeline
+spec:
+  podSelector:
+    matchLabels:
+      app: pipeline-dashboard
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 3000
+---
+# Default deny all ingress
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: data-pipeline
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress

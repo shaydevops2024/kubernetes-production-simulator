@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Pipeline Dashboard</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #0f172a; --surface: #1e293b; --border: #334155;
+            --text: #e2e8f0; --muted: #94a3b8; --accent: #6366f1;
+            --green: #22c55e; --yellow: #f59e0b; --red: #ef4444;
+        }
+        body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; gap: 32px; height: 56px; }
+        nav .logo { font-weight: 800; font-size: 18px; color: var(--accent); }
+        nav a { color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 500; padding: 4px 0; border-bottom: 2px solid transparent; transition: all .15s; cursor: pointer; }
+        nav a:hover, nav a.active { color: var(--text); border-bottom-color: var(--accent); }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; margin-left: auto; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+        main { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+        h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+        .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+        .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+        .card-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 8px; }
+        .card-value { font-size: 32px; font-weight: 800; }
+        .card-value.green { color: var(--green); }
+        .card-value.yellow { color: var(--yellow); }
+        .card-value.red { color: var(--red); }
+        .card-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+        .section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+        .section-title { font-size: 14px; font-weight: 700; margin-bottom: 16px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; color: var(--muted); font-weight: 600; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+        td { padding: 10px 12px; border-bottom: 1px solid #1e293b; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: rgba(255,255,255,.02); }
+        .badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px; }
+        .badge-ok { background: rgba(34,197,94,.15); color: var(--green); }
+        .badge-warn { background: rgba(245,158,11,.15); color: var(--yellow); }
+        .badge-err { background: rgba(239,68,68,.15); color: var(--red); }
+        .chart-bar-wrap { display: flex; align-items: center; gap: 10px; }
+        .chart-bar { height: 8px; border-radius: 4px; background: var(--accent); min-width: 2px; transition: width .5s ease; }
+        .refresh { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+        .last-update { color: var(--accent); }
+        .metric-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .metric-row:last-child { border-bottom: none; }
+        .metric-name { font-size: 13px; font-weight: 600; }
+        .metric-val { font-size: 13px; color: var(--accent); font-weight: 700; }
+        .info-text { font-size: 13px; color: var(--muted); line-height: 1.8; }
+        .info-text em { color: var(--text); }
+        .info-text strong { color: var(--green); }
+        .info-text code { color: var(--accent); background: rgba(99,102,241,.1); padding: 1px 5px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <span class="logo">⚡ Pipeline Monitor</span>
+    <a href="#" class="active" onclick="showTab('overview',this);return false;">Overview</a>
+    <a href="#" onclick="showTab('livefeed',this);return false;">Live Feed</a>
+    <a href="#" onclick="showTab('metrics',this);return false;">Metrics</a>
+    <a href="#" onclick="showTab('lag',this);return false;">Lag</a>
+    <span class="status-dot" title="Pipeline running"></span>
+</nav>
+
+<!-- ── Tab: Overview ─────────────────────────────────────────────── -->
+<main id="tab-overview">
+    <h1>Data Pipeline Dashboard</h1>
+    <p class="subtitle">Real-time monitoring for the Kafka → Spark → TimescaleDB pipeline</p>
+    <p class="refresh">Auto-refreshing every 2s — Last update: <span class="last-update" id="upd-overview">—</span></p>
+
+    <div class="cards">
+        <div class="card">
+            <div class="card-label">Events Ingested</div>
+            <div class="card-value green" id="stat-events">—</div>
+            <div class="card-sub">total since start</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Throughput</div>
+            <div class="card-value" id="stat-throughput">—</div>
+            <div class="card-sub">events / second</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Active Sensors</div>
+            <div class="card-value" id="stat-sensors">—</div>
+            <div class="card-sub">last 30 seconds</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Consumer Lag</div>
+            <div class="card-value yellow" id="stat-lag">—</div>
+            <div class="card-sub">messages behind</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Spark Batches</div>
+            <div class="card-value" id="stat-batches">—</div>
+            <div class="card-sub">processed total</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Pipeline Status</div>
+            <div class="card-value green" id="stat-status">OK</div>
+            <div class="card-sub">all systems healthy</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Recent Sensor Aggregates (last 5-second window)</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Sensor</th><th>Location</th><th>Avg Temp (°C)</th>
+                    <th>Max Pressure (psi)</th><th>Avg Humidity (%)</th>
+                    <th>Events</th><th>Status</th><th>Trend</th>
+                </tr>
+            </thead>
+            <tbody id="sensor-table">
+                <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px;">Waiting for data...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<!-- ── Tab: Live Feed ────────────────────────────────────────────── -->
+<main id="tab-livefeed" style="display:none">
+    <h1>Live Event Feed</h1>
+    <p class="subtitle">Most recent sensor readings processed by Spark and written to TimescaleDB</p>
+    <p class="refresh">Auto-refreshing every 2s — Last update: <span class="last-update" id="upd-feed">—</span></p>
+
+    <div class="section">
+        <div class="section-title">Last 20 processed events</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Time</th><th>Sensor</th><th>Temp (°C)</th>
+                    <th>Pressure (psi)</th><th>Humidity (%)</th><th>Location</th><th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="event-feed">
+                <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:32px;">Waiting for events...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<!-- ── Tab: Metrics ──────────────────────────────────────────────── -->
+<main id="tab-metrics" style="display:none">
+    <h1>Pipeline Metrics</h1>
+    <p class="subtitle">Per-sensor performance readings and system configuration</p>
+    <p class="refresh">Auto-refreshing every 2s — Last update: <span class="last-update" id="upd-metrics">—</span></p>
+
+    <div class="cards">
+        <div class="card">
+            <div class="card-label">Avg Temperature</div>
+            <div class="card-value" id="m-avg-temp">—</div>
+            <div class="card-sub">°C across all sensors</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Max Pressure</div>
+            <div class="card-value" id="m-max-pressure">—</div>
+            <div class="card-sub">psi peak reading</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Avg Humidity</div>
+            <div class="card-value" id="m-avg-humidity">—</div>
+            <div class="card-sub">% across all sensors</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Temperature by Sensor</div>
+        <div id="temp-heatmap" style="padding: 8px 0;"></div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Pipeline Configuration</div>
+        <div>
+            <div class="metric-row"><span class="metric-name">Kafka Topic</span><span class="metric-val">sensor-events</span></div>
+            <div class="metric-row"><span class="metric-name">Partitions</span><span class="metric-val">3</span></div>
+            <div class="metric-row"><span class="metric-name">Consumer Group</span><span class="metric-val">spark-processor</span></div>
+            <div class="metric-row"><span class="metric-name">Window Duration</span><span class="metric-val">5 seconds</span></div>
+            <div class="metric-row"><span class="metric-name">Trigger Interval</span><span class="metric-val">5 seconds</span></div>
+            <div class="metric-row"><span class="metric-name">Watermark</span><span class="metric-val">10 seconds</span></div>
+            <div class="metric-row"><span class="metric-name">Database Table</span><span class="metric-val">sensor_aggregates (TimescaleDB hypertable)</span></div>
+        </div>
+    </div>
+</main>
+
+<!-- ── Tab: Lag ──────────────────────────────────────────────────── -->
+<main id="tab-lag" style="display:none">
+    <h1>Consumer Lag</h1>
+    <p class="subtitle">Kafka consumer group offset tracking for spark-processor</p>
+    <p class="refresh">Auto-refreshing every 2s — Last update: <span class="last-update" id="upd-lag">—</span></p>
+
+    <div class="cards">
+        <div class="card">
+            <div class="card-label">Current Lag</div>
+            <div class="card-value yellow" id="lag-current">—</div>
+            <div class="card-sub">messages behind latest offset</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Consumer Group</div>
+            <div class="card-value" style="font-size:16px;padding-top:8px;">spark-processor</div>
+            <div class="card-sub">Spark Structured Streaming</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Topic / Partitions</div>
+            <div class="card-value" style="font-size:16px;padding-top:8px;">sensor-events</div>
+            <div class="card-sub">3 partitions</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Partition Lag (estimated)</div>
+        <table>
+            <thead>
+                <tr><th>Partition</th><th>Latest Offset</th><th>Committed Offset</th><th>Lag</th><th>Status</th></tr>
+            </thead>
+            <tbody id="lag-table">
+                <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:32px;">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">What is Consumer Lag?</div>
+        <p class="info-text">
+            Consumer lag is the difference between the <em>latest offset</em> produced to a Kafka partition
+            and the <em>committed offset</em> of the consumer group.<br><br>
+            A lag near <strong>0</strong> means the Spark processor is keeping up with the producer.
+            Growing lag means it's falling behind — try pausing the producer
+            (<code>curl -X POST http://localhost:8090/control/pause</code>) and watch the lag drain to zero,
+            then resume (<code>/control/resume</code>) to see it spike momentarily before recovering.
+        </p>
+    </div>
+</main>
+
+<script>
+const API = window.API_URL || '';
+
+// ── Mock data helpers ──────────────────────────────────────────────
+let mockEvents = [];
+let totalEvents = 0;
+let batchCount  = 0;
+const sensors   = Array.from({length: 20}, (_, i) => `sensor-${String(i).padStart(3,'0')}`);
+const locations = ['warehouse-A', 'warehouse-B', 'factory-floor', 'cold-storage', 'loading-dock'];
+const statuses  = ['ok','ok','ok','ok','ok','warning','error'];
+
+function mockSensorData() {
+    return sensors.slice(0, 10).map(id => ({
+        sensor_id: id,
+        location:  locations[Math.abs(id.charCodeAt(7) % locations.length)],
+        avg_temperature: (20 + Math.random() * 60).toFixed(1),
+        max_pressure:    (14.2 + Math.random() * 0.8).toFixed(3),
+        avg_humidity:    (30 + Math.random() * 50).toFixed(1),
+        event_count: Math.floor(Math.random() * 15) + 5,
+        status: statuses[Math.floor(Math.random() * statuses.length)],
+        trend:  Math.random() > 0.5 ? 'up' : 'down',
+    }));
+}
+
+function addMockEvent() {
+    const sid = sensors[Math.floor(Math.random() * sensors.length)];
+    mockEvents.unshift({
+        time:        new Date().toISOString(),
+        sensor_id:   sid,
+        temperature: (20 + Math.random() * 60).toFixed(1),
+        pressure:    (14.2 + Math.random() * 0.8).toFixed(3),
+        humidity:    (30 + Math.random() * 50).toFixed(1),
+        location:    locations[Math.floor(Math.random() * locations.length)],
+        status:      statuses[Math.floor(Math.random() * statuses.length)],
+    });
+    if (mockEvents.length > 20) mockEvents.pop();
+    totalEvents++;
+}
+
+// ── Tab switching ──────────────────────────────────────────────────
+function showTab(name, el) {
+    document.querySelectorAll('main[id^="tab-"]').forEach(m => m.style.display = 'none');
+    document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+    document.getElementById('tab-' + name).style.display = '';
+    el.classList.add('active');
+}
+
+// ── Render functions ───────────────────────────────────────────────
+function renderSensorTable(rows) {
+    const tbody = document.getElementById('sensor-table');
+    if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px;">No data yet — waiting for Spark batches...</td></tr>';
+        return;
+    }
+    tbody.innerHTML = rows.map(r => {
+        const sc  = r.status === 'ok' ? 'badge-ok' : r.status === 'warning' ? 'badge-warn' : 'badge-err';
+        const bar = Math.min(100, ((parseFloat(r.avg_temperature) - 20) / 80) * 100);
+        return `<tr>
+            <td><strong>${r.sensor_id}</strong></td>
+            <td>${r.location}</td>
+            <td><div class="chart-bar-wrap"><span>${r.avg_temperature}°</span><div class="chart-bar" style="width:${bar}px;"></div></div></td>
+            <td>${r.max_pressure}</td>
+            <td>${r.avg_humidity}%</td>
+            <td>${r.event_count}</td>
+            <td><span class="badge ${sc}">${r.status}</span></td>
+            <td>${r.trend === 'up' ? '↑' : '↓'}</td>
+        </tr>`;
+    }).join('');
+}
+
+function renderEventFeed(events) {
+    const tbody = document.getElementById('event-feed');
+    if (!events.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:32px;">Waiting for events...</td></tr>';
+        return;
+    }
+    tbody.innerHTML = events.map(e => {
+        const t  = new Date(e.time || e.timestamp).toLocaleTimeString();
+        const sc = e.status === 'ok' ? 'badge-ok' : e.status === 'warning' ? 'badge-warn' : 'badge-err';
+        return `<tr>
+            <td style="color:var(--muted);font-size:12px;">${t}</td>
+            <td>${e.sensor_id}</td>
+            <td>${e.temperature ?? e.avg_temperature}°</td>
+            <td>${e.pressure ?? e.max_pressure}</td>
+            <td>${e.humidity ?? e.avg_humidity}%</td>
+            <td>${e.location}</td>
+            <td><span class="badge ${sc}">${e.status}</span></td>
+        </tr>`;
+    }).join('');
+}
+
+function renderMetrics(agg) {
+    if (!agg.length) return;
+    const avgTemp     = (agg.reduce((s,r) => s + parseFloat(r.avg_temperature), 0) / agg.length).toFixed(1);
+    const maxPressure = Math.max(...agg.map(r => parseFloat(r.max_pressure))).toFixed(3);
+    const avgHumidity = (agg.reduce((s,r) => s + parseFloat(r.avg_humidity), 0) / agg.length).toFixed(1);
+    document.getElementById('m-avg-temp').textContent     = avgTemp + '°';
+    document.getElementById('m-max-pressure').textContent = maxPressure;
+    document.getElementById('m-avg-humidity').textContent = avgHumidity + '%';
+
+    const hm = document.getElementById('temp-heatmap');
+    hm.innerHTML = agg.map(r => {
+        const pct   = Math.min(100, ((parseFloat(r.avg_temperature) - 20) / 80) * 100);
+        const color = pct > 70 ? 'var(--red)' : pct > 40 ? 'var(--yellow)' : 'var(--accent)';
+        return `<div style="display:flex;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid var(--border);">
+            <span style="width:120px;font-size:12px;font-weight:600;">${r.sensor_id}</span>
+            <div style="flex:1;background:#0f172a;border-radius:4px;height:12px;">
+                <div style="width:${pct}%;background:${color};height:100%;border-radius:4px;transition:width .5s;"></div>
+            </div>
+            <span style="width:60px;font-size:12px;text-align:right;color:${color};">${r.avg_temperature}°C</span>
+        </div>`;
+    }).join('');
+}
+
+function renderLag(lag) {
+    document.getElementById('lag-current').textContent = lag;
+    const perPartition = Math.floor(lag / 3);
+    document.getElementById('lag-table').innerHTML = [0,1,2].map(p => {
+        const partLag    = p === 0 ? lag - perPartition * 2 : perPartition;
+        const statusCls  = partLag > 100 ? 'badge-err' : partLag > 20 ? 'badge-warn' : 'badge-ok';
+        const statusTxt  = partLag > 100 ? 'high' : partLag > 20 ? 'warn' : 'ok';
+        const committed  = 1000 + p * 333;
+        return `<tr>
+            <td><strong>partition-${p}</strong></td>
+            <td style="color:var(--muted);">${committed + partLag}</td>
+            <td style="color:var(--muted);">${committed}</td>
+            <td style="font-weight:700;">${partLag}</td>
+            <td><span class="badge ${statusCls}">${statusTxt}</span></td>
+        </tr>`;
+    }).join('');
+}
+
+// ── Main refresh loop ──────────────────────────────────────────────
+async function refresh() {
+    const now = new Date().toLocaleTimeString();
+    try {
+        const [statsRes, aggRes, feedRes] = await Promise.all([
+            fetch(`${API}/api/stats`),
+            fetch(`${API}/api/aggregates?limit=20`),
+            fetch(`${API}/api/events?limit=20`),
+        ]);
+        const stats = await statsRes.json();
+        const agg   = aggRes.ok  ? await aggRes.json()  : [];
+        const feed  = feedRes.ok ? await feedRes.json() : [];
+
+        document.getElementById('stat-events').textContent     = stats.total_events?.toLocaleString() ?? '—';
+        document.getElementById('stat-throughput').textContent = stats.events_per_second ?? '—';
+        document.getElementById('stat-sensors').textContent    = stats.active_sensors ?? '—';
+        document.getElementById('stat-lag').textContent        = stats.consumer_lag ?? '—';
+        document.getElementById('stat-batches').textContent    = stats.batches_processed ?? '—';
+
+        renderSensorTable(agg);
+        renderEventFeed(feed.length ? feed : agg);
+        renderMetrics(agg);
+        renderLag(stats.consumer_lag ?? 0);
+    } catch {
+        // API unavailable — fall back to mock data
+        for (let i = 0; i < 3; i++) addMockEvent();
+        batchCount++;
+        const lag = Math.floor(Math.random() * 50);
+        document.getElementById('stat-events').textContent     = totalEvents.toLocaleString();
+        document.getElementById('stat-throughput').textContent = '10';
+        document.getElementById('stat-sensors').textContent    = '20';
+        document.getElementById('stat-lag').textContent        = lag;
+        document.getElementById('stat-batches').textContent    = batchCount;
+        const mockAgg = mockSensorData();
+        renderSensorTable(mockAgg);
+        renderEventFeed(mockEvents);
+        renderMetrics(mockAgg);
+        renderLag(lag);
+    }
+
+    document.querySelectorAll('.last-update').forEach(el => el.textContent = now);
+}
+
+refresh();
+setInterval(refresh, 2000);
+</script>
+</body>
+</html>

@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DR Dashboard — Critical Operations</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0f0f1a;--surface:#16162a;--surface2:#1e1e35;--border:#2a2a4a;
+    --primary:#6366f1;--primary-glow:rgba(99,102,241,.25);
+    --green:#22c55e;--green-dim:#16532a;
+    --red:#ef4444;--red-dim:#4a1a1a;
+    --amber:#f59e0b;--amber-dim:#4a3000;
+    --blue:#38bdf8;--purple:#a855f7;
+    --text:#e2e8f0;--muted:#64748b;--white:#fff;
+    --radius:10px;--radius-lg:16px;
+  }
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+  /* ── Header ── */
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+  .header-left{display:flex;align-items:center;gap:12px;}
+  .logo{width:36px;height:36px;background:linear-gradient(135deg,var(--primary),var(--purple));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+  .header-title{font-size:18px;font-weight:700;color:var(--white);}
+  .header-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+  .header-right{display:flex;align-items:center;gap:12px;}
+  .status-pill{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:99px;font-size:12px;font-weight:600;border:1px solid;}
+  .status-pill.ok{background:rgba(34,197,94,.1);color:var(--green);border-color:rgba(34,197,94,.3);}
+  .status-pill.warn{background:rgba(245,158,11,.1);color:var(--amber);border-color:rgba(245,158,11,.3);}
+  .pulse{width:8px;height:8px;border-radius:50%;background:currentColor;animation:pulse 2s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .last-updated{font-size:11px;color:var(--muted);}
+
+  /* ── Layout ── */
+  .main{max-width:1400px;margin:0 auto;padding:24px;display:flex;flex-direction:column;gap:24px;}
+
+  /* ── Section ── */
+  .section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;}
+
+  /* ── Metric Tiles ── */
+  .metrics-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;}
+  .metric-tile{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 22px;}
+  .metric-tile .label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.7px;}
+  .metric-tile .value{font-size:32px;font-weight:800;color:var(--white);margin:6px 0 2px;font-variant-numeric:tabular-nums;}
+  .metric-tile .sub{font-size:12px;color:var(--muted);}
+  .metric-tile .sub.good{color:var(--green);}
+  .metric-tile .sub.warn{color:var(--amber);}
+
+  /* ── Regions ── */
+  .regions{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  @media(max-width:800px){.regions{grid-template-columns:1fr}}
+  .region-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;}
+  .region-header{padding:16px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);}
+  .region-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+  .region-dot.healthy{background:var(--green);box-shadow:0 0 8px var(--green);}
+  .region-dot.degraded{background:var(--amber);box-shadow:0 0 8px var(--amber);}
+  .region-dot.down{background:var(--red);box-shadow:0 0 8px var(--red);}
+  .region-name{font-weight:700;font-size:15px;color:var(--white);flex:1;}
+  .region-badge{font-size:10px;padding:3px 8px;border-radius:99px;font-weight:700;}
+  .badge-primary{background:rgba(99,102,241,.2);color:var(--primary);}
+  .badge-secondary{background:rgba(56,189,248,.15);color:var(--blue);}
+  .region-body{padding:16px 20px;display:flex;flex-direction:column;gap:10px;}
+  .kv{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .kv-key{font-size:12px;color:var(--muted);}
+  .kv-val{font-size:12px;font-weight:600;color:var(--text);}
+  .kv-val.green{color:var(--green);}
+  .kv-val.amber{color:var(--amber);}
+  .kv-val.red{color:var(--red);}
+  .divider{height:1px;background:var(--border);}
+
+  /* ── Tables ── */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;}
+  .card-header-row{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .card-title{font-size:14px;font-weight:700;color:var(--white);}
+  .count-badge{font-size:11px;padding:3px 9px;border-radius:99px;background:var(--surface2);color:var(--muted);font-weight:600;}
+  table{width:100%;border-collapse:collapse;}
+  th{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;padding:10px 20px;text-align:left;border-bottom:1px solid var(--border);}
+  td{font-size:12px;padding:10px 20px;border-bottom:1px solid rgba(42,42,74,.6);color:var(--text);}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:rgba(255,255,255,.02);}
+
+  /* ── Severity / Status chips ── */
+  .chip{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;}
+  .chip-high{background:rgba(239,68,68,.15);color:#f87171;}
+  .chip-medium{background:rgba(245,158,11,.15);color:var(--amber);}
+  .chip-low{background:rgba(34,197,94,.12);color:var(--green);}
+  .chip-success{background:rgba(34,197,94,.15);color:var(--green);}
+  .chip-degraded{background:rgba(245,158,11,.15);color:var(--amber);}
+  .chip-full{background:rgba(168,85,247,.15);color:var(--purple);}
+  .chip-incremental{background:rgba(56,189,248,.12);color:var(--blue);}
+
+  /* ── Bottom row ── */
+  .bottom-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  @media(max-width:900px){.bottom-row{grid-template-columns:1fr}}
+
+  /* ── Actions ── */
+  .actions-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;}
+  .actions-title{font-size:14px;font-weight:700;color:var(--white);margin-bottom:14px;}
+  .btn-row{display:flex;flex-direction:column;gap:10px;}
+  .btn{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:var(--radius);border:1px solid;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;background:transparent;}
+  .btn-backup{color:var(--green);border-color:rgba(34,197,94,.3);}
+  .btn-backup:hover{background:rgba(34,197,94,.08);border-color:var(--green);}
+  .btn-restore{color:var(--blue);border-color:rgba(56,189,248,.3);}
+  .btn-restore:hover{background:rgba(56,189,248,.08);border-color:var(--blue);}
+  .btn-chaos{color:var(--amber);border-color:rgba(245,158,11,.3);}
+  .btn-chaos:hover{background:rgba(245,158,11,.08);border-color:var(--amber);}
+  .btn-icon{font-size:16px;flex-shrink:0;}
+  .btn-info{flex:1;}
+  .btn-label{display:block;}
+  .btn-hint{font-size:11px;font-weight:400;opacity:.7;display:block;margin-top:2px;}
+  .btn-arrow{margin-left:auto;opacity:.5;font-size:12px;}
+
+  /* ── RPO/RTO gauges ── */
+  .gauges{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+  .gauge{background:var(--surface2);border-radius:var(--radius);padding:14px;}
+  .gauge-label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+  .gauge-bar{height:6px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:6px;}
+  .gauge-fill{height:100%;border-radius:99px;transition:width .5s;}
+  .fill-green{background:linear-gradient(90deg,var(--green),#4ade80);}
+  .fill-amber{background:linear-gradient(90deg,var(--amber),#fcd34d);}
+  .fill-red{background:linear-gradient(90deg,var(--red),#f87171);}
+  .gauge-vals{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);}
+  .gauge-vals span:first-child{color:var(--text);font-weight:600;}
+
+  /* ── Mock mode notice ── */
+  .mock-notice{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:var(--radius);padding:10px 14px;font-size:12px;color:var(--amber);margin-bottom:4px;}
+
+  /* ── Toast ── */
+  #toast{position:fixed;bottom:28px;right:28px;background:#1e293b;border:1px solid #334155;border-radius:10px;padding:12px 20px;font-size:13px;font-weight:500;color:var(--text);box-shadow:0 8px 24px rgba(0,0,0,.4);display:none;z-index:999;max-width:320px;}
+
+  /* ── Result Modal ── */
+  #result-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1000;display:none;align-items:center;justify-content:center;}
+  #result-overlay.open{display:flex;}
+  #result-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px 32px;max-width:520px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.5);}
+  #result-box .res-title{font-size:16px;font-weight:800;color:var(--white);margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+  #result-box .res-row{display:flex;gap:10px;margin-bottom:8px;font-size:13px;}
+  #result-box .res-key{color:var(--muted);min-width:110px;flex-shrink:0;}
+  #result-box .res-val{color:var(--text);font-weight:600;word-break:break-all;}
+  #result-box .res-cmd{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-family:monospace;font-size:12px;color:var(--blue);margin:12px 0;word-break:break-all;}
+  #result-box .res-close{margin-top:18px;width:100%;padding:10px;border-radius:var(--radius);border:1px solid var(--border);background:transparent;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;}
+  #result-box .res-close:hover{background:var(--surface2);}
+  #result-box .res-mock{font-size:11px;color:var(--amber);margin-top:10px;padding:6px 10px;background:rgba(245,158,11,.08);border-radius:6px;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo">🛡️</div>
+    <div>
+      <div class="header-title">DR Operations Dashboard</div>
+      <div class="header-sub">Critical Business Service — Disaster Recovery Monitoring</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="status-pill ok" id="global-status">
+      <span class="pulse"></span>
+      <span id="global-status-text">Monitoring Active</span>
+    </div>
+    <div class="last-updated" id="last-updated">–</div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- Mock Notice -->
+  <div class="mock-notice" id="mock-notice" style="display:none">
+    Running in <strong>demo mode</strong> — no database or MinIO connected.
+    Run <code>docker compose up</code> in the <code>local/</code> folder to start all services.
+  </div>
+
+  <!-- Metric Tiles -->
+  <div>
+    <div class="section-label">Recovery Objectives</div>
+    <div class="metrics-row">
+      <div class="metric-tile">
+        <div class="label">RPO Target</div>
+        <div class="value" id="rpo-val">60</div>
+        <div class="sub">minutes max data loss</div>
+      </div>
+      <div class="metric-tile">
+        <div class="label">RPO Current</div>
+        <div class="value" id="rpo-current">–</div>
+        <div class="sub good" id="rpo-status">checking…</div>
+      </div>
+      <div class="metric-tile">
+        <div class="label">RTO Target</div>
+        <div class="value" id="rto-val">15</div>
+        <div class="sub">minutes to recover</div>
+      </div>
+      <div class="metric-tile">
+        <div class="label">Last Recovery Test</div>
+        <div class="value" id="rto-last">–</div>
+        <div class="sub good" id="rto-status">passed</div>
+      </div>
+      <div class="metric-tile">
+        <div class="label">Total Backups</div>
+        <div class="value" id="backup-count">–</div>
+        <div class="sub" id="last-backup-time">checking…</div>
+      </div>
+      <div class="metric-tile">
+        <div class="label">Critical Records</div>
+        <div class="value" id="record-count">–</div>
+        <div class="sub">in primary DB</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Regions -->
+  <div>
+    <div class="section-label">Region Status</div>
+    <div class="regions">
+      <!-- Primary -->
+      <div class="region-card">
+        <div class="region-header">
+          <div class="region-dot healthy" id="primary-dot"></div>
+          <div class="region-name">Primary Region</div>
+          <span class="region-badge badge-primary">PRIMARY</span>
+        </div>
+        <div class="region-body">
+          <div class="kv"><span class="kv-key">Location</span><span class="kv-val" id="primary-region">us-east-1</span></div>
+          <div class="kv"><span class="kv-key">Database</span><span class="kv-val green" id="primary-db">connecting…</span></div>
+          <div class="kv"><span class="kv-key">Records</span><span class="kv-val" id="primary-records">–</span></div>
+          <div class="kv"><span class="kv-key">Latency</span><span class="kv-val" id="primary-latency">–</span></div>
+          <div class="divider"></div>
+          <div class="kv"><span class="kv-key">Status</span><span class="kv-val green" id="primary-status">healthy</span></div>
+        </div>
+      </div>
+      <!-- Secondary -->
+      <div class="region-card">
+        <div class="region-header">
+          <div class="region-dot degraded" id="secondary-dot"></div>
+          <div class="region-name">Secondary Region (DR)</div>
+          <span class="region-badge badge-secondary">STANDBY</span>
+        </div>
+        <div class="region-body">
+          <div class="kv"><span class="kv-key">Location</span><span class="kv-val" id="secondary-region">us-west-2</span></div>
+          <div class="kv"><span class="kv-key">Database</span><span class="kv-val amber" id="secondary-db">connecting…</span></div>
+          <div class="kv"><span class="kv-key">Records</span><span class="kv-val" id="secondary-records">–</span></div>
+          <div class="kv"><span class="kv-key">Latency</span><span class="kv-val" id="secondary-latency">–</span></div>
+          <div class="divider"></div>
+          <div class="kv"><span class="kv-key">Status</span><span class="kv-val amber" id="secondary-status">standby</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Records Table -->
+  <div class="card">
+    <div class="card-header-row">
+      <span class="card-title">Critical Business Records</span>
+      <span class="count-badge" id="records-badge">–</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Record ID</th>
+          <th>Category</th>
+          <th>Description</th>
+          <th>Severity</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+      <tbody id="records-tbody">
+        <tr><td colspan="5" style="color:var(--muted);text-align:center;padding:24px;">Loading records…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Bottom row: Backups + Actions -->
+  <div class="bottom-row">
+
+    <!-- Backups -->
+    <div class="card">
+      <div class="card-header-row">
+        <span class="card-title">Backup History</span>
+        <span class="count-badge" id="backups-badge">–</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Backup</th>
+            <th>Type</th>
+            <th>Size</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="backups-tbody">
+          <tr><td colspan="4" style="color:var(--muted);text-align:center;padding:24px;">Loading backups…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Actions -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+
+      <!-- RPO/RTO Gauges -->
+      <div class="actions-card">
+        <div class="actions-title">Recovery Gauges</div>
+        <div class="gauges">
+          <div class="gauge">
+            <div class="gauge-label">RPO</div>
+            <div class="gauge-bar"><div class="gauge-fill fill-green" id="rpo-bar" style="width:30%"></div></div>
+            <div class="gauge-vals"><span id="rpo-gauge-current">–</span><span>60 min</span></div>
+          </div>
+          <div class="gauge">
+            <div class="gauge-label">RTO (last test)</div>
+            <div class="gauge-bar"><div class="gauge-fill fill-green" id="rto-bar" style="width:60%"></div></div>
+            <div class="gauge-vals"><span id="rto-gauge-current">–</span><span>15 min</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="actions-card">
+        <div class="actions-title">DR Actions</div>
+        <div class="btn-row">
+          <button class="btn btn-backup" onclick="triggerBackup()">
+            <span class="btn-icon">💾</span>
+            <span class="btn-info">
+              <span class="btn-label">Trigger Manual Backup</span>
+              <span class="btn-hint">Starts a Velero on-demand backup</span>
+            </span>
+            <span class="btn-arrow">→</span>
+          </button>
+          <button class="btn btn-restore" onclick="triggerRestore()">
+            <span class="btn-icon">🔄</span>
+            <span class="btn-info">
+              <span class="btn-label">Start Recovery Test</span>
+              <span class="btn-hint">Restore latest backup to secondary</span>
+            </span>
+            <span class="btn-arrow">→</span>
+          </button>
+          <button class="btn btn-chaos" onclick="injectChaos()">
+            <span class="btn-icon">⚡</span>
+            <span class="btn-info">
+              <span class="btn-label">Inject Failure (LitmusChaos)</span>
+              <span class="btn-hint">Simulate pod/network failure</span>
+            </span>
+            <span class="btn-arrow">→</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Result Modal -->
+<div id="result-overlay">
+  <div id="result-box">
+    <div class="res-title" id="res-title">Result</div>
+    <div id="res-body"></div>
+    <button class="res-close" onclick="closeResult()">Close</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function showToast(msg, color) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  t.style.borderColor = color || '#334155';
+  setTimeout(() => { t.style.display = 'none'; }, 3500);
+}
+
+function timeAgo(iso) {
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (diff < 60)  return `${Math.floor(diff)}s ago`;
+  if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+  return `${Math.floor(diff/86400)}d ago`;
+}
+
+function fmtDate(iso) {
+  return new Date(iso).toLocaleString('en-US', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+
+function setDot(id, status) {
+  const el = document.getElementById(id);
+  el.className = 'region-dot ' + (status === 'healthy' ? 'healthy' : status === 'down' ? 'down' : 'degraded');
+}
+
+// ── Fetch Status ──────────────────────────────────────────────────────────────
+async function fetchStatus() {
+  try {
+    const r = await fetch('/api/status');
+    const d = await r.json();
+
+    // Mock notice
+    document.getElementById('mock-notice').style.display = d._mock ? '' : 'none';
+
+    // Primary
+    const p = d.primary;
+    setDot('primary-dot', p.status);
+    document.getElementById('primary-region').textContent = p.region;
+    document.getElementById('primary-db').textContent = p.db_connected ? 'Connected' : 'Not connected (mock)';
+    document.getElementById('primary-db').className = 'kv-val ' + (p.db_connected ? 'green' : 'amber');
+    document.getElementById('primary-records').textContent = p.records.toLocaleString();
+    document.getElementById('primary-latency').textContent = p.db_connected ? `${p.latency_ms} ms` : '–';
+    document.getElementById('primary-status').textContent = p.status;
+    document.getElementById('primary-status').className = 'kv-val ' + (p.status === 'healthy' ? 'green' : 'amber');
+
+    // Secondary
+    const s = d.secondary;
+    setDot('secondary-dot', s.status);
+    document.getElementById('secondary-region').textContent = s.region;
+    document.getElementById('secondary-db').textContent = s.db_connected ? 'Connected' : 'Not connected';
+    document.getElementById('secondary-db').className = 'kv-val ' + (s.db_connected ? 'green' : 'amber');
+    document.getElementById('secondary-records').textContent = s.records.toLocaleString();
+    document.getElementById('secondary-latency').textContent = s.db_connected ? `${s.latency_ms} ms` : '–';
+    document.getElementById('secondary-status').textContent = s.status;
+    document.getElementById('secondary-status').className = 'kv-val ' + (s.status === 'healthy' ? 'green' : 'amber');
+
+    // Storage
+    document.getElementById('backup-count').textContent = d.storage.backup_count || '–';
+    if (d.last_backup) {
+      document.getElementById('last-backup-time').textContent = 'Last: ' + timeAgo(d.last_backup);
+    }
+
+    // RPO current
+    const rpoCurrent = d.rpo_minutes;
+    document.getElementById('rpo-current').textContent = rpoCurrent;
+    document.getElementById('rpo-status').textContent = rpoCurrent <= 60 ? 'within target' : 'EXCEEDS TARGET';
+    document.getElementById('rpo-status').className = 'sub ' + (rpoCurrent <= 60 ? 'good' : 'warn');
+
+    // Global status
+    const allOk = p.status === 'healthy';
+    document.getElementById('global-status').className = 'status-pill ' + (allOk ? 'ok' : 'warn');
+    document.getElementById('global-status-text').textContent = allOk ? 'Systems Nominal' : 'Degraded Mode';
+
+    document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+  } catch(e) {
+    console.error('status fetch:', e);
+  }
+}
+
+// ── Fetch Records ─────────────────────────────────────────────────────────────
+async function fetchRecords() {
+  try {
+    const r = await fetch('/api/records?region=primary');
+    const d = await r.json();
+    const tbody = document.getElementById('records-tbody');
+    const records = d.records || [];
+    document.getElementById('record-count').textContent = records.length;
+    document.getElementById('records-badge').textContent = records.length + ' records';
+
+    if (!records.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:24px;">No records found</td></tr>';
+      return;
+    }
+    tbody.innerHTML = records.map(rec => `
+      <tr>
+        <td style="font-family:monospace;color:var(--primary);font-size:11px;">${rec.record_id}</td>
+        <td style="text-transform:capitalize;">${rec.category}</td>
+        <td style="color:var(--muted);max-width:280px;">${rec.description}</td>
+        <td><span class="chip chip-${rec.severity}">${rec.severity.toUpperCase()}</span></td>
+        <td style="color:var(--muted);">${fmtDate(rec.created_at)}</td>
+      </tr>
+    `).join('');
+  } catch(e) { console.error('records fetch:', e); }
+}
+
+// ── Fetch Backups ─────────────────────────────────────────────────────────────
+async function fetchBackups() {
+  try {
+    const r = await fetch('/api/backups');
+    const d = await r.json();
+    const tbody = document.getElementById('backups-tbody');
+    const backups = (d.backups || []).slice(0, 8);
+    document.getElementById('backups-badge').textContent = d.count + ' backups';
+
+    if (!backups.length) {
+      tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:24px;">No backups found</td></tr>';
+      return;
+    }
+    tbody.innerHTML = backups.map(b => {
+      const name = b.name.split('/').pop() || b.name;
+      const isIncremental = b.name.toLowerCase().includes('hourly') || b.size_mb < 25;
+      return `
+        <tr>
+          <td style="font-family:monospace;font-size:11px;color:var(--muted);">${name.substring(0,30)}</td>
+          <td><span class="chip ${isIncremental ? 'chip-incremental' : 'chip-full'}">${isIncremental ? 'INC' : 'FULL'}</span></td>
+          <td>${b.size_mb} MB</td>
+          <td><span class="chip chip-success">✓ OK</span></td>
+        </tr>
+      `;
+    }).join('');
+  } catch(e) { console.error('backups fetch:', e); }
+}
+
+// ── Fetch Metrics ─────────────────────────────────────────────────────────────
+async function fetchMetrics() {
+  try {
+    const r = await fetch('/api/metrics');
+    const d = await r.json();
+
+    // RPO gauge
+    const rpoPct = Math.min(100, (d.rpo.current_minutes / d.rpo.target_minutes) * 100);
+    document.getElementById('rpo-bar').style.width = rpoPct + '%';
+    document.getElementById('rpo-bar').className = 'gauge-fill ' + (rpoPct < 70 ? 'fill-green' : rpoPct < 90 ? 'fill-amber' : 'fill-red');
+    document.getElementById('rpo-gauge-current').textContent = d.rpo.current_minutes + ' min';
+
+    // RTO gauge
+    const rtoPct = Math.min(100, (d.rto.last_test_minutes / d.rto.target_minutes) * 100);
+    document.getElementById('rto-bar').style.width = rtoPct + '%';
+    document.getElementById('rto-bar').className = 'gauge-fill ' + (rtoPct < 70 ? 'fill-green' : rtoPct < 90 ? 'fill-amber' : 'fill-red');
+    document.getElementById('rto-gauge-current').textContent = d.rto.last_test_minutes + ' min';
+    document.getElementById('rto-last').textContent = d.rto.last_test_minutes;
+    if (d.rto.last_tested) {
+      document.getElementById('rto-status').textContent = 'tested ' + timeAgo(d.rto.last_tested);
+    }
+  } catch(e) { console.error('metrics fetch:', e); }
+}
+
+// ── Result Modal ──────────────────────────────────────────────────────────────
+function showResult(title, bodyHtml) {
+  document.getElementById('res-title').innerHTML = title;
+  document.getElementById('res-body').innerHTML = bodyHtml;
+  document.getElementById('result-overlay').classList.add('open');
+}
+function closeResult() {
+  document.getElementById('result-overlay').classList.remove('open');
+}
+// close on backdrop click
+document.getElementById('result-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeResult();
+});
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+async function triggerBackup() {
+  const btn = event.currentTarget;
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  showToast('💾 Triggering backup…', '#22c55e');
+  try {
+    const r = await fetch('/api/backup', { method: 'POST' });
+    const d = await r.json();
+    const mockNote = d._mock
+      ? `<div class="res-mock">⚠ Demo mode — no MinIO connected. In your cluster run:<br><code>${d.velero_cmd || 'velero backup create ' + d.backup_name + ' --include-namespaces dr-lab'}</code></div>`
+      : '';
+    showResult('💾 Backup Created', `
+      <div class="res-row"><span class="res-key">Status</span><span class="res-val" style="color:var(--green)">✓ ${d.status}</span></div>
+      <div class="res-row"><span class="res-key">Backup name</span><span class="res-val">${d.backup_name}</span></div>
+      <div class="res-row"><span class="res-key">Storage</span><span class="res-val">${d.storage}</span></div>
+      <div class="res-row"><span class="res-key">Location</span><span class="res-val">${d.location}</span></div>
+      <div class="res-row"><span class="res-key">Timestamp</span><span class="res-val">${new Date(d.timestamp).toLocaleString()}</span></div>
+      <div class="res-cmd">velero backup describe ${d.backup_name}</div>
+      ${mockNote}
+    `);
+    fetchBackups(); // refresh backup list
+  } catch(e) {
+    showResult('❌ Backup Failed', `<div class="res-row"><span class="res-key">Error</span><span class="res-val" style="color:var(--red)">${e.message}</span></div>`);
+  } finally {
+    btn.disabled = false;
+    btn.style.opacity = '';
+  }
+}
+
+async function triggerRestore() {
+  const btn = event.currentTarget;
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  showToast('🔄 Running recovery test…', '#38bdf8');
+  try {
+    const r = await fetch('/api/recovery-test', { method: 'POST' });
+    const d = await r.json();
+    const stepsHtml = d.steps.map(s =>
+      `<div class="res-row"><span class="res-key" style="min-width:200px;">${s.step}</span><span class="res-val">${s.duration_s}s</span></div>`
+    ).join('');
+    showResult('🔄 Recovery Test Complete', `
+      <div class="res-row"><span class="res-key">Result</span><span class="res-val" style="color:var(--green)">✓ ${d.status.toUpperCase()}</span></div>
+      <div class="res-row"><span class="res-key">RTO achieved</span><span class="res-val" style="color:var(--green)">${d.rto_minutes} minutes</span></div>
+      <div class="res-row"><span class="res-key">Backup used</span><span class="res-val">${d.backup_used}</span></div>
+      <hr style="border-color:var(--border);margin:12px 0;">
+      <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:8px;">Recovery Steps</div>
+      ${stepsHtml}
+      <div class="res-cmd">${d.restore_cmd}</div>
+      <div class="res-mock">⚠ Simulated test — run for real: <code>${d.restore_cmd}</code></div>
+    `);
+  } catch(e) {
+    showResult('❌ Recovery Test Failed', `<div class="res-row"><span class="res-key">Error</span><span class="res-val" style="color:var(--red)">${e.message}</span></div>`);
+  } finally {
+    btn.disabled = false;
+    btn.style.opacity = '';
+  }
+}
+
+async function injectChaos() {
+  const btn = event.currentTarget;
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  showToast('⚡ Creating chaos experiment…', '#f59e0b');
+  try {
+    const r = await fetch('/api/chaos', { method: 'POST' });
+    const d = await r.json();
+    showResult('⚡ Chaos Experiment Created', `
+      <div class="res-row"><span class="res-key">Experiment</span><span class="res-val">${d.experiment}</span></div>
+      <div class="res-row"><span class="res-key">Target</span><span class="res-val">${d.target}</span></div>
+      <div class="res-row"><span class="res-key">Duration</span><span class="res-val">${d.duration_s} seconds</span></div>
+      <div class="res-row"><span class="res-key">Expected</span><span class="res-val" style="color:var(--muted)">${d.expected}</span></div>
+      <hr style="border-color:var(--border);margin:12px 0;">
+      <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:8px;">Apply Experiment</div>
+      <div class="res-cmd">${d.kubectl_cmd}</div>
+      <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;margin:8px 0 6px;">Monitor Recovery</div>
+      <div class="res-cmd">${d.monitor_cmd}</div>
+      <div class="res-mock">⚠ In demo mode — apply the YAML above on your real cluster to run the chaos experiment.</div>
+    `);
+  } catch(e) {
+    showResult('❌ Chaos Injection Failed', `<div class="res-row"><span class="res-key">Error</span><span class="res-val" style="color:var(--red)">${e.message}</span></div>`);
+  } finally {
+    btn.disabled = false;
+    btn.style.opacity = '';
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function refresh() {
+  await Promise.all([fetchStatus(), fetchRecords(), fetchBackups(), fetchMetrics()]);
+}
+refresh();
+setInterval(refresh, 15000);
+</script>
+</body>
+</html>

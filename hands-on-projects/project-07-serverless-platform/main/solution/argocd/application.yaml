@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: faashub
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/<your-org>/<your-repo>   # Replace with your repo
+    targetRevision: HEAD
+    path: hands-on-projects/project-07-serverless-platform/main/solution
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: faashub
+
+  syncPolicy:
+    automated:
+      prune: true         # Remove resources deleted from Git
+      selfHeal: true      # Re-apply if someone manually changes the cluster
+    syncOptions:
+    - CreateNamespace=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        maxDuration: 3m
+        factor: 2
+
+  # Health check overrides
+  ignoreDifferences:
+  - group: apps
+    kind: Deployment
+    jsonPointers:
+    - /spec/replicas    # Ignore replica count — let HPA manage it

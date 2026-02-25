@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: function-service
+  namespace: faashub
+  labels:
+    app: function-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: function-service
+  template:
+    metadata:
+      labels:
+        app: function-service
+    spec:
+      containers:
+      - name: function-service
+        image: <your-dockerhub>/function-service:v1   # Replace with your image
+        ports:
+        - containerPort: 8001
+        envFrom:
+        - configMapRef:
+            name: faashub-config
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+      terminationGracePeriodSeconds: 30

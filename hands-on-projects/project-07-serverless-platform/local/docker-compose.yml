@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+
+  # ── Function Runner ──────────────────────────────────────────────────────────
+  # The execution engine — runs first, no dependencies
+  function-runner:
+    build:
+      context: ../app/function-runner
+      dockerfile: Dockerfile
+    container_name: faashub-runner
+    ports:
+      - "8002:8002"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # ── Function Service ─────────────────────────────────────────────────────────
+  # Registry + invocation router — depends on runner
+  function-service:
+    build:
+      context: ../app/function-service
+      dockerfile: Dockerfile
+    container_name: faashub-service
+    ports:
+      - "8001:8001"
+    environment:
+      - FUNCTION_RUNNER_URL=http://function-runner:8002
+    depends_on:
+      function-runner:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+  # ── Frontend ─────────────────────────────────────────────────────────────────
+  # nginx serves the dashboard and proxies /api/* to function-service
+  frontend:
+    build:
+      context: ../app/frontend
+      dockerfile: Dockerfile
+    container_name: faashub-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      function-service:
+        condition: service_healthy
+    restart: unless-stopped
+
+networks:
+  default:
+    name: faashub-network

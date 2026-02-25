@@ -1,0 +1,53 @@
+# Velero Backup Schedules for dr-lab namespace
+# Apply after Velero is installed: kubectl apply -f schedule.yaml
+
+# Hourly incremental backup (RPO = 1 hour)
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: dr-lab-hourly
+  namespace: velero
+  labels:
+    project: disaster-recovery
+spec:
+  schedule: "0 * * * *"
+  template:
+    includedNamespaces:
+      - dr-lab
+    storageLocation: minio
+    ttl: 168h0m0s    # Keep for 7 days
+    snapshotVolumes: true
+    labelSelector:
+      matchLabels:
+        tier: database
+    hooks:
+      resources:
+      - name: postgres-hook
+        includedNamespaces:
+          - dr-lab
+        labelSelector:
+          matchLabels:
+            tier: database
+        pre:
+        - exec:
+            container: postgres
+            command: ["/bin/sh", "-c", "psql -U dr -d dr_primary -c 'CHECKPOINT;'"]
+            onError: Fail
+            timeout: 30s
+---
+# Daily full backup (keeps 30 days)
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: dr-lab-daily-full
+  namespace: velero
+  labels:
+    project: disaster-recovery
+spec:
+  schedule: "0 2 * * *"
+  template:
+    includedNamespaces:
+      - dr-lab
+    storageLocation: minio
+    ttl: 720h0m0s    # Keep for 30 days
+    snapshotVolumes: true

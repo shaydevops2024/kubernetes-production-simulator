@@ -246,6 +246,25 @@ async def ansible_scenarios_page():
 async def ansible_scenario_detail_page(scenario_id: str):
     return FileResponse(str(static_dir / "ansible-scenario-detail.html"))
 
+@app.get("/hands-on-projects")
+async def hands_on_projects_page():
+    return FileResponse(str(static_dir / "hands-on-projects.html"))
+
+@app.get("/hands-on-projects/{path:path}")
+async def hands_on_projects_file(path: str):
+    """Serve files from the hands-on-projects directory (README.md, etc.)"""
+    hands_on_dir = Path("/hands-on-projects")
+    if not hands_on_dir.exists():
+        # Fallback for local development
+        hands_on_dir = Path(__file__).parent.parent.parent / "hands-on-projects"
+    file_path = (hands_on_dir / path).resolve()
+    # Security: prevent directory traversal
+    if not str(file_path).startswith(str(hands_on_dir.resolve())):
+        raise HTTPException(status_code=403, detail="Access denied")
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(str(file_path), media_type="text/plain; charset=utf-8")
+
 @app.get("/health")
 async def health():
     REQUEST_COUNT.labels(method='GET', endpoint='/health').inc()

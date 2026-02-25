@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: dr-lab
+  labels:
+    app: dr-app
+data:
+  APP_ENV:        "kubernetes"
+  MINIO_ENDPOINT: "http://minio.dr-lab.svc.cluster.local:9000"
+  MINIO_BUCKET:   "dr-backups"

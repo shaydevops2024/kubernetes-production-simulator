@@ -1,0 +1,96 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: data-pipeline-alerts
+  namespace: data-pipeline
+  labels:
+    prometheus: kube-prometheus
+    role: alert-rules
+spec:
+  groups:
+    - name: pipeline.kafka
+      rules:
+        - alert: KafkaConsumerLagHigh
+          expr: |
+            kafka_consumer_fetch_manager_metrics_records_lag{namespace="data-pipeline"} > 10000
+          for: 5m
+          labels:
+            severity: warning
+            team: platform
+          annotations:
+            summary: "Kafka consumer lag is high"
+            description: "Consumer group {{ $labels.group }} on topic {{ $labels.topic }} has lag {{ $value }}"
+
+        - alert: KafkaConsumerLagCritical
+          expr: |
+            kafka_consumer_fetch_manager_metrics_records_lag{namespace="data-pipeline"} > 50000
+          for: 2m
+          labels:
+            severity: critical
+            team: platform
+          annotations:
+            summary: "Kafka consumer lag is critical"
+            description: "Consumer group {{ $labels.group }} lag is {{ $value }} — Spark may be behind"
+
+        - alert: KafkaBrokerDown
+          expr: |
+            count(up{job="pipeline-kafka-kafka-brokers"}) < 3
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Kafka broker is down"
+            description: "Only {{ $value }} brokers are up (expected 3)"
+
+    - name: pipeline.spark
+      rules:
+        - alert: SparkBatchDelayed
+          expr: |
+            spark_streaming_lastCompletedBatch_processingDelay{namespace="data-pipeline"} > 30000
+          for: 3m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Spark batch processing is slow"
+            description: "Batch processing delay is {{ $value }}ms (threshold: 30000ms)"
+
+        - alert: SparkDriverDown
+          expr: |
+            kube_pod_status_phase{namespace="data-pipeline", pod=~"sensor-processor-.*driver"} != 1
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Spark driver pod is not running"
+
+    - name: pipeline.producer
+      rules:
+        - alert: ProducerDown
+          expr: |
+            up{namespace="data-pipeline", app="pipeline-producer"} == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Pipeline producer is down — no events being published"
+
+        - alert: ProducerErrorRateHigh
+          expr: |
+            rate(producer_errors_total{namespace="data-pipeline"}[5m]) > 0.1
+          for: 3m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Producer error rate is high"
+            description: "Error rate: {{ $value }} errors/sec"
+
+    - name: pipeline.database
+      rules:
+        - alert: TimescaleDBDown
+          expr: |
+            up{namespace="data-pipeline", app="timescaledb"} == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "TimescaleDB is down — pipeline data loss possible"

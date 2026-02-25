@@ -1,0 +1,3 @@
+fastapi==0.111.0
+uvicorn==0.29.0
+kafka-python==2.0.2

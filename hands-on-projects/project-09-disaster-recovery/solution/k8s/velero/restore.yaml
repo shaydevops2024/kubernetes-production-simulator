@@ -1,0 +1,25 @@
+# Velero Restore — restores dr-lab from the latest backup
+# Usage:
+#   1. List available backups:  velero backup get
+#   2. Set BACKUP_NAME to the backup you want to restore from
+#   3. Apply this manifest (or use the CLI: velero restore create --from-backup <name>)
+
+apiVersion: velero.io/v1
+kind: Restore
+metadata:
+  name: dr-lab-restore-latest
+  namespace: velero
+  labels:
+    project: disaster-recovery
+spec:
+  backupName: ""   # Fill in the backup name, e.g., dr-lab-daily-full-20240101020000
+  includedNamespaces:
+    - dr-lab
+  # Restore all resources by default
+  # Exclude certain resources if needed:
+  # excludedResources:
+  #   - nodes
+  #   - events
+  restorePVs: true
+  # Don't restore existing resources — they've already been recreated by K8s
+  existingResourcePolicy: update

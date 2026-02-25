@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: faashub-config
+  namespace: faashub
+data:
+  FUNCTION_RUNNER_URL: "http://function-runner:8002"
+  LOG_LEVEL: "info"

@@ -1,0 +1,29 @@
+# KEDA ScaledObject — scale function-runner based on HTTP request queue depth
+# Requires KEDA installed: https://keda.sh/docs/latest/deploy/
+# Also requires the KEDA HTTP Add-on: https://github.com/kedacore/http-add-on
+#
+# Install KEDA:
+#   helm repo add kedacore https://kedacore.github.io/charts
+#   helm install keda kedacore/keda --namespace keda --create-namespace
+#
+# Install HTTP Add-on:
+#   helm install http-add-on kedacore/keda-add-ons-http --namespace keda
+
+apiVersion: http.keda.sh/v1alpha1
+kind: HTTPScaledObject
+metadata:
+  name: function-runner-http-scaler
+  namespace: faashub
+spec:
+  host: "faashub.local"
+  targetPendingRequests: 5          # Scale out when >5 requests are queued per replica
+  scaledownPeriod: 120              # Wait 120s before scaling down (avoid cold start thrash)
+  replicas:
+    min: 0                          # Scale to zero when no traffic (enables cold start demo)
+    max: 10
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: function-runner
+    service: function-runner
+    port: 8002

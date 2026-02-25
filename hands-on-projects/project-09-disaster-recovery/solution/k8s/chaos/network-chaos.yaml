@@ -1,0 +1,35 @@
+# LitmusChaos — Network Chaos Experiment
+# Simulates a network partition between the dr-app and postgres-primary.
+# Validates that the app degrades gracefully and the secondary DB can be reached.
+#
+# Apply: kubectl apply -f network-chaos.yaml
+
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: dr-app-network-chaos
+  namespace: dr-lab
+spec:
+  appinfo:
+    appns: dr-lab
+    applabel: "app=dr-app"
+    appkind: deployment
+  engineState: "active"
+  chaosServiceAccount: litmus-admin
+  experiments:
+  - name: pod-network-loss
+    spec:
+      components:
+        env:
+        - name: TOTAL_CHAOS_DURATION
+          value: "60"           # 60-second network partition
+        - name: NETWORK_PACKET_LOSS_PERCENTAGE
+          value: "100"          # Total loss (simulates full partition)
+        - name: DESTINATION_IPS
+          value: ""             # Empty = target all egress
+        - name: DESTINATION_HOSTS
+          value: "postgres-primary"  # Only block traffic to primary DB
+        - name: CONTAINER_RUNTIME
+          value: "containerd"
+        - name: SOCKET_PATH
+          value: "/run/containerd/containerd.sock"

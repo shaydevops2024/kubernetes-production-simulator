@@ -1,0 +1,52 @@
+# Velero Helm values — MinIO backend (local Kind cluster)
+# Install command:
+#   helm install velero vmware-tanzu/velero \
+#     --namespace velero \
+#     --create-namespace \
+#     --values velero-values.yaml
+
+configuration:
+  backupStorageLocation:
+  - name: minio
+    provider: aws
+    bucket: velero
+    default: true
+    config:
+      region: minio
+      s3ForcePathStyle: "true"
+      s3Url: http://minio.dr-lab.svc.cluster.local:9000
+      publicUrl: http://localhost:9000
+
+  volumeSnapshotLocation:
+  - name: minio
+    provider: aws
+    config:
+      region: minio
+
+credentials:
+  useSecret: true
+  name: velero-credentials
+  secretContents:
+    cloud: |
+      [default]
+      aws_access_key_id = minioadmin
+      aws_secret_access_key = minioadmin
+
+# Enable restic/Kopia for file-level backup of PVs
+# (required to backup PostgreSQL volumes since Kind doesn't support CSI snapshots)
+deployRestic: true
+restic:
+  privileged: true
+
+# Resource tuning
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Only back up the dr-lab namespace by default
+defaultIncludedNamespaces:
+  - dr-lab

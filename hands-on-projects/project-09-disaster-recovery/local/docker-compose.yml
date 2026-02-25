@@ -1,0 +1,137 @@
+version: "3.9"
+
+# ── Disaster Recovery Lab — Local Stack ──────────────────────────────────────
+# Simulates a primary region, secondary region, and S3-compatible backup storage
+# all running on your local machine.
+#
+# Services:
+#   app                 → DR Dashboard (port 4545)
+#   postgres-primary    → Primary database (port 5432)
+#   postgres-secondary  → Secondary/DR database (port 5433)
+#   minio               → S3-compatible backup storage (port 9000 / console 9001)
+#
+# Start: docker compose up --build
+# Stop:  docker compose down -v
+
+networks:
+  dr-net:
+    driver: bridge
+
+volumes:
+  postgres-primary-data:
+  postgres-secondary-data:
+  minio-data:
+
+services:
+
+  # ── Primary PostgreSQL (simulates primary region database) ──────────────────
+  postgres-primary:
+    image: postgres:16-alpine
+    container_name: dr-postgres-primary
+    environment:
+      POSTGRES_USER:     dr
+      POSTGRES_PASSWORD: drpassword
+      POSTGRES_DB:       dr_primary
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-primary-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dr -d dr_primary"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - dr-net
+
+  # ── Secondary PostgreSQL (simulates DR / secondary region database) ─────────
+  postgres-secondary:
+    image: postgres:16-alpine
+    container_name: dr-postgres-secondary
+    environment:
+      POSTGRES_USER:     dr
+      POSTGRES_PASSWORD: drpassword
+      POSTGRES_DB:       dr_secondary
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-secondary-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dr -d dr_secondary"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - dr-net
+
+  # ── MinIO (local S3-compatible backup storage) ─────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: dr-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER:     minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"   # S3 API (used by Velero / boto3)
+      - "9001:9001"   # Web console → http://localhost:9001
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dr-net
+
+  # ── MinIO bucket initialiser (runs once, then exits) ───────────────────────
+  minio-init:
+    image: minio/mc:latest
+    container_name: dr-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+        mc alias set local http://minio:9000 minioadmin minioadmin &&
+        mc mb --ignore-existing local/dr-backups &&
+        mc mb --ignore-existing local/velero &&
+        mc anonymous set download local/dr-backups &&
+        echo 'Buckets ready.' &&
+        mc ls local/
+      "
+    networks:
+      - dr-net
+
+  # ── DR Dashboard Application ───────────────────────────────────────────────
+  app:
+    build:
+      context: ../app
+      dockerfile: Dockerfile
+    container_name: dr-app
+    ports:
+      - "4545:4545"
+    environment:
+      DATABASE_URL:          "postgresql://dr:drpassword@postgres-primary:5432/dr_primary"
+      DATABASE_SECONDARY_URL: "postgresql://dr:drpassword@postgres-secondary:5432/dr_secondary"
+      MINIO_ENDPOINT:        "http://minio:9000"
+      MINIO_ACCESS_KEY:      "minioadmin"
+      MINIO_SECRET_KEY:      "minioadmin"
+      MINIO_BUCKET:          "dr-backups"
+      APP_ENV:               "local"
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+      postgres-secondary:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:4545/health')\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dr-net
+    restart: unless-stopped

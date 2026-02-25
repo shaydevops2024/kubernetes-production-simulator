@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: faashub
+  labels:
+    app: faashub
+    project: "07-serverless-platform"

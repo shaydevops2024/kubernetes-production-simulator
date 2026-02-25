@@ -1,0 +1,51 @@
+# KEDA ScaledObject — scales Spark executors based on Kafka consumer lag
+# Requires: KEDA installed (helm install keda kedacore/keda)
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: spark-executor-scaler
+  namespace: data-pipeline
+spec:
+  scaleTargetRef:
+    apiVersion: sparkoperator.k8s.io/v1beta2
+    kind: SparkApplication
+    name: sensor-processor
+  pollingInterval: 15
+  cooldownPeriod: 60
+  minReplicaCount: 2
+  maxReplicaCount: 10
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: pipeline-kafka-kafka-bootstrap.data-pipeline.svc:9092
+        consumerGroup: spark-processor
+        topic: sensor-events
+        lagThreshold: "5000"       # scale up when lag > 5000 messages
+        offsetResetPolicy: latest
+---
+# HPA for dashboard (CPU-based)
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: dashboard-hpa
+  namespace: data-pipeline
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: pipeline-dashboard
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80

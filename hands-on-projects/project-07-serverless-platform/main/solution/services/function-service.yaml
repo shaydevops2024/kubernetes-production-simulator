@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: function-service
+  namespace: faashub
+  labels:
+    app: function-service
+spec:
+  selector:
+    app: function-service
+  ports:
+  - port: 8001
+    targetPort: 8001
+    name: http
+  type: ClusterIP

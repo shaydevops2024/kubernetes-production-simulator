@@ -1,0 +1,101 @@
+---
+# Ansible Playbook: Verify and configure Kafka after Strimzi deploys it
+# Run: ansible-playbook playbooks/configure-kafka.yml
+
+- name: Configure Kafka Topics and Users
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    namespace: data-pipeline
+
+  tasks:
+
+    - name: Wait for Kafka cluster to be ready
+      kubernetes.core.k8s_info:
+        kind: Kafka
+        name: pipeline-kafka
+        namespace: "{{ namespace }}"
+        wait: true
+        wait_condition:
+          type: Ready
+          status: "True"
+        wait_timeout: 300
+
+    - name: Apply KafkaTopic CRD
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ playbook_dir }}/../k8s/kafka/kafka-topic.yaml"
+
+    - name: Verify topic was created
+      kubernetes.core.k8s_info:
+        kind: KafkaTopic
+        name: sensor-events
+        namespace: "{{ namespace }}"
+      register: topic_info
+
+    - name: Display topic status
+      debug:
+        msg: "Topic 'sensor-events' is {{ topic_info.resources[0].status.conditions[0].type }}"
+
+    - name: Create Kafka User for producer
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: kafka.strimzi.io/v1beta2
+          kind: KafkaUser
+          metadata:
+            name: pipeline-producer-user
+            namespace: "{{ namespace }}"
+            labels:
+              strimzi.io/cluster: pipeline-kafka
+          spec:
+            authentication:
+              type: scram-sha-512
+            authorization:
+              type: simple
+              acls:
+                - resource:
+                    type: topic
+                    name: sensor-events
+                    patternType: literal
+                  operations: [Write, Describe]
+                  host: "*"
+
+    - name: Create Kafka User for Spark processor
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: kafka.strimzi.io/v1beta2
+          kind: KafkaUser
+          metadata:
+            name: spark-processor-user
+            namespace: "{{ namespace }}"
+            labels:
+              strimzi.io/cluster: pipeline-kafka
+          spec:
+            authentication:
+              type: scram-sha-512
+            authorization:
+              type: simple
+              acls:
+                - resource:
+                    type: topic
+                    name: sensor-events
+                    patternType: literal
+                  operations: [Read, Describe]
+                  host: "*"
+                - resource:
+                    type: group
+                    name: spark-processor
+                    patternType: literal
+                  operations: [Read]
+                  host: "*"
+
+    - name: Kafka configuration complete
+      debug:
+        msg:
+          - "✅ Topic 'sensor-events' configured with 6 partitions, 3 replicas"
+          - "✅ Producer user 'pipeline-producer-user' created (write access)"
+          - "✅ Processor user 'spark-processor-user' created (read access)"

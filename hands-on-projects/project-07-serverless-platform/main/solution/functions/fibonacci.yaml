@@ -1,0 +1,23 @@
+apiVersion: openfaas.com/v1
+kind: Function
+metadata:
+  name: fibonacci
+  namespace: openfaas-fn
+spec:
+  name: fibonacci
+  image: <your-dockerhub>/function-runner:v1
+  labels:
+    com.openfaas.scale.zero: "true"
+    com.openfaas.scale.zero-duration: "30s"
+    com.openfaas.scale.min: "0"
+    com.openfaas.scale.max: "10"     # CPU-heavy — allow more replicas
+    com.openfaas.scale.target: "5"   # Lower target — each request is expensive
+  environment:
+    FUNCTION_NAME: "fibonacci"
+  requests:
+    memory: "128Mi"
+    cpu: "200m"
+  limits:
+    memory: "256Mi"
+    cpu: "1000m"    # Allow full CPU burst for compute-heavy requests
+  readOnlyRootFilesystem: false
