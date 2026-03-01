@@ -1,0 +1,84 @@
+services:
+
+  # ── Shared PostgreSQL database ───────────────────────────────────────────────
+  # Both blue and green share the same database.
+  # This is intentional: zero-downtime requires backward-compatible migrations.
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: deploytrack
+      POSTGRES_PASSWORD: deploypass
+      POSTGRES_DB: deploytrack_db
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U deploytrack -d deploytrack_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Blue environment (v1) ─────────────────────────────────────────────────────
+  # The current "live" version — blue header, v1 features.
+  app-blue:
+    build:
+      context: ../app
+      dockerfile: Dockerfile
+    environment:
+      APP_COLOR:    blue
+      APP_VERSION:  v1
+      APP_ENV:      production
+      DATABASE_URL: postgresql://deploytrack:deploypass@postgres:5432/deploytrack_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "4456:5000"    # direct access to blue (for testing, not the "live" port)
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:5000/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+  # ── Green environment (v2) ────────────────────────────────────────────────────
+  # The new version — green header, v2 features (dark mode toggle).
+  # Traffic does NOT reach this by default. Only after you switch nginx.
+  app-green:
+    build:
+      context: ../app
+      dockerfile: Dockerfile
+    environment:
+      APP_COLOR:    green
+      APP_VERSION:  v2
+      APP_ENV:      production
+      DATABASE_URL: postgresql://deploytrack:deploypass@postgres:5432/deploytrack_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "4457:5000"    # direct access to green (test it here BEFORE switching live)
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:5000/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+  # ── nginx traffic router ──────────────────────────────────────────────────────
+  # The single entry point your "users" hit.
+  # Controls which environment is live — edit nginx.conf to switch.
+  nginx:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "4455:80"      # <<< THE LIVE PORT — this is what users access
+    depends_on:
+      - app-blue
+      - app-green
+    restart: unless-stopped
+
+volumes:
+  postgres-data:

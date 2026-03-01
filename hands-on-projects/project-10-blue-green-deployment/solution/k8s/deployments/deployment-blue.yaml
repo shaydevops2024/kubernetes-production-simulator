@@ -1,0 +1,68 @@
+# Blue Deployment — v1, the current "live" version
+# This deployment stays running even after traffic switches to green.
+# It must remain ready for instant rollback.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploytrack-blue
+  namespace: blue-green
+  labels:
+    app: deploytrack
+    color: blue
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: deploytrack
+      color: blue
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: deploytrack
+        color: blue
+        version: v1
+    spec:
+      containers:
+      - name: deploytrack
+        image: your-registry/deploytrack:v1    # replace with your image
+        ports:
+        - containerPort: 5000
+          name: http
+        env:
+        - name: APP_COLOR
+          value: "blue"
+        - name: APP_VERSION
+          value: "v1"
+        envFrom:
+        - configMapRef:
+            name: app-config
+        - secretRef:
+            name: db-secret
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"

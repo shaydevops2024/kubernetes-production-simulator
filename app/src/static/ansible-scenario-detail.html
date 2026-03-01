@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ansible Scenario - Learn by Doing</title>
     <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/ansible-quiz-data.js"></script>
     <style>
         * {
             margin: 0;
@@ -687,9 +688,383 @@
             font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
             font-size: 13px;
         }
+
+        /* ─── QUIZ OVERLAY ──────────────────────────────────────────────────── */
+        .quiz-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15,23,42,0.72);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .quiz-overlay.open { display: flex; }
+
+        .quiz-modal {
+            background: #fff;
+            border-radius: 18px;
+            width: 100%;
+            max-width: 1100px;
+            max-height: calc(100vh - 32px);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.35);
+            overflow: hidden;
+        }
+
+        .quiz-main-body {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .quiz-nav-panel {
+            width: 72px;
+            background: #f8fafc;
+            border-right: 1px solid #e2e8f0;
+            padding: 14px 8px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .quiz-nav-label {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #94a3b8;
+            margin-bottom: 4px;
+            text-align: center;
+        }
+
+        .quiz-nav-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+            background: white;
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .quiz-nav-btn:hover { border-color: #D33833; color: #D33833; background: #FDE8E8; }
+        .quiz-nav-btn.answered { border-color: #22c55e; background: #dcfce7; color: #15803d; }
+        .quiz-nav-btn.unanswered-highlight {
+            border-color: #f59e0b !important;
+            background: #fef3c7 !important;
+            color: #92400e !important;
+            animation: pulse-warn 1s ease-in-out 2;
+        }
+        @keyframes pulse-warn {
+            0%,100% { transform: scale(1); }
+            50% { transform: scale(1.12); }
+        }
+
+        .quiz-content-area {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        #quiz-results-section { overflow-y: auto; flex: 1; min-height: 0; }
+
+        .quiz-header {
+            background: linear-gradient(135deg, #335061 0%, #D33833 100%);
+            padding: 22px 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .quiz-header-left h2 { color: #fff; font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+        .quiz-header-left p { color: rgba(255,255,255,0.75); font-size: 13px; }
+        .quiz-close-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.35);
+            background: rgba(255,255,255,0.12);
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+        .quiz-close-btn:hover { background: rgba(255,255,255,0.22); }
+
+        .quiz-progress-bar-wrap { background: #e2e8f0; height: 5px; flex-shrink: 0; }
+        .quiz-progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #335061, #D33833);
+            transition: width 0.3s ease;
+        }
+
+        .quiz-counter-strip {
+            padding: 10px 28px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 13px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .quiz-counter-strip .answered-count { color: #D33833; font-weight: 700; }
+        .quiz-counter-strip .pass-info { color: #b45309; font-weight: 600; }
+
+        .quiz-body { padding: 28px 32px 8px; }
+
+        .quiz-question-card {
+            background: #fff;
+            border: 2px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 22px 24px;
+            margin-bottom: 20px;
+            transition: border-color 0.2s;
+        }
+        .quiz-question-card.answered { border-color: #fca5a5; }
+        .quiz-question-card.unanswered-highlight {
+            border-color: #f59e0b !important;
+            background: #fffbeb !important;
+        }
+
+        .quiz-question-num {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .multi-badge {
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .quiz-question-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1e293b;
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+
+        .quiz-options { display: flex; flex-direction: column; gap: 10px; }
+        .quiz-option-label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.15s;
+            user-select: none;
+        }
+        .quiz-option-label:hover { border-color: #D33833; background: #FDE8E8; }
+        .quiz-option-label input[type="radio"],
+        .quiz-option-label input[type="checkbox"] {
+            display: none;
+        }
+        .quiz-option-label.selected { border-color: #D33833; background: #FDE8E8; }
+        .quiz-option-label.result-correct { border-color: #22c55e; background: #f0fdf4; color: #15803d; font-weight: 600; }
+        .quiz-option-label.result-wrong { border-color: #ef4444; background: #fef2f2; color: #b91c1c; }
+        .quiz-option-label.result-missed { border-color: #22c55e; background: #f0fdf4; color: #15803d; font-weight: 600; }
+
+        .quiz-option-circle {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #64748b;
+            flex-shrink: 0;
+            transition: all 0.15s;
+        }
+        .quiz-option-label.selected .quiz-option-circle { background: #D33833; color: #fff; border-color: #D33833; }
+        .quiz-option-text { flex: 1; font-size: 14px; color: #334155; line-height: 1.4; }
+
+        .quiz-footer {
+            padding: 16px 32px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8fafc;
+            flex-shrink: 0;
+        }
+
+        .quiz-submit-btn {
+            padding: 14px 36px;
+            background: linear-gradient(135deg, #335061 0%, #D33833 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .quiz-submit-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(211,56,51,0.4); }
+        .quiz-unanswered-msg { font-size: 13px; color: #ef4444; font-weight: 600; display: none; }
+
+        .quiz-results { display: none; flex-direction: column; }
+        .quiz-results-hero { padding: 36px 32px 28px; text-align: center; }
+        .quiz-verdict {
+            display: inline-block;
+            font-size: 28px;
+            font-weight: 900;
+            padding: 14px 40px;
+            border-radius: 50px;
+            margin-bottom: 16px;
+            letter-spacing: 1px;
+        }
+        .quiz-verdict.pass { background: #dcfce7; color: #15803d; border: 3px solid #22c55e; }
+        .quiz-verdict.fail { background: #fee2e2; color: #991b1b; border: 3px solid #ef4444; }
+        .quiz-score-row { font-size: 18px; color: #475569; font-weight: 600; }
+        .quiz-score-row .quiz-score-num { color: #1e293b; font-size: 26px; font-weight: 800; margin-right: 12px; }
+        .quiz-score-row .quiz-score-pct { color: #D33833; font-size: 26px; font-weight: 800; }
+        .quiz-results-divider { height: 2px; background: #e2e8f0; margin: 0 32px 24px; }
+        .quiz-review-title {
+            padding: 0 32px 14px;
+            font-size: 16px;
+            font-weight: 700;
+            color: #1e293b;
+            letter-spacing: 0.2px;
+        }
+        .quiz-review-list { padding: 0 32px 8px; }
+        .quiz-result-card { border-radius: 12px; border: 2px solid; padding: 16px 20px; margin-bottom: 14px; }
+        .quiz-result-card.correct { border-color: #86efac; background: #f0fdf4; }
+        .quiz-result-card.wrong { border-color: #fca5a5; background: #fef2f2; }
+        .result-q-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+        .result-q-num { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #94a3b8; }
+        .result-verdict-badge { font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 20px; }
+        .result-verdict-badge.badge-correct { background: #dcfce7; color: #15803d; }
+        .result-verdict-badge.badge-wrong { background: #fee2e2; color: #991b1b; }
+        .result-q-text { font-size: 14px; font-weight: 600; color: #1e293b; line-height: 1.4; margin-bottom: 8px; }
+        .result-answers { font-size: 13px; padding-left: 0; }
+        .result-your-ans { color: #dc2626; font-weight: 600; margin-bottom: 3px; }
+        .result-correct-ans { color: #16a34a; font-weight: 600; }
+
+        .quiz-results-actions {
+            padding: 20px 32px 28px;
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .quiz-restart-btn {
+            padding: 12px 28px;
+            background: white;
+            border: 2px solid #D33833;
+            color: #D33833;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .quiz-restart-btn:hover { background: #FDE8E8; transform: translateY(-1px); }
+        .quiz-close-results-btn {
+            padding: 12px 28px;
+            background: linear-gradient(135deg, #335061 0%, #D33833 100%);
+            border: none;
+            color: white;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .quiz-close-results-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(211,56,51,0.4); }
+
+        @media (max-width: 600px) {
+            .quiz-header { padding: 18px 20px; }
+            .quiz-body { padding: 20px 16px 8px; }
+            .quiz-footer, .quiz-results-hero, .quiz-results-actions,
+            .quiz-results-divider, .quiz-review-title, .quiz-review-list { padding-left: 16px; padding-right: 16px; }
+            .quiz-counter-strip { padding: 10px 16px; }
+            .quiz-nav-panel { width: 56px; padding: 10px 6px; }
+            .quiz-nav-btn { width: 36px; height: 36px; font-size: 10px; }
+            .quiz-modal { max-height: calc(100vh - 24px); border-radius: 14px; }
+        }
     </style>
 </head>
 <body>
+    <!-- ─── QUIZ OVERLAY ─────────────────────────────────────────────────── -->
+    <div class="quiz-overlay" id="quiz-overlay">
+        <div class="quiz-modal">
+            <div class="quiz-header">
+                <div class="quiz-header-left">
+                    <h2 id="quiz-modal-title">Ansible Scenario Quiz</h2>
+                    <p id="quiz-modal-subtitle">Test your understanding</p>
+                </div>
+                <button class="quiz-close-btn" onclick="closeQuiz()" title="Close quiz">&times;</button>
+            </div>
+            <div class="quiz-progress-bar-wrap">
+                <div class="quiz-progress-bar-fill" id="quiz-progress-bar" style="width:0%"></div>
+            </div>
+            <div class="quiz-counter-strip">
+                <span class="answered-count" id="quiz-answered-count">0 of 0 answered</span>
+                <span class="pass-info">Pass = 75% or above</span>
+            </div>
+            <div class="quiz-main-body" id="quiz-main-body">
+                <div class="quiz-nav-panel" id="quiz-nav-panel">
+                    <div class="quiz-nav-label">Q#</div>
+                </div>
+                <div class="quiz-content-area" id="quiz-content-area">
+                    <div class="quiz-body" id="quiz-body"></div>
+                    <div class="quiz-footer">
+                        <span class="quiz-unanswered-msg" id="quiz-unanswered-msg">Please answer all questions before submitting.</span>
+                        <button class="quiz-submit-btn" id="quiz-submit-btn" onclick="submitQuiz()">Submit Quiz</button>
+                    </div>
+                </div>
+            </div>
+            <div id="quiz-results-section" class="quiz-results">
+                <div class="quiz-results-hero">
+                    <div class="quiz-verdict" id="quiz-verdict"></div>
+                    <div class="quiz-score-row" id="quiz-score-row"></div>
+                </div>
+                <div class="quiz-results-divider"></div>
+                <div class="quiz-review-title">Question Review</div>
+                <div class="quiz-review-list" id="quiz-review-list"></div>
+                <div class="quiz-results-actions">
+                    <button class="quiz-restart-btn" onclick="restartQuiz()">&#8635; Start Over</button>
+                    <button class="quiz-close-results-btn" onclick="closeQuiz()">&#10005; Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- ─── END QUIZ OVERLAY ─────────────────────────────────────────────── -->
+
     <div class="container">
         <div class="top-buttons">
             <a href="/static/ansible-scenarios.html" class="back-button">
@@ -1015,7 +1390,7 @@
             if (currentStep === totalSteps) {
                 footerNext.innerHTML = 'Complete &#10003;';
                 footerNext.onclick = function() {
-                    window.location.href = '/static/ansible-scenarios.html';
+                    openQuiz();
                 };
             } else {
                 footerNext.innerHTML = 'Next Step &rarr;';
@@ -1233,9 +1608,239 @@
         }
 
         document.addEventListener('keydown', function(e) {
+            if (document.getElementById('quiz-overlay').classList.contains('open')) return;
             if (e.key === 'ArrowRight') nextStep();
             if (e.key === 'ArrowLeft') prevStep();
         });
+
+        // ─── QUIZ FUNCTIONS ───────────────────────────────────────────────────
+        var quizState = {
+            questions: [],
+            answers: {},   // { index: ["a"] or ["a","c"] }
+            scenarioId: null
+        };
+
+        function openQuiz() {
+            var sid = (scenarioData && scenarioData.id) ? scenarioData.id : scenarioId;
+            var qdata = (typeof ANSIBLE_QUIZ_DATA !== 'undefined') ? ANSIBLE_QUIZ_DATA[sid] : null;
+            if (!qdata || !qdata.questions || qdata.questions.length === 0) {
+                window.location.href = '/static/ansible-scenarios.html';
+                return;
+            }
+            quizState.scenarioId = sid;
+            quizState.questions = qdata.questions;
+            quizState.answers = {};
+
+            document.getElementById('quiz-modal-title').textContent = qdata.title || 'Ansible Scenario Quiz';
+            document.getElementById('quiz-modal-subtitle').textContent = 'Test your understanding \u2014 ' + qdata.questions.length + ' questions';
+            document.getElementById('quiz-results-section').style.display = 'none';
+            document.getElementById('quiz-main-body').style.display = 'flex';
+            document.getElementById('quiz-unanswered-msg').style.display = 'none';
+
+            renderNavPanel();
+            renderQuizQuestions();
+            updateQuizProgress();
+
+            document.getElementById('quiz-overlay').classList.add('open');
+            document.getElementById('quiz-content-area').scrollTop = 0;
+        }
+
+        function closeQuiz() {
+            document.getElementById('quiz-overlay').classList.remove('open');
+        }
+
+        function renderQuizQuestions() {
+            var qs = quizState.questions;
+            var html = '';
+            for (var i = 0; i < qs.length; i++) {
+                var q = qs[i];
+                var isMulti = Array.isArray(q.answer);
+                html += '<div class="quiz-question-card" id="qq-' + i + '">';
+                html += '<div class="quiz-question-num">Q' + (i + 1) + ' of ' + qs.length;
+                if (isMulti) html += ' <span class="multi-badge">Select all that apply</span>';
+                html += '</div>';
+                html += '<div class="quiz-question-text">' + escapeHtml(q.q) + '</div>';
+                html += '<div class="quiz-options" id="qopts-' + i + '">';
+                for (var j = 0; j < q.options.length; j++) {
+                    var letter = ['a','b','c','d'][j];
+                    html += '<label class="quiz-option-label" id="qopt-' + i + '-' + letter + '" onclick="selectOption(' + i + ',\'' + letter + '\',' + isMulti + ')">';
+                    html += '<span class="quiz-option-circle">' + letter.toUpperCase() + '</span>';
+                    html += '<span class="quiz-option-text">' + escapeHtml(q.options[j].replace(/^[a-d]\)\s*/i, '')) + '</span>';
+                    html += '</label>';
+                }
+                html += '</div>';
+                html += '</div>';
+            }
+            document.getElementById('quiz-body').innerHTML = html;
+        }
+
+        function renderNavPanel() {
+            var qs = quizState.questions;
+            var html = '<div class="quiz-nav-label">Questions</div>';
+            for (var i = 0; i < qs.length; i++) {
+                var answered = quizState.answers[i] && quizState.answers[i].length > 0;
+                html += '<button class="quiz-nav-btn' + (answered ? ' answered' : '') + '" id="qnav-' + i + '" onclick="scrollToQuestion(' + i + ')">' + (i + 1) + '</button>';
+            }
+            document.getElementById('quiz-nav-panel').innerHTML = html;
+        }
+
+        function scrollToQuestion(index) {
+            var card = document.getElementById('qq-' + index);
+            if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function selectOption(qIndex, letter, isMulti) {
+            if (!quizState.answers[qIndex]) quizState.answers[qIndex] = [];
+
+            if (isMulti) {
+                var idx = quizState.answers[qIndex].indexOf(letter);
+                if (idx === -1) {
+                    quizState.answers[qIndex].push(letter);
+                } else {
+                    quizState.answers[qIndex].splice(idx, 1);
+                }
+            } else {
+                quizState.answers[qIndex] = [letter];
+            }
+
+            // Update visual state for this question
+            var letters = ['a','b','c','d'];
+            for (var i = 0; i < letters.length; i++) {
+                var lbl = document.getElementById('qopt-' + qIndex + '-' + letters[i]);
+                if (lbl) {
+                    if (quizState.answers[qIndex].indexOf(letters[i]) !== -1) {
+                        lbl.classList.add('selected');
+                    } else {
+                        lbl.classList.remove('selected');
+                    }
+                }
+            }
+
+            updateQuizProgress();
+            updateNavBtn(qIndex);
+        }
+
+        function updateNavBtn(qIndex) {
+            var btn = document.getElementById('qnav-' + qIndex);
+            if (!btn) return;
+            var answered = quizState.answers[qIndex] && quizState.answers[qIndex].length > 0;
+            if (answered) {
+                btn.classList.add('answered');
+                btn.classList.remove('unanswered-highlight');
+            } else {
+                btn.classList.remove('answered');
+            }
+        }
+
+        function updateQuizProgress() {
+            var total = quizState.questions.length;
+            var answered = 0;
+            for (var i = 0; i < total; i++) {
+                if (quizState.answers[i] && quizState.answers[i].length > 0) answered++;
+            }
+            var pct = total > 0 ? Math.round((answered / total) * 100) : 0;
+            document.getElementById('quiz-progress-bar').style.width = pct + '%';
+            document.getElementById('quiz-answered-count').textContent = answered + ' of ' + total + ' answered';
+        }
+
+        function submitQuiz() {
+            var qs = quizState.questions;
+            // Find first unanswered
+            var firstUnanswered = -1;
+            for (var i = 0; i < qs.length; i++) {
+                if (!quizState.answers[i] || quizState.answers[i].length === 0) {
+                    firstUnanswered = i;
+                    break;
+                }
+            }
+
+            if (firstUnanswered !== -1) {
+                // Highlight unanswered questions in nav
+                for (var i = 0; i < qs.length; i++) {
+                    var btn = document.getElementById('qnav-' + i);
+                    if (btn) {
+                        if (!quizState.answers[i] || quizState.answers[i].length === 0) {
+                            btn.classList.add('unanswered-highlight');
+                        } else {
+                            btn.classList.remove('unanswered-highlight');
+                        }
+                    }
+                }
+                document.getElementById('quiz-unanswered-msg').style.display = 'block';
+                scrollToQuestion(firstUnanswered);
+                return;
+            }
+
+            // Score the quiz
+            var correct = 0;
+            for (var i = 0; i < qs.length; i++) {
+                var q = qs[i];
+                var userAns = quizState.answers[i] ? quizState.answers[i].slice().sort() : [];
+                var correctAns = Array.isArray(q.answer) ? q.answer.slice().sort() : [q.answer];
+                if (userAns.join(',') === correctAns.join(',')) correct++;
+            }
+
+            var total = qs.length;
+            var pct = Math.round((correct / total) * 100);
+            var passed = pct >= 75;
+
+            // Render verdict
+            var verdictEl = document.getElementById('quiz-verdict');
+            verdictEl.textContent = passed ? '\u2713 PASS' : '\u2717 FAIL';
+            verdictEl.className = 'quiz-verdict ' + (passed ? 'pass' : 'fail');
+
+            document.getElementById('quiz-score-row').innerHTML =
+                '<span class="quiz-score-num">' + correct + ' / ' + total + '</span>' +
+                '<span class="quiz-score-pct">' + pct + '%</span>';
+
+            // Render review list
+            var reviewHtml = '';
+            for (var i = 0; i < qs.length; i++) {
+                var q = qs[i];
+                var userAns = quizState.answers[i] ? quizState.answers[i].slice().sort() : [];
+                var correctAns = Array.isArray(q.answer) ? q.answer.slice().sort() : [q.answer];
+                var isCorrect = userAns.join(',') === correctAns.join(',');
+
+                reviewHtml += '<div class="quiz-result-card ' + (isCorrect ? 'correct' : 'wrong') + '">';
+                reviewHtml += '<div class="result-q-row">';
+                reviewHtml += '<span class="result-q-num">Q' + (i + 1) + '</span>';
+                reviewHtml += '<span class="result-verdict-badge ' + (isCorrect ? 'badge-correct' : 'badge-wrong') + '">' + (isCorrect ? '\u2713 Correct' : '\u2717 Wrong') + '</span>';
+                reviewHtml += '</div>';
+                reviewHtml += '<div class="result-q-text">' + escapeHtml(q.q) + '</div>';
+
+                if (!isCorrect) {
+                    reviewHtml += '<div class="result-answers">';
+                    reviewHtml += '<div class="result-your-ans">Your answer: <strong>' + userAns.map(function(l){ return getOptionText(q.options, l); }).join(', ') + '</strong></div>';
+                    reviewHtml += '<div class="result-correct-ans">Correct answer: <strong>' + correctAns.map(function(l){ return getOptionText(q.options, l); }).join(', ') + '</strong></div>';
+                    reviewHtml += '</div>';
+                }
+                reviewHtml += '</div>';
+            }
+            document.getElementById('quiz-review-list').innerHTML = reviewHtml;
+
+            // Switch to results view
+            document.getElementById('quiz-main-body').style.display = 'none';
+            document.getElementById('quiz-results-section').style.display = 'flex';
+            document.getElementById('quiz-results-section').scrollTop = 0;
+        }
+
+        function restartQuiz() {
+            quizState.answers = {};
+            document.getElementById('quiz-results-section').style.display = 'none';
+            document.getElementById('quiz-main-body').style.display = 'flex';
+            document.getElementById('quiz-unanswered-msg').style.display = 'none';
+            renderNavPanel();
+            renderQuizQuestions();
+            updateQuizProgress();
+            document.getElementById('quiz-content-area').scrollTop = 0;
+        }
+
+        function getOptionText(options, letter) {
+            var idx = ['a','b','c','d'].indexOf(letter.toLowerCase());
+            if (idx === -1 || idx >= options.length) return letter.toUpperCase();
+            return options[idx].replace(/^[a-d]\)\s*/i, '');
+        }
+        // ─── END QUIZ FUNCTIONS ───────────────────────────────────────────────
 
         loadScenario();
     </script>

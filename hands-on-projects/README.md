@@ -33,7 +33,7 @@ Every project has three folders:
 | 07 | [Serverless Functions Platform on Kubernetes](./project-07-serverless-platform/README.md) | OpenFaaS, KEDA, Scale-to-Zero, HPA, CronJob, ArgoCD | ✅ Available |
 | 08 | [Real-Time Data Pipeline on Kubernetes](./project-08-data-pipeline/README.md) | Kafka/Strimzi, Apache Spark, TimescaleDB, GitLab CI, ArgoCD, KEDA, Vault, Chaos Engineering | ✅ Available |
 | 09 | [Kubernetes Disaster Recovery System](./project-09-disaster-recovery/README.md) | Velero, MinIO/S3, LitmusChaos, Prometheus, Terraform/EKS, RPO/RTO Runbooks | ✅ Available |
-| 10 | Platform Engineering (IDP) | Backstage, Self-Service Infrastructure | 🔜 Coming Soon |
+| 10 | [Zero-Downtime Blue-Green Deployment System](./project-10-blue-green-deployment/README.md) | Blue-Green, GitLab CI, Health Checks, Smoke Tests, DB Migration, nginx Ingress, Rollback | ✅ Available |
 | 11 | MLOps Pipeline | Kubeflow, Model Serving, A/B Testing | 🔜 Coming Soon |
 | 12 | Serverless on Kubernetes | Knative, Event-Driven Architecture | 🔜 Coming Soon |
 | 13 | Zero-Downtime Deployment Strategies | Argo Rollouts, Canary, Blue-Green | 🔜 Coming Soon |
@@ -59,4 +59,4 @@ Before starting any project:
 
 **Intermediate:** Projects 01–03 (full main/ deployment) → Project 04 → Project 05 (observability) → Project 06 (API gateway) → Project 07 (serverless)
 
-**Advanced:** Project 08 (data pipeline) → Projects 10, 11, 15, 16
+**Advanced:** Project 08 (data pipeline) → Project 09 (disaster recovery) → Project 10 (blue-green) → Projects 11, 15, 16

@@ -1,0 +1,63 @@
+# Three services for the blue-green pattern:
+#
+# 1. deploytrack-blue  — always routes to blue pods (for direct testing)
+# 2. deploytrack-green — always routes to green pods (for direct testing)
+# 3. deploytrack-live  — THE live service (selector switches on cutover)
+#
+# The Ingress only points to deploytrack-live.
+# To switch traffic: patch deploytrack-live selector from "blue" → "green".
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: deploytrack-blue
+  namespace: blue-green
+  labels:
+    app: deploytrack
+    color: blue
+spec:
+  selector:
+    app: deploytrack
+    color: blue
+  ports:
+  - name: http
+    port: 80
+    targetPort: 5000
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: deploytrack-green
+  namespace: blue-green
+  labels:
+    app: deploytrack
+    color: green
+spec:
+  selector:
+    app: deploytrack
+    color: green
+  ports:
+  - name: http
+    port: 80
+    targetPort: 5000
+
+---
+# THE LIVE SERVICE — Ingress points here. Switch the selector to change what's live.
+apiVersion: v1
+kind: Service
+metadata:
+  name: deploytrack-live
+  namespace: blue-green
+  labels:
+    app: deploytrack
+  annotations:
+    blue-green/active: "blue"    # annotation for documentation only, not functional
+spec:
+  selector:
+    app: deploytrack
+    color: blue    # ← THIS is what controls which environment gets traffic
+  ports:
+  - name: http
+    port: 80
+    targetPort: 5000

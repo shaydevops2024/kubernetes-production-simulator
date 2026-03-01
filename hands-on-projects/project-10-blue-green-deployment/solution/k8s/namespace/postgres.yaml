@@ -1,0 +1,83 @@
+# PostgreSQL StatefulSet — shared database for both blue and green
+# Both environments read/write here. Schema migrations must be backward-compatible.
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-secret
+  namespace: blue-green
+type: Opaque
+stringData:
+  POSTGRES_USER: "deploytrack"
+  POSTGRES_PASSWORD: "deploypass"
+  POSTGRES_DB: "deploytrack_db"
+  DATABASE_URL: "postgresql://deploytrack:deploypass@postgres-svc:5432/deploytrack_db"
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: blue-green
+spec:
+  serviceName: postgres-svc
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16-alpine
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: POSTGRES_DB
+        ports:
+        - containerPort: 5432
+        readinessProbe:
+          exec:
+            command: ["pg_isready", "-U", "deploytrack", "-d", "deploytrack_db"]
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 1Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-svc
+  namespace: blue-green
+spec:
+  selector:
+    app: postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+  clusterIP: None    # headless service for StatefulSet

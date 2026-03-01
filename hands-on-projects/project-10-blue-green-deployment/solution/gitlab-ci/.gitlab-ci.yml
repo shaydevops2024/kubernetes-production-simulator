@@ -1,0 +1,218 @@
+# .gitlab-ci.yml — Zero-Downtime Blue-Green Deployment Pipeline
+#
+# Pipeline stages:
+#   build → test → push → deploy-green → health-check → smoke-test → switch-traffic → retire-blue
+#
+# On any failure: auto-rollback is triggered before the pipeline exits.
+#
+# Required GitLab CI/CD variables (Settings → CI/CD → Variables):
+#   REGISTRY         - Container registry URL (e.g., registry.gitlab.com/youruser/yourrepo)
+#   REGISTRY_USER    - Registry username
+#   REGISTRY_TOKEN   - Registry password/token
+#   KUBE_CONFIG      - base64-encoded kubeconfig (or use GitLab Kubernetes integration)
+#   INGRESS_HOST     - The ingress hostname (e.g., deploytrack.local)
+
+variables:
+  APP_IMAGE:          "$REGISTRY/deploytrack"
+  NAMESPACE:          "blue-green"
+  TARGET_COLOR:       "green"      # we always deploy TO green
+  STABLE_COLOR:       "blue"       # blue is always the stable fallback
+  REPLICAS:           "3"
+  DOCKER_DRIVER:      overlay2
+  DOCKER_TLS_CERTDIR: ""
+
+stages:
+  - build
+  - test
+  - push
+  - deploy-green
+  - health-check
+  - smoke-test
+  - switch-traffic
+  - retire-blue
+
+# ── Templates ─────────────────────────────────────────────────────────────────
+
+.kubectl:
+  image: bitnami/kubectl:1.28
+  before_script:
+    - mkdir -p ~/.kube
+    - echo "$KUBE_CONFIG" | base64 -d > ~/.kube/config
+    - chmod 600 ~/.kube/config
+    - kubectl version --client
+
+.rollback_on_failure: &rollback_on_failure
+  after_script:
+    - |
+      if [ "$CI_JOB_STATUS" = "failed" ]; then
+        echo "==> PIPELINE FAILED. Running rollback..."
+        bash solution/scripts/rollback.sh $NAMESPACE || true
+      fi
+
+# ── Stage 1: Build ─────────────────────────────────────────────────────────────
+build:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  script:
+    - docker build -t $APP_IMAGE:$CI_COMMIT_SHORT_SHA -t $APP_IMAGE:v2 ./app
+    - docker images $APP_IMAGE
+  artifacts:
+    reports:
+      dotenv: build.env
+  after_script:
+    - echo "IMAGE_TAG=$CI_COMMIT_SHORT_SHA" > build.env
+
+# ── Stage 2: Test ─────────────────────────────────────────────────────────────
+test:
+  stage: test
+  image: docker:24
+  services:
+    - docker:24-dind
+  script:
+    - docker run --rm
+        -e APP_COLOR=green
+        -e APP_VERSION=v2
+        $APP_IMAGE:$CI_COMMIT_SHORT_SHA
+        python -c "
+from main import app, engine, Base;
+Base.metadata.create_all(bind=engine);
+print('App imports OK');
+print('DB schema OK');
+"
+
+# ── Stage 3: Push ─────────────────────────────────────────────────────────────
+push:
+  stage: push
+  image: docker:24
+  services:
+    - docker:24-dind
+  script:
+    - docker login -u "$REGISTRY_USER" -p "$REGISTRY_TOKEN" $REGISTRY
+    - docker push $APP_IMAGE:$CI_COMMIT_SHORT_SHA
+    - docker push $APP_IMAGE:v2
+    - echo "Pushed $APP_IMAGE:$CI_COMMIT_SHORT_SHA"
+
+# ── Stage 4: Deploy Green ──────────────────────────────────────────────────────
+deploy-green:
+  stage: deploy-green
+  extends: .kubectl
+  <<: *rollback_on_failure
+  script:
+    # Update the green deployment image
+    - |
+      kubectl set image deployment/deploytrack-green \
+        deploytrack=$APP_IMAGE:$CI_COMMIT_SHORT_SHA \
+        -n $NAMESPACE
+
+    # Scale green to desired replicas
+    - kubectl scale deployment deploytrack-green --replicas=$REPLICAS -n $NAMESPACE
+
+    # Wait for rollout
+    - kubectl rollout status deployment/deploytrack-green -n $NAMESPACE --timeout=120s
+
+    - echo "Green deployment scaled to $REPLICAS replicas with image $APP_IMAGE:$CI_COMMIT_SHORT_SHA"
+
+# ── Stage 5: Health Check ──────────────────────────────────────────────────────
+health-check:
+  stage: health-check
+  extends: .kubectl
+  <<: *rollback_on_failure
+  script:
+    - chmod +x solution/scripts/health-check.sh
+    - bash solution/scripts/health-check.sh green $NAMESPACE $REPLICAS
+
+# ── Stage 6: Database Migration ───────────────────────────────────────────────
+# Runs AFTER green is healthy but BEFORE traffic switches.
+# Migration must be backward-compatible (blue still running with old code).
+db-migrate:
+  stage: health-check   # runs in same stage as health-check
+  extends: .kubectl
+  <<: *rollback_on_failure
+  needs: ["health-check"]
+  script:
+    # Delete old migration job if exists
+    - kubectl delete job db-migrate-v2 -n $NAMESPACE --ignore-not-found
+
+    # Update migration job image and apply
+    - |
+      kubectl apply -f - <<EOF
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: db-migrate-v2
+        namespace: $NAMESPACE
+      spec:
+        ttlSecondsAfterFinished: 120
+        template:
+          spec:
+            restartPolicy: Never
+            containers:
+            - name: migrate
+              image: $APP_IMAGE:$CI_COMMIT_SHORT_SHA
+              command: ["python", "-c",
+                "from main import Base, engine; Base.metadata.create_all(bind=engine); print('Migration OK')"]
+              envFrom:
+              - secretRef:
+                  name: db-secret
+      EOF
+
+    - kubectl wait --for=condition=complete job/db-migrate-v2 -n $NAMESPACE --timeout=60s
+    - echo "Migration completed successfully"
+
+# ── Stage 7: Smoke Tests (on green, before switch) ─────────────────────────────
+smoke-test:
+  stage: smoke-test
+  extends: .kubectl
+  <<: *rollback_on_failure
+  script:
+    # Port-forward to green service for smoke testing (not exposed to live traffic)
+    - |
+      kubectl port-forward svc/deploytrack-green 8888:80 -n $NAMESPACE &
+      PF_PID=$!
+      sleep 3  # wait for port-forward to be ready
+
+      echo "Running smoke tests against green (not yet live)..."
+      chmod +x solution/scripts/smoke-tests.sh
+
+      # Override BASE_URL to use port-forward
+      export BASE_URL="http://localhost:8888"
+      bash solution/scripts/smoke-tests.sh green $NAMESPACE || { kill $PF_PID; exit 1; }
+      kill $PF_PID
+
+# ── Stage 8: Switch Traffic ────────────────────────────────────────────────────
+switch-traffic:
+  stage: switch-traffic
+  extends: .kubectl
+  <<: *rollback_on_failure
+  script:
+    - chmod +x solution/scripts/switch-traffic.sh
+    - bash solution/scripts/switch-traffic.sh green $NAMESPACE
+
+    # Post-switch smoke test (now testing live traffic through ingress)
+    - |
+      sleep 3  # allow a moment for in-flight connections to drain
+      curl -sf http://$INGRESS_HOST/health | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+assert d['status'] == 'healthy', f'Expected healthy, got {d[\"status\"]}'
+assert d['color'] == 'green',    f'Expected green, got {d[\"color\"]}'
+print(f'Post-switch check OK: {d[\"color\"]} / {d[\"version\"]}')
+"
+
+  environment:
+    name: production
+    url: http://$INGRESS_HOST
+
+# ── Stage 9: Retire Blue ────────────────────────────────────────────────────────
+# Keep blue at 0 replicas (not deleted!) — instant rollback is still possible.
+retire-blue:
+  stage: retire-blue
+  extends: .kubectl
+  script:
+    - kubectl scale deployment deploytrack-blue --replicas=0 -n $NAMESPACE
+    - echo "Blue scaled to 0. Traffic is fully on green."
+    - echo "To rollback: kubectl scale deployment deploytrack-blue --replicas=3 -n $NAMESPACE"
+    - echo "Then: bash solution/scripts/switch-traffic.sh blue $NAMESPACE"
+  when: on_success

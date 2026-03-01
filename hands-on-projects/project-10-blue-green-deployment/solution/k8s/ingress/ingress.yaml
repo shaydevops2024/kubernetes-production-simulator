@@ -1,0 +1,26 @@
+# Ingress — Routes external traffic to deploytrack-live
+# The ingress itself never changes during blue-green switches.
+# Only the service selector changes.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: deploytrack-ingress
+  namespace: blue-green
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "5"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-body-size: "1m"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: deploytrack.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: deploytrack-live    # always points here — service selector does the work
+            port:
+              number: 80

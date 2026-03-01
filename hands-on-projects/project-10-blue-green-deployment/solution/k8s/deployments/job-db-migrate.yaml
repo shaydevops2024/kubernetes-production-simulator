@@ -1,0 +1,42 @@
+# Database Migration Job
+# Runs BEFORE switching traffic to green.
+# The migration must be backward-compatible:
+#   - Blue (v1) must still work with the new schema
+#   - Only run this after green is healthy but before the traffic switch
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migrate-v2
+  namespace: blue-green
+  labels:
+    app: deploytrack
+    version: v2
+    type: migration
+spec:
+  # Job will be cleaned up 60s after completion
+  ttlSecondsAfterFinished: 60
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: migrate
+        image: your-registry/deploytrack:v2    # same image as green deployment
+        command:
+        - python
+        - -c
+        - |
+          from main import Base, engine
+          print("Running database migrations...")
+          Base.metadata.create_all(bind=engine)
+          print("Migration complete. Schema is up to date.")
+        envFrom:
+        - secretRef:
+            name: db-secret
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+  backoffLimit: 3
