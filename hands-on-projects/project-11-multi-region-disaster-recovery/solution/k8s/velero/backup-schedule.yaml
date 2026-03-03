@@ -1,0 +1,32 @@
+---
+# Velero Backup Schedule — PRIMARY cluster
+#
+# Backs up the dr-system namespace every 15 minutes.
+# Retains backups for 48 hours (TTL).
+#
+# Apply to: kubectl --context kind-primary apply -f backup-schedule.yaml
+#
+# WHY 15 minutes?
+#   - RPO = 15 minutes: if primary fails, we lose at most 15 min of data
+#   - More frequent = smaller RPO but more storage / CPU overhead
+#   - Production systems often use: 15 min backups, 1 hour snapshots, daily full backup
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: dr-system-schedule
+  namespace: velero
+spec:
+  schedule: "*/15 * * * *"    # every 15 minutes
+  template:
+    includedNamespaces:
+      - dr-system
+    excludedResources:
+      - events
+      - events.events.k8s.io
+    storageLocation: default
+    ttl: 48h0m0s              # keep backups for 48 hours
+    snapshotVolumes: false    # using fs-backup instead of volume snapshots
+    defaultVolumesToFsBackup: true
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/part-of: regionwatch

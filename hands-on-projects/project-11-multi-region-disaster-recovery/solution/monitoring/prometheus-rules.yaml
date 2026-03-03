@@ -1,0 +1,117 @@
+---
+# Prometheus Alerting Rules — Multi-Region DR
+#
+# Apply to: kubectl --context kind-primary apply -f prometheus-rules.yaml -n monitoring
+#
+# These rules alert when RTO/RPO SLAs are at risk.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: regionwatch-dr-rules
+  namespace: monitoring
+  labels:
+    prometheus: kube-prometheus
+    role: alert-rules
+    app.kubernetes.io/part-of: regionwatch
+spec:
+  groups:
+    - name: regionwatch.dr.rpo
+      interval: 30s
+      rules:
+        # Alert when backup age exceeds RPO target (1 hour = 3600s)
+        - alert: RPOBreached
+          expr: regionwatch_last_backup_age_seconds > 3600
+          for: 5m
+          labels:
+            severity: critical
+            team: platform
+          annotations:
+            summary: "RPO SLA breached on {{ $labels.instance }}"
+            description: |
+              The last backup is {{ $value | humanizeDuration }} old.
+              RPO target is 1 hour. A failure now would lose more data than allowed.
+            runbook_url: "https://wiki.example.com/runbooks/dr-rpo-breach"
+
+        # Warning at 80% of RPO (48 minutes)
+        - alert: RPOWarning
+          expr: regionwatch_last_backup_age_seconds > 2880
+          for: 2m
+          labels:
+            severity: warning
+            team: platform
+          annotations:
+            summary: "Approaching RPO limit on {{ $labels.instance }}"
+            description: |
+              Last backup was {{ $value | humanizeDuration }} ago.
+              RPO limit is 1 hour. Trigger a backup now to stay within SLA.
+
+    - name: regionwatch.dr.replication
+      interval: 15s
+      rules:
+        # Alert when replication lag is too high
+        - alert: ReplicationLagHigh
+          expr: regionwatch_replication_lag_seconds > 2.0
+          for: 2m
+          labels:
+            severity: warning
+            team: platform
+          annotations:
+            summary: "High replication lag: {{ $value }}s on {{ $labels.instance }}"
+            description: |
+              PostgreSQL replication lag is {{ $value }}s.
+              Threshold: 2.0s. Secondary region is falling behind.
+
+        - alert: ReplicationLagCritical
+          expr: regionwatch_replication_lag_seconds > 10.0
+          for: 1m
+          labels:
+            severity: critical
+            team: platform
+          annotations:
+            summary: "Critical replication lag on {{ $labels.instance }}"
+            description: |
+              Replication lag is {{ $value }}s — secondary is significantly behind.
+              If primary fails now, RPO may be exceeded.
+
+    - name: regionwatch.dr.health
+      interval: 30s
+      rules:
+        # Alert when database is down
+        - alert: DatabaseDown
+          expr: regionwatch_db_healthy == 0
+          for: 1m
+          labels:
+            severity: critical
+            team: platform
+          annotations:
+            summary: "Database unhealthy on {{ $labels.instance }}"
+            description: "PostgreSQL is not responding. Failover may be needed."
+
+        # Alert on failover events (for audit trail)
+        - alert: FailoverOccurred
+          expr: increase(regionwatch_failovers_total[5m]) > 0
+          labels:
+            severity: info
+            team: platform
+          annotations:
+            summary: "Failover event detected on {{ $labels.instance }}"
+            description: "A failover was triggered. Check the DR runbook."
+
+    - name: regionwatch.dr.availability
+      interval: 60s
+      rules:
+        # Monthly uptime SLO: 99.9% = max 43 min downtime/month
+        - record: regionwatch:availability:rate5m
+          expr: avg_over_time(regionwatch_db_healthy[5m])
+
+        - alert: AvailabilitySLOBreach
+          expr: avg_over_time(regionwatch_db_healthy[1h]) < 0.999
+          for: 5m
+          labels:
+            severity: critical
+            team: platform
+          annotations:
+            summary: "Availability SLO breach risk — 1h availability below 99.9%"
+            description: |
+              1-hour availability is {{ $value | humanizePercentage }}.
+              SLO target: 99.9%. Immediate action required.

@@ -1,0 +1,29 @@
+---
+# Ingress — applied to BOTH clusters
+# Exposes the RegionWatch dashboard at / via nginx Ingress Controller.
+#
+# Kind exposes Ingress on localhost by default when using the kind-specific
+# Ingress deployment (deploy.yaml from ingress-nginx/kind).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: regionwatch
+  namespace: dr-system
+  labels:
+    app: regionwatch
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: regionwatch
+                port:
+                  number: 80

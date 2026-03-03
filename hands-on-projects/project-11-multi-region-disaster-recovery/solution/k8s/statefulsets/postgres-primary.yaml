@@ -1,0 +1,77 @@
+---
+# PostgreSQL StatefulSet — PRIMARY cluster
+#
+# StatefulSets are used for databases because:
+#   1. Stable pod names (postgres-0, postgres-1) — important for replication config
+#   2. Persistent volume stays attached even when the pod restarts
+#   3. Ordered startup/shutdown guarantees
+#
+# Apply to: kubectl --context kind-primary apply -f postgres-primary.yaml -n dr-system
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: dr-system
+  labels:
+    app: postgres
+    region: primary
+spec:
+  serviceName: postgres-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+        region: primary
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: regionwatch-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: regionwatch-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              value: "regionwatch_db"
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "druser", "-d", "regionwatch_db"]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "druser", "-d", "regionwatch_db"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 2Gi

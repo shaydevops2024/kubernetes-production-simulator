@@ -1,0 +1,16 @@
+---
+# ConfigMap for the SECONDARY cluster (kind-secondary / us-east-1)
+# Apply with: kubectl --context kind-secondary apply -f app-config-secondary.yaml -n dr-system
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: regionwatch-config
+  namespace: dr-system
+  labels:
+    app: regionwatch
+data:
+  REGION_NAME:     "us-east-1"
+  REGION_ROLE:     "secondary"
+  APP_VERSION:     "v1"
+  APP_ENV:         "production"
+  MINIO_ENDPOINT:  "http://host.docker.internal:9000"

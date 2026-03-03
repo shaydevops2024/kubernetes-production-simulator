@@ -1,0 +1,112 @@
+# HashiCorp Vault Helm Chart — Production-Grade Values
+# Install with:
+#   helm repo add hashicorp https://helm.releases.hashicorp.com
+#   helm repo update
+#   helm install vault hashicorp/vault -n secrets-management -f vault-values.yaml
+
+global:
+  enabled: true
+  tlsDisable: true   # Set to false in production and configure TLS
+
+# ── Injector (Vault Agent Injector) ──────────────────────────────────────────
+# The injector is a mutating webhook that injects Vault Agent as a sidecar
+# into pods that have vault.hashicorp.com/agent-inject: "true" annotation
+injector:
+  enabled: true
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+
+# ── Vault Server ──────────────────────────────────────────────────────────────
+server:
+  # Use dev mode for learning — single node, in-memory storage, auto-unsealed
+  # Set to false for HA mode (see ha section below)
+  dev:
+    enabled: true
+    devRootToken: "root"    # NEVER use "root" in production
+
+  # Uncomment for production standalone (not HA)
+  # standalone:
+  #   enabled: true
+  #   config: |
+  #     ui = true
+  #     listener "tcp" {
+  #       tls_disable = 1
+  #       address = "[::]:8200"
+  #       cluster_address = "[::]:8201"
+  #     }
+  #     storage "file" {
+  #       path = "/vault/data"
+  #     }
+
+  # ── High Availability with Raft ──────────────────────────────────────────
+  # Uncomment for 3-node HA cluster with integrated Raft storage
+  # ha:
+  #   enabled: true
+  #   replicas: 3
+  #   raft:
+  #     enabled: true
+  #     setNodeId: true
+  #     config: |
+  #       ui = true
+  #       listener "tcp" {
+  #         tls_disable = 1
+  #         address = "[::]:8200"
+  #         cluster_address = "[::]:8201"
+  #       }
+  #       storage "raft" {
+  #         path = "/vault/data"
+  #         retry_join {
+  #           leader_api_addr = "http://vault-0.vault-internal:8200"
+  #         }
+  #         retry_join {
+  #           leader_api_addr = "http://vault-1.vault-internal:8200"
+  #         }
+  #         retry_join {
+  #           leader_api_addr = "http://vault-2.vault-internal:8200"
+  #         }
+  #       }
+  #       service_registration "kubernetes" {}
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  # Persistent storage for Vault data
+  dataStorage:
+    enabled: true
+    size: 1Gi
+    storageClass: standard
+
+  # Audit log storage
+  auditStorage:
+    enabled: true
+    size: 1Gi
+    storageClass: standard
+
+  # Service account for K8s auth
+  serviceAccount:
+    create: true
+    name: vault
+    annotations: {}
+
+  # Expose Vault UI
+  service:
+    enabled: true
+    type: ClusterIP
+    port: 8200
+
+# ── Vault UI ─────────────────────────────────────────────────────────────────
+ui:
+  enabled: true
+  serviceType: ClusterIP
+  externalPort: 8200

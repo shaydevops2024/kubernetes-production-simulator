@@ -1,0 +1,28 @@
+---
+# Velero Restore — use this template to restore from a backup
+#
+# IMPORTANT: Replace <BACKUP-NAME> with the actual backup name.
+# List available backups: velero --kubecontext kind-secondary backup get
+#
+# Apply to SECONDARY cluster:
+#   kubectl --context kind-secondary apply -f restore-job.yaml
+apiVersion: velero.io/v1
+kind: Restore
+metadata:
+  name: dr-system-restore
+  namespace: velero
+spec:
+  backupName: "<BACKUP-NAME>"        # e.g. dr-system-schedule-20240101120000
+  includedNamespaces:
+    - dr-system
+  restorePVs: true                   # also restore PersistentVolumes
+  # Exclude resources that are cluster-specific and shouldn't be copied:
+  excludedResources:
+    - nodes
+    - events
+    - events.events.k8s.io
+    - backups.velero.io
+    - restores.velero.io
+  # Remap namespace if needed (e.g. restore from prod → staging):
+  # namespaceMapping:
+  #   dr-system: dr-system-restored

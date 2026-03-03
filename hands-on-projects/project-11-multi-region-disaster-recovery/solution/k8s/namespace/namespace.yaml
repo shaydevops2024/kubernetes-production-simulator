@@ -1,0 +1,10 @@
+---
+# Namespace for the multi-region DR system.
+# Applied to BOTH clusters (primary and secondary).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dr-system
+  labels:
+    app.kubernetes.io/part-of: regionwatch
+    environment: production

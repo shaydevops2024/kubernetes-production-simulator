@@ -1,0 +1,38 @@
+---
+# One-shot Job that configures Vault after it starts.
+# Run this after Vault is initialized and unsealed.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vault-init-config
+  namespace: secrets-management
+  labels:
+    app: vault-init
+spec:
+  ttlSecondsAfterFinished: 300   # Clean up the job 5 minutes after completion
+  template:
+    metadata:
+      labels:
+        app: vault-init
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: vault
+      containers:
+        - name: vault-init
+          image: hashicorp/vault:1.15.6
+          command: ["/bin/sh", "/vault/config/init.sh"]
+          env:
+            - name: VAULT_ADDR
+              value: "http://vault.secrets-management.svc.cluster.local:8200"
+            - name: VAULT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: vault-root-token   # Created manually after vault operator init
+                  key: token
+          volumeMounts:
+            - name: vault-config
+              mountPath: /vault/config
+      volumes:
+        - name: vault-config
+          configMap:
+            name: vault-config

@@ -1,0 +1,55 @@
+---
+# RegionWatch ClusterIP Service
+# Used for internal communication and Ingress routing.
+# Applied to BOTH clusters (same manifest, different contexts).
+apiVersion: v1
+kind: Service
+metadata:
+  name: regionwatch
+  namespace: dr-system
+  labels:
+    app: regionwatch
+spec:
+  selector:
+    app: regionwatch
+  ports:
+    - name: http
+      port: 80
+      targetPort: 5000
+  type: ClusterIP
+---
+# PostgreSQL headless service (required by StatefulSet for stable DNS)
+# Pod DNS: postgres-0.postgres-headless.dr-system.svc.cluster.local
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-headless
+  namespace: dr-system
+  labels:
+    app: postgres
+spec:
+  clusterIP: None   # headless — no load balancing, direct pod access
+  selector:
+    app: postgres
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: 5432
+---
+# PostgreSQL ClusterIP Service
+# Used by the app containers as "postgres:5432"
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: dr-system
+  labels:
+    app: postgres
+spec:
+  selector:
+    app: postgres
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: 5432
+  type: ClusterIP

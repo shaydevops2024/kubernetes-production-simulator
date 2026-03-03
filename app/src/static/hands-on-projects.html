@@ -386,7 +386,7 @@
             <span class="stat-label">Projects</span>
         </div>
         <div class="stat">
-            <span class="stat-value">9</span>
+            <span class="stat-value">12</span>
             <span class="stat-label">Available</span>
         </div>
         <div class="stat">
@@ -424,6 +424,10 @@
             <span class="path-arrow">→</span>
             <span class="path-item">10 Blue-Green Deploy</span>
             <span class="path-arrow">→</span>
+            <span class="path-item">11 Multi-Region DR</span>
+            <span class="path-arrow">→</span>
+            <span class="path-item">12 Secrets Mgmt</span>
+            <span class="path-arrow">→</span>
             <span class="path-item">Advanced Projects</span>
         </div>
     </div>
@@ -431,7 +435,7 @@
     <!-- Available -->
     <div class="section-header">
         <span class="section-title">Available Now</span>
-        <span class="section-badge badge-available">10 Projects</span>
+        <span class="section-badge badge-available">12 Projects</span>
     </div>
 
     <div class="projects-grid">
@@ -828,61 +832,95 @@
             </div>
         </div>
 
+        <!-- Project 11 — Available -->
+        <div class="project-card available" onclick="openProject11()">
+            <div class="card-banner available"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num">PROJECT 11</span>
+                    <span class="status-chip available">✓ Available</span>
+                </div>
+                <div class="card-title">Multi-Region Disaster Recovery System</div>
+                <div class="card-description">
+                    Deploy the same app to two separate Kind clusters (simulating two geographic regions). Configure Velero backups to MinIO, measure RTO/RPO, perform automated failovers, and validate DR with Prometheus alerting rules.
+                </div>
+                <div class="card-tags">
+                    <span class="tag highlight">Multi-Cluster</span>
+                    <span class="tag highlight">Velero</span>
+                    <span class="tag highlight">MinIO / S3</span>
+                    <span class="tag highlight">Failover Scripts</span>
+                    <span class="tag">RTO / RPO</span>
+                    <span class="tag">Prometheus</span>
+                    <span class="tag">GitLab CI</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item">
+                        <div class="difficulty">
+                            <div class="dot filled-hard"></div>
+                            <div class="dot filled-hard"></div>
+                            <div class="dot filled-hard"></div>
+                        </div>
+                        Hard
+                    </span>
+                    <span class="meta-item">⏱ 8–12 hours</span>
+                    <span class="meta-item">🔧 2 clusters + DR stack</span>
+                </div>
+                <button class="btn-start" onclick="openProject11()">Start Project →</button>
+            </div>
+        </div>
+
+        <!-- Project 12 — Available -->
+        <div class="project-card available" onclick="openProject12()">
+            <div class="card-banner available"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num">PROJECT 12</span>
+                    <span class="status-chip available">✓ Available</span>
+                </div>
+                <div class="card-title">Enterprise Secrets Management Platform</div>
+                <div class="card-description">
+                    Deploy HashiCorp Vault as the secrets backbone for your platform. Generate database credentials on-demand, issue TLS certificates, encrypt data as a service, and audit every secret access — the way real security teams do it.
+                </div>
+                <div class="card-tags">
+                    <span class="tag highlight">HashiCorp Vault</span>
+                    <span class="tag highlight">Dynamic Secrets</span>
+                    <span class="tag highlight">PKI / TLS</span>
+                    <span class="tag highlight">Transit Encryption</span>
+                    <span class="tag">K8s Auth</span>
+                    <span class="tag">Audit Logging</span>
+                    <span class="tag">Break-Glass</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item">
+                        <div class="difficulty">
+                            <div class="dot filled-hard"></div>
+                            <div class="dot filled-hard"></div>
+                            <div class="dot filled-hard"></div>
+                        </div>
+                        Hard
+                    </span>
+                    <span class="meta-item">⏱ 6–10 hours</span>
+                    <span class="meta-item">🔧 3 services</span>
+                </div>
+                <button class="btn-start" onclick="openProject12()">Start Project →</button>
+            </div>
+        </div>
+
     </div>
 
     <!-- Coming Soon -->
     <div class="section-header" style="margin-top: 40px;">
         <span class="section-title">Coming Soon</span>
-        <span class="section-badge badge-coming">6 Projects</span>
+        <span class="section-badge badge-coming">4 Projects</span>
     </div>
 
     <div class="projects-grid">
 
-        <!-- Projects 11-16 -->
-
-        <div class="project-card coming-soon">
-            <div class="card-banner coming-soon"></div>
-            <div class="card-body">
-                <div class="card-header">
-                    <span class="project-num dim">PROJECT 11</span>
-                    <span class="status-chip coming">Coming Soon</span>
-                </div>
-                <div class="card-title">MLOps Pipeline</div>
-                <div class="card-description">Deploy a machine learning pipeline on Kubernetes with Kubeflow, model versioning, A/B testing, and automated retraining triggers.</div>
-                <div class="card-tags">
-                    <span class="tag">Kubeflow</span><span class="tag">Model Serving</span><span class="tag">A/B Testing</span>
-                </div>
-            </div>
-            <div class="card-footer">
-                <div class="card-meta">
-                    <span class="meta-item"><div class="difficulty"><div class="dot filled-hard"></div><div class="dot filled-hard"></div><div class="dot filled-hard"></div></div> Hard</span>
-                    <span class="meta-item">⏱ 8–10 hours</span>
-                </div>
-                <button class="btn-coming" disabled>Coming Soon</button>
-            </div>
-        </div>
-
-        <div class="project-card coming-soon">
-            <div class="card-banner coming-soon"></div>
-            <div class="card-body">
-                <div class="card-header">
-                    <span class="project-num dim">PROJECT 12</span>
-                    <span class="status-chip coming">Coming Soon</span>
-                </div>
-                <div class="card-title">Serverless on Kubernetes</div>
-                <div class="card-description">Build event-driven serverless functions with Knative, auto-scaling to zero, event brokers, and integration with Kafka and CloudEvents.</div>
-                <div class="card-tags">
-                    <span class="tag">Knative</span><span class="tag">Serverless</span><span class="tag">Kafka</span><span class="tag">CloudEvents</span>
-                </div>
-            </div>
-            <div class="card-footer">
-                <div class="card-meta">
-                    <span class="meta-item"><div class="difficulty"><div class="dot filled-hard"></div><div class="dot filled-hard"></div><div class="dot"></div></div> Hard</span>
-                    <span class="meta-item">⏱ 6–8 hours</span>
-                </div>
-                <button class="btn-coming" disabled>Coming Soon</button>
-            </div>
-        </div>
+        <!-- Projects 13-16 -->
 
         <div class="project-card coming-soon">
             <div class="card-banner coming-soon"></div>
@@ -2865,6 +2903,335 @@ function showWideReadme10(which) {
         .then(r => r.text())
         .then(raw => { document.getElementById('p10-wide-body').innerHTML = renderMd(raw); })
         .catch(() => { document.getElementById('p10-wide-body').innerHTML = '<p style="color:red">Could not load README. Make sure the file exists at: ' + path + '</p>'; });
+}
+
+function openProject11() { showModal11(); }
+
+function showModal11() {
+    const PATH       = 'hands-on-projects/project-11-multi-region-disaster-recovery/';
+    const DOCKER_CMD = 'docker compose up --build';
+    const QUICK_CMD  = 'cd hands-on-projects/project-11-multi-region-disaster-recovery/local\ndocker compose up --build\n# LIVE (nginx):      http://localhost:5858  ← production entry point\n# Primary  (direct): http://localhost:5860  ← eu-west-1\n# Secondary (direct): http://localhost:5861  ← us-east-1 (standby)\n# MinIO Console:     http://localhost:9001  ← backup storage';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'p11-modal-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;';
+
+    overlay.innerHTML = `
+        <div style="background:white;border-radius:16px;max-width:580px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,.25);">
+
+            <!-- Header -->
+            <div style="padding:22px 28px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:white;z-index:1;border-radius:16px 16px 0 0;">
+                <h2 style="font-size:19px;font-weight:700;">🌍 Project 11 — Multi-Region Disaster Recovery</h2>
+                <button onclick="document.getElementById('p11-modal-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#6b7280;line-height:1;padding:0 4px;">&times;</button>
+            </div>
+
+            <div style="padding:24px 28px;display:flex;flex-direction:column;gap:20px;">
+
+                <!-- Path -->
+                <div style="background:#eef2ff;border-radius:10px;padding:16px;">
+                    <div style="font-weight:700;margin-bottom:10px;color:#4f46e5;font-size:13px;">📁 Project Location</div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <code style="font-size:12px;color:#374151;background:#e0e7ff;padding:8px 12px;border-radius:6px;font-family:'Courier New',Courier,monospace;flex:1;min-width:200px;word-break:break-all;">${PATH}</code>
+                        <button onclick="copyText('${PATH}', this)" style="font-size:12px;padding:7px 14px;border-radius:6px;border:1px solid #c7d2fe;background:white;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;transition:all .15s;flex-shrink:0;">📋 Copy</button>
+                    </div>
+                </div>
+
+                <!-- Steps -->
+                <div>
+                    <div style="font-weight:700;margin-bottom:12px;font-size:14px;">Where to start:</div>
+                    <div style="display:flex;flex-direction:column;gap:10px;">
+
+                        <div onclick="showWideReadme11('project')"
+                             style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;cursor:pointer;transition:all .15s;"
+                             onmouseover="this.style.borderColor='#6366f1';this.style.background='#f5f3ff';"
+                             onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#f9fafb';">
+                            <span style="font-size:24px;flex-shrink:0;">📖</span>
+                            <div style="flex:1;">
+                                <div style="font-weight:600;font-size:14px;">1. Read the Project README</div>
+                                <div style="color:#6b7280;font-size:12px;margin-top:2px;">Architecture, folder structure, 7-phase DR journey, RTO/RPO concepts</div>
+                            </div>
+                            <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
+                        </div>
+
+                        <div onclick="showWideReadme11('app')"
+                             style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;cursor:pointer;transition:all .15s;"
+                             onmouseover="this.style.borderColor='#6366f1';this.style.background='#f5f3ff';"
+                             onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#f9fafb';">
+                            <span style="font-size:24px;flex-shrink:0;">🔍</span>
+                            <div style="flex:1;">
+                                <div style="font-weight:600;font-size:14px;">2. Explore the app/ folder</div>
+                                <div style="color:#6b7280;font-size:12px;margin-top:2px;">RegionWatch DR dashboard — same image, two roles (primary/secondary)</div>
+                            </div>
+                            <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
+                        </div>
+
+                        <div style="padding:14px 16px;background:#eef2ff;border-radius:10px;border:2px solid #6366f1;display:flex;flex-direction:column;gap:10px;">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <span style="font-size:24px;flex-shrink:0;">🐳</span>
+                                <div>
+                                    <div style="font-weight:600;font-size:14px;color:#4f46e5;">3. Run locally (local/ folder)</div>
+                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Primary + Secondary + MinIO + nginx — simulate failover, measure RTO</div>
+                                </div>
+                            </div>
+                            <div style="background:white;border-radius:8px;padding:10px 14px;border:1px solid #c7d2fe;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                                <code style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;flex:1;">${DOCKER_CMD}</code>
+                                <button onclick="copyText('${DOCKER_CMD}', this)" style="font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #c7d2fe;background:#eef2ff;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;flex-shrink:0;transition:all .15s;">📋 Copy</button>
+                            </div>
+                        </div>
+
+                        <div style="padding:14px 16px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;display:flex;flex-direction:column;gap:10px;">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <span style="font-size:24px;flex-shrink:0;">🌐</span>
+                                <div>
+                                    <div style="font-weight:600;font-size:14px;color:#166534;">Quick access after startup</div>
+                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Endpoints once docker compose is running</div>
+                                </div>
+                            </div>
+                            <div style="display:flex;justify-content:flex-end;">
+                                <button onclick="copyText('cd hands-on-projects/project-11-multi-region-disaster-recovery/local\\ndocker compose up --build', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">📋 Copy all</button>
+                            </div>
+                            <pre style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;line-height:1.9;margin:0;white-space:pre-wrap;">cd hands-on-projects/project-11-multi-region-disaster-recovery/local
+docker compose up --build
+
+# LIVE (nginx router):  http://localhost:5858  ← production entry point
+# Primary  (eu-west-1): http://localhost:5860  ← direct access
+# Secondary (us-east-1):http://localhost:5861  ← standby region
+# MinIO Console:        http://localhost:9001  ← backup storage UI</pre>
+                        </div>
+
+                        <div style="padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;display:flex;flex-direction:column;gap:10px;">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <span style="font-size:24px;flex-shrink:0;">☸️</span>
+                                <div>
+                                    <div style="font-weight:600;font-size:14px;">4. Deploy to Kubernetes (main/)</div>
+                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">2 Kind clusters, Velero backup/restore, failover scripts, Prometheus monitoring</div>
+                                </div>
+                            </div>
+                            <div style="display:flex;gap:8px;">
+                                <button onclick="showWideReadme11('local')" style="flex:1;padding:11px;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">🐳 Open Local Guide</button>
+                                <button onclick="showWideReadme11('main')" style="flex:1;padding:11px;background:#6366f1;color:white;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#4f46e5'" onmouseout="this.style.background='#6366f1'">☸️ Open K8s Guide</button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Stack -->
+                <div style="background:#f9fafb;border-radius:10px;padding:16px;border:1px solid #e5e7eb;">
+                    <div style="font-weight:700;margin-bottom:10px;font-size:13px;">🛠 Tools you'll use</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        ${['Docker Compose', 'Kind (2 clusters)', 'Velero', 'MinIO', 'PostgreSQL', 'nginx failover', 'kubectl --context', 'Helm', 'Prometheus', 'Grafana', 'GitLab CI', 'RTO/RPO Measurement'].map(t =>
+                            `<span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">${t}</span>`
+                        ).join('')}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+function showWideReadme11(which) {
+    const readmeMap = {
+        project: '/hands-on-projects/project-11-multi-region-disaster-recovery/README.md',
+        app:     '/hands-on-projects/project-11-multi-region-disaster-recovery/app/README.md',
+        local:   '/hands-on-projects/project-11-multi-region-disaster-recovery/local/README.md',
+        main:    '/hands-on-projects/project-11-multi-region-disaster-recovery/main/README.md',
+    };
+    const path = readmeMap[which];
+    if (!path) return;
+
+    const existing = document.getElementById('p11-wide-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'p11-wide-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:2000;display:flex;align-items:center;justify-content:center;padding:24px;';
+    overlay.innerHTML = `
+        <div style="background:white;border-radius:16px;width:100%;max-width:860px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 25px 50px rgba(0,0,0,.3);">
+            <div style="padding:18px 24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+                <div style="font-weight:700;font-size:15px;color:#111827;">🌍 ${path}</div>
+                <button onclick="document.getElementById('p11-wide-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#6b7280;">&times;</button>
+            </div>
+            <div id="p11-wide-body" style="flex:1;overflow-y:auto;padding:24px 28px;font-size:14px;line-height:1.7;color:#374151;">
+                <div style="color:#6b7280;">Loading...</div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+    fetch(path)
+        .then(r => r.text())
+        .then(raw => { document.getElementById('p11-wide-body').innerHTML = renderMd(raw); })
+        .catch(() => { document.getElementById('p11-wide-body').innerHTML = '<p style="color:red">Could not load README. Make sure the file exists at: ' + path + '</p>'; });
+}
+
+// ── Project 12 entry ──────────────────────────────────────────────────────────
+function openProject12() { showModal12(); }
+
+function showModal12() {
+    const PATH       = 'hands-on-projects/project-12-secrets-management/';
+    const DOCKER_CMD = 'docker compose up --build';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'p12-modal-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;';
+
+    overlay.innerHTML = `
+        <div style="background:white;border-radius:16px;max-width:580px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,.25);">
+
+            <!-- Header -->
+            <div style="padding:22px 28px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:white;z-index:1;border-radius:16px 16px 0 0;">
+                <h2 style="font-size:19px;font-weight:700;">🔐 Project 12 — Enterprise Secrets Management Platform</h2>
+                <button onclick="document.getElementById('p12-modal-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#6b7280;line-height:1;padding:0 4px;">&times;</button>
+            </div>
+
+            <div style="padding:24px 28px;display:flex;flex-direction:column;gap:20px;">
+
+                <!-- Path -->
+                <div style="background:#eef2ff;border-radius:10px;padding:16px;">
+                    <div style="font-weight:700;margin-bottom:10px;color:#4f46e5;font-size:13px;">📁 Project Location</div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <code style="font-size:12px;color:#374151;background:#e0e7ff;padding:8px 12px;border-radius:6px;font-family:'Courier New',Courier,monospace;flex:1;min-width:200px;word-break:break-all;">${PATH}</code>
+                        <button onclick="copyText('${PATH}', this)" style="font-size:12px;padding:7px 14px;border-radius:6px;border:1px solid #c7d2fe;background:white;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;transition:all .15s;flex-shrink:0;">📋 Copy</button>
+                    </div>
+                </div>
+
+                <!-- Steps -->
+                <div>
+                    <div style="font-weight:700;margin-bottom:12px;font-size:14px;">Where to start:</div>
+                    <div style="display:flex;flex-direction:column;gap:10px;">
+
+                        <div onclick="showWideReadme12('project')"
+                             style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;cursor:pointer;transition:all .15s;"
+                             onmouseover="this.style.borderColor='#6366f1';this.style.background='#f5f3ff';"
+                             onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#f9fafb';">
+                            <span style="font-size:24px;flex-shrink:0;">📖</span>
+                            <div style="flex:1;">
+                                <div style="font-weight:600;font-size:14px;">1. Read the Project README</div>
+                                <div style="color:#6b7280;font-size:12px;margin-top:2px;">Architecture, folder structure, 5-phase secrets journey, key concepts</div>
+                            </div>
+                            <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
+                        </div>
+
+                        <div onclick="showWideReadme12('app')"
+                             style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;cursor:pointer;transition:all .15s;"
+                             onmouseover="this.style.borderColor='#6366f1';this.style.background='#f5f3ff';"
+                             onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#f9fafb';">
+                            <span style="font-size:24px;flex-shrink:0;">🔍</span>
+                            <div style="flex:1;">
+                                <div style="font-weight:600;font-size:14px;">2. Explore the app/ folder</div>
+                                <div style="color:#6b7280;font-size:12px;margin-top:2px;">Vault Dashboard — KV secrets, dynamic creds, PKI, transit, audit logs</div>
+                            </div>
+                            <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
+                        </div>
+
+                        <div style="padding:14px 16px;background:#eef2ff;border-radius:10px;border:2px solid #6366f1;display:flex;flex-direction:column;gap:10px;">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <span style="font-size:24px;flex-shrink:0;">🐳</span>
+                                <div>
+                                    <div style="font-weight:600;font-size:14px;color:#4f46e5;">3. Run locally (local/ folder)</div>
+                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Vault + PostgreSQL + Dashboard — full secrets platform in Docker</div>
+                                </div>
+                            </div>
+                            <div style="background:white;border-radius:8px;padding:10px 14px;border:1px solid #c7d2fe;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                                <code style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;flex:1;">${DOCKER_CMD}</code>
+                                <button onclick="copyText('${DOCKER_CMD}', this)" style="font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #c7d2fe;background:#eef2ff;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;flex-shrink:0;transition:all .15s;">📋 Copy</button>
+                            </div>
+                        </div>
+
+                        <div style="padding:14px 16px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;display:flex;flex-direction:column;gap:10px;">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <span style="font-size:24px;flex-shrink:0;">🌐</span>
+                                <div>
+                                    <div style="font-weight:600;font-size:14px;color:#166534;">Quick access after startup</div>
+                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Services available once docker compose is running</div>
+                                </div>
+                            </div>
+                            <div style="display:flex;justify-content:flex-end;">
+                                <button onclick="copyText('cd hands-on-projects/project-12-secrets-management/local\\ndocker compose up --build', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">📋 Copy all</button>
+                            </div>
+                            <pre style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;line-height:1.9;margin:0;white-space:pre-wrap;">cd hands-on-projects/project-12-secrets-management/local
+docker compose up --build
+
+# Dashboard UI:   http://localhost:5555   ← your Vault management UI
+# Vault UI:       http://localhost:8200/ui ← native Vault interface (token: root)
+# Vault API:      http://localhost:8200    ← direct API access</pre>
+                        </div>
+
+                        <div style="padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;display:flex;flex-direction:column;gap:10px;">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <span style="font-size:24px;flex-shrink:0;">☸️</span>
+                                <div>
+                                    <div style="font-weight:600;font-size:14px;">4. Deploy to Kubernetes (main/)</div>
+                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Vault via Helm, K8s auth, Vault Agent Injector, dynamic secrets in pods</div>
+                                </div>
+                            </div>
+                            <div style="display:flex;gap:8px;">
+                                <button onclick="showWideReadme12('local')" style="flex:1;padding:11px;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">🐳 Open Local Guide</button>
+                                <button onclick="showWideReadme12('main')" style="flex:1;padding:11px;background:#6366f1;color:white;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#4f46e5'" onmouseout="this.style.background='#6366f1'">☸️ Open K8s Guide</button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Stack -->
+                <div style="background:#f9fafb;border-radius:10px;padding:16px;border:1px solid #e5e7eb;">
+                    <div style="font-weight:700;margin-bottom:10px;font-size:13px;">🛠 Tools you'll use</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        ${['HashiCorp Vault', 'hvac Python SDK', 'PostgreSQL', 'Docker Compose', 'Vault CLI', 'Helm (vault chart)', 'Kubernetes Auth', 'Vault Agent Injector', 'PKI Engine', 'Transit Engine', 'KV v2', 'Audit Logging'].map(t =>
+                            `<span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">${t}</span>`
+                        ).join('')}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+function showWideReadme12(which) {
+    const readmeMap = {
+        project: '/hands-on-projects/project-12-secrets-management/README.md',
+        app:     '/hands-on-projects/project-12-secrets-management/app/README.md',
+        local:   '/hands-on-projects/project-12-secrets-management/local/README.md',
+        main:    '/hands-on-projects/project-12-secrets-management/main/README.md',
+    };
+    const path = readmeMap[which];
+    if (!path) return;
+
+    const existing = document.getElementById('p12-wide-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'p12-wide-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:2000;display:flex;align-items:center;justify-content:center;padding:24px;';
+    overlay.innerHTML = `
+        <div style="background:white;border-radius:16px;width:100%;max-width:860px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 25px 50px rgba(0,0,0,.3);">
+            <div style="padding:18px 24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+                <div style="font-weight:700;font-size:15px;color:#111827;">🔐 ${path}</div>
+                <button onclick="document.getElementById('p12-wide-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#6b7280;">&times;</button>
+            </div>
+            <div id="p12-wide-body" style="flex:1;overflow-y:auto;padding:24px 28px;font-size:14px;line-height:1.7;color:#374151;">
+                <div style="color:#6b7280;">Loading...</div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+    fetch(path)
+        .then(r => r.text())
+        .then(raw => { document.getElementById('p12-wide-body').innerHTML = renderMd(raw); })
+        .catch(() => { document.getElementById('p12-wide-body').innerHTML = '<p style="color:red">Could not load README. Make sure the file exists at: ' + path + '</p>'; });
 }
 </script>
 

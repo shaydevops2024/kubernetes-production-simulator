@@ -1,0 +1,42 @@
+---
+# Main Vault service — used by the dashboard and other apps
+apiVersion: v1
+kind: Service
+metadata:
+  name: vault
+  namespace: secrets-management
+  labels:
+    app: vault
+spec:
+  selector:
+    app: vault
+  ports:
+    - name: http
+      port: 8200
+      targetPort: 8200
+    - name: https-internal
+      port: 8201
+      targetPort: 8201
+  type: ClusterIP
+---
+# Internal headless service — used for StatefulSet pod DNS
+# Pods: vault-0.vault-internal.secrets-management.svc.cluster.local
+apiVersion: v1
+kind: Service
+metadata:
+  name: vault-internal
+  namespace: secrets-management
+  labels:
+    app: vault
+spec:
+  selector:
+    app: vault
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - name: http
+      port: 8200
+      targetPort: 8200
+    - name: https-internal
+      port: 8201
+      targetPort: 8201

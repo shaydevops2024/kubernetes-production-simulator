@@ -1,0 +1,97 @@
+---
+# Vault configuration for standalone (non-HA) mode with file storage.
+# For HA with Raft, see helm/vault-values.yaml.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-config
+  namespace: secrets-management
+  labels:
+    app: vault
+data:
+  vault.hcl: |
+    ui = true
+
+    listener "tcp" {
+      address     = "0.0.0.0:8200"
+      tls_disable = 1
+      # In production: set tls_cert_file and tls_key_file
+    }
+
+    storage "file" {
+      path = "/vault/data"
+    }
+
+    # Allow Vault Agent to use the Kubernetes service account for auth
+    api_addr = "http://vault.secrets-management.svc.cluster.local:8200"
+    cluster_addr = "http://vault.secrets-management.svc.cluster.local:8201"
+
+    # Audit logging
+    # audit "file" {
+    #   file_path = "/vault/logs/audit.log"
+    # }
+
+  # Init script run as a K8s Job after Vault starts
+  init.sh: |
+    #!/bin/sh
+    set -e
+    export VAULT_ADDR=http://vault:8200
+
+    # Wait for Vault to be ready
+    until vault status; do sleep 2; done
+
+    # Enable KV v2
+    vault secrets enable -path=secret kv-v2 2>/dev/null || true
+
+    # Enable database secrets engine
+    vault secrets enable database 2>/dev/null || true
+
+    # Configure PostgreSQL
+    vault write database/config/postgres \
+        plugin_name=postgresql-database-plugin \
+        allowed_roles="app-role,readonly-role" \
+        connection_url="postgresql://{{username}}:{{password}}@postgres.secrets-management.svc.cluster.local:5432/appdb?sslmode=disable" \
+        username="vault_admin" \
+        password="vault_admin_password_change_in_prod"
+
+    vault write database/roles/app-role \
+        db_name=postgres \
+        creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO \"{{name}}\";" \
+        revocation_statements="DROP ROLE IF EXISTS \"{{name}}\";" \
+        default_ttl="1h" \
+        max_ttl="24h"
+
+    vault write database/roles/readonly-role \
+        db_name=postgres \
+        creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; GRANT SELECT ON ALL TABLES IN SCHEMA public TO \"{{name}}\";" \
+        revocation_statements="DROP ROLE IF EXISTS \"{{name}}\";" \
+        default_ttl="30m" \
+        max_ttl="1h"
+
+    # Enable Kubernetes auth
+    vault auth enable kubernetes 2>/dev/null || true
+    vault write auth/kubernetes/config \
+        kubernetes_host="https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT_HTTPS"
+
+    vault write auth/kubernetes/role/dashboard-role \
+        bound_service_account_names=vault-dashboard \
+        bound_service_account_namespaces=secrets-management \
+        policies=dashboard-policy \
+        ttl=1h
+
+    # Enable Transit
+    vault secrets enable transit 2>/dev/null || true
+    vault write -f transit/keys/app-key 2>/dev/null || true
+
+    # Enable PKI
+    vault secrets enable pki 2>/dev/null || true
+    vault secrets tune -max-lease-ttl=87600h pki
+    vault write -field=certificate pki/root/generate/internal \
+        common_name="K8s Vault Root CA" ttl=87600h > /dev/null
+    vault secrets enable -path=pki_int pki 2>/dev/null || true
+    vault secrets tune -max-lease-ttl=43800h pki_int
+    vault write pki_int/roles/app-role \
+        allowed_domains="vault.local,svc.cluster.local" \
+        allow_subdomains=true max_ttl=720h generate_lease=true
+
+    echo "Vault initialization complete!"

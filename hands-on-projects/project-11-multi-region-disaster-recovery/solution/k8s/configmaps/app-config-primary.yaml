@@ -1,0 +1,17 @@
+---
+# ConfigMap for the PRIMARY cluster (kind-primary / eu-west-1)
+# Apply with: kubectl --context kind-primary apply -f app-config-primary.yaml -n dr-system
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: regionwatch-config
+  namespace: dr-system
+  labels:
+    app: regionwatch
+data:
+  REGION_NAME:     "eu-west-1"
+  REGION_ROLE:     "primary"
+  APP_VERSION:     "v1"
+  APP_ENV:         "production"
+  # MinIO running on host machine — use host.docker.internal (Kind bridge network)
+  MINIO_ENDPOINT:  "http://host.docker.internal:9000"

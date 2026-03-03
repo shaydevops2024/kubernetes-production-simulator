@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: secrets-management
+  labels:
+    app.kubernetes.io/managed-by: kubectl
+    project: secrets-management
