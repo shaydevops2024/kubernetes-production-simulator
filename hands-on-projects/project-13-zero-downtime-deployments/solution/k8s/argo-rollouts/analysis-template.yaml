@@ -1,0 +1,53 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# AnalysisTemplate — Error Rate Gate
+#
+# This is the "brain" of automatic rollback.
+# Argo Rollouts creates an AnalysisRun from this template at each canary step.
+# The run queries Prometheus every 30 s; if error rate ≥ 5 % three times in
+# a row (failureLimit: 3), it marks the run as Failed → Argo Rollouts rolls back.
+#
+# The query:
+#   sum(rate(app_errors_total{...}[1m])) / sum(rate(app_requests_total{...}[1m]))
+#   gives error rate as a fraction (0.0 – 1.0); multiply by 100 for %.
+#   successCondition: result[0] < 5  means "less than 5 % errors → OK"
+# ─────────────────────────────────────────────────────────────────────────────
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: error-rate-analysis
+  namespace: zero-downtime
+spec:
+  args:
+    - name: service-name   # Passed in by the Rollout; selects the canary service
+  metrics:
+    - name: error-rate
+      interval: 30s
+      # Allow 3 consecutive failures before marking the analysis as Failed
+      failureLimit: 3
+      # After 10 successful measurements, mark as Successful (optional — rollout steps control promotion)
+      count: 10
+      provider:
+        prometheus:
+          address: http://kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
+          query: |
+            sum(rate(app_errors_total[1m]))
+            /
+            sum(rate(app_requests_total[1m]))
+            * 100
+      # This condition must be TRUE for the metric to be considered a success
+      successCondition: result[0] < 5
+      # This condition triggers a failure count increment
+      failureCondition: result[0] >= 5
+
+    # Secondary metric: ensure the canary is actually receiving traffic
+    # (avoids false success when Prometheus has no data)
+    - name: request-rate
+      interval: 30s
+      failureLimit: 2
+      provider:
+        prometheus:
+          address: http://kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
+          query: |
+            sum(rate(app_requests_total[1m]))
+      successCondition: result[0] > 0.1   # At least 0.1 req/s
+      failureCondition: result[0] <= 0.1

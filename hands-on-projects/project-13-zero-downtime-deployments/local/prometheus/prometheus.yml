@@ -1,0 +1,27 @@
+global:
+  scrape_interval:     10s
+  evaluation_interval: 10s
+
+rule_files:
+  - "alert-rules.yml"
+
+scrape_configs:
+  # Scrape both app versions individually so metrics are tagged by version label
+  - job_name: "app-v1"
+    static_configs:
+      - targets: ["app-v1:4545"]
+        labels:
+          version: "v1"
+          color: "blue"
+
+  - job_name: "app-v2"
+    static_configs:
+      - targets: ["app-v2:4545"]
+        labels:
+          version: "v2"
+          color: "green"
+
+  # Prometheus scrapes itself
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]

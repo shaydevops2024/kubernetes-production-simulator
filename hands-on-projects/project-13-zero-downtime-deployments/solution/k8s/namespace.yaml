@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: zero-downtime
+  labels:
+    # Required for Prometheus ServiceMonitor discovery
+    monitoring: "true"

@@ -1,0 +1,161 @@
+{
+  "title": "Zero-Downtime Deployment Monitor",
+  "uid": "zero-downtime",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "5s",
+  "time": { "from": "now-15m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Request Rate by Version",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(app_requests_total{version=\"v1\"}[1m]))",
+          "legendFormat": "v1 (blue)"
+        },
+        {
+          "expr": "sum(rate(app_requests_total{version=\"v2\"}[1m]))",
+          "legendFormat": "v2 (green)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Error Rate by Version (%)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(app_errors_total{version=\"v1\"}[1m])) / sum(rate(app_requests_total{version=\"v1\"}[1m])) * 100",
+          "legendFormat": "v1 error %"
+        },
+        {
+          "expr": "sum(rate(app_errors_total{version=\"v2\"}[1m])) / sum(rate(app_requests_total{version=\"v2\"}[1m])) * 100",
+          "legendFormat": "v2 error %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 2 },
+              { "color": "red", "value": 5 }
+            ]
+          },
+          "custom": { "lineWidth": 2, "fillOpacity": 15, "thresholdsStyle": { "mode": "line+area" } }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "P95 Latency by Version",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(app_request_duration_seconds_bucket{version=\"v1\"}[1m])) by (le))",
+          "legendFormat": "v1 p95"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(app_request_duration_seconds_bucket{version=\"v2\"}[1m])) by (le))",
+          "legendFormat": "v2 p95"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "lineWidth": 2 } }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Configured Error Rate (Synthetic)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "app_configured_error_rate{version=\"v1\"}",
+          "legendFormat": "v1 configured rate"
+        },
+        {
+          "expr": "app_configured_error_rate{version=\"v2\"}",
+          "legendFormat": "v2 configured rate"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percentunit", "custom": { "lineWidth": 2 } }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Total Requests — v1",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 16, "w": 6, "h": 4 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "sum(app_requests_total{version=\"v1\"})", "legendFormat": "" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "fixedColor": "#3b82f6", "mode": "fixed" }, "unit": "short" } }
+    },
+    {
+      "id": 6,
+      "title": "Total Requests — v2",
+      "type": "stat",
+      "gridPos": { "x": 6, "y": 16, "w": 6, "h": 4 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "sum(app_requests_total{version=\"v2\"})", "legendFormat": "" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "fixedColor": "#22c55e", "mode": "fixed" }, "unit": "short" } }
+    },
+    {
+      "id": 7,
+      "title": "Error Rate v1 (current)",
+      "type": "gauge",
+      "gridPos": { "x": 12, "y": 16, "w": 6, "h": 4 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "sum(rate(app_errors_total{version=\"v1\"}[1m])) / sum(rate(app_requests_total{version=\"v1\"}[1m])) * 100 or vector(0)" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0, "max": 100,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green" }, { "color": "yellow", "value": 2 }, { "color": "red", "value": 5 }] }
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "Error Rate v2 (current)",
+      "type": "gauge",
+      "gridPos": { "x": 18, "y": 16, "w": 6, "h": 4 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "sum(rate(app_errors_total{version=\"v2\"}[1m])) / sum(rate(app_requests_total{version=\"v2\"}[1m])) * 100 or vector(0)" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0, "max": 100,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green" }, { "color": "yellow", "value": 2 }, { "color": "red", "value": 5 }] }
+        }
+      }
+    }
+  ]
+}

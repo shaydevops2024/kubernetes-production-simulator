@@ -1,0 +1,19 @@
+# Canary service — points to the new (in-progress) version during rollout.
+# Argo Rollouts sends the configured percentage of traffic here.
+# After promotion, this service is updated to point to the same pods as stable.
+apiVersion: v1
+kind: Service
+metadata:
+  name: deploy-insight-canary
+  namespace: zero-downtime
+  labels:
+    app: deploy-insight
+    role: canary
+spec:
+  selector:
+    app: deploy-insight
+    version: v2   # Argo Rollouts manages this selector
+  ports:
+    - port: 80
+      targetPort: 4545
+      name: http

@@ -1,0 +1,111 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Canary Rollout
+#
+# Strategy:
+#   1. Deploy v2 to a small % of pods (5 %)
+#   2. Run AnalysisRun — query Prometheus for error rate every 30 s
+#   3. If error rate < 5 % → advance to next step
+#   4. If error rate ≥ 5 % for 3 consecutive checks → automatic rollback
+#   5. Gradually increase traffic: 5% → 25% → 50% → 100%
+#
+# Why canary?
+#   - Reduces blast radius: only a fraction of users hit the new version
+#   - Metric-driven: Prometheus decides, not humans
+#   - Downside: longer rollout time; partial rollouts can be confusing
+# ─────────────────────────────────────────────────────────────────────────────
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: deploy-insight-canary
+  namespace: zero-downtime
+spec:
+  replicas: 4   # 4 pods; % steps below translate to pod counts
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: deploy-insight-canary
+  template:
+    metadata:
+      labels:
+        app: deploy-insight-canary
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "4545"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: app
+          image: deploy-insight:v1   # Update to :v2 to trigger canary
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 4545
+              name: http
+          env:
+            - name: APP_VERSION
+              value: "v1"
+            - name: APP_COLOR
+              value: "blue"
+            - name: APP_PORT
+              value: "4545"
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 4545
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 4545
+            initialDelaySeconds: 5
+            periodSeconds: 5
+  strategy:
+    canary:
+      # canaryService receives canary traffic; stableService receives stable traffic
+      canaryService: deploy-insight-canary
+      stableService: deploy-insight-stable
+      # nginx-ingress splits traffic using annotation-based weight
+      trafficRouting:
+        nginx:
+          stableIngress: deploy-insight-ingress
+      steps:
+        # Step 1: send 5 % of traffic to new version
+        - setWeight: 5
+        # Run analysis for 1 minute — if it fails here, 0 users are affected
+        - analysis:
+            templates:
+              - templateName: error-rate-analysis
+            args:
+              - name: service-name
+                value: deploy-insight-canary
+        - pause: { duration: 1m }
+
+        # Step 2: 25 % — wider exposure
+        - setWeight: 25
+        - analysis:
+            templates:
+              - templateName: error-rate-analysis
+            args:
+              - name: service-name
+                value: deploy-insight-canary
+        - pause: { duration: 2m }
+
+        # Step 3: 50 % — majority exposure, final confidence check
+        - setWeight: 50
+        - analysis:
+            templates:
+              - templateName: error-rate-analysis
+            args:
+              - name: service-name
+                value: deploy-insight-canary
+        - pause: { duration: 2m }
+
+        # Step 4: 100 % — promotion complete
+        # (Argo Rollouts updates stableService selector automatically)

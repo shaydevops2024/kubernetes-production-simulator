@@ -1,0 +1,49 @@
+# Main Ingress — routes external traffic to the stable service.
+# Argo Rollouts updates annotations on this Ingress to control canary weight
+# when using nginx traffic splitting.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: deploy-insight-ingress
+  namespace: zero-downtime
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    # Argo Rollouts canary annotations — managed automatically during rollout
+    nginx.ingress.kubernetes.io/canary: "false"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: deploy-insight.local   # Add to /etc/hosts: 127.0.0.1 deploy-insight.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: deploy-insight-stable
+                port:
+                  number: 80
+---
+# Canary Ingress — created and managed by Argo Rollouts automatically.
+# Included here for reference so you can see what Argo Rollouts generates.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: deploy-insight-ingress-canary
+  namespace: zero-downtime
+  annotations:
+    nginx.ingress.kubernetes.io/canary: "true"
+    nginx.ingress.kubernetes.io/canary-weight: "0"   # Argo Rollouts updates this
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: deploy-insight.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: deploy-insight-canary
+                port:
+                  number: 80

@@ -1,0 +1,19 @@
+# Stable service — always points to the active (promoted) version.
+# Argo Rollouts updates this service's selector automatically.
+# This is the service exposed via Ingress for real user traffic.
+apiVersion: v1
+kind: Service
+metadata:
+  name: deploy-insight-stable
+  namespace: zero-downtime
+  labels:
+    app: deploy-insight
+    role: stable
+spec:
+  selector:
+    app: deploy-insight
+    version: v1   # Argo Rollouts manages this selector during rollouts
+  ports:
+    - port: 80
+      targetPort: 4545
+      name: http

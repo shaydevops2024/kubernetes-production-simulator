@@ -1,0 +1,33 @@
+groups:
+  - name: deployment-alerts
+    interval: 30s
+    rules:
+
+      # ── Error rate too high during canary ──────────────────────────────────
+      # This is the same rule Argo Rollouts' AnalysisTemplate uses in production.
+      # If v2 error rate exceeds 5% for 1 minute → rollback is triggered.
+      - alert: CanaryHighErrorRate
+        expr: |
+          (
+            sum(rate(app_errors_total{version="v2"}[1m]))
+            /
+            sum(rate(app_requests_total{version="v2"}[1m]))
+          ) * 100 > 5
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "v2 canary error rate > 5%"
+          description: >
+            The v2 (green) version has an error rate of {{ $value | printf "%.1f" }}%.
+            In production Argo Rollouts would automatically roll back to v1.
+
+      # ── App instance down ──────────────────────────────────────────────────
+      - alert: AppInstanceDown
+        expr: up{job=~"app-.*"} == 0
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "App instance {{ $labels.job }} is down"
+          description: "Prometheus cannot reach {{ $labels.job }}. Check container health."

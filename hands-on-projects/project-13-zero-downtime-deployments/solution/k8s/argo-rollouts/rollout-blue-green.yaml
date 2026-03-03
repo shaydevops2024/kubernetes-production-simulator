@@ -1,0 +1,92 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Blue-Green Rollout
+#
+# Strategy:
+#   1. New version (green) is deployed alongside old (blue) — 0 traffic to green
+#   2. Optionally auto-tested via AnalysisRun on the preview service
+#   3. Operator promotes → traffic switches instantly (0 → 100 %)
+#   4. Blue stays running for a configurable period (scaleDownDelaySeconds)
+#      so you can quickly roll back by reverting the image
+#
+# Why blue-green?
+#   - Instant rollback: just flip the service selector back
+#   - No partial state: users always hit 100 % of one version
+#   - Downside: doubles resource usage during the transition period
+# ─────────────────────────────────────────────────────────────────────────────
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: deploy-insight
+  namespace: zero-downtime
+spec:
+  replicas: 3
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: deploy-insight
+  template:
+    metadata:
+      labels:
+        app: deploy-insight
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "4545"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: app
+          image: deploy-insight:v1   # Change to :v2 to trigger a rollout
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 4545
+              name: http
+          env:
+            - name: APP_VERSION
+              valueFrom:
+                fieldRef:
+                  # In a real pipeline this is set by CI via --set image.tag
+                  fieldPath: metadata.annotations['app-version']
+            - name: APP_COLOR
+              value: "blue"   # Override in v2 rollout to "green"
+            - name: APP_PORT
+              value: "4545"
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 4545
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 4545
+            initialDelaySeconds: 5
+            periodSeconds: 5
+  strategy:
+    blueGreen:
+      # activeService receives production traffic
+      activeService: deploy-insight-stable
+      # previewService receives 0 production traffic; used for smoke-testing the new version
+      previewService: deploy-insight-canary
+      # Run an AnalysisRun on the preview environment before promotion
+      prePromotionAnalysis:
+        templates:
+          - templateName: error-rate-analysis
+        args:
+          - name: service-name
+            value: deploy-insight-canary
+      # If pre-promotion analysis fails, abort — no user traffic ever hit v2
+      autoPromotionEnabled: false   # Set to true for fully automated blue-green
+      # Keep blue (old) pods for 5 min after promotion — fast rollback window
+      scaleDownDelaySeconds: 300
+      # Anti-affinity: don't schedule green pods on same node as blue
+      antiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          weight: 100

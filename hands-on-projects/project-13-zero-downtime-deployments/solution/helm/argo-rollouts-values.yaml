@@ -1,0 +1,36 @@
+# Argo Rollouts Helm values
+# Install with:
+#   helm install argo-rollouts argo/argo-rollouts \
+#     --namespace argo-rollouts \
+#     --values solution/helm/argo-rollouts-values.yaml
+
+# Enable the dashboard (access via: kubectl argo rollouts dashboard)
+dashboard:
+  enabled: true
+  service:
+    type: ClusterIP
+    port: 3100
+
+# Enable metrics so Prometheus can monitor Argo Rollouts itself
+controller:
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      additionalLabels:
+        release: kube-prometheus
+
+# Traffic routing: enable nginx support
+# Argo Rollouts will manage canary-weight annotations on Ingress objects
+trafficRouters:
+  nginx:
+    enabled: true
+
+# Resource limits — keep small for local dev
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 128Mi

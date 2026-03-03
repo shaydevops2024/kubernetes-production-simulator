@@ -1,0 +1,119 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Zero-Downtime Deployment — GitHub Actions CI/CD Pipeline
+#
+# Triggers on every push to main. The pipeline:
+#   1. Builds and pushes the Docker image (tagged with git SHA)
+#   2. Renders updated Kubernetes manifests with the new image tag
+#   3. Applies the manifests — Argo Rollouts takes over from there
+#
+# Required GitHub repository secrets:
+#   DOCKER_USER    → Docker Hub username
+#   DOCKER_PASS    → Docker Hub password or access token
+#   KUBE_CONFIG    → base64-encoded kubeconfig for the target cluster
+#                    ( base64 -w0 ~/.kube/config | pbcopy )
+# ─────────────────────────────────────────────────────────────────────────────
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"                         # Only rebuild when app code changes
+      - ".github/workflows/deploy.yml"
+
+env:
+  IMAGE_NAME: ${{ secrets.DOCKER_USER }}/deploy-insight
+  NAMESPACE: zero-downtime
+
+jobs:
+  build-and-push:
+    name: Build & Push Image
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASS }}
+
+      - name: Extract metadata (tag = git SHA short)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=,format=short
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./app
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-canary:
+    name: Deploy Canary Rollout
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: production   # Requires manual approval in GitHub Environments
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: "v1.30.0"
+
+      - name: Set up Argo Rollouts plugin
+        run: |
+          curl -LO https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-linux-amd64
+          chmod +x kubectl-argo-rollouts-linux-amd64
+          sudo mv kubectl-argo-rollouts-linux-amd64 /usr/local/bin/kubectl-argo-rollouts
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 --decode > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Set image and trigger canary rollout
+        env:
+          IMAGE_TAG: ${{ needs.build-and-push.outputs.image-tag }}
+        run: |
+          echo "Deploying image: ${{ env.IMAGE_NAME }}:${IMAGE_TAG}"
+
+          kubectl argo rollouts set image deploy-insight-canary \
+            app="${{ env.IMAGE_NAME }}:${IMAGE_TAG}" \
+            --namespace "${NAMESPACE}"
+
+          echo ""
+          echo "Canary rollout started. Argo Rollouts will:"
+          echo "  1. Deploy to 5% of traffic"
+          echo "  2. Run Prometheus AnalysisRun"
+          echo "  3. Promote or rollback automatically based on error rate"
+
+      - name: Wait for rollout result
+        run: |
+          # Wait up to 15 minutes for the canary to complete or fail
+          kubectl argo rollouts status deploy-insight-canary \
+            --namespace "${NAMESPACE}" \
+            --timeout 15m
+
+      - name: Print final rollout status
+        if: always()
+        run: |
+          kubectl argo rollouts get rollout deploy-insight-canary \
+            --namespace "${NAMESPACE}"

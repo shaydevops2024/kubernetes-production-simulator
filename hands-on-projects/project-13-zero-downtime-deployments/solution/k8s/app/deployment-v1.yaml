@@ -1,0 +1,66 @@
+# Standard Deployment for v1 (blue)
+# Used as the baseline before introducing Argo Rollouts.
+# When you switch to Argo Rollouts, this file is replaced by rollout-canary.yaml
+# or rollout-blue-green.yaml — Rollouts manage pods the same way Deployments do.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-insight-v1
+  namespace: zero-downtime
+  labels:
+    app: deploy-insight
+    version: v1
+    color: blue
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: deploy-insight
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: deploy-insight
+        version: v1
+        color: blue
+      annotations:
+        # Prometheus auto-scrape annotations (fallback if ServiceMonitor not used)
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "4545"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: app
+          image: deploy-insight:latest
+          imagePullPolicy: IfNotPresent   # Use "Always" in CI/CD with versioned tags
+          ports:
+            - containerPort: 4545
+              name: http
+          env:
+            - name: APP_VERSION
+              value: "v1"
+            - name: APP_COLOR
+              value: "blue"
+            - name: APP_PORT
+              value: "4545"
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 4545
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 4545
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 2

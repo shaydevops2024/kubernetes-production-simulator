@@ -1,0 +1,22 @@
+# MetalLB IP Address Pool
+# Provides LoadBalancer IPs on bare-metal / Kind clusters.
+# The range 172.18.255.200-210 works with the default Kind network.
+# Adjust if your Docker bridge subnet is different:
+#   docker network inspect kind | grep Subnet
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: local-pool
+  namespace: metallb-system
+spec:
+  addresses:
+    - 172.18.255.200-172.18.255.210
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: local-l2
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - local-pool

@@ -1,0 +1,20 @@
+# ServiceMonitor tells kube-prometheus-stack how to scrape the app.
+# The selector must match the namespace labels AND the service labels.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: deploy-insight
+  namespace: monitoring         # Must be in the Prometheus operator namespace
+  labels:
+    release: kube-prometheus    # Must match the helm release name
+spec:
+  namespaceSelector:
+    matchNames:
+      - zero-downtime
+  selector:
+    matchLabels:
+      app: deploy-insight       # Matches service-stable.yaml and service-canary.yaml
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 10s

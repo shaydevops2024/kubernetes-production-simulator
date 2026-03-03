@@ -1,0 +1,79 @@
+# kube-prometheus-stack Helm values
+# Install with:
+#   helm install kube-prometheus prometheus-community/kube-prometheus-stack \
+#     --namespace monitoring \
+#     --values solution/helm/prometheus-values.yaml
+
+# ── Prometheus ──────────────────────────────────────────────────────────────
+prometheus:
+  prometheusSpec:
+    # Scrape every 10 s (faster feedback during rollout demos)
+    scrapeInterval: 10s
+    evaluationInterval: 10s
+
+    # Discover ServiceMonitors in ALL namespaces (not just monitoring)
+    serviceMonitorNamespaceSelector: {}
+    serviceMonitorSelector: {}
+    podMonitorNamespaceSelector: {}
+    podMonitorSelector: {}
+    ruleNamespaceSelector: {}
+
+    retention: 7d
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+
+  service:
+    type: NodePort
+    nodePort: 4447   # Access Prometheus at http://localhost:4447
+
+# ── Grafana ──────────────────────────────────────────────────────────────────
+grafana:
+  adminPassword: admin
+  service:
+    type: NodePort
+    nodePort: 4446   # Access Grafana at http://localhost:4446
+
+  # Pre-load the deployment dashboard
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: "zero-downtime"
+          orgId: 1
+          folder: "Zero-Downtime"
+          type: file
+          disableDeletion: false
+          options:
+            path: /var/lib/grafana/dashboards/zero-downtime
+
+  dashboardsConfigMaps:
+    zero-downtime: "grafana-deployment-dashboard"
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+# ── Alertmanager ──────────────────────────────────────────────────────────────
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+
+# ── Disable components not needed for this project ──────────────────────────
+kubeControllerManager:
+  enabled: false   # Not accessible in Kind
+kubeScheduler:
+  enabled: false   # Not accessible in Kind
+kubeEtcd:
+  enabled: false   # Not accessible in Kind

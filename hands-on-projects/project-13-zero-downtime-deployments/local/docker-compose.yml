@@ -1,0 +1,103 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Zero-Downtime Deployment Platform — Local Stack
+#
+# Access points (all non-standard ports):
+#   App dashboard (load balanced) → http://localhost:4545
+#   Grafana                       → http://localhost:4446  (admin / admin)
+#   Prometheus                    → http://localhost:4447
+#   App v1 direct                 → http://localhost:4551
+#   App v2 direct                 → http://localhost:4552
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Application v1 (Blue) ──────────────────────────────────────────────────
+  app-v1:
+    build:
+      context: ../app
+      dockerfile: Dockerfile
+    environment:
+      APP_VERSION: "v1"
+      APP_COLOR: "blue"
+      APP_PORT: "4545"
+    ports:
+      - "4551:4545"   # Direct access to v1 for debugging
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4545/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 8s
+    restart: unless-stopped
+
+  # ── Application v2 (Green) ────────────────────────────────────────────────
+  app-v2:
+    build:
+      context: ../app
+      dockerfile: Dockerfile
+    environment:
+      APP_VERSION: "v2"
+      APP_COLOR: "green"
+      APP_PORT: "4545"
+    ports:
+      - "4552:4545"   # Direct access to v2 for debugging
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4545/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 8s
+    restart: unless-stopped
+
+  # ── Nginx — Traffic splitter (simulates canary/blue-green) ────────────────
+  # Edit nginx/nginx.conf weights and run:  docker compose restart nginx-lb
+  nginx-lb:
+    image: nginx:1.27-alpine
+    ports:
+      - "4545:80"     # Main app entrypoint
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      app-v1:
+        condition: service_healthy
+      app-v2:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Prometheus ────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    ports:
+      - "4447:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=7d"
+      - "--web.enable-lifecycle"
+    restart: unless-stopped
+
+  # ── Grafana ───────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4.3
+    ports:
+      - "4446:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/provisioning/dashboards/deployment.json
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
+  grafana-data:
