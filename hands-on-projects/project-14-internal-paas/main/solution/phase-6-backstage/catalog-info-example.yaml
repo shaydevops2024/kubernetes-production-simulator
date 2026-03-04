@@ -1,0 +1,75 @@
+# catalog-info.yaml — add this file to each service's Gitea repository.
+# Backstage scans Gitea repos and picks up these files to build the service catalog.
+# This is how "IaC for catalog entries" works: the catalog is defined in code.
+
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: api-gateway
+  description: Main API gateway routing traffic to all internal services
+  annotations:
+    # Link to the Gitea repository
+    gitea.com/project-slug: alpha/api-gateway
+    # Link to Grafana dashboard for this service
+    grafana/dashboard-selector: "title=api-gateway"
+    # Link to CI/CD pipeline
+    woodpecker.ci/project: alpha/api-gateway
+  labels:
+    team: team-alpha
+    environment: production
+    tier: "1"
+spec:
+  type: service
+  lifecycle: production
+  owner: team-alpha
+  system: platform
+  providesApis:
+    - api-gateway-rest
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: api-gateway-rest
+  description: REST API exposed through the gateway
+spec:
+  type: openapi
+  lifecycle: production
+  owner: team-alpha
+  definition: |
+    openapi: "3.0.0"
+    info:
+      title: API Gateway
+      version: "2.1.0"
+    paths:
+      /health:
+        get:
+          summary: Health check
+          responses:
+            "200":
+              description: OK
+
+---
+# Team entity — maps to a Gitea organization or team
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: team-alpha
+  description: Frontend and API services team
+spec:
+  type: team
+  profile:
+    email: alpha@company.com
+  children: []
+  members: [alice, bob]
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: alice
+spec:
+  profile:
+    email: alice@company.com
+    displayName: Alice Smith
+  memberOf: [team-alpha]

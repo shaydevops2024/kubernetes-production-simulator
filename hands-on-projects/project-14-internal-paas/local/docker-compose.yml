@@ -1,0 +1,27 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Project 14 — Developer Portal (local Docker Compose)
+# Access the portal at: http://localhost:5454
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  portal:
+    build:
+      context: ../app/portal
+      dockerfile: Dockerfile
+    ports:
+      - "5454:8000"
+    environment:
+      - PORT=8000
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    labels:
+      - "project=14-internal-paas"
+      - "component=portal"

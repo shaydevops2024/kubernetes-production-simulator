@@ -1,0 +1,80 @@
+# HashiCorp Vault Helm values — Project 14 Internal PaaS
+# Phase A: Dev mode (auto-unseal, in-memory, single pod) — for learning
+# Phase B: HA mode — see comments at the bottom
+
+server:
+  # ── Dev mode: auto-unseals, stores data in memory, single replica ──────────
+  # Good for learning. NOT for production (data is lost on restart).
+  dev:
+    enabled: true
+    devRootToken: "root"       # The root token used to log in. Change this!
+
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - host: vault.internal
+        paths:
+          - /
+    annotations:
+      nginx.ingress.kubernetes.io/backend-protocol: HTTP
+
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 100m
+    limits:
+      memory: 512Mi
+      cpu: 500m
+
+  # Mount the Kubernetes ServiceAccount token so Vault can authenticate pods
+  volumes:
+    - name: userconfig-vault-ha-tls
+      emptyDir: {}
+
+# ── Vault Agent Injector ─────────────────────────────────────────────────────
+# The injector patches pods with a sidecar that writes secrets to a volume.
+# Pods annotate themselves to request secrets — no app code changes needed.
+injector:
+  enabled: true
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 50m
+    limits:
+      memory: 256Mi
+      cpu: 250m
+
+ui:
+  enabled: true
+  serviceType: ClusterIP
+
+
+# ── Phase B: HA mode (production-grade) ────────────────────────────────────
+# Uncomment this block and comment out the dev block above for HA:
+#
+# server:
+#   dev:
+#     enabled: false
+#   ha:
+#     enabled: true
+#     replicas: 3
+#     raft:
+#       enabled: true
+#       setNodeId: true
+#       config: |
+#         ui = true
+#         listener "tcp" {
+#           tls_disable = 1
+#           address = "[::]:8200"
+#         }
+#         storage "raft" {
+#           path = "/vault/data"
+#         }
+#         service_registration "kubernetes" {}
+#   dataStorage:
+#     enabled: true
+#     size: 10Gi
+#   auditStorage:
+#     enabled: true
+#     size: 2Gi

@@ -1,0 +1,49 @@
+# CompositeResourceDefinition (XRD) — defines the custom resource type "NamespaceClaim"
+# After applying this, teams submit: kubectl apply -f my-namespace-claim.yaml
+# Crossplane reads it and creates all the resources defined in the Composition.
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xteamnamespaces.platform.internal
+spec:
+  group: platform.internal
+  names:
+    kind: XTeamNamespace
+    plural: xteamnamespaces
+  claimNames:
+    kind: NamespaceClaim
+    plural: namespaceclaims
+
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                teamName:
+                  type: string
+                  description: Name of the team (becomes namespace name)
+                leadEmail:
+                  type: string
+                  description: Email of the team lead
+                description:
+                  type: string
+                  description: What this team works on
+                cpuLimit:
+                  type: string
+                  default: "2"
+                  description: Total CPU cores limit for the namespace
+                memoryLimit:
+                  type: string
+                  default: "4Gi"
+                  description: Total memory limit for the namespace
+                podLimit:
+                  type: integer
+                  default: 20
+                  description: Maximum number of pods in the namespace
+              required: [teamName, leadEmail]

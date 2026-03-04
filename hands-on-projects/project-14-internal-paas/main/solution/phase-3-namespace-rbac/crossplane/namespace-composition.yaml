@@ -1,0 +1,183 @@
+# Crossplane Composition — what gets created when a NamespaceClaim is submitted.
+# This creates: Namespace + ResourceQuota + NetworkPolicy + RBAC (Role + RoleBinding)
+# This is "infrastructure as code" — the entire team setup defined declaratively.
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: teamnamespace.platform.internal
+spec:
+  compositeTypeRef:
+    apiVersion: platform.internal/v1alpha1
+    kind: XTeamNamespace
+
+  resources:
+    # ── 1. Namespace ──────────────────────────────────────────────────────────
+    - name: namespace
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha1
+        kind: Object
+        spec:
+          forProvider:
+            manifest:
+              apiVersion: v1
+              kind: Namespace
+              metadata:
+                labels:
+                  managed-by: crossplane
+                  platform.internal/team: ""       # patched below
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.teamName
+          toFieldPath: spec.forProvider.manifest.metadata.name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.teamName
+          toFieldPath: spec.forProvider.manifest.metadata.labels["platform.internal/team"]
+
+    # ── 2. ResourceQuota ──────────────────────────────────────────────────────
+    - name: resource-quota
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha1
+        kind: Object
+        spec:
+          forProvider:
+            manifest:
+              apiVersion: v1
+              kind: ResourceQuota
+              metadata:
+                name: team-quota
+              spec:
+                hard:
+                  requests.cpu: "0"        # patched
+                  requests.memory: "0"     # patched
+                  limits.cpu: "0"          # patched
+                  limits.memory: "0"       # patched
+                  pods: "0"                # patched
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.teamName
+          toFieldPath: spec.forProvider.manifest.metadata.namespace
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.cpuLimit
+          toFieldPath: spec.forProvider.manifest.spec.hard["limits.cpu"]
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.memoryLimit
+          toFieldPath: spec.forProvider.manifest.spec.hard["limits.memory"]
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.podLimit
+          toFieldPath: spec.forProvider.manifest.spec.hard.pods
+          transforms:
+            - type: convert
+              convert:
+                toType: string
+
+    # ── 3. NetworkPolicy — default deny all ───────────────────────────────────
+    - name: network-policy-default-deny
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha1
+        kind: Object
+        spec:
+          forProvider:
+            manifest:
+              apiVersion: networking.k8s.io/v1
+              kind: NetworkPolicy
+              metadata:
+                name: default-deny-all
+              spec:
+                podSelector: {}
+                policyTypes: [Ingress, Egress]
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.teamName
+          toFieldPath: spec.forProvider.manifest.metadata.namespace
+
+    # ── 4. NetworkPolicy — allow same-namespace + DNS ─────────────────────────
+    - name: network-policy-allow-same-ns
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha1
+        kind: Object
+        spec:
+          forProvider:
+            manifest:
+              apiVersion: networking.k8s.io/v1
+              kind: NetworkPolicy
+              metadata:
+                name: allow-same-namespace
+              spec:
+                podSelector: {}
+                policyTypes: [Ingress, Egress]
+                ingress:
+                  - from:
+                      - podSelector: {}
+                egress:
+                  - to:
+                      - podSelector: {}
+                  - to:               # allow DNS
+                      - namespaceSelector:
+                          matchLabels:
+                            kubernetes.io/metadata.name: kube-system
+                    ports:
+                      - port: 53
+                        protocol: UDP
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.teamName
+          toFieldPath: spec.forProvider.manifest.metadata.namespace
+
+    # ── 5. Developer ClusterRole ──────────────────────────────────────────────
+    - name: developer-role
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha1
+        kind: Object
+        spec:
+          forProvider:
+            manifest:
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: Role
+              metadata:
+                name: developer
+              rules:
+                - apiGroups: ["", "apps", "batch"]
+                  resources: [pods, deployments, services, jobs, configmaps, replicasets]
+                  verbs: [get, list, watch, create, update, patch]
+                - apiGroups: [""]
+                  resources: [pods/log, pods/exec]
+                  verbs: [get, create]
+                - apiGroups: ["networking.k8s.io"]
+                  resources: [ingresses]
+                  verbs: [get, list, watch]
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.teamName
+          toFieldPath: spec.forProvider.manifest.metadata.namespace
+
+    # ── 6. RoleBinding — bind team lead ───────────────────────────────────────
+    - name: developer-rolebinding
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha1
+        kind: Object
+        spec:
+          forProvider:
+            manifest:
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: RoleBinding
+              metadata:
+                name: developer-binding
+              subjects:
+                - kind: Group
+                  name: ""        # patched: "platform.internal/team=<teamName>"
+                  apiGroup: rbac.authorization.k8s.io
+              roleRef:
+                kind: Role
+                name: developer
+                apiGroup: rbac.authorization.k8s.io
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.teamName
+          toFieldPath: spec.forProvider.manifest.metadata.namespace
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.teamName
+          toFieldPath: spec.forProvider.manifest.subjects[0].name
+          transforms:
+            - type: string
+              string:
+                fmt: "platform.internal/team=%s"

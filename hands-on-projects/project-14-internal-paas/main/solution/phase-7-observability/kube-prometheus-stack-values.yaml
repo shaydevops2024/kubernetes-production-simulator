@@ -1,0 +1,82 @@
+# kube-prometheus-stack Helm values — Project 14 Internal PaaS
+# Installs: Prometheus + Grafana + AlertManager + node-exporter + kube-state-metrics
+
+grafana:
+  enabled: true
+  adminPassword: platform-admin   # change in production
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - grafana.internal
+  persistence:
+    enabled: true
+    size: 2Gi
+  # Pre-configure datasource for OpenCost
+  additionalDataSources:
+    - name: OpenCost
+      type: prometheus
+      url: http://opencost.opencost.svc.cluster.local:9003
+      access: proxy
+
+prometheus:
+  prometheusSpec:
+    # Scrape metrics from all namespaces (not just monitoring)
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+
+    # 30-day retention
+    retention: 30d
+    retentionSize: "10GiB"
+
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          resources:
+            requests:
+              storage: 15Gi
+
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+
+alertmanager:
+  alertmanagerSpec:
+    storage:
+      volumeClaimTemplate:
+        spec:
+          resources:
+            requests:
+              storage: 1Gi
+
+  # Example: send alerts to a Slack webhook (configure your URL)
+  config:
+    global:
+      resolve_timeout: 5m
+    route:
+      group_by: [namespace, team]
+      receiver: default
+    receivers:
+      - name: default
+        # slack_configs:
+        #   - api_url: https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+        #     channel: "#platform-alerts"
+
+# Node exporter — collects host metrics
+nodeExporter:
+  enabled: true
+
+# kube-state-metrics — collects K8s object metrics
+kubeStateMetrics:
+  enabled: true
+
+# Default scrape interval
+prometheus:
+  prometheusSpec:
+    scrapeInterval: "30s"
+    evaluationInterval: "30s"

@@ -149,6 +149,9 @@
 
         .badge-available { background: #d1fae5; color: #065f46; }
         .badge-coming { background: rgba(255,255,255,.15); color: rgba(255,255,255,.7); }
+        .badge-easy { background: #d1fae5; color: #065f46; }
+        .badge-medium { background: #fef3c7; color: #92400e; }
+        .badge-hard { background: #fee2e2; color: #991b1b; }
 
         /* ── Projects Grid ── */
         .projects-grid {
@@ -386,7 +389,7 @@
             <span class="stat-label">Projects</span>
         </div>
         <div class="stat">
-            <span class="stat-value">12</span>
+            <span class="stat-value">14</span>
             <span class="stat-label">Available</span>
         </div>
         <div class="stat">
@@ -428,19 +431,354 @@
             <span class="path-arrow">→</span>
             <span class="path-item">12 Secrets Mgmt</span>
             <span class="path-arrow">→</span>
-            <span class="path-item">Advanced Projects</span>
+            <span class="path-item">13 Zero-Downtime</span>
+            <span class="path-arrow">→</span>
+            <span class="path-item">14 Internal PaaS</span>
         </div>
     </div>
 
-    <!-- Available -->
+    <!-- Easy Projects -->
     <div class="section-header">
-        <span class="section-title">Available Now</span>
-        <span class="section-badge badge-available">12 Projects</span>
+        <span class="section-title">Easy</span>
+        <span class="section-badge badge-easy">3 Projects</span>
     </div>
 
     <div class="projects-grid">
 
-        <!-- Project 01 — Available -->
+        <!-- Project 02 — Easy -->
+        <div class="project-card available" onclick="openProject02()" id="p02-card">
+            <div class="card-banner available"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num">PROJECT 02</span>
+                    <span class="status-chip available">✓ Available</span>
+                </div>
+                <div class="card-title">Multi-Tenant SaaS Application Infrastructure</div>
+                <div class="card-description">
+                    Build a multi-tenant platform with namespace isolation per tenant, RBAC policies, resource quotas, network policies, tenant-specific databases, and usage metering. Includes a live admin dashboard.
+                </div>
+                <div class="card-tags">
+                    <span class="tag highlight">Namespaces</span>
+                    <span class="tag highlight">RBAC</span>
+                    <span class="tag highlight">ResourceQuota</span>
+                    <span class="tag highlight">NetworkPolicy</span>
+                    <span class="tag">Multi-tenancy</span>
+                    <span class="tag">Billing</span>
+                    <span class="tag">Admin Dashboard</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item">
+                        <div class="difficulty">
+                            <div class="dot filled-easy"></div>
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                        </div>
+                        Easy
+                    </span>
+                    <span class="meta-item">⏱ 5–8 hours</span>
+                    <span class="meta-item">🔧 4 services</span>
+                </div>
+                <button class="btn-start" onclick="openProject02()">Start Project →</button>
+            </div>
+        </div>
+
+        <!-- Project 10 — Easy -->
+        <div class="project-card available" onclick="openProject10()">
+            <div class="card-banner available"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num">PROJECT 10</span>
+                    <span class="status-chip available">✓ Available</span>
+                </div>
+                <div class="card-title">Zero-Downtime Blue-Green Deployment System</div>
+                <div class="card-description">
+                    Build a complete blue-green deployment system: two identical environments, automated health checks, traffic switching via Kubernetes Service selector, instant rollback, smoke tests, database migration handling, and a full GitLab CI pipeline.
+                </div>
+                <div class="card-tags">
+                    <span class="tag highlight">Blue-Green</span>
+                    <span class="tag highlight">GitLab CI</span>
+                    <span class="tag highlight">Health Checks</span>
+                    <span class="tag highlight">Smoke Tests</span>
+                    <span class="tag">Rollback</span>
+                    <span class="tag">DB Migration</span>
+                    <span class="tag">nginx Ingress</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item">
+                        <div class="difficulty">
+                            <div class="dot filled-easy"></div>
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                        </div>
+                        Easy
+                    </span>
+                    <span class="meta-item">⏱ 5–8 hours</span>
+                    <span class="meta-item">🔧 1 app + pipeline</span>
+                </div>
+                <button class="btn-start" onclick="openProject10()">Start Project →</button>
+            </div>
+        </div>
+
+        <!-- Project 13 — Easy -->
+        <div class="project-card available" onclick="openProject13()">
+            <div class="card-banner available"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num">PROJECT 13</span>
+                    <span class="status-chip available">✓ Available</span>
+                </div>
+                <div class="card-title">Zero-Downtime Deployment Platform</div>
+                <div class="card-description">
+                    Deploy blue-green and canary strategies with Argo Rollouts. The standout feature: automated rollback triggered by real Prometheus metrics — if error rate exceeds 5% during a canary, Argo rolls back without human intervention.
+                </div>
+                <div class="card-tags">
+                    <span class="tag highlight">Argo Rollouts</span>
+                    <span class="tag highlight">Canary</span>
+                    <span class="tag highlight">Blue-Green</span>
+                    <span class="tag highlight">Prometheus Auto-Rollback</span>
+                    <span class="tag">MetalLB</span>
+                    <span class="tag">GitHub Actions</span>
+                    <span class="tag">nginx Ingress</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item">
+                        <div class="difficulty">
+                            <div class="dot filled-easy"></div>
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                        </div>
+                        Easy
+                    </span>
+                    <span class="meta-item">⏱ 4–6 hours</span>
+                    <span class="meta-item">🔧 5 services</span>
+                </div>
+                <button class="btn-start" onclick="openProject13()">Start Project →</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Medium Projects -->
+    <div class="section-header" style="margin-top: 40px;">
+        <span class="section-title">Medium</span>
+        <span class="section-badge badge-medium">5 Projects</span>
+    </div>
+
+    <div class="projects-grid">
+
+        <!-- Project 03 — Medium -->
+        <div class="project-card available" onclick="openProject03()">
+            <div class="card-banner available"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num">PROJECT 03</span>
+                    <span class="status-chip available">✓ Available</span>
+                </div>
+                <div class="card-title">Real-Time Chat / Messaging Platform</div>
+                <div class="card-description">
+                    Build a horizontally scalable WebSocket chat platform. Redis pub/sub keeps multiple replicas in sync. PostgreSQL persists messages. MinIO handles file uploads (S3-compatible). Presence detection and typing indicators included.
+                </div>
+                <div class="card-tags">
+                    <span class="tag highlight">WebSockets</span>
+                    <span class="tag highlight">Redis pub/sub</span>
+                    <span class="tag highlight">MinIO / S3</span>
+                    <span class="tag highlight">Horizontal Scaling</span>
+                    <span class="tag">Presence Detection</span>
+                    <span class="tag">File Uploads</span>
+                    <span class="tag">nginx WebSocket Proxy</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item">
+                        <div class="difficulty">
+                            <div class="dot filled-medium"></div>
+                            <div class="dot filled-medium"></div>
+                            <div class="dot"></div>
+                        </div>
+                        Medium
+                    </span>
+                    <span class="meta-item">⏱ 6–9 hours</span>
+                    <span class="meta-item">🔧 4 services</span>
+                </div>
+                <button class="btn-start" onclick="openProject03()">Start Project →</button>
+            </div>
+        </div>
+
+        <!-- Project 04 — Medium -->
+        <div class="project-card available" onclick="openProject04()">
+            <div class="card-banner available"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num">PROJECT 04</span>
+                    <span class="status-chip available">✓ Available</span>
+                </div>
+                <div class="card-title">Full GitOps CI/CD Pipeline with Progressive Delivery</div>
+                <div class="card-description">
+                    Build a complete end-to-end GitOps pipeline. GitHub Actions runs tests, builds, and scans your image. ArgoCD syncs your cluster. Flagger shifts traffic progressively with automated rollback — and you see it live in the browser.
+                </div>
+                <div class="card-tags">
+                    <span class="tag highlight">GitHub Actions</span>
+                    <span class="tag highlight">ArgoCD</span>
+                    <span class="tag highlight">Flagger</span>
+                    <span class="tag highlight">Canary Deployments</span>
+                    <span class="tag">Image Scanning</span>
+                    <span class="tag">GitOps</span>
+                    <span class="tag">Rollback</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item">
+                        <div class="difficulty">
+                            <div class="dot filled-medium"></div>
+                            <div class="dot filled-medium"></div>
+                            <div class="dot"></div>
+                        </div>
+                        Medium
+                    </span>
+                    <span class="meta-item">⏱ 6–10 hours</span>
+                    <span class="meta-item">🔧 1 service + pipeline</span>
+                </div>
+                <button class="btn-start" onclick="openProject04()">Start Project →</button>
+            </div>
+        </div>
+
+        <!-- Project 05 — Medium -->
+        <div class="project-card available" onclick="openProject05()">
+            <div class="card-banner available"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num">PROJECT 05</span>
+                    <span class="status-chip available">✓ Available</span>
+                </div>
+                <div class="card-title">Complete Observability Stack</div>
+                <div class="card-description">
+                    Build production monitoring from scratch. Prometheus scrapes metrics, Loki aggregates logs, Jaeger traces requests end-to-end. Grafana unifies everything in dashboards. AlertManager pages you on SLO breaches. Thanos keeps metrics forever.
+                </div>
+                <div class="card-tags">
+                    <span class="tag highlight">Prometheus</span>
+                    <span class="tag highlight">Grafana</span>
+                    <span class="tag highlight">Loki</span>
+                    <span class="tag highlight">Jaeger / Tempo</span>
+                    <span class="tag">AlertManager</span>
+                    <span class="tag">Thanos</span>
+                    <span class="tag">SLO / SLI</span>
+                    <span class="tag">PromQL / LogQL</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item">
+                        <div class="difficulty">
+                            <div class="dot filled-medium"></div>
+                            <div class="dot filled-medium"></div>
+                            <div class="dot"></div>
+                        </div>
+                        Medium
+                    </span>
+                    <span class="meta-item">⏱ 7–12 hours</span>
+                    <span class="meta-item">🔧 1 app + full stack</span>
+                </div>
+                <button class="btn-start" onclick="openProject05()">Start Project →</button>
+            </div>
+        </div>
+
+        <!-- Project 06 — Medium -->
+        <div class="project-card available" onclick="openProject06()">
+            <div class="card-banner available"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num">PROJECT 06</span>
+                    <span class="status-chip available">✓ Available</span>
+                </div>
+                <div class="card-title">API Gateway with Advanced Traffic Management</div>
+                <div class="card-description">
+                    Deploy Kong API Gateway in front of a real REST API. Configure JWT authentication, per-consumer rate limiting, request transformation, API versioning (v1/v2), and a live analytics dashboard — then deploy to Kubernetes with Kong Ingress Controller, Helm, and ArgoCD.
+                </div>
+                <div class="card-tags">
+                    <span class="tag highlight">Kong Gateway</span>
+                    <span class="tag highlight">JWT Auth</span>
+                    <span class="tag highlight">Rate Limiting</span>
+                    <span class="tag highlight">Helm</span>
+                    <span class="tag">API Versioning</span>
+                    <span class="tag">Redis</span>
+                    <span class="tag">ArgoCD</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item">
+                        <div class="difficulty">
+                            <div class="dot filled-medium"></div>
+                            <div class="dot filled-medium"></div>
+                            <div class="dot"></div>
+                        </div>
+                        Medium
+                    </span>
+                    <span class="meta-item">⏱ 6–10 hours</span>
+                    <span class="meta-item">🔧 2 services + gateway</span>
+                </div>
+                <button class="btn-start" onclick="openProject06()">Start Project →</button>
+            </div>
+        </div>
+
+        <!-- Project 09 — Medium -->
+        <div class="project-card available" onclick="openProject09()">
+            <div class="card-banner available"></div>
+            <div class="card-body">
+                <div class="card-header">
+                    <span class="project-num">PROJECT 09</span>
+                    <span class="status-chip available">✓ Available</span>
+                </div>
+                <div class="card-title">Kubernetes Disaster Recovery System</div>
+                <div class="card-description">
+                    Build a full DR system around a live critical operations dashboard. Velero backs up to MinIO (local S3), LitmusChaos injects failures, Prometheus tracks RPO/RTO. Cloud migration path to EKS + S3 included via Terraform.
+                </div>
+                <div class="card-tags">
+                    <span class="tag highlight">Velero</span>
+                    <span class="tag highlight">MinIO / S3</span>
+                    <span class="tag highlight">LitmusChaos</span>
+                    <span class="tag highlight">Terraform / EKS</span>
+                    <span class="tag">RPO/RTO</span>
+                    <span class="tag">Prometheus</span>
+                    <span class="tag">Runbooks</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-meta">
+                    <span class="meta-item">
+                        <div class="difficulty">
+                            <div class="dot filled-medium"></div>
+                            <div class="dot filled-medium"></div>
+                            <div class="dot"></div>
+                        </div>
+                        Medium
+                    </span>
+                    <span class="meta-item">⏱ 7–12 hours</span>
+                    <span class="meta-item">🔧 1 app + DR stack</span>
+                </div>
+                <button class="btn-start" onclick="openProject09()">Start Project →</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Hard Projects -->
+    <div class="section-header" style="margin-top: 40px;">
+        <span class="section-title">Hard</span>
+        <span class="section-badge badge-hard">6 Projects</span>
+    </div>
+
+    <div class="projects-grid">
+
+        <!-- Project 01 — Hard -->
         <div class="project-card available" onclick="openProject01()">
             <div class="card-banner available"></div>
             <div class="card-body">
@@ -479,203 +817,7 @@
             </div>
         </div>
 
-        <!-- Project 02 — Available -->
-        <div class="project-card available" onclick="openProject02()" id="p02-card">
-            <div class="card-banner available"></div>
-            <div class="card-body">
-                <div class="card-header">
-                    <span class="project-num">PROJECT 02</span>
-                    <span class="status-chip available">✓ Available</span>
-                </div>
-                <div class="card-title">Multi-Tenant SaaS Application Infrastructure</div>
-                <div class="card-description">
-                    Build a multi-tenant platform with namespace isolation per tenant, RBAC policies, resource quotas, network policies, tenant-specific databases, and usage metering. Includes a live admin dashboard.
-                </div>
-                <div class="card-tags">
-                    <span class="tag highlight">Namespaces</span>
-                    <span class="tag highlight">RBAC</span>
-                    <span class="tag highlight">ResourceQuota</span>
-                    <span class="tag highlight">NetworkPolicy</span>
-                    <span class="tag">Multi-tenancy</span>
-                    <span class="tag">Billing</span>
-                    <span class="tag">Admin Dashboard</span>
-                </div>
-            </div>
-            <div class="card-footer">
-                <div class="card-meta">
-                    <span class="meta-item">
-                        <div class="difficulty">
-                            <div class="dot filled-medium"></div>
-                            <div class="dot filled-medium"></div>
-                            <div class="dot"></div>
-                        </div>
-                        Medium
-                    </span>
-                    <span class="meta-item">⏱ 5–8 hours</span>
-                    <span class="meta-item">🔧 4 services</span>
-                </div>
-                <button class="btn-start" onclick="openProject02()">Start Project →</button>
-            </div>
-        </div>
-
-        <!-- Project 03 — Available -->
-        <div class="project-card available" onclick="openProject03()">
-            <div class="card-banner available"></div>
-            <div class="card-body">
-                <div class="card-header">
-                    <span class="project-num">PROJECT 03</span>
-                    <span class="status-chip available">✓ Available</span>
-                </div>
-                <div class="card-title">Real-Time Chat / Messaging Platform</div>
-                <div class="card-description">
-                    Build a horizontally scalable WebSocket chat platform. Redis pub/sub keeps multiple replicas in sync. PostgreSQL persists messages. MinIO handles file uploads (S3-compatible). Presence detection and typing indicators included.
-                </div>
-                <div class="card-tags">
-                    <span class="tag highlight">WebSockets</span>
-                    <span class="tag highlight">Redis pub/sub</span>
-                    <span class="tag highlight">MinIO / S3</span>
-                    <span class="tag highlight">Horizontal Scaling</span>
-                    <span class="tag">Presence Detection</span>
-                    <span class="tag">File Uploads</span>
-                    <span class="tag">nginx WebSocket Proxy</span>
-                </div>
-            </div>
-            <div class="card-footer">
-                <div class="card-meta">
-                    <span class="meta-item">
-                        <div class="difficulty">
-                            <div class="dot filled-medium"></div>
-                            <div class="dot filled-medium"></div>
-                            <div class="dot filled-medium"></div>
-                        </div>
-                        Medium-Hard
-                    </span>
-                    <span class="meta-item">⏱ 6–9 hours</span>
-                    <span class="meta-item">🔧 4 services</span>
-                </div>
-                <button class="btn-start" onclick="openProject03()">Start Project →</button>
-            </div>
-        </div>
-
-        <!-- Project 04 — Available -->
-        <div class="project-card available" onclick="openProject04()">
-            <div class="card-banner available"></div>
-            <div class="card-body">
-                <div class="card-header">
-                    <span class="project-num">PROJECT 04</span>
-                    <span class="status-chip available">✓ Available</span>
-                </div>
-                <div class="card-title">Full GitOps CI/CD Pipeline with Progressive Delivery</div>
-                <div class="card-description">
-                    Build a complete end-to-end GitOps pipeline. GitHub Actions runs tests, builds, and scans your image. ArgoCD syncs your cluster. Flagger shifts traffic progressively with automated rollback — and you see it live in the browser.
-                </div>
-                <div class="card-tags">
-                    <span class="tag highlight">GitHub Actions</span>
-                    <span class="tag highlight">ArgoCD</span>
-                    <span class="tag highlight">Flagger</span>
-                    <span class="tag highlight">Canary Deployments</span>
-                    <span class="tag">Image Scanning</span>
-                    <span class="tag">GitOps</span>
-                    <span class="tag">Rollback</span>
-                </div>
-            </div>
-            <div class="card-footer">
-                <div class="card-meta">
-                    <span class="meta-item">
-                        <div class="difficulty">
-                            <div class="dot filled-hard"></div>
-                            <div class="dot filled-hard"></div>
-                            <div class="dot filled-hard"></div>
-                        </div>
-                        Hard
-                    </span>
-                    <span class="meta-item">⏱ 6–10 hours</span>
-                    <span class="meta-item">🔧 1 service + pipeline</span>
-                </div>
-                <button class="btn-start" onclick="openProject04()">Start Project →</button>
-            </div>
-        </div>
-
-        <!-- Project 05 — Available -->
-        <div class="project-card available" onclick="openProject05()">
-            <div class="card-banner available"></div>
-            <div class="card-body">
-                <div class="card-header">
-                    <span class="project-num">PROJECT 05</span>
-                    <span class="status-chip available">✓ Available</span>
-                </div>
-                <div class="card-title">Complete Observability Stack</div>
-                <div class="card-description">
-                    Build production monitoring from scratch. Prometheus scrapes metrics, Loki aggregates logs, Jaeger traces requests end-to-end. Grafana unifies everything in dashboards. AlertManager pages you on SLO breaches. Thanos keeps metrics forever.
-                </div>
-                <div class="card-tags">
-                    <span class="tag highlight">Prometheus</span>
-                    <span class="tag highlight">Grafana</span>
-                    <span class="tag highlight">Loki</span>
-                    <span class="tag highlight">Jaeger / Tempo</span>
-                    <span class="tag">AlertManager</span>
-                    <span class="tag">Thanos</span>
-                    <span class="tag">SLO / SLI</span>
-                    <span class="tag">PromQL / LogQL</span>
-                </div>
-            </div>
-            <div class="card-footer">
-                <div class="card-meta">
-                    <span class="meta-item">
-                        <div class="difficulty">
-                            <div class="dot filled-hard"></div>
-                            <div class="dot filled-hard"></div>
-                            <div class="dot filled-hard"></div>
-                        </div>
-                        Hard
-                    </span>
-                    <span class="meta-item">⏱ 7–12 hours</span>
-                    <span class="meta-item">🔧 1 app + full stack</span>
-                </div>
-                <button class="btn-start" onclick="openProject05()">Start Project →</button>
-            </div>
-        </div>
-
-        <!-- Project 06 — Available -->
-        <div class="project-card available" onclick="openProject06()">
-            <div class="card-banner available"></div>
-            <div class="card-body">
-                <div class="card-header">
-                    <span class="project-num">PROJECT 06</span>
-                    <span class="status-chip available">✓ Available</span>
-                </div>
-                <div class="card-title">API Gateway with Advanced Traffic Management</div>
-                <div class="card-description">
-                    Deploy Kong API Gateway in front of a real REST API. Configure JWT authentication, per-consumer rate limiting, request transformation, API versioning (v1/v2), and a live analytics dashboard — then deploy to Kubernetes with Kong Ingress Controller, Helm, and ArgoCD.
-                </div>
-                <div class="card-tags">
-                    <span class="tag highlight">Kong Gateway</span>
-                    <span class="tag highlight">JWT Auth</span>
-                    <span class="tag highlight">Rate Limiting</span>
-                    <span class="tag highlight">Helm</span>
-                    <span class="tag">API Versioning</span>
-                    <span class="tag">Redis</span>
-                    <span class="tag">ArgoCD</span>
-                </div>
-            </div>
-            <div class="card-footer">
-                <div class="card-meta">
-                    <span class="meta-item">
-                        <div class="difficulty">
-                            <div class="dot filled-hard"></div>
-                            <div class="dot filled-hard"></div>
-                            <div class="dot filled-hard"></div>
-                        </div>
-                        Hard
-                    </span>
-                    <span class="meta-item">⏱ 6–10 hours</span>
-                    <span class="meta-item">🔧 2 services + gateway</span>
-                </div>
-                <button class="btn-start" onclick="openProject06()">Start Project →</button>
-            </div>
-        </div>
-
-        <!-- Project 07 — Available -->
+        <!-- Project 07 — Hard -->
         <div class="project-card available" onclick="openProject07()">
             <div class="card-banner available"></div>
             <div class="card-body">
@@ -714,7 +856,7 @@
             </div>
         </div>
 
-        <!-- Project 08 — Available -->
+        <!-- Project 08 — Hard -->
         <div class="project-card available" onclick="openProject08()">
             <div class="card-banner available"></div>
             <div class="card-body">
@@ -754,85 +896,7 @@
             </div>
         </div>
 
-        <!-- Project 09 — Available -->
-        <div class="project-card available" onclick="openProject09()">
-            <div class="card-banner available"></div>
-            <div class="card-body">
-                <div class="card-header">
-                    <span class="project-num">PROJECT 09</span>
-                    <span class="status-chip available">✓ Available</span>
-                </div>
-                <div class="card-title">Kubernetes Disaster Recovery System</div>
-                <div class="card-description">
-                    Build a full DR system around a live critical operations dashboard. Velero backs up to MinIO (local S3), LitmusChaos injects failures, Prometheus tracks RPO/RTO. Cloud migration path to EKS + S3 included via Terraform.
-                </div>
-                <div class="card-tags">
-                    <span class="tag highlight">Velero</span>
-                    <span class="tag highlight">MinIO / S3</span>
-                    <span class="tag highlight">LitmusChaos</span>
-                    <span class="tag highlight">Terraform / EKS</span>
-                    <span class="tag">RPO/RTO</span>
-                    <span class="tag">Prometheus</span>
-                    <span class="tag">Runbooks</span>
-                </div>
-            </div>
-            <div class="card-footer">
-                <div class="card-meta">
-                    <span class="meta-item">
-                        <div class="difficulty">
-                            <div class="dot filled-hard"></div>
-                            <div class="dot filled-hard"></div>
-                            <div class="dot filled-hard"></div>
-                        </div>
-                        Hard
-                    </span>
-                    <span class="meta-item">⏱ 7–12 hours</span>
-                    <span class="meta-item">🔧 1 app + DR stack</span>
-                </div>
-                <button class="btn-start" onclick="openProject09()">Start Project →</button>
-            </div>
-        </div>
-
-        <!-- Project 10 — Available -->
-        <div class="project-card available" onclick="openProject10()">
-            <div class="card-banner available"></div>
-            <div class="card-body">
-                <div class="card-header">
-                    <span class="project-num">PROJECT 10</span>
-                    <span class="status-chip available">✓ Available</span>
-                </div>
-                <div class="card-title">Zero-Downtime Blue-Green Deployment System</div>
-                <div class="card-description">
-                    Build a complete blue-green deployment system: two identical environments, automated health checks, traffic switching via Kubernetes Service selector, instant rollback, smoke tests, database migration handling, and a full GitLab CI pipeline.
-                </div>
-                <div class="card-tags">
-                    <span class="tag highlight">Blue-Green</span>
-                    <span class="tag highlight">GitLab CI</span>
-                    <span class="tag highlight">Health Checks</span>
-                    <span class="tag highlight">Smoke Tests</span>
-                    <span class="tag">Rollback</span>
-                    <span class="tag">DB Migration</span>
-                    <span class="tag">nginx Ingress</span>
-                </div>
-            </div>
-            <div class="card-footer">
-                <div class="card-meta">
-                    <span class="meta-item">
-                        <div class="difficulty">
-                            <div class="dot filled-medium"></div>
-                            <div class="dot filled-medium"></div>
-                            <div class="dot filled-medium"></div>
-                        </div>
-                        Medium-Hard
-                    </span>
-                    <span class="meta-item">⏱ 5–8 hours</span>
-                    <span class="meta-item">🔧 1 app + pipeline</span>
-                </div>
-                <button class="btn-start" onclick="openProject10()">Start Project →</button>
-            </div>
-        </div>
-
-        <!-- Project 11 — Available -->
+        <!-- Project 11 — Hard -->
         <div class="project-card available" onclick="openProject11()">
             <div class="card-banner available"></div>
             <div class="card-body">
@@ -871,7 +935,7 @@
             </div>
         </div>
 
-        <!-- Project 12 — Available -->
+        <!-- Project 12 — Hard -->
         <div class="project-card available" onclick="openProject12()">
             <div class="card-banner available"></div>
             <div class="card-body">
@@ -910,42 +974,44 @@
             </div>
         </div>
 
-        <!-- Project 13 — Available -->
-        <div class="project-card available" onclick="openProject13()">
+        <!-- Project 14 — Hard -->
+        <div class="project-card available" onclick="showModal14()">
             <div class="card-banner available"></div>
             <div class="card-body">
                 <div class="card-header">
-                    <span class="project-num">PROJECT 13</span>
+                    <span class="project-num">PROJECT 14</span>
                     <span class="status-chip available">✓ Available</span>
                 </div>
-                <div class="card-title">Zero-Downtime Deployment Platform</div>
+                <div class="card-title">Self-Service Developer Platform (Internal PaaS)</div>
                 <div class="card-description">
-                    Deploy blue-green and canary strategies with Argo Rollouts. The standout feature: automated rollback triggered by real Prometheus metrics — if error rate exceeds 5% during a canary, Argo rolls back without human intervention.
+                    Build a complete Internal Developer Platform from scratch on a local Kind cluster. Teams self-serve namespaces, secrets, databases, and deployments. Includes Harbor, Gitea, Woodpecker CI, Crossplane, Vault, CloudNativePG, Backstage, Kyverno, OpenCost, and ArgoCD — all wired together.
                 </div>
                 <div class="card-tags">
-                    <span class="tag highlight">Argo Rollouts</span>
-                    <span class="tag highlight">Canary</span>
-                    <span class="tag highlight">Blue-Green</span>
-                    <span class="tag highlight">Prometheus Auto-Rollback</span>
-                    <span class="tag">MetalLB</span>
-                    <span class="tag">GitHub Actions</span>
-                    <span class="tag">nginx Ingress</span>
+                    <span class="tag highlight">Crossplane</span>
+                    <span class="tag highlight">HashiCorp Vault</span>
+                    <span class="tag highlight">ArgoCD</span>
+                    <span class="tag highlight">Backstage</span>
+                    <span class="tag">Harbor</span>
+                    <span class="tag">Gitea</span>
+                    <span class="tag">CloudNativePG</span>
+                    <span class="tag">Kyverno</span>
+                    <span class="tag">OpenCost</span>
                 </div>
             </div>
             <div class="card-footer">
                 <div class="card-meta">
                     <span class="meta-item">
                         <div class="difficulty">
-                            <div class="dot filled-medium"></div>
-                            <div class="dot filled-medium"></div>
-                            <div class="dot"></div>
+                            <div class="dot filled-hard"></div>
+                            <div class="dot filled-hard"></div>
+                            <div class="dot filled-hard"></div>
                         </div>
-                        Medium
+                        Hard
                     </span>
-                    <span class="meta-item">⏱ 4–6 hours</span>
-                    <span class="meta-item">🔧 5 services</span>
+                    <span class="meta-item">⏱ 14–20 hours</span>
+                    <span class="meta-item">🔧 Full platform stack</span>
                 </div>
-                <button class="btn-start" onclick="openProject13()">Start Project →</button>
+                <button class="btn-start" onclick="showModal14()">Start Project →</button>
             </div>
         </div>
 
@@ -954,34 +1020,12 @@
     <!-- Coming Soon -->
     <div class="section-header" style="margin-top: 40px;">
         <span class="section-title">Coming Soon</span>
-        <span class="section-badge badge-coming">3 Projects</span>
+        <span class="section-badge badge-coming">2 Projects</span>
     </div>
 
     <div class="projects-grid">
 
-        <!-- Projects 14-16 -->
-
-        <div class="project-card coming-soon">
-            <div class="card-banner coming-soon"></div>
-            <div class="card-body">
-                <div class="card-header">
-                    <span class="project-num dim">PROJECT 14</span>
-                    <span class="status-chip coming">Coming Soon</span>
-                </div>
-                <div class="card-title">API Gateway & Rate Limiting</div>
-                <div class="card-description">Deploy Kong API Gateway, configure OAuth2/JWT authentication, request transformation, rate limiting, and API versioning strategies.</div>
-                <div class="card-tags">
-                    <span class="tag">Kong</span><span class="tag">OAuth2</span><span class="tag">JWT</span><span class="tag">Rate Limiting</span>
-                </div>
-            </div>
-            <div class="card-footer">
-                <div class="card-meta">
-                    <span class="meta-item"><div class="difficulty"><div class="dot filled-medium"></div><div class="dot filled-medium"></div><div class="dot"></div></div> Medium</span>
-                    <span class="meta-item">⏱ 4–6 hours</span>
-                </div>
-                <button class="btn-coming" disabled>Coming Soon</button>
-            </div>
-        </div>
+        <!-- Projects 15-16 -->
 
         <div class="project-card coming-soon">
             <div class="card-banner coming-soon"></div>
@@ -1437,7 +1481,8 @@ function renderMd(text) {
 }
 
 // ── Project 01 entry ──────────────────────────────────────────────────────────
-function openProject01() { showModal(); }
+function openProject01() { showModal01(); }
+
 
 // ── Project 02 entry ──────────────────────────────────────────────────────────
 function openProject02() { showModal02(); }
@@ -1468,8 +1513,6 @@ function openProject10() { showModal10(); }
 
 function showModal06() {
     const PATH       = 'hands-on-projects/project-06-api-gateway/';
-    const DOCKER_CMD = 'docker compose up --build';
-    const QUICK_CMD  = 'cd hands-on-projects/project-06-api-gateway/local\ndocker compose up --build\n# Dashboard UI:  http://localhost:3000\n# Kong Proxy:    http://localhost:8888\n# Kong Admin:    http://localhost:8081\n# API v1 Public: http://localhost:8888/v1/products';
 
     const overlay = document.createElement('div');
     overlay.id = 'p06-modal-overlay';
@@ -1524,18 +1567,25 @@ function showModal06() {
                             <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
                         </div>
 
-                        <div style="padding:14px 16px;background:#eef2ff;border-radius:10px;border:2px solid #6366f1;display:flex;flex-direction:column;gap:10px;">
+
+                        <div style="padding:14px 16px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;display:flex;flex-direction:column;gap:10px;">
                             <div style="display:flex;align-items:center;gap:12px;">
-                                <span style="font-size:24px;flex-shrink:0;">🐳</span>
+                                <span style="font-size:24px;flex-shrink:0;">🌐</span>
                                 <div>
-                                    <div style="font-weight:600;font-size:14px;color:#4f46e5;">3. Run locally (local/ folder)</div>
-                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Kong + Redis + Postgres + API + Analytics + Dashboard</div>
+                                    <div style="font-weight:600;font-size:14px;color:#166534;">3. Quick access after startup</div>
+                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Endpoints once docker compose is running</div>
                                 </div>
                             </div>
-                            <div style="background:white;border-radius:8px;padding:10px 14px;border:1px solid #c7d2fe;display:flex;align-items:center;justify-content:space-between;gap:10px;">
-                                <code style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;flex:1;">${DOCKER_CMD}</code>
-                                <button onclick="copyText('${DOCKER_CMD}', this)" style="font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #c7d2fe;background:#eef2ff;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;flex-shrink:0;transition:all .15s;">📋 Copy</button>
+                            <div style="display:flex;justify-content:flex-end;">
+                                <button onclick="copyText('cd hands-on-projects/project-06-api-gateway/local\ndocker compose up --build', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">📋 Copy all</button>
                             </div>
+                            <pre style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;line-height:1.9;margin:0;white-space:pre-wrap;">cd hands-on-projects/project-06-api-gateway/local
+docker compose up --build
+
+# Dashboard UI:  http://localhost:3000
+# Kong Proxy:    http://localhost:8888
+# Kong Admin:    http://localhost:8081
+# API v1 Public: http://localhost:8888/v1/products</pre>
                         </div>
 
                         <div style="padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;display:flex;flex-direction:column;gap:10px;">
@@ -1546,27 +1596,21 @@ function showModal06() {
                                     <div style="color:#6b7280;font-size:12px;margin-top:2px;">Kong Ingress Controller via Helm, KongPlugin CRDs, ArgoCD GitOps</div>
                                 </div>
                             </div>
-                            <div style="background:#fefce8;border:1px solid #fde047;border-radius:8px;padding:10px 14px;font-size:12px;color:#713f12;display:flex;align-items:flex-start;gap:8px;">
-                                <span style="font-size:15px;flex-shrink:0;">💡</span>
-                                <div><strong>Key challenge:</strong> Writing <code style="background:#fef3c7;padding:1px 5px;border-radius:3px;font-family:monospace;">KongPlugin</code> CRDs and wiring them to Ingress resources via annotations. Full solution in <code style="background:#fef3c7;padding:1px 5px;border-radius:3px;font-family:monospace;">main/solution/</code>.</div>
+                            <div style="display:flex;gap:8px;">
+                                <button onclick="showWideReadme06('local')" style="flex:1;padding:11px;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">🐳 Open Local Guide</button>
+                                <button onclick="showWideReadme06('main')" style="flex:1;padding:11px;background:#6366f1;color:white;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#4f46e5'" onmouseout="this.style.background='#6366f1'">☸️ Open K8s Guide</button>
                             </div>
                         </div>
 
                     </div>
                 </div>
 
-                <!-- Quick start -->
-                <div style="background:#f0fdf4;border-radius:10px;padding:16px;border:1px solid #bbf7d0;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <div style="font-weight:700;font-size:13px;color:#065f46;">⚡ Quick Start — Run Locally</div>
-                        <button onclick="copyText('cd hands-on-projects/project-06-api-gateway/local\\ndocker compose up --build', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">📋 Copy all</button>
+                <!-- Stack -->
+                <div style="background:#f9fafb;border-radius:10px;padding:16px;border:1px solid #e5e7eb;">
+                    <div style="font-weight:700;margin-bottom:10px;font-size:13px;">🛠 Tools you'll use</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        <span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Docker Compose</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Kubernetes</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Kong Gateway</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">JWT Auth</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Rate Limiting</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Redis</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Helm</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">ArgoCD</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">API Versioning</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Kong Ingress Controller</span>
                     </div>
-                    <pre style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;line-height:1.9;margin:0;white-space:pre-wrap;">cd hands-on-projects/project-06-api-gateway/local
-docker compose up --build
-# Dashboard UI:  http://localhost:3000
-# Kong Proxy:    http://localhost:8888
-# Kong Admin:    http://localhost:8081
-# API v1 Public: http://localhost:8888/v1/products</pre>
                 </div>
 
             </div>
@@ -1577,37 +1621,45 @@ docker compose up --build
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 
-// ── Wide README popup (project 06) ────────────────────────────────────────────
 function showWideReadme06(which) {
-    const existing = document.getElementById('wide-readme-overlay');
+    const readmeMap = {
+        project: '/hands-on-projects/project-06-api-gateway/README.md',
+        app:     '/hands-on-projects/project-06-api-gateway/app/README.md',
+        local:   '/hands-on-projects/project-06-api-gateway/local/README.md',
+        main:    '/hands-on-projects/project-06-api-gateway/main/README.md',
+    };
+    const path = readmeMap[which];
+    if (!path) return;
+
+    const existing = document.getElementById('p06-wide-overlay');
     if (existing) existing.remove();
 
-    const isProject = which === 'project';
-    const title   = isProject ? '📖 Project README — API Gateway with Advanced Traffic Management' : '🔍 app/ README — api-service, analytics-service & frontend';
-    const rawText = document.getElementById(isProject ? 'data-p06-project-readme' : 'data-p06-app-readme').textContent.trim();
-
     const overlay = document.createElement('div');
-    overlay.id = 'wide-readme-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:1200;display:flex;align-items:center;justify-content:center;padding:24px;';
-
+    overlay.id = 'p06-wide-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:2000;display:flex;align-items:center;justify-content:center;padding:24px;';
     overlay.innerHTML = `
-        <div style="background:white;border-radius:16px;max-width:920px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 25px 60px rgba(0,0,0,.35);">
-            <div style="padding:18px 28px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;border-radius:16px 16px 0 0;background:white;">
-                <h2 style="font-size:17px;font-weight:700;color:#1e1b4b;">${title}</h2>
-                <button onclick="document.getElementById('wide-readme-overlay').remove()" style="background:none;border:none;font-size:26px;cursor:pointer;color:#6b7280;line-height:1;padding:0 4px;">&times;</button>
+        <div style="background:white;border-radius:16px;width:100%;max-width:860px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 25px 50px rgba(0,0,0,.3);">
+            <div style="padding:18px 24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+                <div style="font-weight:700;font-size:15px;color:#111827;">🛡️ ${path}</div>
+                <button onclick="document.getElementById('p06-wide-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#6b7280;">&times;</button>
             </div>
-            <div style="padding:28px 32px;overflow-y:auto;flex:1;" id="wide-readme-body"></div>
+            <div id="p06-wide-body" style="flex:1;overflow-y:auto;padding:24px 28px;font-size:14px;line-height:1.7;color:#374151;">
+                <div style="color:#6b7280;">Loading...</div>
+            </div>
         </div>
     `;
-
     document.body.appendChild(overlay);
-    document.getElementById('wide-readme-body').innerHTML = renderMd(rawText);
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+    fetch(path)
+        .then(r => r.text())
+        .then(raw => { document.getElementById('p06-wide-body').innerHTML = renderMd(raw); })
+        .catch(() => { document.getElementById('p06-wide-body').innerHTML = '<p style="color:red">Could not load README. Make sure the file exists at: ' + path + '</p>'; });
 }
+
 
 function showModal07() {
     const PATH       = 'hands-on-projects/project-07-serverless-platform/';
-    const DOCKER_CMD = 'docker compose up --build';
 
     const overlay = document.createElement('div');
     overlay.id = 'p07-modal-overlay';
@@ -1618,7 +1670,7 @@ function showModal07() {
 
             <!-- Header -->
             <div style="padding:22px 28px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:white;z-index:1;border-radius:16px 16px 0 0;">
-                <h2 style="font-size:19px;font-weight:700;">&#955; Project 07 — Serverless Functions Platform on Kubernetes</h2>
+                <h2 style="font-size:19px;font-weight:700;">λ Project 07 — Serverless Functions Platform on Kubernetes</h2>
                 <button onclick="document.getElementById('p07-modal-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#6b7280;line-height:1;padding:0 4px;">&times;</button>
             </div>
 
@@ -1626,10 +1678,10 @@ function showModal07() {
 
                 <!-- Path -->
                 <div style="background:#eef2ff;border-radius:10px;padding:16px;">
-                    <div style="font-weight:700;margin-bottom:10px;color:#4f46e5;font-size:13px;">&#128193; Project Location</div>
+                    <div style="font-weight:700;margin-bottom:10px;color:#4f46e5;font-size:13px;">📁 Project Location</div>
                     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                         <code style="font-size:12px;color:#374151;background:#e0e7ff;padding:8px 12px;border-radius:6px;font-family:'Courier New',Courier,monospace;flex:1;min-width:200px;word-break:break-all;">${PATH}</code>
-                        <button onclick="copyText('${PATH}', this)" style="font-size:12px;padding:7px 14px;border-radius:6px;border:1px solid #c7d2fe;background:white;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;transition:all .15s;flex-shrink:0;">&#128203; Copy</button>
+                        <button onclick="copyText('${PATH}', this)" style="font-size:12px;padding:7px 14px;border-radius:6px;border:1px solid #c7d2fe;background:white;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;transition:all .15s;flex-shrink:0;">📋 Copy</button>
                     </div>
                 </div>
 
@@ -1642,7 +1694,7 @@ function showModal07() {
                              style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;cursor:pointer;transition:all .15s;"
                              onmouseover="this.style.borderColor='#6366f1';this.style.background='#f5f3ff';"
                              onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#f9fafb';">
-                            <span style="font-size:24px;flex-shrink:0;">&#128214;</span>
+                            <span style="font-size:24px;flex-shrink:0;">📖</span>
                             <div style="flex:1;">
                                 <div style="font-weight:600;font-size:14px;">1. Read the Project README</div>
                                 <div style="color:#6b7280;font-size:12px;margin-top:2px;">FaaS architecture, available functions, 6-phase DevOps journey</div>
@@ -1654,7 +1706,7 @@ function showModal07() {
                              style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;cursor:pointer;transition:all .15s;"
                              onmouseover="this.style.borderColor='#6366f1';this.style.background='#f5f3ff';"
                              onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#f9fafb';">
-                            <span style="font-size:24px;flex-shrink:0;">&#128269;</span>
+                            <span style="font-size:24px;flex-shrink:0;">🔍</span>
                             <div style="flex:1;">
                                 <div style="font-weight:600;font-size:14px;">2. Explore the app/ folder</div>
                                 <div style="color:#6b7280;font-size:12px;margin-top:2px;">function-service (registry), function-runner (executor), dashboard UI</div>
@@ -1662,54 +1714,49 @@ function showModal07() {
                             <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
                         </div>
 
-                        <div style="padding:14px 16px;background:#eef2ff;border-radius:10px;border:2px solid #6366f1;display:flex;flex-direction:column;gap:10px;">
+
+                        <div style="padding:14px 16px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;display:flex;flex-direction:column;gap:10px;">
                             <div style="display:flex;align-items:center;gap:12px;">
-                                <span style="font-size:24px;flex-shrink:0;">&#128051;</span>
+                                <span style="font-size:24px;flex-shrink:0;">🌐</span>
                                 <div>
-                                    <div style="font-weight:600;font-size:14px;color:#4f46e5;">3. Run locally (local/ folder)</div>
-                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">function-service + function-runner + dashboard UI on http://localhost:3000</div>
+                                    <div style="font-weight:600;font-size:14px;color:#166534;">3. Quick access after startup</div>
+                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Endpoints once docker compose is running</div>
                                 </div>
                             </div>
-                            <div style="background:white;border-radius:8px;padding:10px 14px;border:1px solid #c7d2fe;display:flex;align-items:center;justify-content:space-between;gap:10px;">
-                                <code style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;flex:1;">${DOCKER_CMD}</code>
-                                <button onclick="copyText('${DOCKER_CMD}', this)" style="font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #c7d2fe;background:#eef2ff;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;flex-shrink:0;transition:all .15s;">&#128203; Copy</button>
+                            <div style="display:flex;justify-content:flex-end;">
+                                <button onclick="copyText('cd hands-on-projects/project-07-serverless-platform/local\ndocker compose up --build', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">📋 Copy all</button>
                             </div>
+                            <pre style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;line-height:1.9;margin:0;white-space:pre-wrap;">cd hands-on-projects/project-07-serverless-platform/local
+docker compose up --build
+
+# Dashboard UI:    http://localhost:3000
+# Function API:    http://localhost:8001/docs
+# Function Runner: http://localhost:8002/docs</pre>
                         </div>
 
                         <div style="padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;display:flex;flex-direction:column;gap:10px;">
                             <div style="display:flex;align-items:center;gap:12px;">
-                                <span style="font-size:24px;flex-shrink:0;">&#9096;&#65039;</span>
+                                <span style="font-size:24px;flex-shrink:0;">☸️</span>
                                 <div>
                                     <div style="font-weight:600;font-size:14px;">4. Deploy to Kubernetes (main/)</div>
                                     <div style="color:#6b7280;font-size:12px;margin-top:2px;">Core K8s → HPA → OpenFaaS (Helm) → KEDA → CronJob → ArgoCD</div>
                                 </div>
                             </div>
-                            <div style="background:#fefce8;border:1px solid #fde047;border-radius:8px;padding:10px 14px;font-size:12px;color:#713f12;display:flex;align-items:flex-start;gap:8px;">
-                                <span style="font-size:15px;flex-shrink:0;">&#128161;</span>
-                                <div><strong>Key challenge:</strong> Installing OpenFaaS with Helm, configuring scale-to-zero, writing <code style="background:#fef3c7;padding:1px 5px;border-radius:3px;font-family:monospace;">HTTPScaledObject</code> for KEDA, and wiring ArgoCD to auto-sync everything. Full solution in <code style="background:#fef3c7;padding:1px 5px;border-radius:3px;font-family:monospace;">main/solution/</code>.</div>
+                            <div style="display:flex;gap:8px;">
+                                <button onclick="showWideReadme07('local')" style="flex:1;padding:11px;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">🐳 Open Local Guide</button>
+                                <button onclick="showWideReadme07('main')" style="flex:1;padding:11px;background:#6366f1;color:white;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#4f46e5'" onmouseout="this.style.background='#6366f1'">☸️ Open K8s Guide</button>
                             </div>
                         </div>
 
                     </div>
                 </div>
 
-                <!-- Quick start -->
-                <div style="background:#f0fdf4;border-radius:10px;padding:16px;border:1px solid #bbf7d0;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <div style="font-weight:700;font-size:13px;color:#065f46;">&#9889; Quick Start — Run Locally</div>
-                        <button onclick="copyText('cd hands-on-projects/project-07-serverless-platform/local\\ndocker compose up --build', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">&#128203; Copy all</button>
+                <!-- Stack -->
+                <div style="background:#f9fafb;border-radius:10px;padding:16px;border:1px solid #e5e7eb;">
+                    <div style="font-weight:700;margin-bottom:10px;font-size:13px;">🛠 Tools you'll use</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        <span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Docker Compose</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Kubernetes</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">OpenFaaS</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">KEDA</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">HPA</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Scale-to-Zero</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">ArgoCD</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">CronJob</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Helm</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Event-Driven</span>
                     </div>
-                    <pre style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;line-height:1.9;margin:0;white-space:pre-wrap;">cd hands-on-projects/project-07-serverless-platform/local
-docker compose up --build
-# Dashboard UI:   http://localhost:3000
-# Function API:   http://localhost:8001/docs
-# Function Runner: http://localhost:8002/docs</pre>
-                </div>
-
-                <!-- Footer buttons -->
-                <div style="display:flex;gap:10px;">
-                    <button onclick="showWideReadme07('main')" style="flex:1;padding:11px;background:#6366f1;color:white;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#4f46e5'" onmouseout="this.style.background='#6366f1'">&#9096;&#65039; Open K8s Guide</button>
-                    <button onclick="document.getElementById('p07-modal-overlay').remove()" style="flex:1;padding:11px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;">Close</button>
                 </div>
 
             </div>
@@ -1719,6 +1766,7 @@ docker compose up --build
     document.body.appendChild(overlay);
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
+
 
 function showWideReadme07(which) {
     const readmeMap = {
@@ -1757,9 +1805,7 @@ function showWideReadme07(which) {
 }
 
 function showModal03() {
-    const PATH      = 'hands-on-projects/project-03-realtime-chat/';
-    const DOCKER_CMD = 'docker compose up --build';
-    const QUICK_CMD  = 'cd hands-on-projects/project-03-realtime-chat/local\ndocker compose up --build\n# Open http://localhost:8092\n# MinIO Console: http://localhost:9001 (minioadmin/minioadmin)';
+    const PATH       = 'hands-on-projects/project-03-realtime-chat/';
 
     const overlay = document.createElement('div');
     overlay.id = 'p03-modal-overlay';
@@ -1814,47 +1860,48 @@ function showModal03() {
                             <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
                         </div>
 
-                        <div style="padding:14px 16px;background:#eef2ff;border-radius:10px;border:2px solid #6366f1;display:flex;flex-direction:column;gap:10px;">
+
+                        <div style="padding:14px 16px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;display:flex;flex-direction:column;gap:10px;">
                             <div style="display:flex;align-items:center;gap:12px;">
-                                <span style="font-size:24px;flex-shrink:0;">🐳</span>
+                                <span style="font-size:24px;flex-shrink:0;">🌐</span>
                                 <div>
-                                    <div style="font-weight:600;font-size:14px;color:#4f46e5;">3. Build & run locally (local/ folder)</div>
-                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Full stack: chat at :8092, MinIO console at :9001</div>
+                                    <div style="font-weight:600;font-size:14px;color:#166534;">3. Quick access after startup</div>
+                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Endpoints once docker compose is running</div>
                                 </div>
                             </div>
-                            <div style="background:white;border-radius:8px;padding:10px 14px;border:1px solid #c7d2fe;display:flex;align-items:center;justify-content:space-between;gap:10px;">
-                                <code style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;flex:1;">${DOCKER_CMD}</code>
-                                <button onclick="copyText('${DOCKER_CMD}', this)" style="font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #c7d2fe;background:#eef2ff;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;flex-shrink:0;transition:all .15s;">📋 Copy</button>
+                            <div style="display:flex;justify-content:flex-end;">
+                                <button onclick="copyText('cd hands-on-projects/project-03-realtime-chat/local\ndocker compose up --build', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">📋 Copy all</button>
                             </div>
+                            <pre style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;line-height:1.9;margin:0;white-space:pre-wrap;">cd hands-on-projects/project-03-realtime-chat/local
+docker compose up --build
+
+# Chat UI:       http://localhost:8092
+# MinIO Console: http://localhost:9001 (minioadmin/minioadmin)</pre>
                         </div>
 
                         <div style="padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;display:flex;flex-direction:column;gap:10px;">
                             <div style="display:flex;align-items:center;gap:12px;">
                                 <span style="font-size:24px;flex-shrink:0;">☸️</span>
                                 <div>
-                                    <div style="font-weight:600;font-size:14px;">4. Deploy to Kubernetes (main/ folder)</div>
+                                    <div style="font-weight:600;font-size:14px;">4. Deploy to Kubernetes (main/)</div>
                                     <div style="color:#6b7280;font-size:12px;margin-top:2px;">WebSocket Ingress config, Redis StatefulSet, MinIO, HPA for horizontal scaling</div>
                                 </div>
                             </div>
-                            <div style="background:#fefce8;border:1px solid #fde047;border-radius:8px;padding:10px 14px;font-size:12px;color:#713f12;display:flex;align-items:flex-start;gap:8px;">
-                                <span style="font-size:15px;flex-shrink:0;">💡</span>
-                                <div><strong>Key challenge:</strong> WebSocket Ingress requires special annotations for <code style="background:#fef3c7;padding:1px 5px;border-radius:3px;font-family:monospace;">proxy-read-timeout</code> and the <code style="background:#fef3c7;padding:1px 5px;border-radius:3px;font-family:monospace;">Upgrade</code> header. The main/README.md walks you through it.</div>
+                            <div style="display:flex;gap:8px;">
+                                <button onclick="showWideReadme03('local')" style="flex:1;padding:11px;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">🐳 Open Local Guide</button>
+                                <button onclick="showWideReadme03('main')" style="flex:1;padding:11px;background:#6366f1;color:white;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#4f46e5'" onmouseout="this.style.background='#6366f1'">☸️ Open K8s Guide</button>
                             </div>
                         </div>
 
                     </div>
                 </div>
 
-                <!-- Quick start -->
-                <div style="background:#f0fdf4;border-radius:10px;padding:16px;border:1px solid #bbf7d0;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <div style="font-weight:700;font-size:13px;color:#065f46;">⚡ Quick Start — Run Locally</div>
-                        <button onclick="copyText('${QUICK_CMD.replace(/\n/g, '\\n')}', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">📋 Copy all</button>
+                <!-- Stack -->
+                <div style="background:#f9fafb;border-radius:10px;padding:16px;border:1px solid #e5e7eb;">
+                    <div style="font-weight:700;margin-bottom:10px;font-size:13px;">🛠 Tools you'll use</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        <span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Docker Compose</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Kubernetes</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">WebSockets</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Redis pub/sub</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">MinIO / S3</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">PostgreSQL</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">nginx WebSocket Proxy</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">HPA</span>
                     </div>
-                    <pre style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;line-height:1.9;margin:0;white-space:pre-wrap;">cd hands-on-projects/project-03-realtime-chat/local
-docker compose up --build
-# Chat UI:      http://localhost:8092
-# MinIO Console: http://localhost:9001 (minioadmin/minioadmin)</pre>
                 </div>
 
             </div>
@@ -1865,37 +1912,46 @@ docker compose up --build
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 
+
 function showWideReadme03(which) {
-    const existing = document.getElementById('wide-readme-overlay');
+    const readmeMap = {
+        project: '/hands-on-projects/project-03-realtime-chat/README.md',
+        app:     '/hands-on-projects/project-03-realtime-chat/app/README.md',
+        local:   '/hands-on-projects/project-03-realtime-chat/local/README.md',
+        main:    '/hands-on-projects/project-03-realtime-chat/main/README.md',
+    };
+    const path = readmeMap[which];
+    if (!path) return;
+
+    const existing = document.getElementById('p03-wide-overlay');
     if (existing) existing.remove();
 
-    const isProject = which === 'project';
-    const title   = isProject ? '📖 Project README — Real-Time Chat Platform' : '🔍 app/ README — Services & APIs';
-    const rawText = document.getElementById(isProject ? 'data-p03-project-readme' : 'data-p03-app-readme').textContent.trim();
-
     const overlay = document.createElement('div');
-    overlay.id = 'wide-readme-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:1200;display:flex;align-items:center;justify-content:center;padding:24px;';
-
+    overlay.id = 'p03-wide-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:2000;display:flex;align-items:center;justify-content:center;padding:24px;';
     overlay.innerHTML = `
-        <div style="background:white;border-radius:16px;max-width:920px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 25px 60px rgba(0,0,0,.35);">
-            <div style="padding:18px 28px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;border-radius:16px 16px 0 0;background:white;">
-                <h2 style="font-size:17px;font-weight:700;color:#1e1b4b;">${title}</h2>
-                <button onclick="document.getElementById('wide-readme-overlay').remove()" style="background:none;border:none;font-size:26px;cursor:pointer;color:#6b7280;line-height:1;padding:0 4px;">&times;</button>
+        <div style="background:white;border-radius:16px;width:100%;max-width:860px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 25px 50px rgba(0,0,0,.3);">
+            <div style="padding:18px 24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+                <div style="font-weight:700;font-size:15px;color:#111827;">💬 ${path}</div>
+                <button onclick="document.getElementById('p03-wide-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#6b7280;">&times;</button>
             </div>
-            <div style="padding:28px 32px;overflow-y:auto;flex:1;" id="wide-readme-body"></div>
+            <div id="p03-wide-body" style="flex:1;overflow-y:auto;padding:24px 28px;font-size:14px;line-height:1.7;color:#374151;">
+                <div style="color:#6b7280;">Loading...</div>
+            </div>
         </div>
     `;
-
     document.body.appendChild(overlay);
-    document.getElementById('wide-readme-body').innerHTML = renderMd(rawText);
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+    fetch(path)
+        .then(r => r.text())
+        .then(raw => { document.getElementById('p03-wide-body').innerHTML = renderMd(raw); })
+        .catch(() => { document.getElementById('p03-wide-body').innerHTML = '<p style="color:red">Could not load README. Make sure the file exists at: ' + path + '</p>'; });
 }
 
+
 function showModal04() {
-    const PATH      = 'hands-on-projects/project-04-gitops-cicd/';
-    const DOCKER_CMD = 'docker compose up --build';
-    const QUICK_CMD  = 'cd hands-on-projects/project-04-gitops-cicd/local\ndocker compose up --build\n# Open http://localhost:8080\n# Refresh multiple times to see v1 (blue) and v2 (green) — canary simulation';
+    const PATH       = 'hands-on-projects/project-04-gitops-cicd/';
 
     const overlay = document.createElement('div');
     overlay.id = 'p04-modal-overlay';
@@ -1950,47 +2006,48 @@ function showModal04() {
                             <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
                         </div>
 
-                        <div style="padding:14px 16px;background:#eef2ff;border-radius:10px;border:2px solid #6366f1;display:flex;flex-direction:column;gap:10px;">
+
+                        <div style="padding:14px 16px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;display:flex;flex-direction:column;gap:10px;">
                             <div style="display:flex;align-items:center;gap:12px;">
-                                <span style="font-size:24px;flex-shrink:0;">🐳</span>
+                                <span style="font-size:24px;flex-shrink:0;">🌐</span>
                                 <div>
-                                    <div style="font-weight:600;font-size:14px;color:#4f46e5;">3. Simulate a canary locally (local/ folder)</div>
-                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Runs v1 + v2 with nginx splitting traffic. Refresh to see both versions.</div>
+                                    <div style="font-weight:600;font-size:14px;color:#166534;">3. Quick access after startup</div>
+                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Endpoints once docker compose is running</div>
                                 </div>
                             </div>
-                            <div style="background:white;border-radius:8px;padding:10px 14px;border:1px solid #c7d2fe;display:flex;align-items:center;justify-content:space-between;gap:10px;">
-                                <code style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;flex:1;">${DOCKER_CMD}</code>
-                                <button onclick="copyText('${DOCKER_CMD}', this)" style="font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #c7d2fe;background:#eef2ff;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;flex-shrink:0;transition:all .15s;">📋 Copy</button>
+                            <div style="display:flex;justify-content:flex-end;">
+                                <button onclick="copyText('cd hands-on-projects/project-04-gitops-cicd/local\ndocker compose up --build', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">📋 Copy all</button>
                             </div>
+                            <pre style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;line-height:1.9;margin:0;white-space:pre-wrap;">cd hands-on-projects/project-04-gitops-cicd/local
+docker compose up --build
+
+# Open http://localhost:8080
+# Refresh multiple times — v1 (blue) or v2 (green) = canary in action</pre>
                         </div>
 
                         <div style="padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;display:flex;flex-direction:column;gap:10px;">
                             <div style="display:flex;align-items:center;gap:12px;">
                                 <span style="font-size:24px;flex-shrink:0;">☸️</span>
                                 <div>
-                                    <div style="font-weight:600;font-size:14px;">4. Build the GitOps pipeline (main/ folder)</div>
+                                    <div style="font-weight:600;font-size:14px;">4. Deploy to Kubernetes (main/)</div>
                                     <div style="color:#6b7280;font-size:12px;margin-top:2px;">K8s → ArgoCD → GitHub Actions CI → Flagger canary</div>
                                 </div>
                             </div>
-                            <div style="background:#fefce8;border:1px solid #fde047;border-radius:8px;padding:10px 14px;font-size:12px;color:#713f12;display:flex;align-items:flex-start;gap:8px;">
-                                <span style="font-size:15px;flex-shrink:0;">💡</span>
-                                <div><strong>Hint:</strong> Ready-made solution files are in the <code style="background:#fef3c7;padding:1px 5px;border-radius:3px;font-family:monospace;">solution/</code> folder — K8s manifests, ArgoCD Application, Flagger Canary CRD, and the full GitHub Actions workflow are all there.</div>
+                            <div style="display:flex;gap:8px;">
+                                <button onclick="showWideReadme04('local')" style="flex:1;padding:11px;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">🐳 Open Local Guide</button>
+                                <button onclick="showWideReadme04('main')" style="flex:1;padding:11px;background:#6366f1;color:white;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#4f46e5'" onmouseout="this.style.background='#6366f1'">☸️ Open K8s Guide</button>
                             </div>
                         </div>
 
                     </div>
                 </div>
 
-                <!-- Quick start -->
-                <div style="background:#f0fdf4;border-radius:10px;padding:16px;border:1px solid #bbf7d0;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <div style="font-weight:700;font-size:13px;color:#065f46;">⚡ Quick Start — Canary Simulation</div>
-                        <button onclick="copyText('${QUICK_CMD.replace(/\n/g, '\\n')}', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">📋 Copy all</button>
+                <!-- Stack -->
+                <div style="background:#f9fafb;border-radius:10px;padding:16px;border:1px solid #e5e7eb;">
+                    <div style="font-weight:700;margin-bottom:10px;font-size:13px;">🛠 Tools you'll use</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        <span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Docker Compose</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Kubernetes</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">GitHub Actions</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">ArgoCD</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Flagger</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">nginx</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Canary Deployments</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Image Scanning</span>
                     </div>
-                    <pre style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;line-height:1.9;margin:0;white-space:pre-wrap;">cd hands-on-projects/project-04-gitops-cicd/local
-docker compose up --build
-# Open http://localhost:8080
-# Refresh multiple times — v1 (blue) or v2 (green) = canary in action</pre>
                 </div>
 
             </div>
@@ -2001,38 +2058,47 @@ docker compose up --build
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 
+
 function showWideReadme04(which) {
-    const existing = document.getElementById('wide-readme-overlay');
+    const readmeMap = {
+        project: '/hands-on-projects/project-04-gitops-cicd/README.md',
+        app:     '/hands-on-projects/project-04-gitops-cicd/app/README.md',
+        local:   '/hands-on-projects/project-04-gitops-cicd/local/README.md',
+        main:    '/hands-on-projects/project-04-gitops-cicd/main/README.md',
+    };
+    const path = readmeMap[which];
+    if (!path) return;
+
+    const existing = document.getElementById('p04-wide-overlay');
     if (existing) existing.remove();
 
-    const isProject = which === 'project';
-    const title   = isProject ? '📖 Project README — GitOps CI/CD Pipeline' : '🔍 app/ README — DevOps Projects Hub';
-    const rawText = document.getElementById(isProject ? 'data-p04-project-readme' : 'data-p04-app-readme').textContent.trim();
-
     const overlay = document.createElement('div');
-    overlay.id = 'wide-readme-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:1200;display:flex;align-items:center;justify-content:center;padding:24px;';
-
+    overlay.id = 'p04-wide-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:2000;display:flex;align-items:center;justify-content:center;padding:24px;';
     overlay.innerHTML = `
-        <div style="background:white;border-radius:16px;max-width:920px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 25px 60px rgba(0,0,0,.35);">
-            <div style="padding:18px 28px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;border-radius:16px 16px 0 0;background:white;">
-                <h2 style="font-size:17px;font-weight:700;color:#1e1b4b;">${title}</h2>
-                <button onclick="document.getElementById('wide-readme-overlay').remove()" style="background:none;border:none;font-size:26px;cursor:pointer;color:#6b7280;line-height:1;padding:0 4px;">&times;</button>
+        <div style="background:white;border-radius:16px;width:100%;max-width:860px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 25px 50px rgba(0,0,0,.3);">
+            <div style="padding:18px 24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+                <div style="font-weight:700;font-size:15px;color:#111827;">⎈ ${path}</div>
+                <button onclick="document.getElementById('p04-wide-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#6b7280;">&times;</button>
             </div>
-            <div style="padding:28px 32px;overflow-y:auto;flex:1;" id="wide-readme-body"></div>
+            <div id="p04-wide-body" style="flex:1;overflow-y:auto;padding:24px 28px;font-size:14px;line-height:1.7;color:#374151;">
+                <div style="color:#6b7280;">Loading...</div>
+            </div>
         </div>
     `;
-
     document.body.appendChild(overlay);
-    document.getElementById('wide-readme-body').innerHTML = renderMd(rawText);
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+    fetch(path)
+        .then(r => r.text())
+        .then(raw => { document.getElementById('p04-wide-body').innerHTML = renderMd(raw); })
+        .catch(() => { document.getElementById('p04-wide-body').innerHTML = '<p style="color:red">Could not load README. Make sure the file exists at: ' + path + '</p>'; });
 }
+
 
 // ── Project 05 ────────────────────────────────────────────────────────────────
 function showModal05() {
     const PATH       = 'hands-on-projects/project-05-observability-stack/';
-    const DOCKER_CMD = 'docker compose up --build';
-    const QUICK_CMD  = 'cd hands-on-projects/project-05-observability-stack/local\ndocker compose up --build\n# App dashboard: http://localhost:8000\n# Grafana:       http://localhost:3000  (admin / admin)\n# Prometheus:    http://localhost:9090\n# Jaeger UI:     http://localhost:16686\n# AlertManager:  http://localhost:9093';
 
     const overlay = document.createElement('div');
     overlay.id = 'p05-modal-overlay';
@@ -2087,18 +2153,26 @@ function showModal05() {
                             <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
                         </div>
 
-                        <div style="padding:14px 16px;background:#eef2ff;border-radius:10px;border:2px solid #6366f1;display:flex;flex-direction:column;gap:10px;">
+
+                        <div style="padding:14px 16px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;display:flex;flex-direction:column;gap:10px;">
                             <div style="display:flex;align-items:center;gap:12px;">
-                                <span style="font-size:24px;flex-shrink:0;">🐳</span>
+                                <span style="font-size:24px;flex-shrink:0;">🌐</span>
                                 <div>
-                                    <div style="font-weight:600;font-size:14px;color:#4f46e5;">3. Run the full observability stack (local/)</div>
-                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">App + Prometheus + Grafana + Loki + Jaeger + AlertManager</div>
+                                    <div style="font-weight:600;font-size:14px;color:#166534;">3. Quick access after startup</div>
+                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Endpoints once docker compose is running</div>
                                 </div>
                             </div>
-                            <div style="background:white;border-radius:8px;padding:10px 14px;border:1px solid #c7d2fe;display:flex;align-items:center;justify-content:space-between;gap:10px;">
-                                <code style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;flex:1;">${DOCKER_CMD}</code>
-                                <button onclick="copyText('${DOCKER_CMD}', this)" style="font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #c7d2fe;background:#eef2ff;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;flex-shrink:0;transition:all .15s;">📋 Copy</button>
+                            <div style="display:flex;justify-content:flex-end;">
+                                <button onclick="copyText('cd hands-on-projects/project-05-observability-stack/local\ndocker compose up --build', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">📋 Copy all</button>
                             </div>
+                            <pre style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;line-height:1.9;margin:0;white-space:pre-wrap;">cd hands-on-projects/project-05-observability-stack/local
+docker compose up --build
+
+# App dashboard: http://localhost:8000
+# Grafana:       http://localhost:3000  (admin / admin)
+# Prometheus:    http://localhost:9090
+# Jaeger UI:     http://localhost:16686
+# AlertManager:  http://localhost:9093</pre>
                         </div>
 
                         <div style="padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;display:flex;flex-direction:column;gap:10px;">
@@ -2109,28 +2183,21 @@ function showModal05() {
                                     <div style="color:#6b7280;font-size:12px;margin-top:2px;">kube-prometheus-stack, Loki Stack, Tempo, Jaeger, Thanos via Helm</div>
                                 </div>
                             </div>
-                            <div style="background:#fefce8;border:1px solid #fde047;border-radius:8px;padding:10px 14px;font-size:12px;color:#713f12;display:flex;align-items:flex-start;gap:8px;">
-                                <span style="font-size:15px;flex-shrink:0;">💡</span>
-                                <div><strong>Key challenge:</strong> Writing a <code style="background:#fef3c7;padding:1px 5px;border-radius:3px;font-family:monospace;">ServiceMonitor</code> and <code style="background:#fef3c7;padding:1px 5px;border-radius:3px;font-family:monospace;">PrometheusRule</code> for SLO-based multi-window burn-rate alerting. The solution is in <code style="background:#fef3c7;padding:1px 5px;border-radius:3px;font-family:monospace;">main/solution/</code>.</div>
+                            <div style="display:flex;gap:8px;">
+                                <button onclick="showWideReadme05('local')" style="flex:1;padding:11px;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">🐳 Open Local Guide</button>
+                                <button onclick="showWideReadme05('main')" style="flex:1;padding:11px;background:#6366f1;color:white;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#4f46e5'" onmouseout="this.style.background='#6366f1'">☸️ Open K8s Guide</button>
                             </div>
                         </div>
 
                     </div>
                 </div>
 
-                <!-- Quick start -->
-                <div style="background:#f0fdf4;border-radius:10px;padding:16px;border:1px solid #bbf7d0;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <div style="font-weight:700;font-size:13px;color:#065f46;">⚡ Quick Start — Run Locally</div>
-                        <button onclick="copyText('\${QUICK_CMD.replace(/\\n/g, String.fromCharCode(10))}', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">📋 Copy all</button>
+                <!-- Stack -->
+                <div style="background:#f9fafb;border-radius:10px;padding:16px;border:1px solid #e5e7eb;">
+                    <div style="font-weight:700;margin-bottom:10px;font-size:13px;">🛠 Tools you'll use</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        <span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Docker Compose</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Kubernetes</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Prometheus</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Grafana</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Loki</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Jaeger / Tempo</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">AlertManager</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Thanos</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">PromQL / LogQL</span>
                     </div>
-                    <pre style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;line-height:1.9;margin:0;white-space:pre-wrap;">cd hands-on-projects/project-05-observability-stack/local
-docker compose up --build
-# App dashboard: http://localhost:8000
-# Grafana:       http://localhost:3000  (admin / admin)
-# Prometheus:    http://localhost:9090
-# Jaeger UI:     http://localhost:16686
-# AlertManager:  http://localhost:9093</pre>
                 </div>
 
             </div>
@@ -2141,37 +2208,46 @@ docker compose up --build
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 
+
 function showWideReadme05(which) {
-    const existing = document.getElementById('wide-readme-overlay');
+    const readmeMap = {
+        project: '/hands-on-projects/project-05-observability-stack/README.md',
+        app:     '/hands-on-projects/project-05-observability-stack/app/README.md',
+        local:   '/hands-on-projects/project-05-observability-stack/local/README.md',
+        main:    '/hands-on-projects/project-05-observability-stack/main/README.md',
+    };
+    const path = readmeMap[which];
+    if (!path) return;
+
+    const existing = document.getElementById('p05-wide-overlay');
     if (existing) existing.remove();
 
-    const isProject = which === 'project';
-    const title   = isProject ? '📖 Project README — Complete Observability Stack' : '🔍 app/ README — ObserveApp Instrumentation';
-    const rawText = document.getElementById(isProject ? 'data-p05-project-readme' : 'data-p05-app-readme').textContent.trim();
-
     const overlay = document.createElement('div');
-    overlay.id = 'wide-readme-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:1200;display:flex;align-items:center;justify-content:center;padding:24px;';
-
+    overlay.id = 'p05-wide-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:2000;display:flex;align-items:center;justify-content:center;padding:24px;';
     overlay.innerHTML = `
-        <div style="background:white;border-radius:16px;max-width:920px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 25px 60px rgba(0,0,0,.35);">
-            <div style="padding:18px 28px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;border-radius:16px 16px 0 0;background:white;">
-                <h2 style="font-size:17px;font-weight:700;color:#1e1b4b;">\${title}</h2>
-                <button onclick="document.getElementById('wide-readme-overlay').remove()" style="background:none;border:none;font-size:26px;cursor:pointer;color:#6b7280;line-height:1;padding:0 4px;">&times;</button>
+        <div style="background:white;border-radius:16px;width:100%;max-width:860px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 25px 50px rgba(0,0,0,.3);">
+            <div style="padding:18px 24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+                <div style="font-weight:700;font-size:15px;color:#111827;">📊 ${path}</div>
+                <button onclick="document.getElementById('p05-wide-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#6b7280;">&times;</button>
             </div>
-            <div style="padding:28px 32px;overflow-y:auto;flex:1;" id="wide-readme-body"></div>
+            <div id="p05-wide-body" style="flex:1;overflow-y:auto;padding:24px 28px;font-size:14px;line-height:1.7;color:#374151;">
+                <div style="color:#6b7280;">Loading...</div>
+            </div>
         </div>
     `;
-
     document.body.appendChild(overlay);
-    document.getElementById('wide-readme-body').innerHTML = renderMd(rawText);
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+    fetch(path)
+        .then(r => r.text())
+        .then(raw => { document.getElementById('p05-wide-body').innerHTML = renderMd(raw); })
+        .catch(() => { document.getElementById('p05-wide-body').innerHTML = '<p style="color:red">Could not load README. Make sure the file exists at: ' + path + '</p>'; });
 }
 
+
 function showModal02() {
-    const PATH = 'hands-on-projects/project-02-multitenant-saas/';
-    const DOCKER_CMD = 'docker compose up --build';
-    const QUICK_CMD  = 'cd hands-on-projects/project-02-multitenant-saas/local\ndocker compose up --build\n# Open http://localhost:8090';
+    const PATH       = 'hands-on-projects/project-02-multitenant-saas/';
 
     const overlay = document.createElement('div');
     overlay.id = 'p02-modal-overlay';
@@ -2188,7 +2264,7 @@ function showModal02() {
 
             <div style="padding:24px 28px;display:flex;flex-direction:column;gap:20px;">
 
-                <!-- 1. Path + copy button -->
+                <!-- Path -->
                 <div style="background:#eef2ff;border-radius:10px;padding:16px;">
                     <div style="font-weight:700;margin-bottom:10px;color:#4f46e5;font-size:13px;">📁 Project Location</div>
                     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -2197,7 +2273,7 @@ function showModal02() {
                     </div>
                 </div>
 
-                <!-- 2. Steps -->
+                <!-- Steps -->
                 <div>
                     <div style="font-weight:700;margin-bottom:12px;font-size:14px;">Where to start:</div>
                     <div style="display:flex;flex-direction:column;gap:10px;">
@@ -2226,46 +2302,47 @@ function showModal02() {
                             <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
                         </div>
 
-                        <div style="padding:14px 16px;background:#eef2ff;border-radius:10px;border:2px solid #6366f1;display:flex;flex-direction:column;gap:10px;">
+
+                        <div style="padding:14px 16px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;display:flex;flex-direction:column;gap:10px;">
                             <div style="display:flex;align-items:center;gap:12px;">
-                                <span style="font-size:24px;flex-shrink:0;">🐳</span>
+                                <span style="font-size:24px;flex-shrink:0;">🌐</span>
                                 <div>
-                                    <div style="font-weight:600;font-size:14px;color:#4f46e5;">3. Build & run locally (local/ folder)</div>
-                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Get all services running with Docker Compose. Admin dashboard at :8090</div>
+                                    <div style="font-weight:600;font-size:14px;color:#166534;">3. Quick access after startup</div>
+                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Endpoints once docker compose is running</div>
                                 </div>
                             </div>
-                            <div style="background:white;border-radius:8px;padding:10px 14px;border:1px solid #c7d2fe;display:flex;align-items:center;justify-content:space-between;gap:10px;">
-                                <code style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;flex:1;">${DOCKER_CMD}</code>
-                                <button onclick="copyText('${DOCKER_CMD}', this)" style="font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #c7d2fe;background:#eef2ff;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;flex-shrink:0;transition:all .15s;">📋 Copy</button>
+                            <div style="display:flex;justify-content:flex-end;">
+                                <button onclick="copyText('cd hands-on-projects/project-02-multitenant-saas/local\ndocker compose up --build', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">📋 Copy all</button>
                             </div>
+                            <pre style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;line-height:1.9;margin:0;white-space:pre-wrap;">cd hands-on-projects/project-02-multitenant-saas/local
+docker compose up --build
+
+# Open http://localhost:8090  ← admin dashboard</pre>
                         </div>
 
                         <div style="padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;display:flex;flex-direction:column;gap:10px;">
                             <div style="display:flex;align-items:center;gap:12px;">
                                 <span style="font-size:24px;flex-shrink:0;">☸️</span>
                                 <div>
-                                    <div style="font-weight:600;font-size:14px;">4. Deploy to Kubernetes (main/ folder)</div>
+                                    <div style="font-weight:600;font-size:14px;">4. Deploy to Kubernetes (main/)</div>
                                     <div style="color:#6b7280;font-size:12px;margin-top:2px;">Namespaces, RBAC, ResourceQuota, NetworkPolicy, per-tenant databases</div>
                                 </div>
                             </div>
-                            <div style="background:#fefce8;border:1px solid #fde047;border-radius:8px;padding:10px 14px;font-size:12px;color:#713f12;display:flex;align-items:flex-start;gap:8px;">
-                                <span style="font-size:15px;flex-shrink:0;">💡</span>
-                                <div><strong>Hint:</strong> Ready-made K8s solution files are in the <code style="background:#fef3c7;padding:1px 5px;border-radius:3px;font-family:monospace;">solution/</code> folder — namespace, RBAC, quotas, NetworkPolicy, per-tenant StatefulSet, and app-service configs are all there.</div>
+                            <div style="display:flex;gap:8px;">
+                                <button onclick="showWideReadme02('local')" style="flex:1;padding:11px;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">🐳 Open Local Guide</button>
+                                <button onclick="showWideReadme02('main')" style="flex:1;padding:11px;background:#6366f1;color:white;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#4f46e5'" onmouseout="this.style.background='#6366f1'">☸️ Open K8s Guide</button>
                             </div>
                         </div>
 
                     </div>
                 </div>
 
-                <!-- Quick start -->
-                <div style="background:#f0fdf4;border-radius:10px;padding:16px;border:1px solid #bbf7d0;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <div style="font-weight:700;font-size:13px;color:#065f46;">⚡ Quick Start — Run Locally</div>
-                        <button onclick="copyText('${QUICK_CMD.replace(/\n/g, '\\n')}', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">📋 Copy all</button>
+                <!-- Stack -->
+                <div style="background:#f9fafb;border-radius:10px;padding:16px;border:1px solid #e5e7eb;">
+                    <div style="font-weight:700;margin-bottom:10px;font-size:13px;">🛠 Tools you'll use</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        <span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Docker Compose</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Kubernetes</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Namespaces</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">RBAC</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">ResourceQuota</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">NetworkPolicy</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">StatefulSet</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">PostgreSQL</span>
                     </div>
-                    <pre style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;line-height:1.9;margin:0;white-space:pre-wrap;">cd hands-on-projects/project-02-multitenant-saas/local
-docker compose up --build
-# Open http://localhost:8090</pre>
                 </div>
 
             </div>
@@ -2276,38 +2353,47 @@ docker compose up --build
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 
+
 function showWideReadme02(which) {
-    const existing = document.getElementById('wide-readme-overlay');
+    const readmeMap = {
+        project: '/hands-on-projects/project-02-multitenant-saas/README.md',
+        app:     '/hands-on-projects/project-02-multitenant-saas/app/README.md',
+        local:   '/hands-on-projects/project-02-multitenant-saas/local/README.md',
+        main:    '/hands-on-projects/project-02-multitenant-saas/main/README.md',
+    };
+    const path = readmeMap[which];
+    if (!path) return;
+
+    const existing = document.getElementById('p02-wide-overlay');
     if (existing) existing.remove();
 
-    const isProject = which === 'project';
-    const title   = isProject ? '📖 Project README — Multi-Tenant SaaS' : '🔍 app/ README — Services & APIs';
-    const rawText = document.getElementById(isProject ? 'data-p02-project-readme' : 'data-p02-app-readme').textContent.trim();
-
     const overlay = document.createElement('div');
-    overlay.id = 'wide-readme-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:1200;display:flex;align-items:center;justify-content:center;padding:24px;';
-
+    overlay.id = 'p02-wide-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:2000;display:flex;align-items:center;justify-content:center;padding:24px;';
     overlay.innerHTML = `
-        <div style="background:white;border-radius:16px;max-width:920px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 25px 60px rgba(0,0,0,.35);">
-            <div style="padding:18px 28px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;border-radius:16px 16px 0 0;background:white;">
-                <h2 style="font-size:17px;font-weight:700;color:#1e1b4b;">${title}</h2>
-                <button onclick="document.getElementById('wide-readme-overlay').remove()" style="background:none;border:none;font-size:26px;cursor:pointer;color:#6b7280;line-height:1;padding:0 4px;">&times;</button>
+        <div style="background:white;border-radius:16px;width:100%;max-width:860px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 25px 50px rgba(0,0,0,.3);">
+            <div style="padding:18px 24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+                <div style="font-weight:700;font-size:15px;color:#111827;">🏢 ${path}</div>
+                <button onclick="document.getElementById('p02-wide-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#6b7280;">&times;</button>
             </div>
-            <div style="padding:28px 32px;overflow-y:auto;flex:1;" id="wide-readme-body"></div>
+            <div id="p02-wide-body" style="flex:1;overflow-y:auto;padding:24px 28px;font-size:14px;line-height:1.7;color:#374151;">
+                <div style="color:#6b7280;">Loading...</div>
+            </div>
         </div>
     `;
-
     document.body.appendChild(overlay);
-    document.getElementById('wide-readme-body').innerHTML = renderMd(rawText);
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+    fetch(path)
+        .then(r => r.text())
+        .then(raw => { document.getElementById('p02-wide-body').innerHTML = renderMd(raw); })
+        .catch(() => { document.getElementById('p02-wide-body').innerHTML = '<p style="color:red">Could not load README. Make sure the file exists at: ' + path + '</p>'; });
 }
 
+
 // ── Main modal ────────────────────────────────────────────────────────────────
-function showModal() {
-    const PATH = 'hands-on-projects/project-01-ecommerce-platform/';
-    const DOCKER_CMD = 'docker compose up --build';
-    const QUICK_CMD  = 'cd hands-on-projects/project-01-ecommerce-platform/local\ndocker compose up --build';
+function showModal01() {
+    const PATH       = 'hands-on-projects/project-01-ecommerce-platform/';
 
     const overlay = document.createElement('div');
     overlay.id = 'p01-modal-overlay';
@@ -2324,7 +2410,7 @@ function showModal() {
 
             <div style="padding:24px 28px;display:flex;flex-direction:column;gap:20px;">
 
-                <!-- 1. Path + copy button -->
+                <!-- Path -->
                 <div style="background:#eef2ff;border-radius:10px;padding:16px;">
                     <div style="font-weight:700;margin-bottom:10px;color:#4f46e5;font-size:13px;">📁 Project Location</div>
                     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -2333,79 +2419,76 @@ function showModal() {
                     </div>
                 </div>
 
-                <!-- 2. Steps -->
+                <!-- Steps -->
                 <div>
                     <div style="font-weight:700;margin-bottom:12px;font-size:14px;">Where to start:</div>
                     <div style="display:flex;flex-direction:column;gap:10px;">
 
-                        <!-- Step 1 — clickable opens README popup -->
-                        <div onclick="showWideReadme('project')"
+                        <div onclick="showWideReadme01('project')"
                              style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;cursor:pointer;transition:all .15s;"
                              onmouseover="this.style.borderColor='#6366f1';this.style.background='#f5f3ff';"
                              onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#f9fafb';">
                             <span style="font-size:24px;flex-shrink:0;">📖</span>
                             <div style="flex:1;">
                                 <div style="font-weight:600;font-size:14px;">1. Read the Project README</div>
-                                <div style="color:#6b7280;font-size:12px;margin-top:2px;">Understand the architecture and your DevOps journey</div>
+                                <div style="color:#6b7280;font-size:12px;margin-top:2px;">Architecture overview, microservices design, 6-phase DevOps journey</div>
                             </div>
                             <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
                         </div>
 
-                        <!-- Step 2 — clickable opens app/README popup -->
-                        <div onclick="showWideReadme('app')"
+                        <div onclick="showWideReadme01('app')"
                              style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;cursor:pointer;transition:all .15s;"
                              onmouseover="this.style.borderColor='#6366f1';this.style.background='#f5f3ff';"
                              onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#f9fafb';">
                             <span style="font-size:24px;flex-shrink:0;">🔍</span>
                             <div style="flex:1;">
                                 <div style="font-weight:600;font-size:14px;">2. Explore the app/ folder</div>
-                                <div style="color:#6b7280;font-size:12px;margin-top:2px;">Read the service code and understand the APIs</div>
+                                <div style="color:#6b7280;font-size:12px;margin-top:2px;">5 FastAPI services + nginx frontend, Swagger docs at /docs, inter-service calls</div>
                             </div>
                             <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
                         </div>
 
-                        <!-- Step 3 — run locally with copy button -->
-                        <div style="padding:14px 16px;background:#eef2ff;border-radius:10px;border:2px solid #6366f1;display:flex;flex-direction:column;gap:10px;">
+
+                        <div style="padding:14px 16px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;display:flex;flex-direction:column;gap:10px;">
                             <div style="display:flex;align-items:center;gap:12px;">
-                                <span style="font-size:24px;flex-shrink:0;">🐳</span>
+                                <span style="font-size:24px;flex-shrink:0;">🌐</span>
                                 <div>
-                                    <div style="font-weight:600;font-size:14px;color:#4f46e5;">3. Build & run locally (local/ folder)</div>
-                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Your first task: get the full stack running with Docker Compose</div>
+                                    <div style="font-weight:600;font-size:14px;color:#166534;">3. Quick access after startup</div>
+                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Endpoints once docker compose is running</div>
                                 </div>
                             </div>
-                            <div style="background:white;border-radius:8px;padding:10px 14px;border:1px solid #c7d2fe;display:flex;align-items:center;justify-content:space-between;gap:10px;">
-                                <code style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;flex:1;">${DOCKER_CMD}</code>
-                                <button onclick="copyText('${DOCKER_CMD}', this)" style="font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #c7d2fe;background:#eef2ff;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;flex-shrink:0;transition:all .15s;">📋 Copy</button>
+                            <div style="display:flex;justify-content:flex-end;">
+                                <button onclick="copyText('cd hands-on-projects/project-01-ecommerce-platform/local\ndocker compose up --build', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">📋 Copy all</button>
                             </div>
+                            <pre style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;line-height:1.9;margin:0;white-space:pre-wrap;">cd hands-on-projects/project-01-ecommerce-platform/local
+docker compose up --build
+
+# Open http://localhost:8088  ← full store UI</pre>
                         </div>
 
-                        <!-- Step 4 — K8s with solution hint -->
                         <div style="padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;display:flex;flex-direction:column;gap:10px;">
                             <div style="display:flex;align-items:center;gap:12px;">
                                 <span style="font-size:24px;flex-shrink:0;">☸️</span>
                                 <div>
-                                    <div style="font-weight:600;font-size:14px;">4. Deploy to Kubernetes (main/ folder)</div>
-                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Write K8s manifests, add Istio, observability, security</div>
+                                    <div style="font-weight:600;font-size:14px;">4. Deploy to Kubernetes (main/)</div>
+                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">5 microservices, Istio service mesh, circuit breakers, distributed tracing</div>
                                 </div>
                             </div>
-                            <div style="background:#fefce8;border:1px solid #fde047;border-radius:8px;padding:10px 14px;font-size:12px;color:#713f12;display:flex;align-items:flex-start;gap:8px;">
-                                <span style="font-size:15px;flex-shrink:0;">💡</span>
-                                <div><strong>Hint:</strong> Ready-made K8s solution files are available in the <code style="background:#fef3c7;padding:1px 5px;border-radius:3px;font-family:monospace;">solution/</code> folder if you need a reference — namespace, deployments, services, StatefulSets, Ingress, and Istio configs are all there.</div>
+                            <div style="display:flex;gap:8px;">
+                                <button onclick="showWideReadme01('local')" style="flex:1;padding:11px;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">🐳 Open Local Guide</button>
+                                <button onclick="showWideReadme01('main')" style="flex:1;padding:11px;background:#6366f1;color:white;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#4f46e5'" onmouseout="this.style.background='#6366f1'">☸️ Open K8s Guide</button>
                             </div>
                         </div>
 
                     </div>
                 </div>
 
-                <!-- 3. Quick Start with copy -->
-                <div style="background:#f0fdf4;border-radius:10px;padding:16px;border:1px solid #bbf7d0;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <div style="font-weight:700;font-size:13px;color:#065f46;">⚡ Quick Start — Run Locally</div>
-                        <button onclick="copyText('${QUICK_CMD.replace(/\n/g, '\\n')}', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">📋 Copy all</button>
+                <!-- Stack -->
+                <div style="background:#f9fafb;border-radius:10px;padding:16px;border:1px solid #e5e7eb;">
+                    <div style="font-weight:700;margin-bottom:10px;font-size:13px;">🛠 Tools you'll use</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        <span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Docker Compose</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Kubernetes</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Istio</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Jaeger</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">mTLS</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Circuit Breakers</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Rate Limiting</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">StatefulSets</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">nginx</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Helm</span>
                     </div>
-                    <pre style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;line-height:1.9;margin:0;white-space:pre-wrap;">cd hands-on-projects/project-01-ecommerce-platform/local
-docker compose up --build
-# Open http://localhost:8088</pre>
                 </div>
 
             </div>
@@ -2416,39 +2499,46 @@ docker compose up --build
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 
-// ── Wide README popup (project 01) ────────────────────────────────────────────
-function showWideReadme(which) {
-    const existing = document.getElementById('wide-readme-overlay');
+
+function showWideReadme01(which) {
+    const readmeMap = {
+        project: '/hands-on-projects/project-01-ecommerce-platform/README.md',
+        app:     '/hands-on-projects/project-01-ecommerce-platform/app/README.md',
+        local:   '/hands-on-projects/project-01-ecommerce-platform/local/README.md',
+        main:    '/hands-on-projects/project-01-ecommerce-platform/main/README.md',
+    };
+    const path = readmeMap[which];
+    if (!path) return;
+
+    const existing = document.getElementById('p01-wide-overlay');
     if (existing) existing.remove();
 
-    const isProject = which === 'project';
-    const title   = isProject ? '📖 Project README — E-Commerce Platform' : '🔍 app/ README — Microservices & APIs';
-    const rawText = document.getElementById(isProject ? 'data-project-readme' : 'data-app-readme').textContent.trim();
-
     const overlay = document.createElement('div');
-    overlay.id = 'wide-readme-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:1200;display:flex;align-items:center;justify-content:center;padding:24px;';
-
+    overlay.id = 'p01-wide-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:2000;display:flex;align-items:center;justify-content:center;padding:24px;';
     overlay.innerHTML = `
-        <div style="background:white;border-radius:16px;max-width:920px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 25px 60px rgba(0,0,0,.35);">
-            <!-- header -->
-            <div style="padding:18px 28px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;border-radius:16px 16px 0 0;background:white;">
-                <h2 style="font-size:17px;font-weight:700;color:#1e1b4b;">${title}</h2>
-                <button onclick="document.getElementById('wide-readme-overlay').remove()" style="background:none;border:none;font-size:26px;cursor:pointer;color:#6b7280;line-height:1;padding:0 4px;">&times;</button>
+        <div style="background:white;border-radius:16px;width:100%;max-width:860px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 25px 50px rgba(0,0,0,.3);">
+            <div style="padding:18px 24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+                <div style="font-weight:700;font-size:15px;color:#111827;">🚀 ${path}</div>
+                <button onclick="document.getElementById('p01-wide-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#6b7280;">&times;</button>
             </div>
-            <!-- body -->
-            <div style="padding:28px 32px;overflow-y:auto;flex:1;" id="wide-readme-body"></div>
+            <div id="p01-wide-body" style="flex:1;overflow-y:auto;padding:24px 28px;font-size:14px;line-height:1.7;color:#374151;">
+                <div style="color:#6b7280;">Loading...</div>
+            </div>
         </div>
     `;
-
     document.body.appendChild(overlay);
-    document.getElementById('wide-readme-body').innerHTML = renderMd(rawText);
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+    fetch(path)
+        .then(r => r.text())
+        .then(raw => { document.getElementById('p01-wide-body').innerHTML = renderMd(raw); })
+        .catch(() => { document.getElementById('p01-wide-body').innerHTML = '<p style="color:red">Could not load README. Make sure the file exists at: ' + path + '</p>'; });
 }
+
 
 function showModal08() {
     const PATH       = 'hands-on-projects/project-08-data-pipeline/';
-    const DOCKER_CMD = 'docker compose up --build';
 
     const overlay = document.createElement('div');
     overlay.id = 'p08-modal-overlay';
@@ -2459,7 +2549,7 @@ function showModal08() {
 
             <!-- Header -->
             <div style="padding:22px 28px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:white;z-index:1;border-radius:16px 16px 0 0;">
-                <h2 style="font-size:19px;font-weight:700;">&#9889; Project 08 &#8212; Real-Time Data Pipeline on Kubernetes</h2>
+                <h2 style="font-size:19px;font-weight:700;">⚡ Project 08 — Real-Time Data Pipeline on Kubernetes</h2>
                 <button onclick="document.getElementById('p08-modal-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#6b7280;line-height:1;padding:0 4px;">&times;</button>
             </div>
 
@@ -2467,10 +2557,10 @@ function showModal08() {
 
                 <!-- Path -->
                 <div style="background:#eef2ff;border-radius:10px;padding:16px;">
-                    <div style="font-weight:700;margin-bottom:10px;color:#4f46e5;font-size:13px;">&#128193; Project Location</div>
+                    <div style="font-weight:700;margin-bottom:10px;color:#4f46e5;font-size:13px;">📁 Project Location</div>
                     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                         <code style="font-size:12px;color:#374151;background:#e0e7ff;padding:8px 12px;border-radius:6px;font-family:'Courier New',Courier,monospace;flex:1;min-width:200px;word-break:break-all;">${PATH}</code>
-                        <button onclick="copyText('${PATH}', this)" style="font-size:12px;padding:7px 14px;border-radius:6px;border:1px solid #c7d2fe;background:white;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;transition:all .15s;flex-shrink:0;">&#128203; Copy</button>
+                        <button onclick="copyText('${PATH}', this)" style="font-size:12px;padding:7px 14px;border-radius:6px;border:1px solid #c7d2fe;background:white;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;transition:all .15s;flex-shrink:0;">📋 Copy</button>
                     </div>
                 </div>
 
@@ -2483,74 +2573,69 @@ function showModal08() {
                              style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;cursor:pointer;transition:all .15s;"
                              onmouseover="this.style.borderColor='#6366f1';this.style.background='#f5f3ff';"
                              onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#f9fafb';">
-                            <span style="font-size:24px;flex-shrink:0;">&#128214;</span>
+                            <span style="font-size:24px;flex-shrink:0;">📖</span>
                             <div style="flex:1;">
                                 <div style="font-weight:600;font-size:14px;">1. Read the Project README</div>
                                 <div style="color:#6b7280;font-size:12px;margin-top:2px;">Pipeline architecture, 7-phase DevOps journey, tools overview</div>
                             </div>
-                            <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open &#8599;</span>
+                            <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
                         </div>
 
                         <div onclick="showWideReadme08('app')"
                              style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;cursor:pointer;transition:all .15s;"
                              onmouseover="this.style.borderColor='#6366f1';this.style.background='#f5f3ff';"
                              onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#f9fafb';">
-                            <span style="font-size:24px;flex-shrink:0;">&#128269;</span>
+                            <span style="font-size:24px;flex-shrink:0;">🔍</span>
                             <div style="flex:1;">
                                 <div style="font-weight:600;font-size:14px;">2. Explore the app/ folder</div>
                                 <div style="color:#6b7280;font-size:12px;margin-top:2px;">pipeline-producer, pipeline-processor (PySpark), dashboard-ui</div>
                             </div>
-                            <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open &#8599;</span>
+                            <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
                         </div>
 
-                        <div style="padding:14px 16px;background:#eef2ff;border-radius:10px;border:2px solid #6366f1;display:flex;flex-direction:column;gap:10px;">
+
+                        <div style="padding:14px 16px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;display:flex;flex-direction:column;gap:10px;">
                             <div style="display:flex;align-items:center;gap:12px;">
-                                <span style="font-size:24px;flex-shrink:0;">&#128051;</span>
+                                <span style="font-size:24px;flex-shrink:0;">🌐</span>
                                 <div>
-                                    <div style="font-weight:600;font-size:14px;color:#4f46e5;">3. Run locally (local/ folder)</div>
-                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Kafka + Spark + TimescaleDB + Dashboard at http://localhost:3000</div>
+                                    <div style="font-weight:600;font-size:14px;color:#166534;">3. Quick access after startup</div>
+                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Endpoints once docker compose is running</div>
                                 </div>
                             </div>
-                            <div style="background:white;border-radius:8px;padding:10px 14px;border:1px solid #c7d2fe;display:flex;align-items:center;justify-content:space-between;gap:10px;">
-                                <code style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;flex:1;">${DOCKER_CMD}</code>
-                                <button onclick="copyText('${DOCKER_CMD}', this)" style="font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #c7d2fe;background:#eef2ff;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;flex-shrink:0;transition:all .15s;">&#128203; Copy</button>
+                            <div style="display:flex;justify-content:flex-end;">
+                                <button onclick="copyText('cd hands-on-projects/project-08-data-pipeline/local\ndocker compose up --build', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">📋 Copy all</button>
                             </div>
+                            <pre style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;line-height:1.9;margin:0;white-space:pre-wrap;">cd hands-on-projects/project-08-data-pipeline/local
+docker compose up --build
+
+# Dashboard UI:  http://localhost:3000
+# Kafka UI:      http://localhost:8085
+# Producer API:  http://localhost:8090/stats</pre>
                         </div>
 
                         <div style="padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;display:flex;flex-direction:column;gap:10px;">
                             <div style="display:flex;align-items:center;gap:12px;">
-                                <span style="font-size:24px;flex-shrink:0;">&#9096;&#65039;</span>
+                                <span style="font-size:24px;flex-shrink:0;">☸️</span>
                                 <div>
                                     <div style="font-weight:600;font-size:14px;">4. Deploy to Kubernetes (main/)</div>
-                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Strimzi &#8594; Spark Operator &#8594; GitLab CI &#8594; ArgoCD &#8594; KEDA &#8594; Vault &#8594; Chaos</div>
+                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Strimzi → Spark Operator → GitLab CI → ArgoCD → KEDA → Vault → Chaos</div>
                                 </div>
                             </div>
-                            <div style="background:#fefce8;border:1px solid #fde047;border-radius:8px;padding:10px 14px;font-size:12px;color:#713f12;display:flex;align-items:flex-start;gap:8px;">
-                                <span style="font-size:15px;flex-shrink:0;">&#128161;</span>
-                                <div><strong>Key challenge:</strong> The <code style="background:#fef3c7;padding:1px 5px;border-radius:3px;font-family:monospace;">SparkApplication</code> CRD and wiring KEDA lag-based autoscaling to Spark executors. Full solution in <code style="background:#fef3c7;padding:1px 5px;border-radius:3px;font-family:monospace;">solution/</code>.</div>
+                            <div style="display:flex;gap:8px;">
+                                <button onclick="showWideReadme08('local')" style="flex:1;padding:11px;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">🐳 Open Local Guide</button>
+                                <button onclick="showWideReadme08('main')" style="flex:1;padding:11px;background:#6366f1;color:white;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#4f46e5'" onmouseout="this.style.background='#6366f1'">☸️ Open K8s Guide</button>
                             </div>
                         </div>
 
                     </div>
                 </div>
 
-                <!-- Quick start -->
-                <div style="background:#f0fdf4;border-radius:10px;padding:16px;border:1px solid #bbf7d0;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <div style="font-weight:700;font-size:13px;color:#065f46;">&#9889; Quick Start &#8212; Run Locally</div>
-                        <button onclick="copyText('cd hands-on-projects/project-08-data-pipeline/local\\ndocker compose up --build', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">&#128203; Copy all</button>
+                <!-- Stack -->
+                <div style="background:#f9fafb;border-radius:10px;padding:16px;border:1px solid #e5e7eb;">
+                    <div style="font-weight:700;margin-bottom:10px;font-size:13px;">🛠 Tools you'll use</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        <span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Docker Compose</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Kubernetes</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Kafka / Strimzi</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Apache Spark</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">TimescaleDB</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">GitLab CI</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">ArgoCD</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">KEDA</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Vault</span><span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">Chaos Engineering</span>
                     </div>
-                    <pre style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;line-height:1.9;margin:0;white-space:pre-wrap;">cd hands-on-projects/project-08-data-pipeline/local
-docker compose up --build
-# Dashboard UI:  http://localhost:3000
-# Kafka UI:      http://localhost:8085
-# Producer API:  http://localhost:8090/stats</pre>
-                </div>
-
-                <!-- Footer buttons -->
-                <div style="display:flex;gap:10px;">
-                    <button onclick="showWideReadme08('main')" style="flex:1;padding:11px;background:#6366f1;color:white;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#4f46e5'" onmouseout="this.style.background='#6366f1'">&#9096;&#65039; Open K8s Guide</button>
-                    <button onclick="document.getElementById('p08-modal-overlay').remove()" style="flex:1;padding:11px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;">Close</button>
                 </div>
 
             </div>
@@ -2560,6 +2645,7 @@ docker compose up --build
     document.body.appendChild(overlay);
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
+
 
 function showWideReadme08(which) {
     const readmeMap = {
@@ -2655,25 +2741,12 @@ function showModal09() {
                             <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
                         </div>
 
-                        <div style="padding:14px 16px;background:#eef2ff;border-radius:10px;border:2px solid #6366f1;display:flex;flex-direction:column;gap:10px;">
-                            <div style="display:flex;align-items:center;gap:12px;">
-                                <span style="font-size:24px;flex-shrink:0;">🐳</span>
-                                <div>
-                                    <div style="font-weight:600;font-size:14px;color:#4f46e5;">3. Run locally (local/ folder)</div>
-                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">App + 2× PostgreSQL (primary/secondary) + MinIO backup storage</div>
-                                </div>
-                            </div>
-                            <div style="background:white;border-radius:8px;padding:10px 14px;border:1px solid #c7d2fe;display:flex;align-items:center;justify-content:space-between;gap:10px;">
-                                <code style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;flex:1;">${DOCKER_CMD}</code>
-                                <button onclick="copyText('${DOCKER_CMD}', this)" style="font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #c7d2fe;background:#eef2ff;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;flex-shrink:0;transition:all .15s;">📋 Copy</button>
-                            </div>
-                        </div>
 
                         <div style="padding:14px 16px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;display:flex;flex-direction:column;gap:10px;">
                             <div style="display:flex;align-items:center;gap:12px;">
                                 <span style="font-size:24px;flex-shrink:0;">🌐</span>
                                 <div>
-                                    <div style="font-weight:600;font-size:14px;color:#166534;">Quick access after startup</div>
+                                    <div style="font-weight:600;font-size:14px;color:#166534;">3. Quick access after startup</div>
                                     <div style="color:#6b7280;font-size:12px;margin-top:2px;">Endpoints once docker compose is running</div>
                                 </div>
                             </div>
@@ -2818,25 +2891,12 @@ function showModal10() {
                             <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
                         </div>
 
-                        <div style="padding:14px 16px;background:#eef2ff;border-radius:10px;border:2px solid #6366f1;display:flex;flex-direction:column;gap:10px;">
-                            <div style="display:flex;align-items:center;gap:12px;">
-                                <span style="font-size:24px;flex-shrink:0;">🐳</span>
-                                <div>
-                                    <div style="font-weight:600;font-size:14px;color:#4f46e5;">3. Run locally (local/ folder)</div>
-                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Blue + Green + nginx routing — manually switch traffic, zero-downtime</div>
-                                </div>
-                            </div>
-                            <div style="background:white;border-radius:8px;padding:10px 14px;border:1px solid #c7d2fe;display:flex;align-items:center;justify-content:space-between;gap:10px;">
-                                <code style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;flex:1;">${DOCKER_CMD}</code>
-                                <button onclick="copyText('${DOCKER_CMD}', this)" style="font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #c7d2fe;background:#eef2ff;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;flex-shrink:0;transition:all .15s;">📋 Copy</button>
-                            </div>
-                        </div>
 
                         <div style="padding:14px 16px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;display:flex;flex-direction:column;gap:10px;">
                             <div style="display:flex;align-items:center;gap:12px;">
                                 <span style="font-size:24px;flex-shrink:0;">🌐</span>
                                 <div>
-                                    <div style="font-weight:600;font-size:14px;color:#166534;">Quick access after startup</div>
+                                    <div style="font-weight:600;font-size:14px;color:#166534;">3. Quick access after startup</div>
                                     <div style="color:#6b7280;font-size:12px;margin-top:2px;">Endpoints once docker compose is running</div>
                                 </div>
                             </div>
@@ -2982,25 +3042,12 @@ function showModal11() {
                             <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
                         </div>
 
-                        <div style="padding:14px 16px;background:#eef2ff;border-radius:10px;border:2px solid #6366f1;display:flex;flex-direction:column;gap:10px;">
-                            <div style="display:flex;align-items:center;gap:12px;">
-                                <span style="font-size:24px;flex-shrink:0;">🐳</span>
-                                <div>
-                                    <div style="font-weight:600;font-size:14px;color:#4f46e5;">3. Run locally (local/ folder)</div>
-                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Primary + Secondary + MinIO + nginx — simulate failover, measure RTO</div>
-                                </div>
-                            </div>
-                            <div style="background:white;border-radius:8px;padding:10px 14px;border:1px solid #c7d2fe;display:flex;align-items:center;justify-content:space-between;gap:10px;">
-                                <code style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;flex:1;">${DOCKER_CMD}</code>
-                                <button onclick="copyText('${DOCKER_CMD}', this)" style="font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #c7d2fe;background:#eef2ff;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;flex-shrink:0;transition:all .15s;">📋 Copy</button>
-                            </div>
-                        </div>
 
                         <div style="padding:14px 16px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;display:flex;flex-direction:column;gap:10px;">
                             <div style="display:flex;align-items:center;gap:12px;">
                                 <span style="font-size:24px;flex-shrink:0;">🌐</span>
                                 <div>
-                                    <div style="font-weight:600;font-size:14px;color:#166534;">Quick access after startup</div>
+                                    <div style="font-weight:600;font-size:14px;color:#166534;">3. Quick access after startup</div>
                                     <div style="color:#6b7280;font-size:12px;margin-top:2px;">Endpoints once docker compose is running</div>
                                 </div>
                             </div>
@@ -3147,25 +3194,12 @@ function showModal12() {
                             <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
                         </div>
 
-                        <div style="padding:14px 16px;background:#eef2ff;border-radius:10px;border:2px solid #6366f1;display:flex;flex-direction:column;gap:10px;">
-                            <div style="display:flex;align-items:center;gap:12px;">
-                                <span style="font-size:24px;flex-shrink:0;">🐳</span>
-                                <div>
-                                    <div style="font-weight:600;font-size:14px;color:#4f46e5;">3. Run locally (local/ folder)</div>
-                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">Vault + PostgreSQL + Dashboard — full secrets platform in Docker</div>
-                                </div>
-                            </div>
-                            <div style="background:white;border-radius:8px;padding:10px 14px;border:1px solid #c7d2fe;display:flex;align-items:center;justify-content:space-between;gap:10px;">
-                                <code style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;flex:1;">${DOCKER_CMD}</code>
-                                <button onclick="copyText('${DOCKER_CMD}', this)" style="font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #c7d2fe;background:#eef2ff;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;flex-shrink:0;transition:all .15s;">📋 Copy</button>
-                            </div>
-                        </div>
 
                         <div style="padding:14px 16px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;display:flex;flex-direction:column;gap:10px;">
                             <div style="display:flex;align-items:center;gap:12px;">
                                 <span style="font-size:24px;flex-shrink:0;">🌐</span>
                                 <div>
-                                    <div style="font-weight:600;font-size:14px;color:#166534;">Quick access after startup</div>
+                                    <div style="font-weight:600;font-size:14px;color:#166534;">3. Quick access after startup</div>
                                     <div style="color:#6b7280;font-size:12px;margin-top:2px;">Services available once docker compose is running</div>
                                 </div>
                             </div>
@@ -3311,25 +3345,12 @@ function showModal13() {
                             <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
                         </div>
 
-                        <div style="padding:14px 16px;background:#eef2ff;border-radius:10px;border:2px solid #6366f1;display:flex;flex-direction:column;gap:10px;">
-                            <div style="display:flex;align-items:center;gap:12px;">
-                                <span style="font-size:24px;flex-shrink:0;">🐳</span>
-                                <div>
-                                    <div style="font-weight:600;font-size:14px;color:#4f46e5;">3. Run locally (local/ folder)</div>
-                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">App v1 + v2 + nginx traffic splitter + Prometheus + Grafana</div>
-                                </div>
-                            </div>
-                            <div style="background:white;border-radius:8px;padding:10px 14px;border:1px solid #c7d2fe;display:flex;align-items:center;justify-content:space-between;gap:10px;">
-                                <code style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;flex:1;">${DOCKER_CMD}</code>
-                                <button onclick="copyText('${DOCKER_CMD}', this)" style="font-size:12px;padding:5px 11px;border-radius:6px;border:1px solid #c7d2fe;background:#eef2ff;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;flex-shrink:0;transition:all .15s;">📋 Copy</button>
-                            </div>
-                        </div>
 
                         <div style="padding:14px 16px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;display:flex;flex-direction:column;gap:10px;">
                             <div style="display:flex;align-items:center;gap:12px;">
                                 <span style="font-size:24px;flex-shrink:0;">🌐</span>
                                 <div>
-                                    <div style="font-weight:600;font-size:14px;color:#166534;">Quick access after startup</div>
+                                    <div style="font-weight:600;font-size:14px;color:#166534;">3. Quick access after startup</div>
                                     <div style="color:#6b7280;font-size:12px;margin-top:2px;">Services available once docker compose is running</div>
                                 </div>
                             </div>
@@ -3416,6 +3437,228 @@ function showWideReadme13(which) {
         .then(raw => { document.getElementById('p13-wide-body').innerHTML = renderMd(raw); })
         .catch(() => { document.getElementById('p13-wide-body').innerHTML = '<p style="color:red">Could not load README. Make sure the file exists at: ' + path + '</p>'; });
 }
+
+// ── Project 14 entry ──────────────────────────────────────────────────────────
+function showModal14() {
+    const PATH       = 'hands-on-projects/project-14-internal-paas/';
+    const DOCKER_CMD = 'docker compose up --build';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'p14-modal-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;';
+
+    overlay.innerHTML = `
+        <div style="background:white;border-radius:16px;max-width:580px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,.25);">
+
+            <!-- Header -->
+            <div style="padding:22px 28px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:white;z-index:1;border-radius:16px 16px 0 0;">
+                <h2 style="font-size:19px;font-weight:700;">⚡ Project 14 — Self-Service Developer Platform</h2>
+                <button onclick="document.getElementById('p14-modal-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#6b7280;line-height:1;padding:0 4px;">&times;</button>
+            </div>
+
+            <div style="padding:24px 28px;display:flex;flex-direction:column;gap:20px;">
+
+                <!-- Path -->
+                <div style="background:#eef2ff;border-radius:10px;padding:16px;">
+                    <div style="font-weight:700;margin-bottom:10px;color:#4f46e5;font-size:13px;">📁 Project Location</div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <code style="font-size:12px;color:#374151;background:#e0e7ff;padding:8px 12px;border-radius:6px;font-family:'Courier New',Courier,monospace;flex:1;min-width:200px;word-break:break-all;">${PATH}</code>
+                        <button onclick="copyText('${PATH}', this)" style="font-size:12px;padding:7px 14px;border-radius:6px;border:1px solid #c7d2fe;background:white;color:#4f46e5;cursor:pointer;font-weight:600;white-space:nowrap;transition:all .15s;flex-shrink:0;">📋 Copy</button>
+                    </div>
+                </div>
+
+                <!-- Steps -->
+                <div>
+                    <div style="font-weight:700;margin-bottom:12px;font-size:14px;">Where to start:</div>
+                    <div style="display:flex;flex-direction:column;gap:10px;">
+
+                        <div onclick="showWideReadme14('project')"
+                             style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;cursor:pointer;transition:all .15s;"
+                             onmouseover="this.style.borderColor='#6366f1';this.style.background='#f5f3ff';"
+                             onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#f9fafb';">
+                            <span style="font-size:24px;flex-shrink:0;">📖</span>
+                            <div style="flex:1;">
+                                <div style="font-weight:600;font-size:14px;">1. Read the Project README</div>
+                                <div style="color:#6b7280;font-size:12px;margin-top:2px;">Full platform architecture: Harbor, Gitea, Vault, Crossplane, Backstage, Kyverno, OpenCost</div>
+                            </div>
+                            <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
+                        </div>
+
+                        <div onclick="showWideReadme14('app')"
+                             style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;cursor:pointer;transition:all .15s;"
+                             onmouseover="this.style.borderColor='#6366f1';this.style.background='#f5f3ff';"
+                             onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#f9fafb';">
+                            <span style="font-size:24px;flex-shrink:0;">🔍</span>
+                            <div style="flex:1;">
+                                <div style="font-weight:600;font-size:14px;">2. Explore the app/ folder</div>
+                                <div style="color:#6b7280;font-size:12px;margin-top:2px;">Developer Portal — teams, namespaces, services, pipelines, service catalog, costs</div>
+                            </div>
+                            <span style="display:inline-flex;align-items:center;gap:3px;background:#6366f1;color:white;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;flex-shrink:0;letter-spacing:.3px;">Open ↗</span>
+                        </div>
+
+
+                        <div style="padding:14px 16px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;display:flex;flex-direction:column;gap:10px;">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <span style="font-size:24px;flex-shrink:0;">🌐</span>
+                                <div>
+                                    <div style="font-weight:600;font-size:14px;color:#166534;">3. Quick access after startup</div>
+                                </div>
+                            </div>
+                            <div style="display:flex;justify-content:flex-end;">
+                                <button onclick="copyText('cd hands-on-projects/project-14-internal-paas/local\\ndocker compose up --build', this)" style="font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #6ee7b7;background:white;color:#059669;cursor:pointer;font-weight:600;transition:all .15s;">📋 Copy all</button>
+                            </div>
+                            <pre style="font-size:12px;color:#374151;font-family:'Courier New',Courier,monospace;line-height:1.9;margin:0;white-space:pre-wrap;">cd hands-on-projects/project-14-internal-paas/local
+docker compose up --build
+
+# Developer Portal:   http://localhost:5454
+# Swagger API docs:   http://localhost:5454/docs
+# Health check:       http://localhost:5454/health</pre>
+                        </div>
+
+                        <div style="padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;display:flex;flex-direction:column;gap:10px;">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <span style="font-size:24px;flex-shrink:0;">☸️</span>
+                                <div>
+                                    <div style="font-weight:600;font-size:14px;">4. Build the full platform (main/)</div>
+                                    <div style="color:#6b7280;font-size:12px;margin-top:2px;">8 phases: Kind cluster → Harbor → Gitea → Crossplane → Vault → CloudNativePG → Backstage → Kyverno</div>
+                                </div>
+                            </div>
+                            <div style="display:flex;gap:8px;">
+                                <button onclick="showWideReadme14('local')" style="flex:1;padding:11px;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">🐳 Open Local Guide</button>
+                                <button onclick="showWideReadme14('main')" style="flex:1;padding:11px;background:#6366f1;color:white;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#4f46e5'" onmouseout="this.style.background='#6366f1'">☸️ Open K8s Guide</button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Stack -->
+                <div style="background:#f9fafb;border-radius:10px;padding:16px;border:1px solid #e5e7eb;">
+                    <div style="font-weight:700;margin-bottom:10px;font-size:13px;">🛠 Tools you'll use</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        ${['Kind', 'Harbor', 'Gitea', 'Woodpecker CI', 'ArgoCD', 'Crossplane', 'HashiCorp Vault', 'CloudNativePG', 'Backstage', 'Kyverno', 'OpenCost', 'MetalLB', 'ingress-nginx', 'kube-prometheus-stack', 'Grafana', 'Prometheus'].map(t =>
+                            `<span style="font-size:11px;padding:4px 10px;border-radius:6px;background:#e0e7ff;color:#4338ca;font-weight:600;">${t}</span>`
+                        ).join('')}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+function showWideReadme14(which) {
+    const readmeMap = {
+        project: '/hands-on-projects/project-14-internal-paas/README.md',
+        app:     '/hands-on-projects/project-14-internal-paas/app/README.md',
+        local:   '/hands-on-projects/project-14-internal-paas/local/README.md',
+        main:    '/hands-on-projects/project-14-internal-paas/main/README.md',
+    };
+    const path = readmeMap[which];
+    if (!path) return;
+
+    const existing = document.getElementById('p14-wide-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'p14-wide-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:2000;display:flex;align-items:center;justify-content:center;padding:24px;';
+    overlay.innerHTML = `
+        <div style="background:white;border-radius:16px;width:100%;max-width:860px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 25px 50px rgba(0,0,0,.3);">
+            <div style="padding:18px 24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+                <div style="font-weight:700;font-size:15px;color:#111827;">⚡ ${path}</div>
+                <button onclick="document.getElementById('p14-wide-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#6b7280;">&times;</button>
+            </div>
+            <div id="p14-wide-body" style="flex:1;overflow-y:auto;padding:24px 28px;font-size:14px;line-height:1.7;color:#374151;">
+                <div style="color:#6b7280;">Loading...</div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+    fetch(path)
+        .then(r => r.text())
+        .then(raw => { document.getElementById('p14-wide-body').innerHTML = renderMd(raw); })
+        .catch(() => { document.getElementById('p14-wide-body').innerHTML = '<p style="color:red">Could not load README. Make sure the file exists at: ' + path + '</p>'; });
+}
+
+// ── Explanation Guide feature ──────────────────────────────────────────────────
+const EXPLANATION_PATHS = {
+    'p01-modal-overlay': '/hands-on-projects/project-01-ecommerce-platform/EXPLANATION-README.md',
+    'p02-modal-overlay': '/hands-on-projects/project-02-multitenant-saas/EXPLANATION-README.md',
+    'p03-modal-overlay': '/hands-on-projects/project-03-realtime-chat/EXPLANATION-README.md',
+    'p04-modal-overlay': '/hands-on-projects/project-04-gitops-cicd/EXPLANATION-README.md',
+    'p05-modal-overlay': '/hands-on-projects/project-05-observability-stack/EXPLANATION-README.md',
+    'p06-modal-overlay': '/hands-on-projects/project-06-api-gateway/EXPLANATION-README.md',
+    'p07-modal-overlay': '/hands-on-projects/project-07-serverless-platform/EXPLANATION-README.md',
+    'p08-modal-overlay': '/hands-on-projects/project-08-data-pipeline/EXPLANATION-README.md',
+    'p09-modal-overlay': '/hands-on-projects/project-09-disaster-recovery/EXPLANATION-README.md',
+    'p10-modal-overlay': '/hands-on-projects/project-10-blue-green-deployment/EXPLANATION-README.md',
+    'p11-modal-overlay': '/hands-on-projects/project-11-multi-region-disaster-recovery/EXPLANATION-README.md',
+    'p12-modal-overlay': '/hands-on-projects/project-12-secrets-management/EXPLANATION-README.md',
+    'p13-modal-overlay': '/hands-on-projects/project-13-zero-downtime-deployments/EXPLANATION-README.md',
+    'p14-modal-overlay': '/hands-on-projects/project-14-internal-paas/EXPLANATION-README.md',
+};
+
+function showExplanationGuide(path) {
+    const existing = document.getElementById('explanation-guide-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'explanation-guide-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:3000;display:flex;align-items:center;justify-content:center;padding:24px;';
+    overlay.innerHTML = `
+        <div style="background:white;border-radius:16px;width:100%;max-width:920px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 25px 50px rgba(0,0,0,.3);">
+            <div style="padding:18px 24px;border-bottom:1px solid #fde68a;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;background:#fffbeb;border-radius:16px 16px 0 0;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <span style="font-size:22px;">📚</span>
+                    <span style="font-weight:800;font-size:16px;color:#92400e;">Full Explanation Guide</span>
+                    <span style="font-size:11px;color:#78350f;background:#fde68a;padding:3px 10px;border-radius:99px;font-weight:600;">How to run · test · understand</span>
+                </div>
+                <button onclick="document.getElementById('explanation-guide-overlay').remove()" style="background:none;border:none;font-size:26px;cursor:pointer;color:#92400e;line-height:1;padding:0 4px;">&times;</button>
+            </div>
+            <div id="explanation-guide-body" style="flex:1;overflow-y:auto;padding:28px 32px;font-size:14px;line-height:1.7;color:#374151;">
+                <div style="color:#9ca3af;text-align:center;padding:40px;">Loading…</div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+    fetch(path)
+        .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
+        .then(raw => { document.getElementById('explanation-guide-body').innerHTML = renderMd(raw); })
+        .catch(() => { document.getElementById('explanation-guide-body').innerHTML = '<p style="color:#ef4444;padding:20px 0;">Could not load explanation guide. Make sure the file exists at: ' + path + '</p>'; });
+}
+
+// Auto-inject "Explanation Guide" button into every project modal when it opens
+(function () {
+    const obs = new MutationObserver(mutations => {
+        mutations.forEach(m => m.addedNodes.forEach(node => {
+            if (node.nodeType !== 1 || !EXPLANATION_PATHS[node.id]) return;
+            const path = EXPLANATION_PATHS[node.id];
+            const contentDiv = node.firstElementChild && node.firstElementChild.lastElementChild;
+            if (!contentDiv) return;
+            const btnEl = document.createElement('div');
+            btnEl.innerHTML = `<button
+                onclick="event.stopPropagation();showExplanationGuide('${path}')"
+                style="width:100%;padding:13px 16px;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 3px 12px rgba(245,158,11,.35);transition:opacity .15s;"
+                onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
+                <span style="font-size:18px;">📚</span>
+                Read the Full Explanation Guide
+                <span style="opacity:.75;font-size:13px;margin-left:2px;">&#8594;</span>
+            </button>`;
+            // Insert after the path section (children[0]), before the steps section
+            const anchor = contentDiv.children[1] || null;
+            contentDiv.insertBefore(btnEl, anchor);
+        }));
+    });
+    obs.observe(document.body, { childList: true });
+}());
 </script>
 
 <!-- ── README data for Project 02 ── -->

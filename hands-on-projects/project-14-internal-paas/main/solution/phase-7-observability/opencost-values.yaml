@@ -1,0 +1,36 @@
+# OpenCost Helm values — Project 14 Internal PaaS
+# OpenCost breaks down cluster costs per namespace, deployment, and team.
+# Access: kubectl port-forward svc/opencost -n opencost 9090:9090
+
+opencost:
+  exporter:
+    # Point OpenCost to your Prometheus instance
+    defaultClusterId: paas-local
+    cloudProviderApiKey: ""   # leave empty for on-prem (no cloud pricing API)
+    persistence:
+      enabled: false
+
+  prometheus:
+    # Must match your kube-prometheus-stack service name
+    internal:
+      enabled: true
+      serviceName: monitoring-kube-prometheus-prometheus
+      namespaceName: monitoring
+      port: 9090
+
+  ui:
+    enabled: true
+    ingress:
+      enabled: true
+      ingressClassName: nginx
+      hosts:
+        - host: opencost.internal
+          paths:
+            - /
+
+  # Expose metrics for Prometheus to scrape
+  metrics:
+    serviceMonitor:
+      enabled: true
+      additionalLabels:
+        release: monitoring    # must match your kube-prometheus-stack release name

@@ -1,0 +1,41 @@
+# Harbor Helm values — Project 14 Internal PaaS
+# Access: http://harbor.internal (add to /etc/hosts pointing to ingress IP)
+# Default credentials: admin / Harbor12345
+
+expose:
+  type: ingress
+  ingress:
+    hosts:
+      core: harbor.internal
+    annotations:
+      kubernetes.io/ingress.class: nginx
+  tls:
+    enabled: false   # HTTP only for local dev
+
+# Use the ingress IP from your MetalLB pool
+externalURL: http://harbor.internal
+
+# Use local-path-provisioner for storage
+persistence:
+  enabled: true
+  persistentVolumeClaim:
+    registry:
+      size: 5Gi
+    chartmuseum:
+      size: 1Gi
+    jobservice:
+      jobLog:
+        size: 1Gi
+    database:
+      size: 1Gi
+    redis:
+      size: 1Gi
+    trivy:
+      size: 5Gi
+
+# Admin password — change this in production!
+harborAdminPassword: Harbor12345
+
+# Disable notary (not needed for local dev)
+notary:
+  enabled: false

@@ -1,0 +1,87 @@
+# CloudNativePG PostgreSQL Cluster — Team Alpha
+# Creates a HA PostgreSQL cluster: 1 primary + 1 replica.
+# CloudNativePG handles automatic failover, backups, and connection pooling.
+#
+# WHY CloudNativePG instead of a simple StatefulSet?
+# - Automatic failover (primary dies → replica promoted in seconds)
+# - Backup scheduling built-in
+# - Read replicas managed automatically
+# - Database as a Kubernetes-native resource (no manual psql admin needed)
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: team-alpha-db
+  namespace: alpha
+spec:
+  instances: 2       # 1 primary + 1 replica
+
+  # PostgreSQL version
+  imageName: ghcr.io/cloudnative-pg/postgresql:16
+
+  # Primary configuration
+  postgresql:
+    parameters:
+      max_connections: "100"
+      shared_buffers: "128MB"
+      log_min_messages: WARNING
+
+  # Bootstrap: create the app database and user on first start
+  bootstrap:
+    initdb:
+      database: appdb
+      owner: app
+      secret:
+        name: team-alpha-db-credentials   # You create this secret first
+
+  # Storage: 5Gi per instance
+  storage:
+    size: 5Gi
+
+  # Resources per instance
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+  # Monitoring: expose metrics for Prometheus
+  monitoring:
+    enablePodMonitor: true
+
+---
+# Secret with database credentials.
+# In production: use Vault to generate dynamic credentials instead.
+# kubectl create secret generic team-alpha-db-credentials \
+#   --namespace alpha \
+#   --from-literal=username=app \
+#   --from-literal=password=changeme-use-vault-in-prod
+apiVersion: v1
+kind: Secret
+metadata:
+  name: team-alpha-db-credentials
+  namespace: alpha
+type: kubernetes.io/basic-auth
+stringData:
+  username: app
+  password: changeme-use-vault-in-production
+
+---
+# PodMonitor so Prometheus scrapes CloudNativePG metrics
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: team-alpha-db
+  namespace: alpha
+  labels:
+    release: monitoring    # must match your kube-prometheus-stack release name
+spec:
+  namespaceSelector:
+    matchNames: [alpha]
+  selector:
+    matchLabels:
+      cnpg.io/cluster: team-alpha-db
+  podMetricsEndpoints:
+    - port: metrics

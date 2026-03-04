@@ -1,0 +1,31 @@
+# RBAC for Woodpecker Agent
+# Woodpecker runs CI jobs as Kubernetes Pods.
+# The agent ServiceAccount needs permission to create/list/delete pods in its namespace.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: woodpecker-agent
+  namespace: woodpecker
+rules:
+  - apiGroups: [""]
+    resources: [pods, pods/log, secrets, persistentvolumeclaims]
+    verbs: [get, list, watch, create, delete, update]
+  - apiGroups: [""]
+    resources: [serviceaccounts]
+    verbs: [get]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: woodpecker-agent
+  namespace: woodpecker
+subjects:
+  - kind: ServiceAccount
+    name: woodpecker-agent
+    namespace: woodpecker
+roleRef:
+  kind: Role
+  name: woodpecker-agent
+  apiGroup: rbac.authorization.k8s.io

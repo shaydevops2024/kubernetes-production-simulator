@@ -1,0 +1,66 @@
+# Backstage Helm values — Project 14 Internal PaaS
+# Backstage is the production-grade developer portal.
+# It replaces the simple mock portal you ran locally.
+# Access: http://backstage.internal
+
+backstage:
+  image:
+    registry: ghcr.io
+    repository: backstage/backstage
+    tag: latest
+
+  appConfig:
+    app:
+      title: DevOps Platform
+      baseUrl: http://backstage.internal
+
+    backend:
+      baseUrl: http://backstage.internal
+      listen:
+        port: 7007
+      cors:
+        origin: http://backstage.internal
+        methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
+
+    # Integrate with Gitea for repository discovery
+    integrations:
+      gitea:
+        - host: git.internal
+          username: admin
+          password: gitea123   # use a secret in production
+
+    # Auto-discover service catalog entries from Gitea repos
+    catalog:
+      providers:
+        gitea:
+          yourGitea:
+            host: git.internal
+            orgPath: /
+            schedule:
+              frequency: { minutes: 1 }
+              timeout: { minutes: 3 }
+
+    auth:
+      environment: development
+      providers: {}   # no auth for local dev
+
+  # Ingress
+ingress:
+  enabled: true
+  className: nginx
+  host: backstage.internal
+
+postgresql:
+  enabled: true
+  auth:
+    username: backstage
+    password: backstage123
+    database: backstage_db
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi

@@ -1,0 +1,51 @@
+# Woodpecker CI Helm values — Project 14 Internal PaaS
+# Access: http://woodpecker.internal
+# NOTE: You must first create a Gitea OAuth2 app and create the woodpecker-secret
+# before installing (see main/README.md Phase 2.3)
+
+server:
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - host: woodpecker.internal
+        paths:
+          - path: /
+            pathType: Prefix
+
+  env:
+    WOODPECKER_HOST: http://woodpecker.internal
+    WOODPECKER_GITEA: true
+    WOODPECKER_GITEA_URL: http://git.internal
+    WOODPECKER_OPEN: true          # allow all Gitea users to log in
+    WOODPECKER_ADMIN: admin        # Gitea username who becomes Woodpecker admin
+
+  # Secret created by you before install (see README Phase 2.3)
+  existingSecret: woodpecker-secret
+  existingSecretMapping:
+    WOODPECKER_GITEA_CLIENT: WOODPECKER_GITEA_CLIENT
+    WOODPECKER_GITEA_SECRET: WOODPECKER_GITEA_SECRET
+    WOODPECKER_AGENT_SECRET: WOODPECKER_AGENT_SECRET
+
+  persistence:
+    enabled: true
+    size: 2Gi
+
+agent:
+  replicaCount: 2
+  env:
+    WOODPECKER_SERVER: woodpecker-server.woodpecker.svc.cluster.local:9000
+    WOODPECKER_BACKEND: kubernetes
+    WOODPECKER_BACKEND_K8S_NAMESPACE: woodpecker
+    WOODPECKER_BACKEND_K8S_STORAGE_CLASS: standard
+    WOODPECKER_BACKEND_K8S_VOLUME_SIZE: 10G
+    WOODPECKER_MAX_WORKFLOWS: 4
+
+  # Agents need to create pods — give them a ServiceAccount with the right RBAC
+  serviceAccount:
+    create: true
+    name: woodpecker-agent
+
+  existingSecret: woodpecker-secret
+  existingSecretMapping:
+    WOODPECKER_AGENT_SECRET: WOODPECKER_AGENT_SECRET

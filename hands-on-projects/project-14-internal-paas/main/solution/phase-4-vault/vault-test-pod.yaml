@@ -1,0 +1,33 @@
+# Test pod — verifies Vault secret injection is working.
+# Deploy after Phase 4 vault-k8s-auth.sh has run.
+# The Vault Agent Injector intercepts this pod and injects secrets before it starts.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: vault-test
+  namespace: alpha         # must match a role namespace configured in vault-k8s-auth.sh
+  annotations:
+    # These annotations tell the Vault injector what to do
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/role: "team-alpha"
+    vault.hashicorp.com/agent-inject-secret-db: "secret/data/team-alpha/db"
+    # Template: renders the secret values into a shell-sourceable format
+    vault.hashicorp.com/agent-inject-template-db: |
+      {{- with secret "secret/data/team-alpha/db" -}}
+      export DB_HOST="{{ .Data.data.host }}"
+      export DB_USER="{{ .Data.data.username }}"
+      export DB_PASS="{{ .Data.data.password }}"
+      export DB_NAME="{{ .Data.data.dbname }}"
+      {{- end }}
+spec:
+  containers:
+    - name: app
+      image: busybox:latest
+      command: ["sh", "-c", "echo 'Secret injected:' && cat /vault/secrets/db && sleep 3600"]
+      resources:
+        requests:
+          cpu: 10m
+          memory: 32Mi
+        limits:
+          cpu: 50m
+          memory: 64Mi

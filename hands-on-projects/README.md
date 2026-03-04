@@ -37,7 +37,7 @@ Every project has three folders:
 | 11 | [Multi-Region Disaster Recovery System](./project-11-multi-region-disaster-recovery/README.md) | Velero, Multi-Cluster Kind, MinIO, PostgreSQL Replication, Failover Scripts, Prometheus/Grafana | ✅ Available |
 | 12 | [Enterprise Secrets Management Platform](./project-12-secrets-management/README.md) | HashiCorp Vault, Dynamic Secrets, PKI, Transit Encryption, K8s Auth, Audit Logging | ✅ Available |
 | 13 | [Zero-Downtime Deployment Platform](./project-13-zero-downtime-deployments/README.md) | Argo Rollouts, Canary, Blue-Green, Prometheus Auto-Rollback, MetalLB, GitHub Actions | ✅ Available |
-| 14 | API Gateway & Rate Limiting | Kong, OAuth2, JWT, Traffic Policies | 🔜 Coming Soon |
+| 14 | [Self-Service Developer Platform (Internal PaaS)](./project-14-internal-paas/README.md) | Kind, Harbor, Gitea, Woodpecker CI, Crossplane, Vault, CloudNativePG, Backstage, Kyverno, OpenCost, ArgoCD | ✅ Available |
 | 15 | SRE Practices Platform | SLOs, Error Budgets, Chaos Engineering | 🔜 Coming Soon |
 | 16 | Security Compliance & Audit | Falco, OPA Gatekeeper, CIS Benchmarks | 🔜 Coming Soon |
 
@@ -59,4 +59,4 @@ Before starting any project:
 
 **Intermediate:** Projects 01–03 (full main/ deployment) → Project 04 → Project 05 (observability) → Project 06 (API gateway) → Project 07 (serverless)
 
-**Advanced:** Project 08 (data pipeline) → Project 09 (disaster recovery) → Project 10 (blue-green) → Project 11 (multi-region DR) → Project 12 (secrets management) → Project 13 (Argo Rollouts + auto-rollback) → Projects 14–16
+**Advanced:** Project 08 (data pipeline) → Project 09 (disaster recovery) → Project 10 (blue-green) → Project 11 (multi-region DR) → Project 12 (secrets management) → Project 13 (Argo Rollouts + auto-rollback) → Project 14 (Internal PaaS) → Projects 15–16

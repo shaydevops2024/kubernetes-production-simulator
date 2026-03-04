@@ -1,0 +1,21 @@
+# Example NamespaceClaim — submit this to provision a new team namespace.
+# Replace values below with your team's details.
+# This single file creates: namespace + quota + network policies + RBAC
+apiVersion: platform.internal/v1alpha1
+kind: NamespaceClaim
+metadata:
+  name: team-delta-claim
+  namespace: crossplane-system    # claims are submitted to the crossplane namespace
+spec:
+  teamName: team-delta
+  leadEmail: delta-lead@company.com
+  description: ML engineering team — model training and inference services
+  cpuLimit: "4"
+  memoryLimit: "8Gi"
+  podLimit: 30
+
+# After applying, verify:
+#   kubectl get namespace team-delta
+#   kubectl get resourcequota -n team-delta
+#   kubectl get networkpolicy -n team-delta
+#   kubectl get rolebinding -n team-delta

@@ -1,0 +1,45 @@
+# Kyverno Policy: Require team label on all pods
+# WHY: OpenCost uses labels to attribute costs per team.
+#      Without this label, costs can't be tracked and allocations are unknown.
+# MODE: audit — violations are reported but not blocked (start here, then switch to enforce)
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-team-label
+  annotations:
+    policies.kyverno.io/title: Require Team Label
+    policies.kyverno.io/description: >
+      All pods must have a 'team' label so costs can be attributed to the
+      correct team in OpenCost. Without this, costs show as "unknown" in the dashboard.
+spec:
+  validationFailureAction: audit   # change to 'enforce' when ready to block
+  background: true
+
+  rules:
+    - name: check-team-label
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaces: [alpha, beta, gamma, team-alpha, team-beta, team-gamma]
+      validate:
+        message: >
+          Pod must have a 'team' label. Add: metadata.labels.team: <your-team-name>
+        pattern:
+          metadata:
+            labels:
+              team: "?*"   # must be set and non-empty
+
+    - name: check-app-label
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaces: [alpha, beta, gamma, team-alpha, team-beta, team-gamma]
+      validate:
+        message: >
+          Pod must have an 'app' label for proper service discovery.
+        pattern:
+          metadata:
+            labels:
+              app: "?*"

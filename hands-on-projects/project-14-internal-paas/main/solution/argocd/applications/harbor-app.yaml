@@ -1,0 +1,25 @@
+# ArgoCD Application — Harbor container registry
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: harbor
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://helm.goharbor.io
+    chart: harbor
+    targetRevision: "1.14.*"
+    helm:
+      releaseName: harbor
+      valueFiles:
+        - $platform_gitops/phase-2-registry-gitea/harbor/harbor-values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: harbor
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

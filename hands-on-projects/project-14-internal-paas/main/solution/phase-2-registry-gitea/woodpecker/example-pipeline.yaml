@@ -1,0 +1,38 @@
+# .woodpecker.yml — Example CI pipeline
+# Place this file at the root of a Gitea repository.
+# Woodpecker will run this pipeline on every push.
+
+steps:
+  - name: test
+    image: python:3.11-slim
+    commands:
+      - pip install -r requirements.txt -q
+      - python -m pytest tests/ -v
+
+  - name: build-and-push
+    image: woodpeckerci/plugin-docker-buildx
+    settings:
+      repo: harbor.internal/alpha/my-api
+      tags:
+        - latest
+        - ${CI_COMMIT_SHA:0:8}
+      registry: harbor.internal
+      username:
+        from_secret: harbor_username
+      password:
+        from_secret: harbor_password
+      insecure: true
+    when:
+      branch: main
+
+  - name: deploy
+    image: bitnami/kubectl:latest
+    commands:
+      - kubectl set image deployment/my-api my-api=harbor.internal/alpha/my-api:${CI_COMMIT_SHA:0:8} -n alpha
+      - kubectl rollout status deployment/my-api -n alpha
+    when:
+      branch: main
+    environment:
+      KUBECONFIG: /root/.kube/config
+    volumes:
+      - /root/.kube:/root/.kube:ro

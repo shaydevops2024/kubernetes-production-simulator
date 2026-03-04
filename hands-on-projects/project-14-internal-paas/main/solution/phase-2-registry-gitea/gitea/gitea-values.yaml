@@ -1,0 +1,49 @@
+# Gitea Helm values — Project 14 Internal PaaS
+# Access: http://git.internal
+# Default credentials: admin / gitea123
+
+gitea:
+  admin:
+    username: admin
+    password: gitea123
+    email: admin@internal.company.com
+
+  config:
+    server:
+      DOMAIN: git.internal
+      HTTP_PORT: 3000
+      ROOT_URL: http://git.internal
+      SSH_DOMAIN: git.internal
+      START_SSH_SERVER: true
+    database:
+      DB_TYPE: sqlite3
+    service:
+      DISABLE_REGISTRATION: false   # Allow self-registration for the demo
+    webhook:
+      ALLOWED_HOST_LIST: woodpecker.internal,woodpecker.woodpecker.svc.cluster.local
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: git.internal
+      paths:
+        - path: /
+          pathType: Prefix
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"  # allow large git pushes
+
+persistence:
+  enabled: true
+  size: 5Gi
+
+# Single replica for local dev
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

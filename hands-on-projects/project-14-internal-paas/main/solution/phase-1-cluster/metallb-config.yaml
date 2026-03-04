@@ -1,0 +1,25 @@
+# MetalLB IP address pool and L2 advertisement
+# Uses the Docker bridge network range (172.18.x.x).
+# Run: docker network inspect kind | grep Subnet  to find your range.
+# Adjust the addresses field to match an available range in your subnet.
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: paas-pool
+  namespace: metallb-system
+spec:
+  addresses:
+    # Use a range within your Docker bridge subnet.
+    # Find yours with: docker network inspect kind | grep Subnet
+    - 172.18.255.200-172.18.255.250
+
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: paas-l2adv
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - paas-pool

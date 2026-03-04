@@ -1,0 +1,39 @@
+# ArgoCD App of Apps — manages all platform components via GitOps
+# Apply this to ArgoCD and it will automatically sync all child applications.
+#
+# HOW IT WORKS:
+# - This "parent" Application watches the argocd/applications/ directory in Git
+# - Each file in that directory is a child Application (one per platform component)
+# - When you change a Helm values file in Git, ArgoCD detects it and runs helm upgrade
+# - This means you NEVER run helm install/upgrade manually — Git is the source of truth
+#
+# WHY THIS PATTERN (App of Apps)?
+# - One place to bootstrap the entire platform
+# - All changes go through Git (audit trail, rollback)
+# - New components are added by adding a file to argocd/applications/
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-app-of-apps
+  namespace: argocd
+  labels:
+    project: internal-paas
+spec:
+  project: default
+
+  source:
+    # Change this to your actual Gitea repository URL
+    repoURL: http://git.internal/admin/platform-gitops
+    targetRevision: main
+    path: argocd/applications     # watches this directory for child apps
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  syncPolicy:
+    automated:
+      prune: true       # delete ArgoCD apps removed from Git
+      selfHeal: true    # re-apply if someone manually changes the cluster
+    syncOptions:
+      - CreateNamespace=true

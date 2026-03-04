@@ -1,0 +1,48 @@
+# Kyverno Policy: Restrict images to approved registries
+# WHY: Pulling from docker.io or random public registries in production is risky.
+#      Images may contain vulnerabilities, be pulled anonymously (rate limited),
+#      or not have been scanned by your security tools (Harbor/Trivy).
+# ALLOWED registries: harbor.internal, ghcr.io (for platform operators)
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: restrict-image-registries
+  annotations:
+    policies.kyverno.io/title: Restrict Image Registries
+    policies.kyverno.io/description: >
+      Containers in team namespaces must pull images from the internal Harbor registry.
+      This ensures all images have been scanned by Trivy and approved.
+      Platform namespaces (kyverno, monitoring, etc.) are exempt.
+spec:
+  validationFailureAction: audit   # switch to enforce after teams push images to Harbor
+  background: true
+
+  rules:
+    - name: check-image-registry
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaces: [alpha, beta, gamma, team-alpha, team-beta, team-gamma]
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - monitoring
+                - vault
+                - argocd
+                - crossplane-system
+                - cnpg-system
+                - backstage
+                - opencost
+                - kyverno
+      validate:
+        message: >
+          Images must be pulled from harbor.internal or ghcr.io.
+          docker.io, quay.io, and other public registries are not allowed.
+          Push your image to Harbor first: docker tag ... harbor.internal/<project>/<image>:<tag>
+        foreach:
+          - list: "request.object.spec.containers"
+            pattern:
+              image: "harbor.internal/* | ghcr.io/*"

@@ -1,0 +1,57 @@
+# Kyverno Policy: Require resource limits on all containers
+# WHY: Without resource limits, a single misbehaving pod can starve the entire node.
+#      This is one of the most critical policies for a shared cluster.
+# MODE: audit first, then enforce
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-resource-limits
+  annotations:
+    policies.kyverno.io/title: Require Resource Limits
+    policies.kyverno.io/description: >
+      Every container must declare CPU and memory limits.
+      This protects the cluster from runaway processes and enables accurate cost tracking.
+spec:
+  validationFailureAction: audit
+  background: true
+
+  rules:
+    - name: check-container-resources
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaces: [alpha, beta, gamma, team-alpha, team-beta, team-gamma]
+      validate:
+        message: >
+          All containers must set resources.limits.cpu and resources.limits.memory.
+          Example:
+            resources:
+              limits:
+                cpu: "500m"
+                memory: "256Mi"
+        pattern:
+          spec:
+            containers:
+              - name: "*"
+                resources:
+                  limits:
+                    cpu: "?*"
+                    memory: "?*"
+
+    - name: check-init-container-resources
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaces: [alpha, beta, gamma]
+      validate:
+        message: Init containers must also declare resource limits.
+        pattern:
+          spec:
+            =(initContainers):
+              - name: "*"
+                resources:
+                  limits:
+                    cpu: "?*"
+                    memory: "?*"
