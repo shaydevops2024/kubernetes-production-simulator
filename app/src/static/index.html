@@ -50,6 +50,30 @@
         </div>
     </div>
 
+    <!-- Arcade Game Button -->
+    <button id="tour-arcade-btn" class="arcade-float-btn" onclick="openArcadeGame()" title="Play a Game!">
+        <svg viewBox="0 0 40 40" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Joystick base -->
+            <rect x="4" y="22" width="32" height="13" rx="4" fill="#C4B5FD" opacity="0.9"/>
+            <!-- Joystick stick -->
+            <rect x="18" y="10" width="4" height="14" rx="2" fill="#E9D5FF"/>
+            <!-- Joystick ball -->
+            <circle cx="20" cy="9" r="5" fill="#A78BFA"/>
+            <circle cx="18.5" cy="7.5" r="1.5" fill="white" opacity="0.5"/>
+            <!-- Buttons on base -->
+            <circle cx="28" cy="28.5" r="3" fill="#F472B6"/>
+            <circle cx="28" cy="28.5" r="1.2" fill="white" opacity="0.4"/>
+            <circle cx="10" cy="28.5" r="2" fill="#34D399"/>
+            <circle cx="15" cy="28.5" r="2" fill="#60A5FA"/>
+        </svg>
+        <span class="arcade-tooltip">Play a Game!</span>
+        <div class="arcade-ripple"></div>
+        <div class="arcade-ripple arcade-ripple-2"></div>
+    </button>
+
+    <!-- Arcade Speech Bubble -->
+    <div id="arcade-bubble" class="arcade-bubble" onclick="openArcadeGame()"></div>
+
     <!-- Help Button - Start Tour -->
     <button class="tour-help-btn" onclick="showTourWelcome()" title="Take a guided tour">
         ?
@@ -204,31 +228,31 @@
                 <div class="nav-separator"></div>
                 <div class="nav-item" id="tour-play-k8s" onclick="openPlayKubernetes()">
                     <span class="nav-icon" style="color: #326CE5;">🎮</span>
-                    <span class="nav-text">Play Kubernetes</span>
+                    <span class="nav-text">Kubernetes Scenarios</span>
                 </div>
                 <div class="nav-item" id="tour-play-argocd" onclick="openPlayArgoCD()">
                     <span class="nav-icon">🐙</span>
-                    <span class="nav-text">Play ArgoCD</span>
+                    <span class="nav-text">ArgoCD Scenarios</span>
                 </div>
                 <div class="nav-item" id="tour-play-helm" onclick="openPlayHelm()">
                     <span class="nav-icon helm-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="3.5" stroke="#326CE5" stroke-width="1.8"/><circle cx="12" cy="12" r="9.5" stroke="#326CE5" stroke-width="1.8"/><line x1="12" y1="1" x2="12" y2="8.5" stroke="#326CE5" stroke-width="1.8" stroke-linecap="round"/><line x1="12" y1="15.5" x2="12" y2="23" stroke="#326CE5" stroke-width="1.8" stroke-linecap="round"/><line x1="1" y1="12" x2="8.5" y2="12" stroke="#326CE5" stroke-width="1.8" stroke-linecap="round"/><line x1="15.5" y1="12" x2="23" y2="12" stroke="#326CE5" stroke-width="1.8" stroke-linecap="round"/><line x1="4.2" y1="4.2" x2="8.5" y2="8.5" stroke="#326CE5" stroke-width="1.8" stroke-linecap="round"/><line x1="15.5" y1="15.5" x2="19.8" y2="19.8" stroke="#326CE5" stroke-width="1.8" stroke-linecap="round"/><line x1="19.8" y1="4.2" x2="15.5" y2="8.5" stroke="#326CE5" stroke-width="1.8" stroke-linecap="round"/><line x1="4.2" y1="19.8" x2="8.5" y2="15.5" stroke="#326CE5" stroke-width="1.8" stroke-linecap="round"/></svg></span>
-                    <span class="nav-text"> Play Helm</span>
+                    <span class="nav-text">Helm Scenarios</span>
                 </div>
                 <div class="nav-item" id="tour-play-gitlab-ci" onclick="openPlayGitlabCI()">
                     <span class="nav-icon" style="color: #E24329;">🦊</span>
-                    <span class="nav-text">Play GitLab CI</span>
+                    <span class="nav-text">GitLab CI Scenarios</span>
                 </div>
                 <div class="nav-item" id="tour-play-jenkins" onclick="openPlayJenkins()">
                     <span class="nav-icon jenkins-icon"><svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg"><path d="M4 23Q4 16 12 14.5Q20 16 20 23" fill="#335061"/><path d="M10.2 15L12 19L13.8 15" fill="#fff"/><path d="M9.5 15.5L12 17L14.5 15.5L12 16Z" fill="#D33833"/><circle cx="12" cy="9" r="5.5" fill="#F0D6B7"/><path d="M6.5 9Q6.5 3 12 3Q17.5 3 17.5 9Q17.5 7 15.5 5.5Q13.5 4.5 12 4.5Q10.5 4.5 8.5 5.5Q6.5 7 6.5 9Z" fill="#4a3728"/><path d="M9 9Q10 8 11 9" stroke="#555" stroke-width="1" fill="none" stroke-linecap="round"/><path d="M13 9Q14 8 15 9" stroke="#555" stroke-width="1" fill="none" stroke-linecap="round"/><path d="M9.5 11.5Q12 13.5 14.5 11.5" stroke="#555" stroke-width="0.8" fill="none" stroke-linecap="round"/></svg></span>
-                    <span class="nav-text">Play Jenkins</span>
+                    <span class="nav-text">Jenkins Scenarios</span>
                 </div>
                 <div class="nav-item" id="tour-play-terraform" onclick="openPlayTerraform()">
                     <span class="nav-icon terraform-icon"><svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg"><path d="M1.5 4.5v6.25l5.5 3.15V7.65L1.5 4.5z" fill="#5C4EE5"/><path d="M8.25 7.65v6.25l5.5-3.15V4.5L8.25 7.65z" fill="#5C4EE5"/><path d="M8.25 15.4v6.25l5.5-3.15v-6.25L8.25 15.4z" fill="#5C4EE5"/><path d="M15 4.5v6.25l5.5-3.15V1.35L15 4.5z" fill="#5C4EE5"/></svg></span>
-                    <span class="nav-text">Play Terraform</span>
+                    <span class="nav-text">Terraform Scenarios</span>
                 </div>
                 <div class="nav-item" id="tour-play-ansible" onclick="openPlayAnsible()">
                     <span class="nav-icon" style="color: #6B7280;">🔧</span>
-                    <span class="nav-text">Play Ansible</span>
+                    <span class="nav-text">Ansible Scenarios</span>
                 </div>
                 <div class="nav-separator-featured"></div>
                 <div class="nav-item nav-item-featured" id="tour-hands-on-projects" onclick="openHandsOnProjects()">

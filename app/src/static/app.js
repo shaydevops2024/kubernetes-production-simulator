@@ -128,6 +128,69 @@ function openHandsOnProjects() {
     window.open('/hands-on-projects', '_blank');
 }
 
+function openArcadeGame() {
+    window.open('/arcade', '_blank');
+}
+
+// Arcade speech bubble — teases the user every few seconds
+(function() {
+    var phrases = [
+        "How brave are you? 🎮",
+        "Can you beat the high score? 🏆",
+        "Just one game... 👾",
+        "I dare you! 😏",
+        "Your skills are calling! 🕹️",
+        "Think you can win? 😈",
+        "Warning: highly addictive ⚠️",
+        "Feeling lucky today? 🎯",
+        "Prove you're the best! 💪",
+        "New challenger approaching! ⚡",
+        "Are you even trying? 😤",
+        "The leaderboard is waiting... 👑",
+    ];
+
+    var positions = ['bubble-pos-top'];
+    var lastPos = '';
+
+    function showArcadeBubble() {
+        var bubble = document.getElementById('arcade-bubble');
+        if (!bubble) return;
+        var phrase = phrases[Math.floor(Math.random() * phrases.length)];
+        bubble.textContent = phrase;
+
+        // Pick a random position, avoid repeating the same spot
+        var available = positions.filter(function(p) { return p !== lastPos; });
+        var newPos = available[Math.floor(Math.random() * available.length)];
+        lastPos = newPos;
+
+        bubble.classList.remove('arcade-bubble--active', 'bubble-pos-left', 'bubble-pos-top', 'bubble-pos-top-left');
+        void bubble.offsetWidth; // force reflow to restart animation
+        bubble.classList.add(newPos, 'arcade-bubble--active');
+    }
+
+    var bubbleInterval = null;
+    var paused = false;
+
+    function startBubbleInterval() {
+        bubbleInterval = setInterval(function() {
+            if (!paused) showArcadeBubble();
+        }, 3000);
+    }
+
+    // First bubble after 2s, then every 3s
+    setTimeout(function() {
+        showArcadeBubble();
+        startBubbleInterval();
+    }, 2000);
+
+    // Pause on button hover, resume on leave
+    var btn = document.querySelector('.arcade-float-btn');
+    if (btn) {
+        btn.addEventListener('mouseenter', function() { paused = true; });
+        btn.addEventListener('mouseleave', function() { paused = false; });
+    }
+})();
+
 // Open ArgoCD with automatic fallback
 function openArgoCD() {
     // Ask backend which ArgoCD URL to use
@@ -1319,6 +1382,12 @@ var tourSteps = [
         title: 'Hands-On Projects',
         content: 'Complete real-world DevOps projects combining multiple tools and technologies. Perfect for portfolio building and interview preparation!',
         position: 'right'
+    },
+    {
+        element: '#tour-arcade-btn',
+        title: '🎮 DevOps Survival — Play a Game!',
+        content: 'Need a break from kubectl? Challenge yourself with DevOps Survival — a fast-paced incident-response game where real Kubernetes alerts flood your screen. Triage CrashLoopBackOffs, OOMKills, and node failures before production goes dark. How long can YOU keep the cluster alive?',
+        position: 'left'
     },
     {
         element: '#tour-developer-info',

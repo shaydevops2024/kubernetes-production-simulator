@@ -1,0 +1,2296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevOps Survival</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #070a0d; --bg2: #0d1117; --bg3: #111820;
+    --border: #1e2d3d; --green: #00ff9d; --amber: #ffb700;
+    --red: #ff3a3a; --blue: #00aaff; --muted: #3a5068;
+    --text: #e4eef8; --text2: #8ab4cc;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'JetBrains Mono',monospace; font-size:13px; height:100vh; overflow:hidden; }
+  body::before { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.07) 2px,rgba(0,0,0,0.07) 4px); pointer-events:none; z-index:9999; }
+  body::after  { content:''; position:fixed; inset:0; background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,0.65) 100%); pointer-events:none; z-index:9998; }
+  .screen { display:none; width:100vw; height:100vh; }
+  .screen.active { display:flex; }
+
+  /* ---- START ---- */
+  #startScreen { flex-direction:column; align-items:center; justify-content:center; background:radial-gradient(ellipse at 50% 40%,#0a1a2a 0%,#070a0d 70%); gap:28px; }
+  .logo { font-family:'Orbitron',sans-serif; font-size:42px; font-weight:900; letter-spacing:6px; color:var(--green); text-shadow:0 0 40px rgba(0,255,157,.5),0 0 80px rgba(0,255,157,.2); }
+  .logo-sub { font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:8px; color:var(--amber); margin-top:-22px; }
+  .node-row { display:flex; gap:8px; align-items:center; }
+  .ndot { width:8px; height:8px; border-radius:50%; background:var(--green); animation:pdot 2s infinite; }
+  .ndot:nth-child(2){animation-delay:.3s;background:var(--amber);}
+  .ndot:nth-child(3){animation-delay:.6s;}
+  .ndot:nth-child(4){animation-delay:.9s;}
+  .ndot:nth-child(5){animation-delay:1.2s;background:var(--red);}
+  .start-box { border:1px solid var(--border); background:var(--bg2); padding:20px 32px; max-width:520px; width:100%; line-height:1.8; color:var(--text2); }
+  .start-box b { color:var(--green); }
+  .btn-start { font-family:'Orbitron',sans-serif; font-size:14px; font-weight:700; letter-spacing:4px; background:transparent; border:2px solid var(--green); color:var(--green); padding:14px 48px; cursor:pointer; transition:all .2s; box-shadow:0 0 20px rgba(0,255,157,.2); }
+  .btn-start:hover { background:rgba(0,255,157,.1); box-shadow:0 0 40px rgba(0,255,157,.4); transform:scale(1.03); }
+
+  /* ---- GAME ---- */
+  #gameScreen { flex-direction:column; height:100vh; overflow:hidden; }
+
+  /* TOP BAR */
+  .topbar { display:flex; align-items:center; gap:14px; padding:0 16px; height:44px; background:var(--bg2); border-bottom:1px solid var(--border); flex-shrink:0; }
+  .tlogo { font-family:'Orbitron',sans-serif; font-size:13px; font-weight:800; color:var(--green); letter-spacing:3px; }
+  .tsep { color:var(--muted); }
+  .titem { display:flex; align-items:center; gap:5px; color:var(--text2); font-size:11px; }
+  .tval { color:var(--text); font-weight:600; }
+  .tspacer { flex:1; }
+  .mtimer { font-family:'Orbitron',sans-serif; font-size:20px; font-weight:700; color:var(--red); min-width:60px; text-align:center; text-shadow:0 0 10px rgba(255,58,58,.6); }
+  .mtimer.warn { animation:tpulse .5s ease-in-out infinite alternate; }
+  .hearts { display:flex; gap:4px; align-items:center; }
+  .heart { font-size:14px; filter:drop-shadow(0 0 4px rgba(255,58,58,.8)); }
+  .heart.lost { filter:grayscale(1) opacity(.3); }
+
+  /* GRID */
+  .gcontent { display:grid; grid-template-columns:minmax(0,0.65fr) 1fr 1fr; grid-template-rows:1fr 1.5fr; gap:8px; padding:8px; flex:1; overflow:hidden; min-height:0; }
+
+  /* CARDS */
+  .icard { background:var(--bg2); border:1px solid var(--border); border-radius:3px; padding:12px; cursor:pointer; display:flex; flex-direction:column; gap:7px; overflow:hidden; transition:border-color .2s,box-shadow .2s; position:relative; }
+  .icard:hover { border-color:var(--muted); }
+  .icard.active { border-color:var(--green) !important; box-shadow:0 0 20px rgba(0,255,157,.15); }
+  .icard.solved { border-color:#1a3a28 !important; opacity:.65; }
+  .icard.sev-critical { border-left:3px solid var(--red); }
+  .icard.sev-high     { border-left:3px solid var(--amber); }
+  .icard.sev-medium   { border-left:3px solid #ff8c00; }
+  .icard.sev-low      { border-left:3px solid var(--blue); }
+  .icard.sev-critical.ticking { animation:cpulse 2s ease-in-out infinite; }
+  .icard.escalated { animation:eflash .4s ease-in-out; }
+  .icard.empty { opacity:.3; cursor:default; border-style:dashed; align-items:center; justify-content:center; font-size:11px; color:var(--muted); }
+  .icard.empty:hover { border-color:var(--border); }
+
+  /* ACTIVE BADGE — centered top */
+  .active-badge {
+    display:none; position:absolute; top:0; left:50%; transform:translateX(-50%);
+    font-size:9px; font-family:'Orbitron',sans-serif; font-weight:700; letter-spacing:2px;
+    color:var(--green); border:1px solid var(--green); border-top:none;
+    padding:2px 14px; background:rgba(0,255,157,.12); border-radius:0 0 4px 4px; white-space:nowrap;
+  }
+  .icard.active .active-badge { display:block; }
+
+  .card-hdr { display:flex; align-items:center; justify-content:space-between; margin-top:6px; }
+  .sevbadge { font-size:9px; font-family:'Orbitron',sans-serif; font-weight:700; letter-spacing:1px; padding:2px 6px; border-radius:2px; }
+  .sevbadge.critical { background:rgba(255,58,58,.2);  color:var(--red);   border:1px solid rgba(255,58,58,.4); }
+  .sevbadge.high     { background:rgba(255,183,0,.2);  color:var(--amber); border:1px solid rgba(255,183,0,.4); }
+  .sevbadge.medium   { background:rgba(255,140,0,.2);  color:#ff8c00;      border:1px solid rgba(255,140,0,.4); }
+  .sevbadge.low      { background:rgba(0,170,255,.2);  color:var(--blue);  border:1px solid rgba(0,170,255,.4); }
+  .ctimer { font-family:'Orbitron',sans-serif; font-size:13px; font-weight:700; min-width:40px; text-align:right; }
+  .ctimer.ok   { color:var(--green); }
+  .ctimer.warn { color:var(--amber); }
+  .ctimer.danger { color:var(--red); animation:tpulse .5s ease-in-out infinite alternate; }
+  .ctitle { font-weight:600; font-size:12px; color:var(--text); line-height:1.3; }
+  .csvc   { font-size:10px; color:var(--text2); }
+  .cdesc  { font-size:10px; color:var(--text2); line-height:1.5; flex:1; }
+  .cprog  { width:100%; height:2px; background:var(--border); border-radius:1px; overflow:hidden; }
+  .cprog-fill { height:100%; transition:width 1s linear; border-radius:1px; }
+  .checklist { display:flex; flex-direction:column; gap:3px; }
+  .chkitem { display:flex; align-items:center; gap:6px; font-size:10px; color:var(--text2); padding:3px 0; border-bottom:1px solid rgba(30,45,61,.5); }
+  .chkitem:last-child { border-bottom:none; }
+  .chkitem.done { color:var(--green); text-decoration:line-through; opacity:.7; }
+  .chkitem.nxt  { color:var(--amber); }
+  .chkico { font-size:11px; width:14px; flex-shrink:0; }
+  .solved-ov { display:none; position:absolute; inset:0; background:rgba(0,255,157,.05); align-items:center; justify-content:center; font-family:'Orbitron',sans-serif; font-size:16px; font-weight:700; color:var(--green); letter-spacing:4px; text-shadow:0 0 20px var(--green); }
+  .icard.solved .solved-ov { display:flex; }
+  .card-pts { font-size:10px; font-family:'Orbitron',sans-serif; font-weight:600; color:var(--green); opacity:0; transition:opacity .3s; }
+  .icard.solved .card-pts { opacity:1; }
+
+  /* CHEATSHEET */
+  .cheatsheet { background:var(--bg2); border:1px solid var(--border); border-radius:3px; padding:8px; overflow:hidden; display:flex; flex-direction:column; gap:5px; }
+  .cs-title { font-family:'Orbitron',sans-serif; font-size:9px; font-weight:700; letter-spacing:2px; color:var(--text); text-transform:uppercase; border-bottom:1px solid var(--border); padding-bottom:5px; flex-shrink:0; }
+  .cs-body { overflow-y:auto; flex:1; }
+  .cs-body::-webkit-scrollbar{width:3px;} .cs-body::-webkit-scrollbar-thumb{background:var(--muted);}
+  .cs-cols { display:flex; gap:8px; height:100%; }
+  .cs-col { flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
+  .cs-col + .cs-col { border-left:1px solid var(--border); padding-left:8px; }
+  .cs-sec-title { font-size:10px; color:var(--amber); letter-spacing:1px; margin-bottom:3px; margin-top:7px; text-transform:uppercase; font-weight:700; }
+  .cs-col .cs-sec-title:first-child { margin-top:0; }
+  .cs-cmd { display:flex; align-items:baseline; gap:5px; margin-bottom:2px; }
+  .cs-cmd code { font-size:11px; color:var(--green); white-space:nowrap; -webkit-user-select:text; user-select:text; cursor:text; }
+  .cs-cmd span { font-size:10px; color:var(--text2); -webkit-user-select:text; user-select:text; }
+  .cs-body { -webkit-user-select:text; user-select:text; }
+  .cheatsheet { -webkit-user-select:text; user-select:text; }
+
+  /* TERMINAL */
+  .term-panel { background:#050810; border:1px solid var(--border); border-radius:3px; display:flex; flex-direction:column; overflow:hidden; grid-column:span 2; position:relative; }
+  .term-tbar { display:flex; align-items:center; gap:8px; padding:6px 12px; background:var(--bg3); border-bottom:1px solid var(--border); flex-shrink:0; }
+  .term-tbar-title { font-family:'Orbitron',sans-serif; font-size:9px; letter-spacing:2px; color:var(--text2); text-transform:uppercase; }
+  .term-inc-label { font-size:9px; color:var(--amber); margin-left:auto; }
+  .term-out { flex:1; overflow-y:auto; padding:10px 14px; line-height:1.6; font-size:12px; }
+  .term-out::-webkit-scrollbar{width:4px;} .term-out::-webkit-scrollbar-thumb{background:var(--muted);}
+  .tl { margin-bottom:1px; white-space:pre-wrap; }
+  .tl.p { color:var(--green); }
+  .tl.o { color:var(--text); }
+  .tl.e { color:var(--red); }
+  .tl.i { color:var(--amber); }
+  .tl.s { color:var(--green); font-weight:600; }
+  .tl.h { color:#5aaa44; font-style:italic; }
+
+  /* AUTOCOMPLETE */
+  .ac-box { display:none; position:absolute; bottom:42px; left:0; right:0; background:var(--bg3); border-top:1px solid var(--border); padding:4px 14px; font-size:11px; color:var(--text2); max-height:80px; overflow-y:auto; z-index:50; }
+  .ac-box.show { display:block; }
+  .ac-item { padding:2px 6px; cursor:pointer; border-radius:2px; }
+  .ac-item:hover,.ac-item.sel { background:rgba(0,255,157,.1); color:var(--green); }
+
+  .term-irow { display:flex; align-items:center; padding:6px 14px; border-top:1px solid var(--border); background:#050810; gap:8px; flex-shrink:0; }
+  .term-prompt { color:var(--green); white-space:nowrap; font-size:12px; }
+  .term-input { flex:1; background:transparent; border:none; outline:none; color:#fff; font-family:'JetBrains Mono',monospace; font-size:12px; caret-color:var(--green); }
+  .hint-btn { background:rgba(255,183,0,.2); border:1px solid rgba(255,183,0,.9); color:var(--amber); font-family:'JetBrains Mono',monospace; font-size:10px; padding:4px 10px; cursor:pointer; border-radius:2px; white-space:nowrap; flex-shrink:0; transition:background .15s; letter-spacing:1px; box-shadow:0 0 14px rgba(255,183,0,.6), 0 0 30px rgba(255,183,0,.3); animation:hintpulse 1.8s ease-in-out infinite; }
+  .hint-btn:hover { background:rgba(255,183,0,.4); box-shadow:0 0 22px rgba(255,183,0,.9), 0 0 44px rgba(255,183,0,.5); animation:none; }
+  @keyframes hintpulse { 0%,100%{box-shadow:0 0 10px rgba(255,183,0,.45),0 0 22px rgba(255,183,0,.2);} 50%{box-shadow:0 0 20px rgba(255,183,0,.85),0 0 40px rgba(255,183,0,.45);} }
+
+  /* VIM */
+  .vim-ov { display:none; position:absolute; inset:0; background:#050810; flex-direction:column; z-index:100; }
+  .vim-ov.on { display:flex; }
+  .vim-tbar { background:var(--bg3); border-bottom:1px solid var(--border); padding:5px 12px; font-size:11px; color:var(--text2); display:flex; justify-content:space-between; flex-shrink:0; }
+  .vim-body { flex:1; padding:10px 14px; overflow:auto; }
+  .vim-ta { width:100%; height:100%; background:transparent; border:none; outline:none; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:12px; resize:none; line-height:1.6; }
+  .vim-sb { background:#334455; color:#000; padding:2px 12px; font-size:11px; font-weight:700; display:flex; justify-content:space-between; flex-shrink:0; }
+  .vim-cl { background:#050810; border-top:1px solid var(--border); padding:4px 14px; font-size:12px; color:#fff; display:none; align-items:center; gap:4px; flex-shrink:0; }
+  .vim-cl input { background:transparent; border:none; outline:none; color:#fff; font-family:'JetBrains Mono',monospace; font-size:12px; flex:1; }
+
+  /* BOTTOM BAR */
+  .bottombar { display:flex; align-items:stretch; height:44px; flex-shrink:0; background:#0b1825; border-top:2px solid var(--green); box-shadow:0 -4px 20px rgba(0,255,157,.08); }
+  .kb-seg { display:flex; align-items:center; gap:8px; padding:0 14px; border-right:1px solid #1e3548; }
+  .kb-seg:last-of-type { border-right:none; }
+  .kb-hint { font-size:11px; color:#a8cce0; display:flex; align-items:center; gap:7px; font-weight:500; }
+  .kbkey { background:#162433; border:1px solid #3a7090; border-bottom:2px solid var(--green); padding:3px 9px; border-radius:3px; font-size:10px; color:#e0f4ff; font-weight:700; font-family:'JetBrains Mono',monospace; text-shadow:0 0 6px rgba(0,255,157,.4); }
+  .kb-status { margin-left:auto; padding:0 16px; display:flex; align-items:center; font-size:9px; color:#4a7a90; letter-spacing:1px; }
+
+  /* RESULT SCREENS */
+  #lcScreen,#goScreen { flex-direction:column; align-items:center; justify-content:center; gap:24px; background:radial-gradient(ellipse at 50% 40%,#0a1a2a 0%,#070a0d 70%); }
+  .rtitle { font-family:'Orbitron',sans-serif; font-size:36px; font-weight:900; letter-spacing:6px; }
+  .rtitle.ok  { color:var(--green); text-shadow:0 0 40px rgba(0,255,157,.5); }
+  .rtitle.bad { color:var(--red);   text-shadow:0 0 40px rgba(255,58,58,.5); }
+  .sco-bd { background:var(--bg2); border:1px solid var(--border); padding:20px 32px; min-width:480px; display:flex; flex-direction:column; gap:10px; }
+  .sco-row { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border); font-size:12px; gap:16px; }
+  .sco-row:last-child { border-bottom:none; }
+  .sco-row.tot { font-family:'Orbitron',sans-serif; font-size:14px; font-weight:700; color:var(--green); padding-top:10px; border-top:2px solid var(--border); border-bottom:none; }
+  .sco-pts { color:var(--green); font-weight:600; font-family:'Orbitron',sans-serif; }
+  .sco-pts.neg { color:var(--red); }
+  .btn-nxt { font-family:'Orbitron',sans-serif; font-size:16px; font-weight:900; letter-spacing:4px; background:var(--green); border:2px solid var(--green); color:#070a0d; padding:18px 56px; cursor:pointer; transition:all .25s; border-radius:2px; box-shadow:0 0 32px rgba(0,255,157,.45), 0 0 8px rgba(0,255,157,.3); text-shadow:none; margin-top:8px; }
+  .btn-nxt:hover { background:#00ffb3; box-shadow:0 0 52px rgba(0,255,157,.7), 0 0 16px rgba(0,255,157,.5); transform:scale(1.04); }
+  .btn-nxt:active { transform:scale(0.98); }
+  .btn-ret { font-family:'Orbitron',sans-serif; font-size:12px; font-weight:700; letter-spacing:3px; background:transparent; border:1px solid var(--red); color:var(--red); padding:10px 32px; cursor:pointer; transition:all .2s; }
+  .btn-ret:hover { background:rgba(255,58,58,.1); }
+
+  /* ALERT */
+  .alert-pop { display:none; position:fixed; top:60px; right:20px; background:var(--bg2); border:2px solid var(--red); border-radius:4px; padding:14px 18px; z-index:1000; max-width:320px; box-shadow:0 0 30px rgba(255,58,58,.3); animation:sldin .3s ease; }
+  .alert-pop.on { display:block; }
+  .alert-tit { font-family:'Orbitron',sans-serif; font-size:11px; font-weight:700; color:var(--red); letter-spacing:2px; margin-bottom:8px; }
+  .alert-body { font-size:11px; color:var(--text2); line-height:1.6; }
+  .alert-x { position:absolute; top:8px; right:10px; background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; }
+
+  @keyframes pdot  { 0%,100%{opacity:1;} 50%{opacity:.3;} }
+  @keyframes tpulse{ from{opacity:1;} to{opacity:.5;} }
+  @keyframes cpulse{ 0%,100%{box-shadow:0 0 8px rgba(255,58,58,.2);} 50%{box-shadow:0 0 20px rgba(255,58,58,.5);} }
+  @keyframes eflash{ 0%{background:rgba(255,58,58,.3);} 100%{background:var(--bg2);} }
+  @keyframes sldin { from{transform:translateX(100%);opacity:0;} to{transform:translateX(0);opacity:1;} }
+  @keyframes spop  { 0%{transform:scale(1);} 50%{transform:scale(1.3);} 100%{transform:scale(1);} }
+  .spop { animation:spop .3s ease; }
+</style>
+</head>
+<body>
+
+<!-- START -->
+<div id="startScreen" class="screen active">
+  <div class="logo">DevOps Survival</div>
+  <div class="logo-sub">WAR ROOM SIMULATION // v2.2.0</div>
+  <div class="node-row">
+    <div class="ndot"></div><div class="ndot"></div><div class="ndot"></div><div class="ndot"></div><div class="ndot"></div>
+    <span style="font-size:9px;color:var(--text2);margin-left:4px;letter-spacing:1px;">NODE STATUS: DEGRADED</span>
+  </div>
+  <div class="start-box">
+    <div style="margin-bottom:8px;color:var(--amber);font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2px;">MISSION BRIEFING</div>
+    <b>Your infrastructure is on fire.</b> Multiple incidents are firing simultaneously. You have limited time to triage, diagnose, and resolve each one before it escalates.<br><br>
+    → <b>Click an incident card</b> to focus it and load context in the terminal<br>
+    → <b>Type commands</b> to investigate and resolve each step in order<br>
+    → Press <b>F1</b> or the <b>💡 HINT button</b> to see the exact command for the current step<br>
+    → Watch your <b>hearts</b> — 5 escalations and it's game over<br><br>
+    <span style="color:var(--text2);font-size:10px;">CRITICAL incidents escalate fast. Prioritize by severity.</span>
+  </div>
+  <button class="btn-start" onclick="startGame()">⚡ ENTER THE WAR ROOM</button>
+</div>
+
+<!-- GAME -->
+<div id="gameScreen" class="screen">
+  <div class="topbar">
+    <div class="tlogo">⚡ DevOps Survival</div>
+    <div class="tsep">//</div>
+    <div class="titem">LVL <span class="tval" id="topLevel">1</span></div>
+    <div class="tsep">|</div>
+    <div class="titem">SCORE <span class="tval" id="topScore">100</span></div>
+    <div class="tsep">|</div>
+    <div class="titem">ACTIVE <span class="tval" id="topActive">0</span></div>
+    <div class="tsep">|</div>
+    <div class="titem">
+      <div class="node-row" style="margin:0;gap:5px">
+        <div class="ndot" style="width:6px;height:6px;animation-delay:0s"></div>
+        <div class="ndot" style="width:6px;height:6px;animation-delay:.4s"></div>
+        <div class="ndot" style="width:6px;height:6px;animation-delay:.8s"></div>
+      </div>
+      <span style="font-size:9px;color:var(--text2);">NODES</span>
+    </div>
+    <div class="tspacer"></div>
+    <div class="hearts" id="hearts">
+      <span class="heart" id="h1">❤️</span><span class="heart" id="h2">❤️</span>
+      <span class="heart" id="h3">❤️</span><span class="heart" id="h4">❤️</span>
+      <span class="heart" id="h5">❤️</span>
+    </div>
+    <div class="tsep">|</div>
+    <div class="mtimer" id="masterTimer">--:--</div>
+  </div>
+
+  <div class="gcontent">
+    <!-- Row 1: 3 incident cards -->
+    <div class="icard empty" id="card0"><span>— STANDBY —</span></div>
+    <div class="icard empty" id="card1"><span>— STANDBY —</span></div>
+    <div class="icard empty" id="card2"><span>— STANDBY —</span></div>
+
+    <!-- Row 2 left: cheatsheet -->
+    <div class="cheatsheet">
+      <div class="cs-title">📋 Command Ref</div>
+      <div class="cs-body">
+        <div class="cs-cols">
+          <!-- LEFT: Linux / System -->
+          <div class="cs-col">
+            <div class="cs-sec-title">Files &amp; Text</div>
+            <div class="cs-cmd"><code>ls [path]</code><span>list</span></div>
+            <div class="cs-cmd"><code>cat &lt;f&gt;</code><span>read file</span></div>
+            <div class="cs-cmd"><code>head/tail -n N &lt;f&gt;</code><span>top/bottom</span></div>
+            <div class="cs-cmd"><code>grep &lt;pat&gt; &lt;f&gt;</code><span>search</span></div>
+            <div class="cs-cmd"><code>find &lt;path&gt;</code><span>find files</span></div>
+            <div class="cs-cmd"><code>wc -l &lt;f&gt;</code><span>line count</span></div>
+            <div class="cs-cmd"><code>rm &lt;f&gt;</code><span>delete</span></div>
+            <div class="cs-cmd"><code>cp &lt;src&gt; &lt;dst&gt;</code><span>copy</span></div>
+            <div class="cs-cmd"><code>mv &lt;src&gt; &lt;dst&gt;</code><span>move</span></div>
+            <div class="cs-cmd"><code>vim &lt;f&gt;</code><span>edit (i/:wq/:q!)</span></div>
+            <div class="cs-sec-title">System</div>
+            <div class="cs-cmd"><code>ps aux</code><span>processes</span></div>
+            <div class="cs-cmd"><code>top / htop</code><span>live usage</span></div>
+            <div class="cs-cmd"><code>free -h</code><span>memory</span></div>
+            <div class="cs-cmd"><code>df -h</code><span>disk space</span></div>
+            <div class="cs-cmd"><code>du -h &lt;path&gt;</code><span>dir size</span></div>
+            <div class="cs-cmd"><code>kill -9 &lt;pid&gt;</code><span>kill proc</span></div>
+            <div class="cs-cmd"><code>lsof</code><span>open files</span></div>
+            <div class="cs-cmd"><code>uptime</code><span>load avg</span></div>
+            <div class="cs-cmd"><code>uname -a</code><span>kernel info</span></div>
+            <div class="cs-cmd"><code>env</code><span>environment</span></div>
+            <div class="cs-cmd"><code>which &lt;cmd&gt;</code><span>binary path</span></div>
+            <div class="cs-cmd"><code>history</code><span>cmd history</span></div>
+            <div class="cs-sec-title">Network</div>
+            <div class="cs-cmd"><code>ping &lt;host&gt;</code><span>connectivity</span></div>
+            <div class="cs-cmd"><code>curl -I &lt;url&gt;</code><span>HTTP check</span></div>
+            <div class="cs-cmd"><code>netstat / ss</code><span>connections</span></div>
+            <div class="cs-cmd"><code>ip a / ip r</code><span>interfaces</span></div>
+            <div class="cs-cmd"><code>nslookup/dig &lt;h&gt;</code><span>DNS</span></div>
+            <div class="cs-sec-title">Services</div>
+            <div class="cs-cmd"><code>systemctl status &lt;svc&gt;</code></div>
+            <div class="cs-cmd"><code>systemctl restart &lt;svc&gt;</code></div>
+            <div class="cs-cmd"><code>journalctl</code><span>system logs</span></div>
+            <div class="cs-cmd"><code>crontab -l</code><span>list jobs</span></div>
+          </div>
+          <!-- RIGHT: DevOps tools -->
+          <div class="cs-col">
+            <div class="cs-sec-title">Docker</div>
+            <div class="cs-cmd"><code>docker ps</code><span>containers</span></div>
+            <div class="cs-cmd"><code>docker logs &lt;name&gt;</code><span>logs</span></div>
+            <div class="cs-cmd"><code>docker pull &lt;image&gt;</code><span>pull</span></div>
+            <div class="cs-cmd"><code>docker stats</code><span>resources</span></div>
+            <div class="cs-cmd"><code>docker exec -it &lt;c&gt; sh</code></div>
+            <div class="cs-sec-title">kubectl</div>
+            <div class="cs-cmd"><code>kubectl get pods</code><span>pod status</span></div>
+            <div class="cs-cmd"><code>kubectl get deployments</code></div>
+            <div class="cs-cmd"><code>kubectl get svc</code><span>services</span></div>
+            <div class="cs-cmd"><code>kubectl get events</code><span>events</span></div>
+            <div class="cs-cmd"><code>kubectl logs &lt;pod&gt;</code><span>pod logs</span></div>
+            <div class="cs-cmd"><code>kubectl describe pod &lt;p&gt;</code></div>
+            <div class="cs-cmd"><code>kubectl rollout undo deploy/&lt;d&gt;</code></div>
+            <div class="cs-cmd"><code>kubectl rollout history deploy/&lt;d&gt;</code></div>
+            <div class="cs-cmd"><code>kubectl apply -f &lt;file&gt;</code></div>
+            <div class="cs-cmd"><code>kubectl delete pod &lt;p&gt;</code></div>
+            <div class="cs-cmd"><code>kubectl exec -it &lt;p&gt; sh</code></div>
+            <div class="cs-sec-title">Helm</div>
+            <div class="cs-cmd"><code>helm ls</code><span>list releases</span></div>
+            <div class="cs-cmd"><code>helm upgrade &lt;r&gt; &lt;chart&gt;</code></div>
+            <div class="cs-cmd"><code>helm rollback &lt;r&gt; &lt;rev&gt;</code></div>
+            <div class="cs-sec-title">Pipes (chain commands)</div>
+            <div class="cs-cmd"><code>cmd | grep &lt;pattern&gt;</code></div>
+            <div class="cs-cmd"><code>cmd | wc -l</code><span>count lines</span></div>
+            <div class="cs-cmd"><code>cmd | head -n 10</code></div>
+            <div class="cs-cmd"><code>cmd | tail -n 20</code></div>
+            <div class="cs-cmd"><code>cmd | sort</code></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 2 right: terminal (2 cols) -->
+    <div class="term-panel" id="termPanel">
+      <div class="term-tbar">
+        <div class="term-tbar-title">⬛ TERMINAL // root@prod-node-01</div>
+        <div class="term-inc-label" id="termLabel">No incident selected</div>
+      </div>
+      <div class="term-out" id="termOut">
+        <div class="tl i">DevOps Survival OS v2.2.0 — Production Node #01</div>
+        <div class="tl o">─────────────────────────────────────────────────</div>
+        <div class="tl o">Select an incident card to load its context.</div>
+        <div class="tl o">Type <span style="color:var(--green)">help</span> for all commands. Press <span style="color:var(--amber)">💡 HINT</span> for step guidance.</div>
+      </div>
+
+      <!-- VIM OVERLAY -->
+      <div class="vim-ov" id="vimOv">
+        <div class="vim-tbar">
+          <span id="vimFn">vim: untitled</span>
+          <span style="color:var(--muted);font-size:10px;">ESC=normal  i=insert  :wq=save  :q!=quit</span>
+        </div>
+        <div class="vim-body"><textarea class="vim-ta" id="vimTa" readonly></textarea></div>
+        <div class="vim-sb" id="vimSb"><span id="vimMode">-- NORMAL --</span><span>0,0</span></div>
+        <div class="vim-cl" id="vimCl"><span>:</span><input type="text" id="vimCi"></div>
+      </div>
+
+      <!-- AUTOCOMPLETE -->
+      <div class="ac-box" id="acBox"></div>
+
+      <div class="term-irow">
+        <span class="term-prompt">root@prod-01:~# </span>
+        <input type="text" class="term-input" id="termIn" placeholder="type a command..." autocomplete="off" spellcheck="false">
+        <button class="hint-btn" onclick="triggerHint()">💡 HINT</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div class="bottombar">
+    <div class="kb-seg"><span class="kb-hint"><span class="kbkey">↑↓</span> cmd history</span></div>
+    <div class="kb-seg"><span class="kb-hint"><span class="kbkey">TAB</span> autocomplete path</span></div>
+    <div class="kb-seg"><span class="kb-hint"><span class="kbkey">F1</span> hint</span></div>
+    <div class="kb-seg"><span class="kb-hint"><span class="kbkey">ENTER</span> execute</span></div>
+    <div class="kb-seg"><span class="kb-hint"><span class="kbkey">ESC</span> clear input</span></div>
+    <div class="kb-seg"><span class="kb-hint"><span class="kbkey">Click card</span> focus incident</span></div>
+    <div class="kb-status">PROD-NODE-01 // UPTIME 142d // LOAD AVG 5.2 8.1 9.4</div>
+  </div>
+</div>
+
+<!-- LEVEL COMPLETE -->
+<div id="lcScreen" class="screen">
+  <div class="rtitle ok">LEVEL COMPLETE</div>
+  <div style="font-family:'Orbitron',sans-serif;font-size:11px;color:var(--text2);letter-spacing:3px;" id="lcSub">ALL INCIDENTS RESOLVED</div>
+  <div class="sco-bd" id="lcBd"></div>
+  <button class="btn-nxt" onclick="nextLevel()">NEXT LEVEL →</button>
+</div>
+
+<!-- GAME OVER -->
+<div id="goScreen" class="screen">
+  <div class="rtitle bad">SLA BREACHED</div>
+  <div style="font-family:'Orbitron',sans-serif;font-size:11px;color:var(--text2);letter-spacing:3px;">INFRASTRUCTURE OFFLINE</div>
+  <div class="sco-bd" id="goBd"></div>
+  <button class="btn-ret" onclick="retryGame()">↺ TRY AGAIN</button>
+</div>
+
+<!-- ALERT -->
+<div class="alert-pop" id="alertPop">
+  <button class="alert-x" onclick="closeAlert()">✕</button>
+  <div class="alert-tit">🚨 NEW INCIDENT INCOMING</div>
+  <div class="alert-body" id="alertBody"></div>
+</div>
+
+<script>
+/* ======================================================
+   SCENARIOS — each step has a hintCmd (shown by HINT)
+====================================================== */
+const SC = {
+  /* ── ORIGINAL 8 ── */
+  nginx_config: {
+    id:'nginx_config', severity:'critical', sevClass:'critical',
+    title:'NGINX Config Broken', service:'nginx.service',
+    description:'NGINX failing to start. Requests returning 502. Config syntax error suspected.',
+    timeLimit:180, points:500,
+    steps:[
+      {label:'Read error log',            cmd:'cat',      arg:'/var/log/nginx/error.log', hintCmd:'cat /var/log/nginx/error.log', done:false},
+      {label:'Open config in vim',        cmd:'vim',      arg:'/etc/nginx/nginx.conf',    hintCmd:'vim /etc/nginx/nginx.conf',    done:false},
+      {label:'Fix semicolon & save (:wq)',cmd:'vim_save', arg:'/etc/nginx/nginx.conf',    hintCmd:'(in vim)  i  →  add ";" after "listen 80"  →  ESC  →  :wq', done:false},
+    ],
+  },
+  crashloop: {
+    id:'crashloop', severity:'critical', sevClass:'critical',
+    title:'API Pod CrashLoopBackOff', service:'api-service',
+    description:'api-deployment pods crash-looping. /api/* traffic is failing. Rollback needed.',
+    timeLimit:210, points:500,
+    steps:[
+      {label:'Check pod status',    cmd:'kubectl', arg:'get pods',     hintCmd:'kubectl get pods',                          done:false},
+      {label:'Read pod crash logs', cmd:'kubectl', arg:'logs api',     hintCmd:'kubectl logs api-deployment-7d9f4b-xk2p9',  done:false},
+      {label:'Rollback deployment', cmd:'kubectl', arg:'rollout undo', hintCmd:'kubectl rollout undo deploy/api-deployment', done:false},
+    ],
+  },
+  disk_space: {
+    id:'disk_space', severity:'high', sevClass:'high',
+    title:'Disk Space Critical', service:'prod-node-01',
+    description:'Root partition at 97%. Deployments failing. JVM heap dumps filling /tmp.',
+    timeLimit:150, points:350,
+    steps:[
+      {label:'Check disk usage',         cmd:'df',  arg:'-h',      hintCmd:'df -h',          done:false},
+      {label:'List large files in /tmp', cmd:'ls',  arg:'/tmp',    hintCmd:'ls /tmp',         done:false},
+      {label:'Remove heap dump files',   cmd:'rm',  arg:'*.hprof', hintCmd:'rm /tmp/*.hprof', done:false},
+    ],
+  },
+  cpu_spike: {
+    id:'cpu_spike', severity:'high', sevClass:'high',
+    title:'CPU Spike — 98%', service:'prod-node-01',
+    description:'CPU pegged at 98%. System unresponsive. Runaway worker processes detected.',
+    timeLimit:120, points:350,
+    steps:[
+      {label:'List all processes',      cmd:'ps',   arg:'aux',    hintCmd:'ps aux',                     done:false},
+      {label:'Filter runaway workers',  cmd:'grep', arg:'worker', hintCmd:'ps aux | grep worker', done:false},
+      {label:'Kill high-CPU processes', cmd:'kill', arg:'-9',     hintCmd:'kill -9 7823',               done:false},
+    ],
+  },
+  oom_crash: {
+    id:'oom_crash', severity:'medium', sevClass:'medium',
+    title:'Service OOM Crash Loop', service:'data-transformer',
+    description:'data-transformer OOM-killing repeatedly. Memory leak in processing pipeline.',
+    timeLimit:160, points:200,
+    steps:[
+      {label:'Tail application log',   cmd:'tail', arg:'app.log',       hintCmd:'tail -f /var/log/app.log',            done:false},
+      {label:'Grep for ERROR lines',   cmd:'grep', arg:'ERROR',         hintCmd:'cat /var/log/app.log | grep ERROR',         done:false},
+      {label:'Identify leaking class', cmd:'grep', arg:'DataTransform', hintCmd:'cat /var/log/app.log | grep DataTransform', done:false},
+    ],
+  },
+  docker_restart: {
+    id:'docker_restart', severity:'medium', sevClass:'medium',
+    title:'Docker Container Restart Loop', service:'payment-service',
+    description:'payment-service container restarting every 30s. Bad image tag in prod.',
+    timeLimit:140, points:200,
+    steps:[
+      {label:'List running containers', cmd:'docker', arg:'ps',   hintCmd:'docker ps',                               done:false},
+      {label:'Check container logs',    cmd:'docker', arg:'logs', hintCmd:'docker logs payment-service',             done:false},
+      {label:'Pull stable image',       cmd:'docker', arg:'pull', hintCmd:'docker pull payment-service:v1.2.3-stable',done:false},
+    ],
+  },
+  silent_deploy: {
+    id:'silent_deploy', severity:'low', sevClass:'low',
+    title:'Silent Deployment Failure', service:'frontend-deployment',
+    description:'Latest deploy shows success in CI but pods are not updated. No errors visible.',
+    timeLimit:130, points:100,
+    steps:[
+      {label:'Check deployment status',  cmd:'kubectl', arg:'get deployments', hintCmd:'kubectl get deployments',                    done:false},
+      {label:'View rollout history',     cmd:'kubectl', arg:'rollout history',  hintCmd:'kubectl rollout history deploy/frontend',    done:false},
+      {label:'Describe pod for details', cmd:'kubectl', arg:'describe pod',     hintCmd:'kubectl describe pod frontend-6c8d9f-pp1kx', done:false},
+    ],
+  },
+  disk_errors: {
+    id:'disk_errors', severity:'low', sevClass:'low',
+    title:'Mysterious Disk Errors', service:'syslog',
+    description:'Intermittent EXT4 filesystem errors. Applications getting EROFS.',
+    timeLimit:150, points:100,
+    steps:[
+      {label:'Check syslog',     cmd:'cat',  arg:'syslog',      hintCmd:'cat /var/log/syslog',               done:false},
+      {label:'Filter EXT4 errors',cmd:'grep', arg:'EXT4',       hintCmd:'cat /var/log/syslog | grep EXT4',         done:false},
+      {label:'Check filesystem health', cmd:'df', arg:'-h', hintCmd:'df -h', done:false},
+    ],
+  },
+
+  /* ── NEW 16 ── */
+  ssl_cert_expired: {
+    id:'ssl_cert_expired', severity:'critical', sevClass:'critical',
+    title:'SSL Certificate Expired', service:'nginx/tls',
+    description:'HTTPS returning SSL handshake failure. Monitoring shows cert validity 0 days. Users locked out of all services.',
+    timeLimit:200, points:500,
+    k8sPods:[
+      {name:'nginx-proxy-7d8f-xx3a1',  ready:'0/1', status:'Error',   restarts:8, age:'2h'},
+      {name:'frontend-6c8d9f-pp1kx',   ready:'1/1', status:'Running', restarts:0, age:'2d'},
+    ],
+    steps:[
+      {label:'Read nginx error log',      cmd:'cat',      arg:'/var/log/nginx/error.log',  hintCmd:'cat /var/log/nginx/error.log',              done:false},
+      {label:'Inspect certificate file',  cmd:'cat',      arg:'/etc/ssl/certs/server.crt', hintCmd:'cat /etc/ssl/certs/server.crt',             done:false},
+      {label:'Check expiry date',         cmd:'grep',     arg:'Not After',                 hintCmd:'cat /etc/ssl/certs/server.crt | grep "Not After"', done:false},
+      {label:'Update nginx cert path',    cmd:'vim',      arg:'/etc/nginx/nginx.conf',     hintCmd:'vim /etc/nginx/nginx.conf',                 done:false},
+      {label:'Save config (:wq)',         cmd:'vim_save', arg:'/etc/nginx/nginx.conf',     hintCmd:'(in vim)  :wq  to save updated cert path',  done:false},
+    ],
+  },
+  etcd_failure: {
+    id:'etcd_failure', severity:'critical', sevClass:'critical',
+    title:'etcd Cluster Unhealthy', service:'kube-system/etcd',
+    description:'kubectl calls timing out. etcd leader election failed. Control plane is degraded — no new deployments possible.',
+    timeLimit:240, points:600,
+    k8sPods:[
+      {name:'etcd-prod-node-01',           ready:'0/1', status:'Error',           restarts:5, age:'1h'},
+      {name:'kube-apiserver-prod-node-01', ready:'0/1', status:'CrashLoopBackOff',restarts:9, age:'1h'},
+      {name:'frontend-6c8d9f-pp1kx',       ready:'1/1', status:'Running',         restarts:0, age:'2d'},
+    ],
+    steps:[
+      {label:'Check control plane pods', cmd:'kubectl',    arg:'get pods',  hintCmd:'kubectl get pods',                          done:false},
+      {label:'Read etcd crash logs',     cmd:'kubectl',    arg:'logs etcd', hintCmd:'kubectl logs etcd-prod-node-01',            done:false},
+      {label:'Check system journal',     cmd:'journalctl', arg:'',          hintCmd:'journalctl',                                done:false},
+      {label:'Tail etcd log file',       cmd:'tail',       arg:'etcd.log',  hintCmd:'tail -f /var/log/etcd.log',                 done:false},
+      {label:'Verify cluster nodes',      cmd:'kubectl',    arg:'get nodes', hintCmd:'kubectl get nodes',                         done:false},
+    ],
+  },
+  node_notready: {
+    id:'node_notready', severity:'critical', sevClass:'critical',
+    title:'Node NotReady — Workloads Evicted', service:'prod-node-02',
+    description:'prod-node-02 transitioned to NotReady. 40% of pods evicted and stuck Pending. kubelet crash due to disk pressure.',
+    timeLimit:260, points:600,
+    k8sPods:[
+      {name:'api-deployment-7d9f4b-xk2p9',ready:'0/1', status:'Evicted', restarts:0, age:'5m'},
+      {name:'api-deployment-7d9f4b-new1',  ready:'0/1', status:'Pending', restarts:0, age:'2m'},
+      {name:'frontend-6c8d9f-pp1kx',       ready:'1/1', status:'Running', restarts:0, age:'2d'},
+    ],
+    steps:[
+      {label:'Check pod states',      cmd:'kubectl',    arg:'get pods',     hintCmd:'kubectl get pods',                                  done:false},
+      {label:'Describe evicted pod',  cmd:'kubectl',    arg:'describe pod', hintCmd:'kubectl describe pod api-deployment-7d9f4b-xk2p9',  done:false},
+      {label:'Check kubelet journal', cmd:'journalctl', arg:'',             hintCmd:'journalctl',                                        done:false},
+      {label:'Check node disk',       cmd:'df',         arg:'-h',           hintCmd:'df -h',                                             done:false},
+      {label:'Free disk space',       cmd:'rm',         arg:'*.hprof',      hintCmd:'rm /tmp/*.hprof',                                   done:false},
+    ],
+  },
+  db_conn_pool: {
+    id:'db_conn_pool', severity:'high', sevClass:'high',
+    title:'DB Connection Pool Exhausted', service:'postgres/api',
+    description:'API returning 503. PostgreSQL rejecting new connections. Max pool (100) reached by runaway workers.',
+    timeLimit:160, points:350,
+    steps:[
+      {label:'Tail application log',   cmd:'tail', arg:'app.log',    hintCmd:'tail -f /var/log/app.log',        done:false},
+      {label:'Grep connection errors', cmd:'grep', arg:'connection', hintCmd:'tail -f /var/log/app.log | grep connection', done:false},
+      {label:'List all processes',     cmd:'ps',   arg:'aux',        hintCmd:'ps aux',                          done:false},
+      {label:'Kill runaway workers',   cmd:'kill', arg:'-9',         hintCmd:'kill -9 7823',                    done:false},
+    ],
+  },
+  log_rotation_fail: {
+    id:'log_rotation_fail', severity:'high', sevClass:'high',
+    title:'Log Rotation Failure — Disk Full', service:'logrotate',
+    description:'logrotate cron job silently failing. /var/log consuming 40G. App write errors starting to appear.',
+    timeLimit:150, points:350,
+    steps:[
+      {label:'Check disk usage',        cmd:'df',   arg:'-h',       hintCmd:'df -h',                    done:false},
+      {label:'List files in /var/log',  cmd:'ls',   arg:'/var/log', hintCmd:'ls /var/log',              done:false},
+      {label:'Find all log files',      cmd:'find', arg:'/var/log', hintCmd:'find /var/log',            done:false},
+      {label:'Remove rotated logs',     cmd:'rm',   arg:'.log',     hintCmd:'rm /var/log/app.log.1',    done:false},
+    ],
+  },
+  network_policy_block: {
+    id:'network_policy_block', severity:'high', sevClass:'high',
+    title:'NetworkPolicy Blocking Traffic', service:'payment→database',
+    description:'payment-service cannot reach postgres:5432. NetworkPolicy tightened after audit. All payments failing.',
+    timeLimit:140, points:350,
+    k8sPods:[
+      {name:'payment-service-5f8b-qq2m3', ready:'1/1', status:'Running', restarts:12, age:'4h'},
+      {name:'postgres-0',                 ready:'1/1', status:'Running', restarts:0,  age:'5d'},
+      {name:'frontend-6c8d9f-pp1kx',      ready:'1/1', status:'Running', restarts:0,  age:'2d'},
+    ],
+    steps:[
+      {label:'Check pod states',        cmd:'kubectl', arg:'get pods',     hintCmd:'kubectl get pods',                                    done:false},
+      {label:'Describe payment pod',    cmd:'kubectl', arg:'describe pod', hintCmd:'kubectl describe pod payment-service-5f8b-qq2m3',     done:false},
+      {label:'Inspect network policies', cmd:'kubectl', arg:'get networkpolicies', hintCmd:'kubectl get networkpolicies',              done:false},
+    ],
+  },
+  resource_quota: {
+    id:'resource_quota', severity:'medium', sevClass:'medium',
+    title:'Namespace Quota Exceeded', service:'staging namespace',
+    description:'New deployments stuck in Pending. CPU/memory quota fully consumed by leaked batch jobs from last deploy.',
+    timeLimit:180, points:200,
+    k8sPods:[
+      {name:'worker-job-8b3f-vv9p1', ready:'0/1', status:'Pending', restarts:0, age:'20m'},
+      {name:'worker-job-8b3f-vv9p2', ready:'0/1', status:'Pending', restarts:0, age:'20m'},
+      {name:'frontend-6c8d9f-pp1kx', ready:'1/1', status:'Running', restarts:0, age:'2d'},
+    ],
+    steps:[
+      {label:'Check pod states',          cmd:'kubectl', arg:'get pods',        hintCmd:'kubectl get pods',                              done:false},
+      {label:'Check deployments',         cmd:'kubectl', arg:'get deployments', hintCmd:'kubectl get deployments',                       done:false},
+      {label:'Describe pending pod',      cmd:'kubectl', arg:'describe pod',    hintCmd:'kubectl describe pod worker-job-8b3f-vv9p1',    done:false},
+      {label:'Check namespace quota',     cmd:'kubectl', arg:'get resourcequota', hintCmd:'kubectl get resourcequota',                  done:false},
+    ],
+  },
+  configmap_missing: {
+    id:'configmap_missing', severity:'medium', sevClass:'medium',
+    title:'Missing ConfigMap — Pod Startup Fail', service:'worker-service',
+    description:'worker-service pods failing with "configmap not found". Config was accidentally deleted in last deploy.',
+    timeLimit:140, points:200,
+    k8sPods:[
+      {name:'worker-7f9b2c-rr4k2', ready:'0/1', status:'Error',   restarts:6, age:'30m'},
+      {name:'redis-0',             ready:'1/1', status:'Running', restarts:0, age:'5d'},
+    ],
+    steps:[
+      {label:'Check pod status',     cmd:'kubectl', arg:'get pods',    hintCmd:'kubectl get pods',                    done:false},
+      {label:'Read pod error logs',  cmd:'kubectl', arg:'logs worker', hintCmd:'kubectl logs worker-7f9b2c-rr4k2',    done:false},
+      {label:'Describe failing pod', cmd:'kubectl', arg:'describe pod',hintCmd:'kubectl describe pod worker-7f9b2c-rr4k2', done:false},
+    ],
+  },
+  secret_rotation: {
+    id:'secret_rotation', severity:'medium', sevClass:'medium',
+    title:'Secret Rotation Broke Auth', service:'auth-service',
+    description:'Secret rotated in Vault but not synced to K8s Secret. auth-service returning 401 on every request.',
+    timeLimit:160, points:200,
+    k8sPods:[
+      {name:'auth-service-6c9d-mm5k1', ready:'0/1', status:'CrashLoopBackOff', restarts:10, age:'45m'},
+      {name:'redis-0',                 ready:'1/1', status:'Running',           restarts:0,  age:'5d'},
+    ],
+    steps:[
+      {label:'Check pod states',        cmd:'kubectl', arg:'get pods',     hintCmd:'kubectl get pods',                             done:false},
+      {label:'Read auth crash logs',    cmd:'kubectl', arg:'logs auth',    hintCmd:'kubectl logs auth-service-6c9d-mm5k1',         done:false},
+      {label:'Describe failing pod',    cmd:'kubectl', arg:'describe pod', hintCmd:'kubectl describe pod auth-service-6c9d-mm5k1', done:false},
+      {label:'Rollback to last stable', cmd:'kubectl', arg:'rollout undo', hintCmd:'kubectl rollout undo deploy/auth-service',     done:false},
+    ],
+  },
+  hpa_not_scaling: {
+    id:'hpa_not_scaling', severity:'low', sevClass:'low',
+    title:'HPA Not Scaling Under Load', service:'api-deployment',
+    description:'Load test running but HPA stuck at min replicas. metrics-server not reporting CPU. API latency spiking.',
+    timeLimit:130, points:100,
+    steps:[
+      {label:'Check pod count',         cmd:'kubectl', arg:'get pods',        hintCmd:'kubectl get pods',                              done:false},
+      {label:'Check deployment state',  cmd:'kubectl', arg:'get deployments', hintCmd:'kubectl get deployments',                       done:false},
+      {label:'Inspect HPA status',       cmd:'kubectl', arg:'get hpa',          hintCmd:'kubectl get hpa',                                done:false},
+    ],
+  },
+  pvc_pending: {
+    id:'pvc_pending', severity:'medium', sevClass:'medium',
+    title:'PVC Stuck in Pending', service:'postgres',
+    description:'postgres pod cannot start. PersistentVolumeClaim stuck in Pending. No StorageClass matching provisioner found.',
+    timeLimit:160, points:200,
+    k8sPods:[
+      {name:'postgres-0', ready:'0/1', status:'Pending', restarts:0, age:'10m'},
+      {name:'redis-0',    ready:'1/1', status:'Running', restarts:0, age:'5d'},
+    ],
+    steps:[
+      {label:'Check pod states',     cmd:'kubectl', arg:'get pods',        hintCmd:'kubectl get pods',                done:false},
+      {label:'Check deployments',    cmd:'kubectl', arg:'get deployments', hintCmd:'kubectl get deployments',         done:false},
+      {label:'Describe pending pod', cmd:'kubectl', arg:'describe pod',    hintCmd:'kubectl describe pod postgres-0', done:false},
+      {label:'Check PVC status',     cmd:'kubectl', arg:'get pvc',          hintCmd:'kubectl get pvc',                            done:false},
+    ],
+  },
+  liveness_probe: {
+    id:'liveness_probe', severity:'low', sevClass:'low',
+    title:'Liveness Probe Misconfigured', service:'cache-service',
+    description:'cache-service restarting every 2 min. Liveness probe path changed in refactor but deployment not updated.',
+    timeLimit:140, points:100,
+    k8sPods:[
+      {name:'cache-service-9b3f-cc7r1', ready:'1/1', status:'Running', restarts:28, age:'1h'},
+      {name:'redis-0',                  ready:'1/1', status:'Running', restarts:0,  age:'5d'},
+    ],
+    steps:[
+      {label:'Check pod restarts',      cmd:'kubectl', arg:'get pods',     hintCmd:'kubectl get pods',                                done:false},
+      {label:'Read probe failure logs', cmd:'kubectl', arg:'logs cache',   hintCmd:'kubectl logs cache-service-9b3f-cc7r1',           done:false},
+      {label:'Describe probe config',   cmd:'kubectl', arg:'describe pod', hintCmd:'kubectl describe pod cache-service-9b3f-cc7r1',   done:false},
+      {label:'Rollback faulty deploy',  cmd:'kubectl', arg:'rollout undo', hintCmd:'kubectl rollout undo deploy/cache-service',       done:false},
+    ],
+  },
+  rbac_denied: {
+    id:'rbac_denied', severity:'medium', sevClass:'medium',
+    title:'RBAC Permissions Broken', service:'ci-runner',
+    description:'CI/CD pipeline failing. ci-runner cannot list pods or trigger deploys. Recent ClusterRole update removed required verbs.',
+    timeLimit:130, points:200,
+    k8sPods:[
+      {name:'ci-runner-7f9b-pp3k1', ready:'0/1', status:'Error',   restarts:4, age:'20m'},
+      {name:'redis-0',              ready:'1/1', status:'Running', restarts:0, age:'5d'},
+    ],
+    steps:[
+      {label:'Check pod status',     cmd:'kubectl', arg:'get pods', hintCmd:'kubectl get pods',                  done:false},
+      {label:'Read RBAC error logs', cmd:'kubectl', arg:'logs ci',  hintCmd:'kubectl logs ci-runner-7f9b-pp3k1', done:false},
+      {label:'Inspect RBAC roles',   cmd:'kubectl', arg:'get clusterrole', hintCmd:'kubectl get clusterrole',   done:false},
+    ],
+  },
+  docker_registry: {
+    id:'docker_registry', severity:'high', sevClass:'high',
+    title:'Docker Registry Auth Failure', service:'image-pull',
+    description:'All new pods failing ImagePullBackOff. Docker Hub rate limit hit. Registry pull secret expired in namespace.',
+    timeLimit:180, points:350,
+    k8sPods:[
+      {name:'api-deployment-new-5f9r3', ready:'0/1', status:'ImagePullBackOff', restarts:0, age:'5m'},
+      {name:'worker-7f9b2c-pp4n2',      ready:'0/1', status:'ImagePullBackOff', restarts:0, age:'5m'},
+      {name:'redis-0',                  ready:'1/1', status:'Running',           restarts:0, age:'5d'},
+    ],
+    steps:[
+      {label:'Check pod states',          cmd:'kubectl', arg:'get pods',     hintCmd:'kubectl get pods',                                done:false},
+      {label:'Describe pulling pod',      cmd:'kubectl', arg:'describe pod', hintCmd:'kubectl describe pod api-deployment-new-5f9r3',   done:false},
+      {label:'Check running containers',  cmd:'docker',  arg:'ps',           hintCmd:'docker ps',                                       done:false},
+      {label:'Pull image manually',       cmd:'docker',  arg:'pull',         hintCmd:'docker pull api-service:v1.2.0',                  done:false},
+      {label:'Verify pull secret exists', cmd:'kubectl', arg:'get secrets',   hintCmd:'kubectl get secrets',                             done:false},
+    ],
+  },
+  dns_fail: {
+    id:'dns_fail', severity:'high', sevClass:'high',
+    title:'DNS Resolution Failing in Pods', service:'coredns',
+    description:'Pods returning "Name or service not known". CoreDNS pod crashed after a bad ConfigMap update was applied.',
+    timeLimit:200, points:350,
+    k8sPods:[
+      {name:'coredns-7d9f4b-dns01',   ready:'0/1', status:'CrashLoopBackOff', restarts:12, age:'40m'},
+      {name:'frontend-6c8d9f-pp1kx',  ready:'1/1', status:'Running',           restarts:0,  age:'2d'},
+      {name:'redis-0',                ready:'1/1', status:'Running',           restarts:0,  age:'5d'},
+    ],
+    steps:[
+      {label:'Check pod states',        cmd:'kubectl', arg:'get pods',       hintCmd:'kubectl get pods',                      done:false},
+      {label:'Read CoreDNS crash logs', cmd:'kubectl', arg:'logs coredns',   hintCmd:'kubectl logs coredns-7d9f4b-dns01',     done:false},
+      {label:'Check DNS config file',   cmd:'cat',     arg:'/etc/resolv.conf',hintCmd:'cat /etc/resolv.conf',                done:false},
+      {label:'Rollback DNS configmap',  cmd:'kubectl', arg:'rollout undo',   hintCmd:'kubectl rollout undo deploy/coredns',   done:false},
+    ],
+  },
+  zombie_proc: {
+    id:'zombie_proc', severity:'medium', sevClass:'medium',
+    title:'Zombie Processes Consuming PIDs', service:'prod-node-01',
+    description:'PID namespace near exhaustion. 200+ zombie processes. Fork failures beginning. Systemd not reaping children.',
+    timeLimit:130, points:200,
+    steps:[
+      {label:'List all processes',      cmd:'ps',   arg:'aux',    hintCmd:'ps aux',                     done:false},
+      {label:'Filter zombie processes', cmd:'grep', arg:'zombie', hintCmd:'ps aux | grep zombie', done:false},
+      {label:'Kill zombie parent',      cmd:'kill', arg:'-9',     hintCmd:'kill -9 7825',               done:false},
+    ],
+  },
+};
+
+/* Level pools — scenarios are picked randomly each run so no two games are identical */
+const LEVEL_DEFS = [
+  {name:'Level 1', timer:260, pool:['disk_space','silent_deploy','hpa_not_scaling','disk_errors','liveness_probe'],                                                count:2, timeBonus:30},
+  {name:'Level 2', timer:300, pool:['oom_crash','docker_restart','cpu_spike','configmap_missing','zombie_proc','pvc_pending'],                                     count:3},
+  {name:'Level 3', timer:320, pool:['nginx_config','disk_space','docker_restart','network_policy_block','resource_quota','log_rotation_fail'],                    count:3},
+  {name:'Level 4', timer:300, pool:['crashloop','nginx_config','disk_errors','db_conn_pool','secret_rotation','rbac_denied'],                                     count:3, timeMultiplier:0.9},
+  {name:'Level 5', timer:310, pool:['ssl_cert_expired','crashloop','docker_registry','dns_fail','node_notready'],                                                 count:3, cascading:true},
+  {name:'Level 6', timer:280, pool:['etcd_failure','node_notready','ssl_cert_expired','dns_fail','db_conn_pool','resource_quota','docker_registry'],              count:3, timeMultiplier:0.85},
+  {name:'Level 7', timer:260, pool:['etcd_failure','crashloop','ssl_cert_expired','dns_fail','node_notready','docker_registry','db_conn_pool','nginx_config'],    count:3, timeMultiplier:0.8, cascading:true},
+  {name:'Level 8', timer:240, pool:['etcd_failure','crashloop','ssl_cert_expired','dns_fail','node_notready','docker_registry','db_conn_pool','nginx_config','network_policy_block','resource_quota'], count:3, timeMultiplier:0.75, cascading:true},
+];
+
+function shufflePick(arr, n) {
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a.slice(0,Math.min(n,a.length));
+}
+
+/* ======================================================
+   STATE
+====================================================== */
+const COMMANDS = [
+  'ls','cat','grep','ps','top','htop','df','find','rm','kill','echo','pwd','cd','tail','head',
+  'journalctl','docker','kubectl','vim','clear','help','hint','uname','whoami','hostname',
+  'uptime','date','free','netstat','ss','curl','wget','chmod','chown','cp','mv','touch','mkdir',
+  'du','wc','sort','uniq','ping','nslookup','dig','systemctl','service','env','printenv',
+  'which','man','history','ip','ifconfig','lsof','apt','apt-get','yum','dnf','crontab',
+  'awk','sed','export','alias','ssh','scp','git','helm','terraform',
+];
+
+let G = {
+  level:0, score:100, hearts:5,
+  masterTimer:0, masterInterval:null,
+  activeCard:null, incidents:[],
+  cmdHistory:[], histIdx:-1,
+  fs:{}, vimOpen:false, vimFile:null, vimMode:'normal',
+  acList:[], acIdx:-1,
+  cwd:'~', prevCwd:'~',
+  captureMode:false, captureBuffer:[],
+};
+
+function getPrompt() { return `root@prod-01:${G.cwd}#`; }
+function updatePromptEl() { const el=document.querySelector('.term-prompt'); if(el) el.textContent=getPrompt()+' '; }
+
+/* ======================================================
+   FILESYSTEM
+====================================================== */
+function buildFS() {
+  return {
+    '/':             {type:'dir'},
+    '/etc':          {type:'dir'},
+    '/etc/nginx':    {type:'dir'},
+    '/etc/nginx/nginx.conf': {type:'file', content:`worker_processes auto;\npid /run/nginx.pid;\nevents {\n    worker_connections 768;\n}\nhttp {\n    sendfile on;\n    tcp_nopush on;\n    include /etc/nginx/mime.types;\n    server {\n        listen 80\n        server_name example.com;\n        location / {\n            proxy_pass http://localhost:3000;\n        }\n    }\n}`},
+    '/var':          {type:'dir'},
+    '/var/log':      {type:'dir'},
+    '/var/log/nginx':{type:'dir'},
+    '/var/log/nginx/error.log':{type:'file', content:`2024/01/15 09:23:14 [emerg] 1#1: invalid parameter "server_name" in /etc/nginx/nginx.conf:42\n2024/01/15 09:23:14 [emerg] nginx: configuration file /etc/nginx/nginx.conf test failed\nnginx: [emerg] unexpected "}" in /etc/nginx/nginx.conf:58 — missing semicolon on previous line\n2024/01/15 09:23:18 [emerg] nginx: configuration file /etc/nginx/nginx.conf test failed`},
+    '/var/log/app.log':{type:'file', content:`[INFO]  2024-01-15 09:00:01 Starting DataTransformer pipeline v1.4.2\n[INFO]  2024-01-15 09:00:05 Connected to source database\n[WARN]  2024-01-15 09:10:45 DataTransformWorker memory usage high: 1.2GB\n[ERROR] 2024-01-15 09:11:02 DataTransformProcessor: OutOfMemoryError in processRecord()\n[ERROR] 2024-01-15 09:11:02 DataTransformCache: failed to evict entries - heap exhausted\n[ERROR] 2024-01-15 09:11:03 java.lang.OutOfMemoryError: Java heap space\n[ERROR] 2024-01-15 09:11:03 \tat com.company.DataTransformBatch.process(DataTransformBatch.java:142)\n[ERROR] 2024-01-15 09:11:03 \tat com.company.DataTransformWorker.run(DataTransformWorker.java:88)\n[FATAL] 2024-01-15 09:11:04 JVM heap exhausted, process dying`},
+    '/var/log/syslog':{type:'file', content:`Jan 15 09:00:01 prod-01 kernel: EXT4-fs error (device sda1): ext4_find_entry:1455\nJan 15 09:00:01 prod-01 kernel: EXT4-fs error (device sda1): bad entry in directory\nJan 15 09:12:44 prod-01 kernel: EXT4-fs (sda1): delayed block allocation failed for inode 28311\nJan 15 09:15:22 prod-01 kernel: Buffer I/O error on device sda1, logical block 2097152\nJan 15 09:18:01 prod-01 kernel: EXT4-fs (sda1): Remounting filesystem read-only\nJan 15 09:18:01 prod-01 kernel: SCSI error: return code = 0x08000002 — disk hardware failure suspected`},
+    '/tmp':          {type:'dir'},
+    '/tmp/heapdump_1705123200.hprof':{type:'file',content:'JVM heap dump 2.1G'},
+    '/tmp/heapdump_1705209600.hprof':{type:'file',content:'JVM heap dump 1.8G'},
+    '/tmp/heapdump_1705296000.hprof':{type:'file',content:'JVM heap dump 2.4G'},
+    '/tmp/heapdump_1705382400.hprof':{type:'file',content:'JVM heap dump 1.9G'},
+    '/home':         {type:'dir'},
+    '/home/root':    {type:'dir'},
+    '/root':         {type:'dir'},
+    '/root/.kube':   {type:'dir'},
+    '/root/.kube/config': {type:'file', content:`apiVersion: v1\nclusters:\n- cluster:\n    server: https://10.0.0.100:6443\n  name: prod-cluster\ncurrent-context: prod-cluster\ncontexts:\n- context:\n    cluster: prod-cluster\n    user: admin\n  name: prod-cluster\nusers:\n- name: admin`},
+    '/root/.bash_history': {type:'file', content:`kubectl get pods\nkubectl rollout undo deploy/api-deployment\ndf -h\nrm /tmp/*.hprof\nvim /etc/nginx/nginx.conf\nps aux | grep worker\nkill -9 7823\ndocker ps\ndocker logs payment-service\njournalctl`},
+    '/etc/hosts':    {type:'file', content:`127.0.0.1   localhost\n127.0.1.1   prod-node-01\n10.0.0.101  prod-node-01\n10.0.0.102  prod-node-02  # NotReady — disk pressure\n10.0.0.103  prod-node-03\n10.96.0.1   kubernetes.default.svc.cluster.local\n# NOTE: 10.96.0.10 (coredns) removed from hosts during last ConfigMap update`},
+    '/etc/ssl':      {type:'dir'},
+    '/etc/ssl/certs':{type:'dir'},
+    '/etc/ssl/certs/server.crt':{type:'file', content:`Certificate:\n    Data:\n        Version: 3 (0x2)\n        Issuer: CN=Let's Encrypt Authority X3, O=Let's Encrypt\n        Validity:\n            Not Before: Jan 15 00:00:00 2023 GMT\n            Not After : Jan 15 00:00:00 2024 GMT  ← EXPIRED (91 days ago)\n        Subject: CN=example.com\n        Subject Alternative Names:\n            DNS:example.com, DNS:www.example.com\n        SHA256 Fingerprint: A1:B2:C3:D4:E5:F6:07:89:...\nStatus: EXPIRED — renewal required`},
+    '/etc/resolv.conf':{type:'file', content:`# DNS resolver configuration — prod-node-01\n# Generated by systemd-resolved\nnameserver 127.0.0.53\nnameserver 8.8.8.8\noptions edns0 trust-ad\nsearch default.svc.cluster.local svc.cluster.local cluster.local\n# WARNING: cluster DNS 10.96.0.10 removed during last CoreDNS ConfigMap update\n# Pods cannot resolve cluster-internal service names`},
+    '/var/log/etcd.log':{type:'file', content:`2024/01/15 09:00:01 etcd: started with id=1 state=Follower\n2024/01/15 09:10:15 etcd: failed to send out heartbeat on time (exceeded election timeout)\n2024/01/15 09:10:22 etcd: lost leader due to heartbeat timeout — starting election\n2024/01/15 09:10:22 raft: node 1 lost leader 2 at term 14\n2024/01/15 09:10:23 CRITICAL: raft: failed to send message — all members unreachable\n2024/01/15 09:10:24 etcd: cluster is unavailable — no reachable member found\n2024/01/15 09:10:25 etcd: request cluster ID mismatch (got f4fc56e3 want 1234abcd)`},
+  };
+}
+
+const K8S = {
+  pods:[
+    {name:'api-deployment-7d9f4b-xk2p9', ready:'0/1', status:'CrashLoopBackOff', restarts:12, age:'23m'},
+    {name:'api-deployment-7d9f4b-mn3q1', ready:'0/1', status:'CrashLoopBackOff', restarts:11, age:'23m'},
+    {name:'frontend-6c8d9f-pp1kx',       ready:'1/1', status:'Running',          restarts:0,  age:'2d'},
+    {name:'redis-0',                      ready:'1/1', status:'Running',          restarts:0,  age:'5d'},
+    {name:'payment-service-5f8b-qq2m3',  ready:'1/1', status:'Running',          restarts:3,  age:'4h'},
+  ],
+  deployments:[
+    {name:'api-deployment',  ready:'0/2', upToDate:2, available:0, age:'23m'},
+    {name:'frontend',        ready:'1/1', upToDate:1, available:1, age:'2d'},
+    {name:'payment-service', ready:'1/1', upToDate:1, available:1, age:'4h'},
+  ],
+  rolloutHistory:{
+    'api-deployment':['REVISION 1: image=api-service:v1.2.0 (stable)','REVISION 2: image=api-service:v1.3.0-beta (BROKEN — missing env config)'],
+    'frontend':['REVISION 1: image=frontend:v2.1.0','REVISION 2: image=frontend:v2.2.0','REVISION 3: image=frontend:v2.3.0 (deployed — no pod updates detected)'],
+  },
+  docker:[
+    {id:'a1b2c3d4', image:'nginx:1.24.0',              name:'nginx-proxy',     status:'Up 2 hours',                   ports:'80->80/tcp'},
+    {id:'b2c3d4e5', image:'payment-service:v1.3.0-bad',name:'payment-service', status:'Restarting (1) 25 seconds ago',ports:'8080->8080/tcp'},
+    {id:'c3d4e5f6', image:'redis:7.0',                 name:'redis',           status:'Up 5 days',                    ports:'6379->6379/tcp'},
+    {id:'d4e5f6a1', image:'prometheus:v2.45.0',        name:'prometheus',      status:'Up 12 hours',                  ports:'9090->9090/tcp'},
+  ],
+};
+
+/* ======================================================
+   HINT — shows ONLY current step's command
+====================================================== */
+function triggerHint() {
+  const idx = G.activeCard;
+  if(idx === null) { T('e','No active incident selected. Click a card first.'); scrollT(); return; }
+  const inc = G.incidents[idx];
+  if(!inc) return;
+  const s = SC[inc.scenarioId];
+  if(inc.solved) { T('s','✅ This incident is already resolved.'); scrollT(); return; }
+  const step = s.steps.find(st => !st.done);
+  if(!step) return;
+  T('i', `💡 HINT — current step: "${step.label}"`);
+  T('h', `   ▶  ${step.hintCmd}`);
+  scrollT();
+}
+
+/* ======================================================
+   COMMAND PROCESSOR
+====================================================== */
+function dispatchCmd(cmd, args, astr) {
+  switch(cmd) {
+    case 'help':       doHelp(); break;
+    case 'hint':       triggerHint(); break;
+    case 'clear':      if(!G.captureMode) document.getElementById('termOut').innerHTML=''; break;
+    case 'ls':         doLs(args); break;
+    case 'cat':        doCat(args); break;
+    case 'grep':       doGrep(args); break;
+    case 'ps':         doPs(); break;
+    case 'top': case 'htop': doTop(); break;
+    case 'df':         doDf(); break;
+    case 'find':       doFind(args); break;
+    case 'rm':         doRm(args); break;
+    case 'kill':       doKill(args); break;
+    case 'echo':       T('o', xh(astr)); break;
+    case 'pwd':        T('o', G.cwd==='~'?'/root':G.cwd); break;
+    case 'cd':         doCd(args); break;
+    case 'tail':       doTail(args); break;
+    case 'head':       doHead(args); break;
+    case 'journalctl': doJctl(args); break;
+    case 'docker':     doDocker(args); break;
+    case 'kubectl':    doKubectl(args); break;
+    case 'vim':        doVim(args); break;
+    case 'uname':      doUname(args); break;
+    case 'whoami':     T('o','root'); break;
+    case 'hostname':   T('o','prod-node-01'); break;
+    case 'uptime':     doUptime(); break;
+    case 'date':       T('o', new Date().toUTCString()); break;
+    case 'free':       doFree(); break;
+    case 'netstat':    doNetstat(); break;
+    case 'ss':         doSs(); break;
+    case 'curl':       doCurl(args); break;
+    case 'wget':       doWget(args); break;
+    case 'chmod': case 'chown': T('o',''); break;
+    case 'cp':         doCp(args); break;
+    case 'mv':         doMv(args); break;
+    case 'touch':      doTouch(args); break;
+    case 'mkdir':      doMkdir(args); break;
+    case 'du':         doDu(args); break;
+    case 'wc':         doWc(args); break;
+    case 'sort':       doSort(args); break;
+    case 'uniq':       T('o','(pipe output to uniq)'); break;
+    case 'ping':       doPing(args); break;
+    case 'nslookup':   doNslookup(args); break;
+    case 'dig':        doDig(args); break;
+    case 'systemctl':  doSystemctl(args); break;
+    case 'service':    doService(args); break;
+    case 'crontab':    doCrontab(args); break;
+    case 'env': case 'printenv': doEnv(); break;
+    case 'export':     T('o',''); break;
+    case 'which':      doWhich(args); break;
+    case 'man':        doMan(args); break;
+    case 'history':    doHistory(); break;
+    case 'ip':         doIp(args); break;
+    case 'ifconfig':   doIfconfig(); break;
+    case 'lsof':       doLsof(); break;
+    case 'apt': case 'apt-get': doApt(args); break;
+    case 'yum': case 'dnf':     doYum(args); break;
+    case 'awk':        T('o','(awk requires stdin — use with a pipe or file)'); break;
+    case 'sed':        T('o','(sed in-place edit not supported — use vim)'); break;
+    case 'alias':      T('o','alias ll=\'ls -la\''); break;
+    case 'ssh':        T('e','ssh: connect to host remote: Connection timed out (no external access in sandbox)'); break;
+    case 'git':        doGit(args); break;
+    case 'helm':       doHelm(args); break;
+    case 'terraform':  T('e','terraform: binary not installed. Run: apt install terraform'); break;
+    default: T('e',`bash: ${xh(cmd)}: command not found`);
+  }
+}
+
+function run(raw) {
+  const input = raw.trim(); if(!input) return;
+  G.cmdHistory.unshift(input); G.histIdx = -1;
+  hideAC();
+  T('p', `${getPrompt()} ${xh(input)}`);
+  if(input.includes(' | ')) { runPiped(input); scrollT(); return; }
+  const parts = input.split(/\s+/);
+  const cmd = parts[0].toLowerCase();
+  const args = parts.slice(1);
+  const astr = args.join(' ');
+  checkStep(cmd, astr);
+  dispatchCmd(cmd, args, astr);
+  scrollT();
+}
+
+function runPiped(input) {
+  const idx = input.lastIndexOf(' | ');
+  const leftRaw = input.slice(0, idx).trim();
+  const rightRaw = input.slice(idx + 3).trim();
+  const lParts = leftRaw.split(/\s+/);
+  const lCmd = lParts[0].toLowerCase();
+  const lArgs = lParts.slice(1);
+  const lAstr = lArgs.join(' ');
+  checkStep(lCmd, lAstr);
+  // Also check right side if it's a grep step
+  const rParts0 = rightRaw.trim().split(/\s+/);
+  if(rParts0[0].toLowerCase() === 'grep') checkStep('grep', rParts0.slice(1).join(' '));
+  // Capture left side output
+  G.captureMode = true; G.captureBuffer = [];
+  dispatchCmd(lCmd, lArgs, lAstr);
+  G.captureMode = false;
+  const lines = [...G.captureBuffer]; G.captureBuffer = [];
+  // Apply right side filter
+  const rParts = rightRaw.split(/\s+/);
+  const rCmd = rParts[0].toLowerCase(); const rArgs = rParts.slice(1);
+  if(rCmd === 'grep') {
+    const pat = rArgs.join(' ').replace(/^['"]|['"]$/g, '');
+    const re = new RegExp(pat, 'gi'); let count = 0;
+    lines.forEach(l => {
+      const txt = l.html.replace(/<[^>]+>/g, '');
+      if(re.test(txt)) {
+        count++;
+        T(l.cls, l.html.replace(new RegExp(pat,'gi'), m=>`<span style="background:rgba(255,183,0,.3);color:var(--amber)">${m}</span>`));
+      }
+    });
+    if(!count) T('o','(no matches)');
+  } else if(rCmd === 'wc' && rArgs[0] === '-l') {
+    T('o', String(lines.filter(l=>l.cls!=='p').length));
+  } else if(rCmd === 'head') {
+    const n = parseInt(rArgs[1]||rArgs[0]) || 10;
+    lines.slice(0, n).forEach(l => T(l.cls, l.html));
+  } else if(rCmd === 'tail') {
+    const n = parseInt(rArgs[1]||rArgs[0]) || 10;
+    lines.slice(-n).forEach(l => T(l.cls, l.html));
+  } else if(rCmd === 'sort') {
+    [...lines].sort((a,b)=>a.html.replace(/<[^>]+>/g,'').localeCompare(b.html.replace(/<[^>]+>/g,''))).forEach(l=>T(l.cls,l.html));
+  } else if(rCmd === 'uniq') {
+    const seen = new Set();
+    lines.forEach(l=>{ if(!seen.has(l.html)){seen.add(l.html);T(l.cls,l.html);} });
+  } else {
+    lines.forEach(l => T(l.cls, l.html));
+    T('e', `bash: ${xh(rCmd)}: command not found`);
+  }
+}
+
+function checkStep(cmd, astr) {
+  const idx = G.activeCard;
+  if(idx === null) return;
+  const inc = G.incidents[idx];
+  if(!inc || inc.solved) return;
+  const s = SC[inc.scenarioId];
+  const step = s.steps.find(st => !st.done);
+  if(!step) return;
+  let ok = false;
+  if(step.cmd==='cat'        && cmd==='cat'        && astr.includes(step.arg)) ok=true;
+  if(step.cmd==='vim'        && cmd==='vim') ok=true;
+  if(step.cmd==='vim_save') return;
+  if(step.cmd==='df'         && cmd==='df')  ok=true;
+  if(step.cmd==='ls'         && cmd==='ls'   && (astr.includes(step.arg)||astr.includes('/tmp')||astr.includes('tmp'))) ok=true;
+  if(step.cmd==='rm'         && cmd==='rm'   && (astr.includes(step.arg)||astr.includes('.hprof')||astr.includes('.log')||astr.includes('/tmp'))) ok=true;
+  if(step.cmd==='ps'         && cmd==='ps')  ok=true;
+  if(step.cmd==='grep'       && cmd==='grep' && astr.toLowerCase().includes(step.arg.toLowerCase())) ok=true;
+  if(step.cmd==='tail'       && cmd==='tail') ok=true;
+  if(step.cmd==='kill'       && cmd==='kill' && astr.includes('-9')) ok=true;
+  if(step.cmd==='find'       && cmd==='find') ok=true;
+  if(step.cmd==='journalctl' && cmd==='journalctl') ok=true;
+  if(step.cmd==='kubectl' && cmd==='kubectl') {
+    if(step.arg==='get pods'        && astr.includes('get pods'))        ok=true;
+    if(step.arg.startsWith('logs')  && astr.startsWith('logs'))          ok=true;
+    if(step.arg==='rollout undo'    && astr.includes('rollout undo'))    ok=true;
+    if(step.arg==='get deployments' && astr.includes('get deployments')) ok=true;
+    if(step.arg==='rollout history' && astr.includes('rollout history')) ok=true;
+    if(step.arg==='describe pod'         && astr.includes('describe pod'))         ok=true;
+    if(step.arg==='get nodes'            && astr.includes('get nodes'))            ok=true;
+    if(step.arg==='get networkpolicies'  && astr.includes('get networkpolicies'))  ok=true;
+    if(step.arg==='get resourcequota'    && astr.includes('get resourcequota'))    ok=true;
+    if(step.arg==='get hpa'              && astr.includes('get hpa'))              ok=true;
+    if(step.arg==='get pvc'              && astr.includes('get pvc'))              ok=true;
+    if(step.arg==='get clusterrole'      && astr.includes('get clusterrole'))      ok=true;
+    if(step.arg==='get secrets'          && astr.includes('get secrets'))          ok=true;
+  }
+  if(step.cmd==='docker' && cmd==='docker') {
+    if(step.arg==='ps'   && astr==='ps')           ok=true;
+    if(step.arg==='logs' && astr.includes('logs')) ok=true;
+    if(step.arg==='pull' && astr.includes('pull')) ok=true;
+  }
+  if(ok) {
+    step.done = true; renderCard(idx);
+    if(s.steps.every(st=>st.done)) { solveIncident(idx); }
+    else {
+      const nx = s.steps.find(st=>!st.done);
+      T('h',`✓ Step done. Next: "${nx.label}" — press 💡 HINT for the command`);
+    }
+  }
+}
+
+function solveIncident(idx) {
+  const inc = G.incidents[idx];
+  const s   = SC[inc.scenarioId];
+  const pct = inc.timeLeft / s.timeLimit;
+  const bonus = Math.floor(s.points * pct);
+  const total = s.points + bonus;
+  inc.solved = true; inc.earnedPts = total;
+  G.score += total;
+  clearInterval(inc.interval);
+  T('s',`✅ INCIDENT RESOLVED: ${s.title}`);
+  T('s',`   Base: ${s.points}pts + Time bonus: ${bonus}pts = +${total}pts`);
+  updateTopBar(); renderCard(idx); scorePop();
+  if(G.incidents.every(i=>i.solved)) setTimeout(levelComplete,1500);
+}
+
+/* ======================================================
+   INDIVIDUAL COMMANDS
+====================================================== */
+function doHelp() {
+  T('i','┌─ DevOps Survival — Command Reference ──────────────────────────────────');
+  T('o','');
+  T('i','  FILES & TEXT');
+  T('o','  ls [path]           cat &lt;file&gt;          head/tail -n N &lt;file&gt;');
+  T('o','  grep &lt;pat&gt; &lt;file&gt;   find &lt;path&gt;         wc -l &lt;file&gt;');
+  T('o','  rm &lt;file&gt;           cp &lt;src&gt; &lt;dst&gt;      mv &lt;src&gt; &lt;dst&gt;');
+  T('o','  touch &lt;file&gt;        mkdir &lt;dir&gt;         vim &lt;file&gt;  (i / :wq / :q!)');
+  T('o','');
+  T('i','  SYSTEM');
+  T('o','  ps aux   top/htop   free -h   df -h   du -h   lsof   uptime');
+  T('o','  kill -9 &lt;pid&gt;   uname -a   env   which &lt;cmd&gt;   history   date');
+  T('o','  systemctl status|restart|stop &lt;svc&gt;   journalctl   crontab -l');
+  T('o','');
+  T('i','  NETWORK');
+  T('o','  ping &lt;host&gt;   curl -I &lt;url&gt;   wget &lt;url&gt;   netstat / ss');
+  T('o','  ip a / ip r   ifconfig   nslookup &lt;host&gt;   dig &lt;host&gt;');
+  T('o','');
+  T('i','  CONTAINERS & ORCHESTRATION');
+  T('o','  docker ps | logs &lt;name&gt; | pull &lt;image&gt; | stats | exec -it &lt;c&gt; sh');
+  T('o','  kubectl get pods | get deployments | get svc | get events');
+  T('o','  kubectl logs &lt;pod&gt; | describe pod &lt;p&gt; | rollout undo/history');
+  T('o','  kubectl apply -f &lt;file&gt; | delete pod &lt;p&gt; | exec -it &lt;p&gt; sh');
+  T('o','  helm ls | upgrade | rollback   git log | status | diff');
+  T('o','');
+  T('i','  PIPES  (chain any commands)');
+  T('o','  cmd | grep &lt;pattern&gt;   cmd | wc -l   cmd | head -n 10   cmd | tail -n 20   cmd | sort');
+  T('o','');
+  T('i','  TIPS');
+  T('o','  TAB — autocomplete commands &amp; paths   ↑↓ — command history');
+  T('o','  hint / F1 — show exact next command for active incident');
+  T('o','  clear — clear terminal');
+  T('i','└────────────────────────────────────────────────────────────────────────');
+}
+
+function doLs(args) {
+  const cwd = G.cwd==='~' ? '/root' : G.cwd;
+  const p = args[0]||cwd;
+  if(p.includes('tmp')) {
+    const hprofs = Object.keys(G.fs).filter(k=>k.includes('.hprof'));
+    if(!hprofs.length){T('o','total 0');return;}
+    T('o','total 8.2G');
+    hprofs.forEach(f=>T('o',`-rw-r--r-- 1 root root 2.1G Jan 15 09:00 ${f.split('/').pop()}`));
+    return;
+  }
+  if(p.includes('/var/log')||p==='log') {
+    T('o','total 41G');
+    T('o',`<span style="color:var(--red)">-rw-r--r-- 1 root root  12G Jan 15 09:18 app.log</span>`);
+    T('o',`<span style="color:var(--red)">-rw-r--r-- 1 root root   8G Jan 14 23:59 app.log.1</span>`);
+    T('o',`<span style="color:var(--red)">-rw-r--r-- 1 root root   7G Jan 13 23:59 app.log.2</span>`);
+    T('o','-rw-r--r-- 1 root root 124M Jan 15 09:18 nginx/access.log');
+    T('o','-rw-r--r-- 1 root root  14M Jan 15 09:18 nginx/error.log');
+    T('o','-rw-r--r-- 1 root root  22M Jan 15 09:18 syslog');
+    return;
+  }
+  const norm = p.endsWith('/')?p.slice(0,-1):p;
+  const entries = Object.keys(G.fs).filter(k=>{
+    const par = k.substring(0,k.lastIndexOf('/'))||'/';
+    return par===norm && k!==norm;
+  });
+  if(!entries.length){T('e',`ls: cannot access '${p}': No such file or directory`);return;}
+  entries.forEach(e=>{
+    const n=e.split('/').pop();
+    if(G.fs[e]&&G.fs[e].type==='dir') T('o',`<span style="color:var(--blue)">${n}/</span>`);
+    else T('o',n);
+  });
+}
+
+function doCat(args) {
+  if(!args[0]){T('e','cat: missing file operand');return;}
+  let p=args[0]; if(!p.startsWith('/')) p='/var/log/'+p;
+  const f=G.fs[p];
+  if(!f||f.type==='dir'){T('e',`cat: ${args[0]}: No such file or directory`);return;}
+  f.content.split('\n').forEach(l=>T('o',xh(l)));
+}
+
+function doGrep(args) {
+  if(args.length<2){T('e','Usage: grep <pattern> <file>');return;}
+  const pat=args[0]; let p=args[1];
+  if(!p.startsWith('/')) p='/var/log/'+p;
+  const f=G.fs[p];
+  if(!f){T('e',`grep: ${args[1]}: No such file or directory`);return;}
+  const re=new RegExp(pat,'gi');
+  const lines=f.content.split('\n').filter(l=>re.test(l));
+  if(!lines.length){T('o','(no matches)');return;}
+  lines.forEach(l=>T('o',xh(l).replace(new RegExp(pat,'gi'),m=>`<span style="background:rgba(255,183,0,.3);color:var(--amber)">${m}</span>`)));
+}
+
+function doPs() {
+  T('o','USER       PID %CPU %MEM  COMMAND');
+  T('o','root         1  0.0  0.1  /sbin/init');
+  T('o','root       847  0.2  0.4  /usr/sbin/sshd');
+  T('o',`<span style="color:var(--red)">www-data  7823 <b>92.4</b>  8.1  worker --max-old-space-size=512</span>`);
+  T('o',`<span style="color:var(--red)">www-data  7824 <b>89.2</b>  7.9  worker --max-old-space-size=512</span>`);
+  T('o',`<span style="color:var(--red)">www-data  7825 <b>88.7</b>  7.8  worker --max-old-space-size=512</span>`);
+  T('o','root      8001  0.0  0.1  bash');
+}
+
+function doTop() {
+  T('i','top - 09:23:45  load average: 5.21, 8.14, 9.43');
+  T('o',`<span style="color:var(--red)">%Cpu: 97.8 us — CRITICAL LOAD</span>`);
+  T('o','  PID  USER      %CPU  %MEM  COMMAND');
+  T('o',`<span style="color:var(--red)"> 7823  www-data  92.4   8.1   worker --max-old-space-size=512</span>`);
+  T('o',`<span style="color:var(--red)"> 7824  www-data  89.2   7.9   worker --max-old-space-size=512</span>`);
+  T('o',`<span style="color:var(--red)"> 7825  www-data  88.7   7.8   worker --max-old-space-size=512</span>`);
+}
+
+function doDf() {
+  T('o','Filesystem      Size  Used Avail Use% Mounted on');
+  T('o',`<span style="color:var(--red)">/dev/sda1        50G   48G  1.0G  <b>97%</b> /</span>`);
+  T('o','tmpfs           3.2G  612M  2.6G  19% /dev/shm');
+  T('o','/dev/sda2       200G   82G  118G  41% /data');
+}
+
+function doFind(args) {
+  const p=args[0]||'/';
+  if(p.includes('/var/log')||p==='log') {
+    T('o','/var/log/app.log  (12G)');
+    T('o',`<span style="color:var(--red)">/var/log/app.log.1  (8G)</span>`);
+    T('o',`<span style="color:var(--red)">/var/log/app.log.2  (7G)</span>`);
+    T('o',`<span style="color:var(--red)">/var/log/app.log.3  (6G)</span>`);
+    T('o','/var/log/syslog  (22M)');
+    T('o','/var/log/nginx/access.log  (124M)');
+    T('o','/var/log/nginx/error.log  (14M)');
+    T('o','/var/log/etcd.log  (45M)');
+    return;
+  }
+  Object.keys(G.fs).filter(k=>k.startsWith(p)&&k!==p).forEach(k=>T('o',k));
+}
+
+function doRm(args) {
+  if(!args[0]){T('e','rm: missing operand');return;}
+  const pat=args[args.length-1];
+  if(pat.includes('.hprof')||pat.includes('/tmp')) {
+    const keys=Object.keys(G.fs).filter(k=>k.includes('.hprof'));
+    if(!keys.length){T('o','rm: no .hprof files found');return;}
+    keys.forEach(k=>{delete G.fs[k]; T('o',`removed '${k}'`);});
+    T('s','8.2G freed — disk usage now at 81%');
+  } else if(pat.includes('.log')) {
+    T('o',`removed '/var/log/app.log.1'`);
+    T('o',`removed '/var/log/app.log.2'`);
+    T('o',`removed '/var/log/app.log.3'`);
+    T('s','21G freed — disk usage now at 55%');
+  } else {
+    const p=args[0].startsWith('/')?args[0]:'/'+args[0];
+    if(G.fs[p]){delete G.fs[p]; T('o',`removed '${args[0]}'`);}
+    else T('e',`rm: cannot remove '${args[0]}': No such file or directory`);
+  }
+}
+
+function doKill(args) {
+  const pid=parseInt(args[args.length-1]);
+  if(isNaN(pid)){T('e','kill: usage: kill -9 <pid>');return;}
+  if([7823,7824,7825].includes(pid)) T('s',`[Killed] PID ${pid} worker — CPU usage dropping`);
+  else T('e',`kill: (${pid}) — No such process`);
+}
+
+function doTail(args) {
+  let p=args[args.length-1]; if(!p.startsWith('/')) p='/var/log/'+p;
+  const f=G.fs[p];
+  if(!f){T('e',`tail: ${args[args.length-1]}: No such file or directory`);return;}
+  f.content.split('\n').slice(-20).forEach(l=>T('o',xh(l)));
+}
+
+function doJctl(args) {
+  const astr = (args||[]).join(' ');
+  T('o','-- Logs begin at Mon 2024-01-15 09:00:01 UTC; up 142 days --');
+  T('o','Jan 15 09:00:01 prod-01 systemd[1]: Started docker.service.');
+  T('o','Jan 15 09:00:04 prod-01 systemd[1]: Started nginx.service.');
+  if(astr.includes('kubelet')||astr.includes('-u kubelet')||!astr.length){
+    T('e',`<span style="color:var(--red)">Jan 15 09:08:34 prod-01 kubelet[892]: E NodeController: disk pressure threshold 10% — eviction started</span>`);
+    T('e',`<span style="color:var(--red)">Jan 15 09:10:01 prod-01 kubelet[892]: FATAL: OOMKilled — kubelet process terminated (ephemeral-storage)</span>`);
+  }
+  T('e',`<span style="color:var(--red)">Jan 15 09:12:01 prod-01 kernel: EXT4-fs error (device sda1): bad entry in directory</span>`);
+  T('e',`<span style="color:var(--red)">Jan 15 09:18:01 prod-01 kernel: EXT4-fs (sda1): Remounting filesystem read-only</span>`);
+  T('o','Jan 15 09:18:33 prod-01 sshd[1022]: Accepted publickey for root from 10.0.0.5');
+  T('o','Jan 15 09:22:00 prod-01 systemd[1]: cron.service: main process exited, restarting...');
+}
+
+function doDocker(args) {
+  const sub=args[0];
+  if(sub==='ps') {
+    T('o','CONTAINER ID  IMAGE                           STATUS                       NAMES');
+    K8S.docker.forEach(c=>{
+      const col=c.status.includes('Restart')?'color:var(--red)':'color:var(--green)';
+      T('o',`<span style="${col}">${c.id}  ${c.image.padEnd(33)}${c.status.padEnd(30)} ${c.name}</span>`);
+    });
+  } else if(sub==='logs') {
+    const nm=args[1]||'';
+    if(nm.includes('payment')){
+      T('e','Error: DB_HOST env var not set — check deployment config');
+      T('e','FATAL: Cannot start without database connection. Exiting.');
+    } else T('e',`Error: No such container: ${nm||'(name required)'}`);
+  } else if(sub==='pull') {
+    const img=args[1]||'';
+    T('o',`Pulling ${img}...`);
+    T('o','Digest: sha256:a1b2c3d4e5f6789012345678');
+    T('s',`Downloaded newer image for ${img}`);
+    if(img.includes('stable')) T('s','✅ Stable image pulled. Container restarting with healthy build.');
+  } else if(sub==='stats') {
+    T('o','CONTAINER ID  NAME              CPU %   MEM USAGE / LIMIT   MEM %   NET I/O');
+    T('o',`<span style="color:var(--green)">a1b2c3d4      nginx-proxy       0.2%    48MiB / 512MiB      9.4%    1.2MB/400KB</span>`);
+    T('o',`<span style="color:var(--red)">b2c3d4e5      payment-service   0.0%    0B / 512MiB         0.0%    0B/0B  (RESTARTING)</span>`);
+    T('o',`<span style="color:var(--green)">c3d4e5f6      redis             1.1%    89MiB / 512MiB      17.4%   4.5MB/2.1MB</span>`);
+    T('o',`<span style="color:var(--green)">d4e5f6a1      prometheus        2.3%    312MiB / 2GiB       15.2%   890KB/120KB</span>`);
+  } else if(sub==='exec') {
+    T('e',`docker exec: interactive exec not supported in this terminal sandbox`);
+  } else if(sub==='inspect') {
+    const c=args[1]||'container';
+    T('o',`[{`);
+    T('o',`  "Id": "a1b2c3d4e5f6...",`);
+    T('o',`  "Name": "/${xh(c)}",`);
+    T('o',`  "State": {"Status": "running", "Pid": 1234}`);
+    T('o',`}]`);
+  } else T('e',`docker: '${xh(sub)}' is not a docker command. See 'docker help'.`);
+}
+
+function doKubectl(args) {
+  const s=args[0], s2=args[1];
+  const ai=G.activeCard;
+  const sid=ai!==null&&G.incidents[ai]?G.incidents[ai].scenarioId:'';
+  if(s==='get'&&s2==='pods'){
+    const pods=(sid&&SC[sid]&&SC[sid].k8sPods)?SC[sid].k8sPods:K8S.pods;
+    T('o','NAME                                    READY  STATUS              RESTARTS  AGE');
+    pods.forEach(p=>{
+      const bad=['CrashLoopBackOff','Error','ImagePullBackOff','Evicted','Pending'];
+      const c=bad.includes(p.status)?'color:var(--red)':p.restarts>10?'color:var(--amber)':'color:var(--green)';
+      T('o',`<span style="${c}">${p.name.padEnd(40)} ${p.ready.padEnd(7)} ${p.status.padEnd(20)} ${String(p.restarts).padEnd(10)} ${p.age}</span>`);
+    });
+  } else if(s==='get'&&s2==='deployments'){
+    T('o','NAME               READY   UP-TO-DATE   AVAILABLE   AGE');
+    K8S.deployments.forEach(d=>{
+      const c=d.available===0?'color:var(--red)':'';
+      T('o',`<span style="${c}">${d.name.padEnd(19)} ${d.ready.padEnd(8)} ${String(d.upToDate).padEnd(13)} ${String(d.available).padEnd(12)} ${d.age}</span>`);
+    });
+  } else if(s==='get'&&(s2==='svc'||s2==='services'||s2==='service')) {
+    T('o','NAME               TYPE        CLUSTER-IP      PORT(S)          AGE');
+    T('o',`<span style="color:var(--green)">kubernetes         ClusterIP   10.96.0.1       443/TCP          142d</span>`);
+    T('o',`<span style="color:var(--green)">redis              ClusterIP   10.96.1.10      6379/TCP         5d</span>`);
+    T('o',`<span style="color:var(--amber)">api-service        NodePort    10.96.2.20      8080:30080/TCP   23m  ← endpoint not ready</span>`);
+    T('o',`<span style="color:var(--green)">frontend           ClusterIP   10.96.3.30      80/TCP           2d</span>`);
+    T('o',`<span style="color:var(--green)">postgres           ClusterIP   10.96.4.40      5432/TCP         5d</span>`);
+  } else if(s==='get'&&(s2==='events'||s2==='event')) {
+    T('o','LAST SEEN   TYPE      REASON              OBJECT                           MESSAGE');
+    T('e',`<span style="color:var(--red)">2m          Warning   BackOff             pod/api-deployment-7d9f4b-xk2p9  Back-off restarting failed container</span>`);
+    T('e',`<span style="color:var(--red)">5m          Warning   OOMKilling          pod/api-deployment-7d9f4b-xk2p9  OOM killer ran, victim process: api-service</span>`);
+    T('o',`<span style="color:var(--amber)">10m         Warning   NodeNotReady        node/prod-node-02                node is not ready</span>`);
+    T('o',`<span style="color:var(--amber)">12m         Warning   EvictionThreshold   node/prod-node-02                Disk pressure eviction triggered</span>`);
+    T('o',`25m         Normal    Pulled              pod/redis-0                      Successfully pulled image "redis:7.0"`);
+  } else if(s==='apply') {
+    const f = args[2] || 'manifest.yaml';
+    T('s',`configured from ${xh(f)}`);
+  } else if(s==='delete') {
+    const obj = args.slice(1).join(' ');
+    T('s',`${xh(obj)} deleted`);
+  } else if(s==='exec') {
+    T('e',`kubectl exec: interactive shell not supported in this terminal sandbox`);
+  } else if(s==='logs'){
+    const pod=args.slice(1).join(' ');
+    if(pod.includes('api-deployment')||pod.includes('api-deploy')||(pod.includes('api')&&!pod.includes('kube'))){
+      T('e','container "api" is not running — CrashLoopBackOff');
+      T('e','FATAL: DATABASE_URL env var not configured. Exit code 1.');
+    } else if(pod.includes('etcd')){
+      T('e','etcd: leader election failed — cluster quorum lost');
+      T('e','CRITICAL: raft: failed to send message — all members unreachable');
+    } else if(pod.includes('coredns')||pod.includes('dns')){
+      T('e','[ERROR] plugin/errors: 2 SERVFAIL i/o timeout');
+      T('e','[ERROR] Failed to setup CoreDNS: invalid ConfigMap syntax at line 4');
+    } else if(pod.includes('auth')){
+      T('e','FATAL: Secret "auth-secret" not found in namespace default');
+      T('e','Authentication service exiting: cannot load credentials. Exit 1.');
+    } else if(pod.includes('worker')){
+      T('e','Error from server: configmap "worker-config" not found');
+      T('e','FATAL: Missing required configuration. Startup aborted. Exit 1.');
+    } else if(pod.includes('cache')){
+      T('e','Liveness probe failed: HTTP probe failed — 404 /health (expected /healthz)');
+      T('e','Warning: container failing liveness check, will be restarted');
+    } else if(pod.includes('ci')){
+      T('e','Error from server (Forbidden): pods is forbidden: User "ci-runner" cannot list resource "pods"');
+      T('e','RBAC: ClusterRole "ci-runner-role" missing verb "list" for resource "pods"');
+    } else {
+      T('o','No recent logs available for this pod.');
+    }
+  } else if(s==='rollout'){
+    if(s2==='undo'){
+      const dep=(args[2]||'deploy/api-deployment').replace('deploy/','');
+      T('s',`deployment.apps/${dep} rolled back`);
+      T('s',`Rolled back to previous revision — stable image restored`);
+      T('s','Pods coming up healthy...');
+    } else if(s2==='history'){
+      const dep=(args[3]||'api-deployment').replace('deploy/','');
+      const hist=K8S.rolloutHistory[dep]||K8S.rolloutHistory['api-deployment'];
+      T('o',`deployment.apps/${dep}`);
+      T('o','REVISION  CHANGE-CAUSE');
+      hist.forEach((h,i)=>T('o',`${i+1}         ${h}`));
+    }
+  } else if(s==='describe'&&s2==='pod'){
+    const pod=args[2]||'api-deployment-7d9f4b-xk2p9';
+    T('o',`Name:         ${pod}`);
+    if(sid==='pvc_pending'||pod.includes('postgres')){
+      T('o',`<span style="color:var(--red)">Status:       Pending</span>`);
+      T('o',`<span style="color:var(--red)">Warning FailedScheduling: 0/3 nodes available: pod has unbound PVC "postgres-data"</span>`);
+      T('o','No StorageClass named "standard" found in this cluster');
+    } else if(sid==='docker_registry'||pod.includes('5f9r3')||pod.includes('pp4n2')){
+      T('o',`<span style="color:var(--red)">Status:       ImagePullBackOff</span>`);
+      T('o',`<span style="color:var(--red)">Warning Failed: toomanyrequests: Docker Hub pull rate limit exceeded</span>`);
+      T('o','Warning BackOff: Back-off pulling image "api-service:v1.2.0"');
+    } else if(sid==='resource_quota'||pod.includes('worker-job')){
+      T('o',`<span style="color:var(--red)">Status:       Pending</span>`);
+      T('o',`<span style="color:var(--red)">Warning FailedScheduling: exceeded quota: requested cpu=500m, used=7800m, limit=8000m</span>`);
+    } else if(sid==='network_policy_block'||pod.includes('payment')){
+      T('o',`<span style="color:var(--amber)">Status:       Running (but errors)</span>`);
+      T('o',`<span style="color:var(--red)">Warning NetworkPolicyDenied: Egress to postgres:5432 blocked by "deny-all-egress" policy</span>`);
+    } else if(sid==='node_notready'||pod.includes('xk2p9')){
+      T('o',`<span style="color:var(--red)">Status:       Evicted</span>`);
+      T('o','Reason: The node was low on resource: ephemeral-storage');
+      T('o',`<span style="color:var(--red)">Warning Evicted: ephemeral-storage threshold 10%, available 2%</span>`);
+    } else if(sid==='configmap_missing'||pod.includes('worker-7f9b')){
+      T('o',`<span style="color:var(--red)">Status:       Error</span>`);
+      T('o',`<span style="color:var(--red)">Warning Failed: configmap "worker-config" not found in namespace default</span>`);
+    } else if(sid==='secret_rotation'||pod.includes('auth')){
+      T('o',`<span style="color:var(--red)">Status:       CrashLoopBackOff</span>`);
+      T('o','Image:        auth-service:v2.1.0');
+      T('o',`<span style="color:var(--red)">Warning BackOff: secret "auth-secret" not found in namespace default</span>`);
+    } else if(sid==='liveness_probe'||pod.includes('cache')){
+      T('o',`<span style="color:var(--amber)">Status:       Running (restarting)</span>`);
+      T('o','Liveness: http-get http://:8080/health — WRONG (should be /healthz)');
+      T('o',`<span style="color:var(--red)">Warning Unhealthy: Liveness probe failed: HTTP 404 on /health</span>`);
+    } else if(sid==='rbac_denied'||pod.includes('ci-runner')){
+      T('o',`<span style="color:var(--red)">Status:       Error</span>`);
+      T('o',`<span style="color:var(--red)">Warning Failed: RBAC — "ci-runner" cannot list "pods" in "default"</span>`);
+    } else if(sid==='silent_deploy'||pod.includes('frontend')){
+      T('o',`<span style="color:var(--amber)">Status:       Running</span>`);
+      T('o','Image:        frontend:v2.2.0 (expected v2.3.0 — rollout stalled)');
+      T('o',`<span style="color:var(--amber)">Warning ProgressDeadlineExceeded: deployment "frontend" exceeded progress deadline</span>`);
+    } else {
+      T('o',`<span style="color:var(--red)">Status:       CrashLoopBackOff</span>`);
+      T('o','Image:        api-service:v1.3.0-beta');
+      T('o',`<span style="color:var(--red)">Warning OOMKilled: Container exceeded memory limit (512Mi)</span>`);
+      T('o','Warning BackOff: Back-off restarting failed container');
+    }
+  } else if(s==='get'&&(s2==='nodes'||s2==='node')) {
+    T('o','NAME              STATUS   ROLES                  AGE   VERSION');
+    T('o',`<span style="color:var(--green)">prod-node-01      Ready    control-plane,master   30d   v1.27.2</span>`);
+    T('o',`<span style="color:var(--green)">prod-node-02      Ready    &lt;none&gt;                 30d   v1.27.2</span>`);
+    T('o',`<span style="color:var(--green)">prod-node-03      Ready    &lt;none&gt;                 30d   v1.27.2</span>`);
+  } else if(s==='get'&&(s2==='networkpolicies'||s2==='networkpolicy'||s2==='netpol')) {
+    T('o','NAME              POD-SELECTOR         AGE');
+    T('o',`<span style="color:var(--green)">allow-internal    app=frontend         5d</span>`);
+    T('o',`<span style="color:var(--red)">deny-all-egress   app=payment-service  4h   ← blocks all egress including postgres:5432</span>`);
+  } else if(s==='get'&&(s2==='resourcequota'||s2==='resourcequotas'||s2==='quota')) {
+    T('o','NAME              AGE   REQUEST                                  LIMIT');
+    T('o',`<span style="color:var(--red)">staging-quota     30d   cpu: 7800m/8000m, memory: 14Gi/16Gi   cpu: 8000m/8000m, memory: 16Gi/16Gi</span>`);
+  } else if(s==='get'&&(s2==='hpa'||s2==='horizontalpodautoscaler')) {
+    T('o','NAME             REFERENCE                     TARGETS         MINPODS   MAXPODS   REPLICAS   AGE');
+    T('o',`<span style="color:var(--amber)">api-deployment   Deployment/api-deployment   &lt;unknown&gt;/80%   1         10        1          2h   ← metrics-server not reporting CPU</span>`);
+  } else if(s==='get'&&(s2==='pvc'||s2==='persistentvolumeclaim'||s2==='persistentvolumeclaims')) {
+    T('o','NAME             STATUS    VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS   AGE');
+    T('o',`<span style="color:var(--red)">postgres-data    Pending                                       standard       10m   ← no matching StorageClass found</span>`);
+  } else if(s==='get'&&(s2==='clusterrole'||s2==='clusterroles')) {
+    T('o','NAME                                AGE');
+    T('o','admin                               142d');
+    T('o','cluster-admin                       142d');
+    T('o',`<span style="color:var(--red)">ci-runner-role                      20m   ← missing "list" verb for pods</span>`);
+    T('o','edit                                142d');
+    T('o','view                                142d');
+  } else if(s==='get'&&(s2==='secrets'||s2==='secret')) {
+    T('o','NAME                  TYPE                                  DATA   AGE');
+    T('o','default-token-xxxxx   kubernetes.io/service-account-token   3      142d');
+    T('o',`<span style="color:var(--amber)">regcred               kubernetes.io/dockerconfigjson        1      5d   ← pull secret present, verify token is current</span>`);
+  } else if(s==='set'&&s2==='image'){
+    T('s','deployment.apps/frontend image updated');
+  } else T('e',`error: unknown command: "kubectl ${args.join(' ')}"`);
+}
+
+function doVim(args) {
+  if(!args[0]){T('e','vim: missing filename');return;}
+  let p=args[0];
+  if(!p.startsWith('/')) p='/etc/nginx/'+p;
+  const content=(G.fs[p]&&G.fs[p].content)||'';
+  openVim(p,content);
+}
+
+/* ======================================================
+   VIM
+====================================================== */
+function openVim(path, content) {
+  G.vimOpen=true; G.vimFile=path; G.vimMode='normal';
+  const ov=document.getElementById('vimOv');
+  ov.classList.add('on');
+  document.getElementById('vimFn').textContent=`vim: ${path}`;
+  const ta=document.getElementById('vimTa');
+  ta.value=content; ta.readOnly=true;
+  setVimMode('normal');
+  document.getElementById('vimCl').style.display='none';
+  ov.setAttribute('tabindex','0'); ov.focus();
+  ov.addEventListener('keydown',vimKey,true);
+}
+
+function vimKey(e) {
+  if(!G.vimOpen) return;
+  const ta=document.getElementById('vimTa');
+  const ci=document.getElementById('vimCi');
+  if(G.vimMode==='normal'){
+    if(e.key==='i'){e.preventDefault();G.vimMode='insert';ta.readOnly=false;setVimMode('insert');ta.focus();}
+    else if(e.key===':'){e.preventDefault();G.vimMode='cmd';const cl=document.getElementById('vimCl');cl.style.display='flex';ci.style.display='block';ci.value='';ci.focus();setVimMode('cmd');}
+  } else if(G.vimMode==='insert'){
+    if(e.key==='Escape'){e.preventDefault();G.vimMode='normal';ta.readOnly=true;setVimMode('normal');}
+  } else if(G.vimMode==='cmd'){
+    if(e.key==='Enter'){
+      e.preventDefault();
+      const cmd=ci.value.trim();
+      if(cmd==='wq'||cmd==='w'){
+        if(!G.fs[G.vimFile]) G.fs[G.vimFile]={type:'file'};
+        G.fs[G.vimFile].content=ta.value;
+        const sf=G.vimFile; closeVim();
+        T('s',`"${sf}" written`);
+        const idx=G.activeCard;
+        if(idx!==null){
+          const inc=G.incidents[idx];
+          if(inc&&!inc.solved){
+            const sc=SC[inc.scenarioId];
+            const st=sc.steps.find(x=>x.cmd==='vim_save'&&!x.done);
+            if(st){
+              st.done=true; renderCard(idx);
+              if(sc.steps.every(x=>x.done)) solveIncident(idx);
+              else{const nx=sc.steps.find(x=>!x.done);T('h',`✓ Saved. Next: "${nx.label}"`);}
+            }
+          }
+        }
+      } else if(cmd==='q!'||cmd==='q'){
+        const f=G.vimFile; closeVim(); T('o',`"${f}" unchanged`);
+      } else {
+        T('e',`E492: Not an editor command: ${cmd}`); closeVim();
+      }
+      scrollT();
+    } else if(e.key==='Escape'){
+      e.preventDefault(); G.vimMode='normal';
+      document.getElementById('vimCl').style.display='none';
+      ta.readOnly=true; setVimMode('normal'); ta.focus();
+    }
+  }
+}
+
+function closeVim(){
+  G.vimOpen=false;
+  document.getElementById('vimOv').classList.remove('on');
+  document.getElementById('vimCl').style.display='none';
+  document.getElementById('vimOv').removeEventListener('keydown',vimKey,true);
+  document.getElementById('termIn').focus();
+}
+
+function setVimMode(m){
+  const lbl={normal:'-- NORMAL --',insert:'-- INSERT --',cmd:'-- COMMAND --'};
+  const bg={normal:'#334455',insert:'var(--amber)',cmd:'var(--green)'};
+  document.getElementById('vimMode').textContent=lbl[m];
+  const sb=document.getElementById('vimSb'); sb.style.background=bg[m]; sb.style.color='#000';
+}
+
+/* ======================================================
+   NEW COMMAND HANDLERS
+====================================================== */
+function doCd(args) {
+  const target = args[0] || '~';
+  if(!target || target === '~' || target === '/root' || target === '/home/root') {
+    G.prevCwd = G.cwd; G.cwd = '~';
+  } else if(target === '-') {
+    const tmp = G.prevCwd; G.prevCwd = G.cwd; G.cwd = tmp || '~';
+    T('o', G.cwd);
+  } else if(target === '..') {
+    if(G.cwd === '~' || G.cwd === '/') { G.cwd = '/'; }
+    else { const p=G.cwd.split('/').filter(Boolean); p.pop(); G.cwd = p.length?'/'+p.join('/'): '/'; }
+    G.prevCwd = G.cwd;
+  } else {
+    const abs = target.startsWith('/') ? target : (G.cwd==='~' ? '/'+target : G.cwd+'/'+target);
+    const norm = abs.replace(/\/+/g,'/').replace(/\/$/,'') || '/';
+    if(G.fs[norm] && G.fs[norm].type==='dir') { G.prevCwd=G.cwd; G.cwd=norm; }
+    else { T('e',`bash: cd: ${xh(target)}: No such file or directory`); return; }
+  }
+  updatePromptEl();
+}
+
+function doUname(args) {
+  if(args.includes('-a')||args.includes('--all'))
+    T('o','Linux prod-node-01 5.15.0-89-generic #99-Ubuntu SMP Mon Oct 30 20:42:41 UTC 2023 x86_64 x86_64 x86_64 GNU/Linux');
+  else if(args.includes('-r')) T('o','5.15.0-89-generic');
+  else if(args.includes('-n')) T('o','prod-node-01');
+  else T('o','Linux');
+}
+
+function doUptime() {
+  T('o',' 09:23:45 up 142 days, 14:22,  2 users,  load average: <span style="color:var(--red)">5.21, 8.14, 9.43</span>');
+}
+
+function doFree() {
+  T('o','              total        used        free      shared  buff/cache   available');
+  T('o',`Mem:           15Gi  <span style="color:var(--red)">      13Gi</span>       512Mi       1.2Gi       2.1Gi       876Mi`);
+  T('o','Swap:         2.0Gi       1.8Gi       200Mi');
+}
+
+function doNetstat() {
+  T('o','Active Internet connections (servers and established)');
+  T('o','Proto Recv-Q Send-Q Local Address           Foreign Address         State');
+  T('o','tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN');
+  T('o','tcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN');
+  T('o','tcp        0      0 0.0.0.0:443             0.0.0.0:*               LISTEN');
+  T('o','tcp        0      0 0.0.0.0:6379            0.0.0.0:*               LISTEN');
+  T('o','tcp        0      0 0.0.0.0:5432            0.0.0.0:*               LISTEN');
+  T('o',`<span style="color:var(--amber)">tcp     2048      0 127.0.0.1:8080          127.0.0.1:5432          CLOSE_WAIT (×89 — connection pool leak!)</span>`);
+}
+
+function doSs() {
+  T('o','Netid  State      Recv-Q  Send-Q  Local Address:Port    Peer Address:Port');
+  T('o','tcp    LISTEN     0       128     0.0.0.0:22           0.0.0.0:*');
+  T('o','tcp    LISTEN     0       128     0.0.0.0:80           0.0.0.0:*');
+  T('o','tcp    LISTEN     0       128     0.0.0.0:5432         0.0.0.0:*');
+  T('o',`<span style="color:var(--amber)">tcp    CLOSE_WAIT 2048    0       127.0.0.1:8080       127.0.0.1:5432  (×89 stuck connections)</span>`);
+}
+
+function doCurl(args) {
+  const url = args.find(a=>!a.startsWith('-')) || '';
+  if(!url) { T('e','curl: try \'curl --help\' for more information'); return; }
+  const host = url.replace(/https?:\/\//,'').split('/')[0];
+  const head = args.includes('-I') || args.includes('--head');
+  if(url.includes('localhost')||url.includes('127.0.0.1')) {
+    if(head) { T('e','HTTP/1.1 502 Bad Gateway'); T('e','server: nginx/1.24.0'); }
+    else T('e',`curl: (7) Failed to connect to ${host} port 80: Connection refused`);
+  } else {
+    T('e',`curl: (6) Could not resolve host: ${xh(host)}`);
+    T('e','(DNS resolution failing — see active incidents)');
+  }
+}
+
+function doWget(args) {
+  const url = args.find(a=>!a.startsWith('-')) || '';
+  if(!url) { T('e','wget: missing URL'); return; }
+  const host = url.replace(/https?:\/\//,'').split('/')[0];
+  T('e',`wget: unable to resolve host address '${xh(host)}'`);
+}
+
+function doCp(args) {
+  if(args.length < 2) { T('e','cp: missing destination file operand'); return; }
+  const src = args[0]; const dst = args[args.length-1];
+  const absSrc = src.startsWith('/')?src:'/var/log/'+src;
+  if(G.fs[absSrc]) {
+    const absDst = dst.startsWith('/')?dst:'/var/log/'+dst;
+    G.fs[absDst] = {...G.fs[absSrc]}; T('o','');
+  } else T('e',`cp: '${xh(src)}': No such file or directory`);
+}
+
+function doMv(args) {
+  if(args.length < 2) { T('e','mv: missing destination file operand'); return; }
+  const src = args[0]; const dst = args[args.length-1];
+  const absSrc = src.startsWith('/')?src:'/var/log/'+src;
+  if(G.fs[absSrc]) {
+    const absDst = dst.startsWith('/')?dst:'/var/log/'+dst;
+    G.fs[absDst] = G.fs[absSrc]; delete G.fs[absSrc]; T('o','');
+  } else T('e',`mv: cannot stat '${xh(src)}': No such file or directory`);
+}
+
+function doTouch(args) {
+  if(!args[0]) { T('e','touch: missing file operand'); return; }
+  const p = args[0].startsWith('/')?args[0]:(G.cwd==='~'?'/root/':G.cwd+'/')+args[0];
+  if(!G.fs[p]) G.fs[p] = {type:'file', content:''};
+  T('o','');
+}
+
+function doMkdir(args) {
+  if(!args[0]) { T('e','mkdir: missing operand'); return; }
+  const p = args[0].startsWith('/')?args[0]:(G.cwd==='~'?'/root/':G.cwd+'/')+args[0];
+  if(G.fs[p]) { T('e',`mkdir: cannot create directory '${xh(args[0])}': File exists`); return; }
+  G.fs[p] = {type:'dir'}; T('o','');
+}
+
+function doDu(args) {
+  const astr = args.join(' ');
+  if(astr.includes('-s')||args.length===0||astr.includes('-sh')) {
+    T('o',`<span style="color:var(--red)">41G\t/var/log</span>`);
+    T('o','8.2G\t/tmp');
+    T('o','124M\t/etc');
+    T('o','1.2G\t/home');
+    T('o',`<span style="color:var(--red)">50G\ttotal</span>`);
+  } else { T('o','4.0K\t.'); }
+}
+
+function doWc(args) {
+  const file = args.find(a=>!a.startsWith('-'));
+  if(!file) { T('e','wc: no file given — pipe input or provide a filename'); return; }
+  const p = file.startsWith('/')?file:'/var/log/'+file;
+  const f = G.fs[p];
+  if(!f) { T('e',`wc: ${xh(file)}: No such file or directory`); return; }
+  const lines = f.content.split('\n').length;
+  const words = f.content.split(/\s+/).filter(Boolean).length;
+  const bytes = f.content.length;
+  T('o',`${String(lines).padStart(5)} ${String(words).padStart(7)} ${String(bytes).padStart(7)} ${file}`);
+}
+
+function doHead(args) {
+  const nIdx = args.indexOf('-n');
+  const n = nIdx >= 0 ? (parseInt(args[nIdx+1])||10) : 10;
+  const file = args.find(a=>!a.startsWith('-'));
+  if(!file) { T('e','head: missing file operand'); return; }
+  const p = file.startsWith('/')?file:'/var/log/'+file;
+  const f = G.fs[p];
+  if(!f) { T('e',`head: ${xh(file)}: No such file or directory`); return; }
+  f.content.split('\n').slice(0,n).forEach(l=>T('o',xh(l)));
+}
+
+function doSort(args) {
+  // Used mainly via pipes — standalone just echoes nothing useful
+  T('o','(no stdin to sort — use: command | sort)');
+}
+
+function doPing(args) {
+  const host = args.find(a=>!a.startsWith('-')) || 'localhost';
+  if(host==='localhost'||host==='127.0.0.1') {
+    T('o',`PING localhost (127.0.0.1) 56(84) bytes of data.`);
+    T('o','64 bytes from localhost (127.0.0.1): icmp_seq=1 ttl=64 time=0.041 ms');
+    T('o','64 bytes from localhost (127.0.0.1): icmp_seq=2 ttl=64 time=0.038 ms');
+    T('o','--- localhost ping statistics --- 2 packets transmitted, 2 received');
+  } else {
+    T('e',`ping: ${xh(host)}: Temporary failure in name resolution`);
+    T('e','(cluster DNS is down — see active DNS incidents)');
+  }
+}
+
+function doNslookup(args) {
+  const host = args[0] || '';
+  if(!host) { T('e','Usage: nslookup <hostname>'); return; }
+  T('e',`Server:\t\t10.96.0.10`);
+  T('e',`Address:\t10.96.0.10#53`);
+  T('e','');
+  T('e',`** server can't find ${xh(host)}: NXDOMAIN`);
+  T('e','(CoreDNS not responding — possible DNS incident active)');
+}
+
+function doDig(args) {
+  const host = args.find(a=>!a.startsWith('@')&&!a.startsWith('+')&&!a.startsWith('-'));
+  if(!host) { T('e','Usage: dig <hostname>'); return; }
+  T('e',`; <<>> DiG 9.16.1-Ubuntu <<>> ${xh(host)}`);
+  T('e',';; connection timed out; no servers could be reached');
+}
+
+function doSystemctl(args) {
+  const sub = args[0]; const svc = args[1] || '';
+  if(sub==='status') {
+    if(svc.includes('nginx')) {
+      T('o','● nginx.service - A high performance web server and a reverse proxy server');
+      T('o','   Loaded: loaded (/lib/systemd/system/nginx.service; enabled; vendor preset: enabled)');
+      T('e',`   Active: <span style="color:var(--red)">failed (Result: exit-code) since Mon 2024-01-15 09:23:14 UTC; 2min ago</span>`);
+      T('e','  Process: 1842 ExecStartPre=/usr/sbin/nginx -t (code=exited, status=1/FAILURE)');
+      T('e','  nginx: [emerg] invalid parameter in /etc/nginx/nginx.conf:42');
+    } else if(svc.includes('docker')) {
+      T('o','● docker.service - Docker Application Container Engine');
+      T('o','   Loaded: loaded (/lib/systemd/system/docker.service; enabled)');
+      T('o',`   Active: <span style="color:var(--green)">active (running) since Mon 2024-01-15 04:01:22 UTC; 5h 22min ago</span>`);
+      T('o','  Process: 1122 ExecStart=/usr/bin/dockerd -H fd:// (code=running)');
+    } else if(svc.includes('kubelet')) {
+      T('o','● kubelet.service - kubelet: The Kubernetes Node Agent');
+      T('o','   Loaded: loaded (/lib/systemd/system/kubelet.service; enabled)');
+      T('e',`   Active: <span style="color:var(--red)">failed — OOMKill during ephemeral storage cleanup. Disk pressure evicted kubelet.</span>`);
+    } else if(svc.includes('postgres')||svc.includes('postgresql')) {
+      T('o','● postgresql.service - PostgreSQL RDBMS');
+      T('o',`   Active: <span style="color:var(--green)">active (running)</span>`);
+      T('o',`<span style="color:var(--amber)">   Warning: max_connections (100) reached — connection pool exhausted</span>`);
+    } else if(!svc) {
+      doSystemctl(['list-units']);
+    } else {
+      T('o',`● ${xh(svc)}: not found or not a systemd unit`);
+    }
+  } else if(sub==='restart'||sub==='start') {
+    if(!svc) { T('e',`systemctl ${sub}: missing unit name`); return; }
+    T('o','');
+    T('s',`${xh(svc)} ${sub === 'restart' ? 'restarted' : 'started'} successfully`);
+  } else if(sub==='stop') {
+    T('o',`${xh(svc||'unit')} stopped`);
+  } else if(sub==='list-units'||sub==='list-unit-files'||!sub) {
+    T('o','UNIT                        LOAD   ACTIVE  SUB     DESCRIPTION');
+    T('o',`<span style="color:var(--green)">docker.service              loaded active  running Docker Application Container Engine</span>`);
+    T('e',`<span style="color:var(--red)">nginx.service               loaded failed  failed  A high performance web server</span>`);
+    T('e',`<span style="color:var(--red)">kubelet.service             loaded failed  failed  Kubernetes Node Agent</span>`);
+    T('o',`<span style="color:var(--green)">ssh.service                 loaded active  running OpenSSH server daemon</span>`);
+    T('o',`<span style="color:var(--green)">postgresql.service          loaded active  running PostgreSQL RDBMS</span>`);
+    T('o',`<span style="color:var(--amber)">cron.service                loaded active  running Regular background program processing daemon</span>`);
+  } else {
+    T('e',`systemctl: unknown command '${xh(sub)}'`);
+  }
+}
+
+function doService(args) {
+  const svc = args[0]; const action = args[1] || 'status';
+  T('o',`Redirecting to: systemctl ${xh(action)} ${xh(svc||'')}`);
+  doSystemctl([action, svc||'']);
+}
+
+function doCrontab(args) {
+  if(args[0] === '-l') {
+    T('o','# Crontab for root@prod-node-01');
+    T('o','*/5 * * * *   /usr/bin/healthcheck.sh >> /var/log/health.log 2>&1');
+    T('o','0 2 * * *     /usr/local/bin/backup.sh');
+    T('o','0 4 * * *     /usr/bin/certbot renew --quiet');
+    T('e',`<span style="color:var(--red)"># WARNING: logrotate entry is MISSING — was accidentally removed during last deploy</span>`);
+    T('e',`<span style="color:var(--red)"># Expected: 0 0 * * *   /usr/sbin/logrotate /etc/logrotate.conf</span>`);
+  } else if(args[0] === '-e') {
+    T('o','(crontab editor not available — use vim /etc/cron.d/ directly)');
+  } else {
+    T('o','usage: crontab [-u user] file | crontab [-u user] - | crontab [-u user] {-l|-r|-e}');
+  }
+}
+
+function doEnv() {
+  T('o','PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin');
+  T('o','HOME=/root');
+  T('o','USER=root');
+  T('o','HOSTNAME=prod-node-01');
+  T('o','SHELL=/bin/bash');
+  T('o','LANG=en_US.UTF-8');
+  T('o',`<span style="color:var(--amber)">DATABASE_URL=  <span style="color:var(--red)">← NOT SET (probable cause of API crashes!)</span></span>`);
+  T('o','KUBECONFIG=/root/.kube/config');
+  T('o','DOCKER_HOST=unix:///var/run/docker.sock');
+  T('o','NODE_ENV=production');
+  T('o','JAVA_OPTS=-Xmx512m -Xms256m');
+}
+
+function doWhich(args) {
+  if(!args[0]) { T('e','Usage: which <command>'); return; }
+  const paths = {
+    kubectl:'/usr/local/bin/kubectl', docker:'/usr/bin/docker', vim:'/usr/bin/vim',
+    grep:'/bin/grep', awk:'/usr/bin/awk', sed:'/bin/sed', bash:'/bin/bash',
+    python3:'/usr/bin/python3', python:'/usr/bin/python3', node:'/usr/local/bin/node',
+    nginx:'/usr/sbin/nginx', systemctl:'/bin/systemctl', journalctl:'/bin/journalctl',
+    curl:'/usr/bin/curl', wget:'/usr/bin/wget', ssh:'/usr/bin/ssh', git:'/usr/bin/git',
+    helm:'/usr/local/bin/helm', find:'/usr/bin/find', tail:'/usr/bin/tail', cat:'/bin/cat',
+  };
+  if(paths[args[0]]) T('o', paths[args[0]]);
+  else T('e',`which: no ${xh(args[0])} in (${Object.values(paths).map(p=>p.split('/').slice(0,-1).join('/')).filter((v,i,a)=>a.indexOf(v)===i).join(':')})`);
+}
+
+function doMan(args) {
+  if(!args[0]) { T('e','What manual page do you want?\nFor example, try \'man ls\''); return; }
+  const cmd = args[0];
+  const descs = {
+    grep:'grep(1) — print lines that match patterns',
+    awk:'awk(1) — pattern scanning and processing language',
+    sed:'sed(1) — stream editor for filtering and transforming text',
+    kubectl:'kubectl(1) — run commands against Kubernetes clusters',
+    docker:'docker(1) — A self-sufficient runtime for containers',
+    vim:'vim(1) — Vi IMproved, a programmers text editor (i=insert :wq=save :q!=quit)',
+    ps:'ps(1) — report a snapshot of current processes',
+    kill:'kill(1) — send a signal to a process (SIGKILL=-9)',
+    df:'df(1) — report file system disk space usage',
+    find:'find(1) — search for files in a directory hierarchy',
+    systemctl:'systemctl(1) — control the systemd system and service manager',
+    journalctl:'journalctl(1) — query the systemd journal',
+    curl:'curl(1) — transfer a URL (-I for headers only)',
+    tail:'tail(1) — output the last part of files (-f to follow)',
+    netstat:'netstat(8) — print network connections, routing tables, interface statistics',
+  };
+  T('i', descs[cmd] ? `MAN: ${descs[cmd]}` : `No manual entry for ${xh(cmd)}`);
+  if(descs[cmd]) T('o','(Press q to quit — not simulated here)');
+}
+
+function doHistory() {
+  if(!G.cmdHistory.length) { T('o','(no commands in history yet)'); return; }
+  [...G.cmdHistory].reverse().forEach((cmd,i)=>T('o',`  ${String(i+1).padStart(4)}  ${xh(cmd)}`));
+}
+
+function doIp(args) {
+  const sub = args[0];
+  if(sub==='a'||sub==='addr'||sub==='address') {
+    T('o','1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu 65536 qdisc noqueue state UNKNOWN');
+    T('o','    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00');
+    T('o','    inet 127.0.0.1/8 scope host lo');
+    T('o','2: eth0: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc mq state UP qlen 1000');
+    T('o','    link/ether 02:42:ac:11:00:02 brd ff:ff:ff:ff:ff:ff');
+    T('o','    inet 10.0.0.101/24 brd 10.0.0.255 scope global eth0');
+    T('o','3: docker0: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500');
+    T('o','    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0');
+  } else if(sub==='r'||sub==='route') {
+    T('o','default via 10.0.0.1 dev eth0 proto dhcp src 10.0.0.101 metric 100');
+    T('o','10.0.0.0/24 dev eth0 proto kernel scope link src 10.0.0.101');
+    T('o','172.17.0.0/16 dev docker0 proto kernel scope link src 172.17.0.1');
+  } else {
+    T('e',`ip: unknown command: ${xh(sub||'(none)')} — try ip a, ip r`);
+  }
+}
+
+function doIfconfig() {
+  T('o','eth0: flags=4163&lt;UP,BROADCAST,RUNNING,MULTICAST&gt;  mtu 1500');
+  T('o','      inet 10.0.0.101  netmask 255.255.255.0  broadcast 10.0.0.255');
+  T('o','      TX packets 1234567  bytes 456789012 (456.7 MB)');
+  T('o','      RX packets 2345678  bytes 789012345 (789.0 MB)');
+  T('o','');
+  T('o','lo: flags=73&lt;UP,LOOPBACK,RUNNING&gt;  mtu 65536');
+  T('o','    inet 127.0.0.1  netmask 255.0.0.0');
+}
+
+function doLsof() {
+  T('o','COMMAND       PID     USER   FD   TYPE DEVICE    SIZE NODE NAME');
+  T('o','nginx         1234    root    4u  IPv4  0x1234   0t0  TCP *:80 (LISTEN)');
+  T('o','nginx         1234    root    5u  IPv4  0x2345   0t0  TCP *:443 (LISTEN)');
+  T('o',`<span style="color:var(--red)">worker        7823    www-d  10u   REG  0x3456  2.1G     /tmp/heapdump_1705123200.hprof</span>`);
+  T('o',`<span style="color:var(--red)">worker        7824    www-d  11u   REG  0x4567  1.8G     /tmp/heapdump_1705209600.hprof</span>`);
+  T('o','redis-server  6379    redis   6u  IPv4  0x5678   0t0  TCP *:6379 (LISTEN)');
+  T('o','postgres      5432    postgres 5u IPv4  0x6789   0t0  TCP *:5432 (LISTEN)');
+  T('o',`<span style="color:var(--amber)">postgres      5432    postgres 89u IPv4 0x7890   0t0  TCP 127.0.0.1:5432->127.0.0.1:8080 (CLOSE_WAIT)</span>`);
+}
+
+function doApt(args) {
+  const sub = args[0];
+  if(sub==='update') {
+    T('o','Hit:1 http://archive.ubuntu.com/ubuntu focal InRelease');
+    T('o','Hit:2 http://security.ubuntu.com/ubuntu focal-security InRelease');
+    T('o','Reading package lists... Done');
+    T('s','Package lists updated.');
+  } else if(sub==='install') {
+    const pkg = args[1] || 'package';
+    T('o',`Reading package lists... Done`);
+    T('o',`Building dependency tree... Done`);
+    T('o',`The following packages will be installed: ${xh(pkg)}`);
+    T('s',`${xh(pkg)} installed successfully.`);
+  } else if(sub==='list'||sub==='--installed') {
+    T('o','Listing installed packages...');
+    T('o','nginx/focal 1.18.0-0ubuntu1.4 amd64 [installed]');
+    T('o','docker-ce/focal 5:20.10.24 amd64 [installed]');
+    T('o','kubectl/kubernetes-xenial 1.28.2-00 amd64 [installed]');
+    T('o','vim/focal 2:8.1.2269 amd64 [installed]');
+  } else if(sub==='remove'||sub==='-y') {
+    T('o','Done.');
+  } else {
+    T('e',`E: Invalid operation ${xh(sub||'')}`);
+  }
+}
+
+function doYum(args) {
+  const sub = args[0];
+  if(sub==='install') { const pkg=args[1]||'package'; T('o',`Resolving dependencies for ${xh(pkg)}...`); T('s',`${xh(pkg)} installed.`); }
+  else if(sub==='list') { T('o','Loaded plugins: fastestmirror'); T('o','Available Packages: (list truncated)'); }
+  else T('o',`yum ${xh(sub||'')}: Done`);
+}
+
+function doGit(args) {
+  const sub = args[0];
+  if(sub==='log') {
+    T('o','commit a1b2c3d4e5f6 (HEAD -> main, origin/main)');
+    T('o','Author: DevOps Bot &lt;ops@company.com&gt;');
+    T('o','Date:   Mon Jan 15 09:00:00 2024 +0000');
+    T('o','    chore: bump api-service to v1.3.0-beta [DO NOT DEPLOY TO PROD]');
+    T('o','');
+    T('o','commit f1e2d3c4b5a6');
+    T('o','Author: DevOps Bot &lt;ops@company.com&gt;');
+    T('o','Date:   Sun Jan 14 22:00:00 2024 +0000');
+    T('o','    release: api-service v1.2.0 (stable)');
+  } else if(sub==='status') {
+    T('o','On branch main');
+    T('o','Your branch is up to date with \'origin/main\'.');
+    T('o','nothing to commit, working tree clean');
+  } else if(sub==='diff') {
+    T('o',`<span style="color:var(--red)">-    listen 80</span>`);
+    T('o',`<span style="color:var(--green)">+    listen 80;</span>`);
+  } else {
+    T('o',`git: '${xh(sub||'')}' is a git command — not all operations simulated`);
+  }
+}
+
+function doHelm(args) {
+  const sub = args[0];
+  if(sub==='ls'||sub==='list') {
+    T('o','NAME              NAMESPACE   REVISION  STATUS    CHART                   APP VERSION');
+    T('o',`<span style="color:var(--green)">nginx-ingress     ingress     3         deployed  ingress-nginx-4.8.3     1.9.4</span>`);
+    T('o',`<span style="color:var(--amber)">api-service       default     8         deployed  api-chart-2.1.0         1.3.0-beta</span>`);
+    T('o',`<span style="color:var(--green)">prometheus-stack  monitoring  2         deployed  kube-prometheus-61.1.0  0.69.0</span>`);
+  } else if(sub==='rollback') {
+    T('s',`Rollback was a success! Happy Helming!`);
+  } else if(sub==='upgrade') {
+    T('o',`Release "${xh(args[1]||'release')}" has been upgraded. Happy Helming!`);
+  } else if(sub==='status') {
+    T('o',`NAME: ${xh(args[1]||'release')}`);
+    T('o','LAST DEPLOYED: Mon Jan 15 09:00:00 2024');
+    T('o','STATUS: deployed');
+  } else {
+    T('e',`helm: '${xh(sub||'')}' is not a helm command. See 'helm help'.`);
+  }
+}
+
+/* ======================================================
+   AUTOCOMPLETE
+====================================================== */
+function computeAC(val){
+  const parts=val.trimEnd().split(/\s+/);
+  const last=parts[parts.length-1];
+  if(!last){hideAC();return;}
+  let matches=[];
+  if(parts.length===1){
+    // Complete command name
+    const lc=last.toLowerCase();
+    matches=COMMANDS.filter(c=>c.startsWith(lc)&&c!==lc);
+  } else if(last.startsWith('/')){
+    // Absolute path: match any FS key that starts with the typed prefix
+    matches=Object.keys(G.fs).filter(k=>k.startsWith(last)&&k!==last);
+  } else if(parts.length>=2){
+    // Relative/basename: match file/dir names whose last segment starts with the typed word
+    const lc=last.toLowerCase();
+    const seen=new Set();
+    Object.keys(G.fs).forEach(k=>{
+      const segs=k.split('/');
+      segs.forEach((seg,si)=>{
+        if(seg&&seg.toLowerCase().startsWith(lc)){
+          const candidate=segs.slice(0,si+1).join('/');
+          if(candidate&&!seen.has(candidate)&&candidate!==last){
+            seen.add(candidate); matches.push(candidate);
+          }
+        }
+      });
+    });
+  } else {
+    hideAC(); return;
+  }
+  if(!matches.length){hideAC();return;}
+  if(matches.length===1){
+    parts[parts.length-1]=matches[0];
+    document.getElementById('termIn').value=parts.join(' ');
+    hideAC(); return;
+  }
+  // Multiple matches — store them, highlight first, and preview first in input
+  G.acList=matches; G.acIdx=0;
+  const previewParts=[...parts]; previewParts[previewParts.length-1]=matches[0];
+  document.getElementById('termIn').value=previewParts.join(' ');
+  const box=document.getElementById('acBox');
+  box.innerHTML='';
+  matches.forEach((m,i)=>{
+    const d=document.createElement('div');
+    d.className='ac-item'; d.textContent=m;
+    d.addEventListener('mousedown',ev=>{ev.preventDefault();parts[parts.length-1]=G.acList[i];document.getElementById('termIn').value=parts.join(' ');hideAC();document.getElementById('termIn').focus();});
+    box.appendChild(d);
+  });
+  box.classList.add('show');
+  updateACHighlight();
+}
+
+function hideAC(){
+  document.getElementById('acBox').classList.remove('show');
+  G.acList=[]; G.acIdx=-1;
+}
+
+function applyAC(i,parts){
+  if(!parts){const v=document.getElementById('termIn').value;parts=v.split(/\s+/);}
+  parts[parts.length-1]=G.acList[i];
+  document.getElementById('termIn').value=parts.join(' ');
+  hideAC(); document.getElementById('termIn').focus();
+}
+
+function updateACHighlight(){
+  document.querySelectorAll('.ac-item').forEach((el,i)=>el.className='ac-item'+(i===G.acIdx?' sel':''));
+}
+
+/* ======================================================
+   TERMINAL HELPERS
+====================================================== */
+function T(cls,html){
+  if(G.captureMode){ G.captureBuffer.push({cls,html}); return; }
+  const map={p:'p',o:'o',e:'e',i:'i',s:'s',h:'h'};
+  const d=document.createElement('div');
+  d.className='tl '+(map[cls]||'o'); d.innerHTML=html;
+  document.getElementById('termOut').appendChild(d);
+}
+function scrollT(){const o=document.getElementById('termOut');o.scrollTop=o.scrollHeight;}
+function xh(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+/* ======================================================
+   GAME FLOW
+====================================================== */
+function startGame(){
+  G.score=100; G.hearts=5; G.level=0; G.fs=buildFS();
+  G.cwd='~'; G.prevCwd='~'; G.cmdHistory=[]; G.histIdx=-1;
+  updateHearts(); showScreen('gameScreen'); updatePromptEl(); loadLevel(0);
+}
+
+function loadLevel(idx){
+  if(idx>=LEVEL_DEFS.length) idx=LEVEL_DEFS.length-1;
+  G.level=idx;
+  const lv=LEVEL_DEFS[idx];
+  const chosen=shufflePick(lv.pool, lv.count);
+  Object.values(SC).forEach(s=>s.steps.forEach(st=>{st.done=false;}));
+  G.incidents=chosen.map(sid=>({
+    scenarioId:sid,
+    timeLeft:Math.floor((SC[sid].timeLimit+(lv.timeBonus||0))*(lv.timeMultiplier||1)),
+    solved:false, escalated:false, earnedPts:0, interval:null,
+  }));
+  G.activeCard=null; G.masterTimer=lv.timer;
+  renderCards(); updateTopBar(); clearTerm();
+  T('i',`=== ${lv.name} — ${chosen.length} incident(s) active ===`);
+  T('o','Click an incident card to investigate. Press 💡 HINT for step-by-step guidance.');
+  T('o','');
+  if(G.masterInterval) clearInterval(G.masterInterval);
+  G.masterInterval=setInterval(tickMaster,1000);
+  G.incidents.forEach((_,i)=>{G.incidents[i].interval=setInterval(()=>tickInc(i),1000);});
+  if(lv.cascading){
+    setTimeout(()=>showAlert('New incident queued: Database Replication Lag — HIGH severity. Activating in 30s.'),8000);
+    setTimeout(()=>showAlert('CRITICAL: CDN edge nodes timing out — cascading failure detected!'),25000);
+  }
+}
+
+function tickMaster(){
+  if(G.masterTimer<=0){clearInterval(G.masterInterval);gameOver('timeout');return;}
+  G.masterTimer--;
+  const el=document.getElementById('masterTimer');
+  el.textContent=fmt(G.masterTimer);
+  if(G.masterTimer<=30) el.classList.add('warn');
+  else el.classList.remove('warn');
+}
+
+function tickInc(i){
+  const inc=G.incidents[i];
+  if(!inc||inc.solved) return;
+  if(inc.timeLeft<=0){
+    if(!inc.escalated){
+      inc.escalated=true; clearInterval(inc.interval);
+      G.score-=100; G.hearts--;
+      updateHearts(); updateTopBar(); renderCard(i);
+      T('e',`⚠ ESCALATED: ${SC[inc.scenarioId].title} — −100pts, −1 heart`); scrollT();
+      const c=document.getElementById('card'+i);
+      if(c){c.classList.add('escalated');setTimeout(()=>c.classList.remove('escalated'),400);}
+      if(G.hearts<=0||G.score<0) gameOver('lives');
+    }
+    return;
+  }
+  inc.timeLeft--;
+  const el=document.getElementById('timer_'+i);
+  if(el){
+    const pct=inc.timeLeft/SC[inc.scenarioId].timeLimit;
+    el.textContent=fmt(inc.timeLeft);
+    el.className='ctimer '+(pct>0.5?'ok':pct>0.25?'warn':'danger');
+  }
+}
+
+function renderCards(){
+  for(let i=0;i<3;i++){
+    const c=document.getElementById('card'+i);
+    if(i<G.incidents.length){c.className='icard';renderCard(i);}
+    else{c.className='icard empty';c.innerHTML='<span>— STANDBY —</span>';}
+  }
+}
+
+function renderCard(i){
+  const inc=G.incidents[i]; if(!inc) return;
+  const s=SC[inc.scenarioId];
+  const card=document.getElementById('card'+i);
+  let cls='icard sev-'+s.sevClass;
+  if(i===G.activeCard) cls+=' active';
+  if(inc.solved) cls+=' solved';
+  if(s.sevClass==='critical'&&!inc.solved) cls+=' ticking';
+  card.className=cls;
+  const pct=inc.timeLeft/s.timeLimit;
+  const tc=pct>0.5?'ok':pct>0.25?'warn':'danger';
+  const dpct=(s.steps.filter(st=>st.done).length/s.steps.length)*100;
+  card.innerHTML=`
+    <div class="active-badge">● ACTIVE</div>
+    <div class="card-hdr">
+      <span class="sevbadge ${s.sevClass}">${s.severity.toUpperCase()}</span>
+      <span class="ctimer ${tc}" id="timer_${i}">${fmt(inc.timeLeft)}</span>
+    </div>
+    <div class="cprog"><div class="cprog-fill" style="width:${dpct}%;background:${dpct>=100?'var(--green)':'var(--amber)'}"></div></div>
+    <div class="ctitle">${xh(s.title)}</div>
+    <div class="csvc">${xh(s.service)}</div>
+    <div class="cdesc">${xh(s.description)}</div>
+    <div class="checklist">
+      ${s.steps.map((st,si)=>{
+        const done=st.done;
+        const nxt=!done&&s.steps.slice(0,si).every(x=>x.done);
+        return `<div class="chkitem ${done?'done':''} ${nxt&&!inc.solved?'nxt':''}">
+          <span class="chkico">${done?'✓':nxt?'▶':'○'}</span>
+          <span>${xh(st.label)}</span>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="card-pts">${inc.solved?`+${inc.earnedPts} pts`:''}</div>
+    <div class="solved-ov">✓ RESOLVED</div>
+  `;
+  card.onclick=()=>focusCard(i);
+}
+
+function focusCard(i){
+  const prev=G.activeCard; G.activeCard=i;
+  if(prev!==null&&prev!==i) renderCard(prev);
+  renderCard(i);
+  const inc=G.incidents[i]; const s=SC[inc.scenarioId];
+  document.getElementById('termLabel').textContent=`[${s.severity.toUpperCase()}] ${s.title}`;
+  T('i',`\n--- Incident: ${s.title} [${s.service}] ---`);
+  T('o',s.description);
+  if(inc.solved){ T('s','✅ Already resolved.'); }
+  else {
+    const nx=s.steps.find(st=>!st.done);
+    if(nx){ T('h',`Next step: ${nx.label}`); T('h',`Press 💡 HINT or F1 to see the exact command.`); }
+  }
+  T('o',''); scrollT();
+  document.getElementById('termIn').focus();
+}
+
+function updateTopBar(){
+  document.getElementById('topLevel').textContent=G.level+1;
+  document.getElementById('topScore').textContent=G.score;
+  document.getElementById('topActive').textContent=G.incidents.filter(i=>!i.solved&&!i.escalated).length;
+}
+function updateHearts(){for(let i=1;i<=5;i++){const h=document.getElementById('h'+i);if(h)h.className='heart'+(i>G.hearts?' lost':'');}}
+function clearTerm(){document.getElementById('termOut').innerHTML='';document.getElementById('termLabel').textContent='No incident selected';}
+function fmt(s){const m=Math.floor(Math.max(0,s)/60),sc=Math.max(0,s)%60;return `${m}:${sc.toString().padStart(2,'0')}`;}
+function scorePop(){const e=document.getElementById('topScore');e.classList.add('spop');setTimeout(()=>e.classList.remove('spop'),300);}
+
+function levelComplete(){
+  clearInterval(G.masterInterval); G.incidents.forEach(i=>clearInterval(i.interval));
+  const all=G.incidents.every(i=>i.solved); const bonus=all?1000:0;
+  if(all) G.score+=bonus;
+  let html='';
+  G.incidents.forEach(inc=>{
+    const s=SC[inc.scenarioId];
+    html+=`<div class="sco-row"><span>${xh(s.title)}</span><span class="sevbadge ${s.sevClass}" style="margin:0 8px">${s.severity}</span><span class="sco-pts ${inc.solved?'':'neg'}">${inc.solved?'+'+inc.earnedPts:'FAILED'}</span></div>`;
+  });
+  if(bonus) html+=`<div class="sco-row"><span>All-solved bonus</span><span class="sco-pts">+${bonus}</span></div>`;
+  html+=`<div class="sco-row tot"><span>TOTAL SCORE</span><span class="sco-pts">${G.score}</span></div>`;
+  document.getElementById('lcBd').innerHTML=html;
+  document.getElementById('lcSub').textContent=all?'ALL INCIDENTS RESOLVED':'PARTIAL RESOLUTION';
+  showScreen('lcScreen');
+}
+
+function gameOver(reason){
+  clearInterval(G.masterInterval); G.incidents.forEach(i=>clearInterval(i.interval));
+  let html='';
+  if(reason==='timeout') html+=`<div class="sco-row"><span style="color:var(--red)">⏰ Master timer expired</span><span class="sco-pts neg">TIMEOUT</span></div>`;
+  if(reason==='lives')   html+=`<div class="sco-row"><span style="color:var(--red)">💀 All lives lost</span><span></span></div>`;
+  G.incidents.forEach(inc=>{
+    const s=SC[inc.scenarioId];
+    html+=`<div class="sco-row"><span>${xh(s.title)}</span><span class="sevbadge ${s.sevClass}" style="margin:0 8px">${s.severity}</span><span class="sco-pts ${inc.solved?'':'neg'}">${inc.solved?'+'+inc.earnedPts:'FAILED'}</span></div>`;
+  });
+  html+=`<div class="sco-row tot"><span>FINAL SCORE</span><span class="sco-pts">${Math.max(0,G.score)}</span></div>`;
+  document.getElementById('goBd').innerHTML=html;
+  showScreen('goScreen');
+}
+
+function nextLevel(){
+  Object.values(SC).forEach(s=>s.steps.forEach(st=>{st.done=false;}));
+  const nx=G.level+1; showScreen('gameScreen');
+  loadLevel(nx>=LEVEL_DEFS.length?LEVEL_DEFS.length-1:nx);
+}
+function retryGame(){Object.values(SC).forEach(s=>s.steps.forEach(st=>{st.done=false;}));startGame();}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function showAlert(msg){document.getElementById('alertBody').textContent=msg;document.getElementById('alertPop').classList.add('on');setTimeout(closeAlert,6000);}
+function closeAlert(){document.getElementById('alertPop').classList.remove('on');}
+
+/* ======================================================
+   INPUT EVENTS
+====================================================== */
+const TI = document.getElementById('termIn');
+
+TI.addEventListener('keydown', function(e){
+  if(G.vimOpen) return;
+  if(e.key==='Enter'){
+    const v=this.value.trim(); this.value=''; hideAC();
+    if(v) run(v);
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    if(G.acList.length>0){ G.acIdx=Math.max(G.acIdx-1,0); updateACHighlight(); }
+    else { G.histIdx=Math.min(G.histIdx+1,G.cmdHistory.length-1); if(G.cmdHistory[G.histIdx]!==undefined) this.value=G.cmdHistory[G.histIdx]; }
+  } else if(e.key==='ArrowDown'){
+    e.preventDefault();
+    if(G.acList.length>0){ G.acIdx=Math.min(G.acIdx+1,G.acList.length-1); updateACHighlight(); }
+    else { G.histIdx=Math.max(G.histIdx-1,-1); this.value=G.histIdx>=0?G.cmdHistory[G.histIdx]:''; }
+  } else if(e.key==='Tab'){
+    e.preventDefault();
+    e.stopPropagation();
+    if(G.acList.length>0){
+      // Cycle to next option and preview it in the input
+      G.acIdx=(G.acIdx+1)%G.acList.length;
+      updateACHighlight();
+      const cur=this.value.trimEnd().split(/\s+/);
+      cur[cur.length-1]=G.acList[G.acIdx];
+      this.value=cur.join(' ');
+    } else {
+      computeAC(this.value);
+    }
+  } else if(e.key==='Escape'){
+    this.value=''; hideAC();
+  }
+});
+
+TI.addEventListener('input', function(){
+  if(G.vimOpen) return;
+  const parts=this.value.trimEnd().split(/\s+/);
+  const last=parts[parts.length-1];
+  if(parts.length>=2 && last && last.startsWith('/') && last.length>1){
+    const m=Object.keys(G.fs).filter(k=>k.startsWith(last)&&k!==last);
+    if(!m.length){hideAC();return;}
+    if(m.length===1){parts[parts.length-1]=m[0];this.value=parts.join(' ');hideAC();return;}
+    G.acList=m; G.acIdx=-1;
+    const box=document.getElementById('acBox'); box.innerHTML='';
+    m.forEach((match,i)=>{
+      const d=document.createElement('div'); d.className='ac-item'; d.textContent=match;
+      d.addEventListener('mousedown',ev=>{ev.preventDefault();parts[parts.length-1]=G.acList[i];this.value=parts.join(' ');hideAC();this.focus();});
+      box.appendChild(d);
+    });
+    box.classList.add('show');
+  } else hideAC();
+});
+
+document.addEventListener('keydown',function(e){
+  if(e.key==='F1'){
+    e.preventDefault();
+    if(document.getElementById('gameScreen').classList.contains('active')&&!G.vimOpen) triggerHint();
+  }
+});
+
+document.getElementById('gameScreen').addEventListener('click',function(e){
+  if(!G.vimOpen
+    && !e.target.closest('.icard')
+    && !e.target.closest('.hint-btn')
+    && !e.target.closest('.cheatsheet')
+    && !e.target.closest('.term-out')
+  ) TI.focus();
+});
+</script>
+</body>
+</html>

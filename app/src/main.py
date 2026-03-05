@@ -246,6 +246,10 @@ async def ansible_scenarios_page():
 async def ansible_scenario_detail_page(scenario_id: str):
     return FileResponse(str(static_dir / "ansible-scenario-detail.html"))
 
+@app.get("/arcade")
+async def arcade_game():
+    return FileResponse(str(static_dir / "arcade.html"))
+
 @app.get("/hands-on-projects")
 async def hands_on_projects_page():
     return FileResponse(str(static_dir / "hands-on-projects.html"))
