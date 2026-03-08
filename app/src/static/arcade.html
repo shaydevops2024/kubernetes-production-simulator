@@ -195,6 +195,27 @@
   @keyframes sldin { from{transform:translateX(100%);opacity:0;} to{transform:translateX(0);opacity:1;} }
   @keyframes spop  { 0%{transform:scale(1);} 50%{transform:scale(1.3);} 100%{transform:scale(1);} }
   .spop { animation:spop .3s ease; }
+
+  /* CHAT NOTIFICATIONS */
+  #notifContainer { position:fixed; bottom:54px; right:16px; z-index:5000; display:flex; flex-direction:column-reverse; gap:10px; width:360px; pointer-events:none; }
+  .notif { background:#12182a; border:1px solid #2e3d58; border-left:4px solid var(--nc,#4caf50); border-radius:7px; padding:14px 38px 16px 14px; display:flex; gap:12px; align-items:flex-start; pointer-events:all; position:relative; overflow:hidden; box-shadow:0 6px 28px rgba(0,0,0,.65); animation:nfin .32s ease; }
+  .notif.urgent { border-left-color:var(--red); box-shadow:0 6px 28px rgba(255,58,58,.18); animation:nfin .25s ease, nfshake .45s ease .25s; }
+  .notif-av { width:38px; height:38px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:#fff; flex-shrink:0; background:var(--nc,#607d8b); letter-spacing:0; }
+  .notif-body { flex:1; min-width:0; }
+  .notif-hdr { display:flex; align-items:center; gap:6px; margin-bottom:5px; flex-wrap:wrap; }
+  .notif-who { font-size:13px; font-weight:700; color:#e8f0fa; white-space:nowrap; }
+  .notif-ts { font-size:10px; color:var(--muted); white-space:nowrap; }
+  .notif-plat { font-size:10px; color:var(--text2); margin-left:auto; opacity:.6; white-space:nowrap; letter-spacing:.5px; }
+  .notif-msg { font-size:13px; color:#c2d4e8; line-height:1.6; word-break:break-word; }
+  .notif.urgent .notif-msg { color:#f0d0d0; }
+  .notif-x { position:absolute; top:9px; right:10px; background:none; border:none; color:var(--muted); cursor:pointer; font-size:15px; padding:0; line-height:1; }
+  .notif-x:hover { color:var(--text); }
+  .notif-bar { position:absolute; bottom:0; left:0; height:3px; background:var(--nc,#4caf50); }
+  .notif.urgent .notif-bar { background:var(--red); }
+  @keyframes nfin    { from{transform:translateX(115%);opacity:0} to{transform:translateX(0);opacity:1} }
+  @keyframes nfshake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-5px)} 60%{transform:translateX(5px)} 80%{transform:translateX(-3px)} }
+  @keyframes nfout   { from{transform:translateX(0);opacity:1;max-height:150px;margin-bottom:0} to{transform:translateX(115%);opacity:0;max-height:0;margin-bottom:-10px} }
+  .notif.leaving { animation:nfout .3s ease forwards; pointer-events:none; }
 </style>
 </head>
 <body>
@@ -401,6 +422,9 @@
   <div class="alert-tit">🚨 NEW INCIDENT INCOMING</div>
   <div class="alert-body" id="alertBody"></div>
 </div>
+
+<!-- CHAT NOTIFICATIONS -->
+<div id="notifContainer"></div>
 
 <script>
 /* ======================================================
@@ -1958,6 +1982,158 @@ function doHelm(args) {
 }
 
 /* ======================================================
+   CHAT NOTIFICATIONS (Slack / Teams stress popups)
+====================================================== */
+const NF_PEOPLE = [
+  {name:'Sarah K.',         init:'SK',  color:'#e91e63', plat:'Slack'},
+  {name:'Mike Chen',        init:'MC',  color:'#2196f3', plat:'Slack'},
+  {name:'Platform Team',    init:'PT',  color:'#ff9800', plat:'Teams'},
+  {name:'DevOps Lead',      init:'DL',  color:'#7b1fa2', plat:'Slack'},
+  {name:'Tom R.',           init:'TR',  color:'#00acc1', plat:'Slack'},
+  {name:'On-Call Bot',      init:'🤖', color:'#546e7a', plat:'PagerDuty'},
+  {name:'CTO',              init:'CTO', color:'#c62828', plat:'Slack'},
+  {name:'Support Team',     init:'ST',  color:'#388e3c', plat:'Teams'},
+  {name:'Lena P.',          init:'LP',  color:'#f4511e', plat:'Slack'},
+  {name:'Marcus W.',        init:'MW',  color:'#00897b', plat:'Teams'},
+  {name:'On-Call Rotation', init:'OC',  color:'#5e35b1', plat:'PagerDuty'},
+  {name:'Finance',          init:'$',   color:'#3949ab', plat:'Teams'},
+  {name:'David S.',         init:'DS',  color:'#d81b60', plat:'Slack'},
+  {name:'Infra Team',       init:'IT',  color:'#ef6c00', plat:'Teams'},
+];
+
+const NF_MSGS = [
+  {text:'Is anyone looking at this? My whole dashboard is red.',              urgent:false},
+  {text:'How long is this gonna take? We have a client demo at 3pm.',         urgent:false},
+  {text:'CEO is asking for a status update. What do I tell him?',             urgent:true},
+  {text:'Support ticket count just hit 50 and climbing.',                     urgent:false},
+  {text:'Can someone give us an ETA? ANY ETA?',                               urgent:false},
+  {text:'SLA breach in under 10 minutes at this rate.',                       urgent:true},
+  {text:'Escalating to VP Eng if no update in 5 mins.',                      urgent:false},
+  {text:'@here anyone on this? Incident channel has been silent for 8 mins.', urgent:false},
+  {text:'Finance flagged this. Revenue impact is significant every minute.',  urgent:true},
+  {text:'I have a client on the phone RIGHT NOW asking for an ETA.',          urgent:true},
+  {text:'Are you close? Just need to know if we should reschedule the call.', urgent:false},
+  {text:'RCA is going to be real fun after this one... just saying 😬',       urgent:false},
+  {text:'War room bridge open at #incident-p1. Jump in when you can.',        urgent:false},
+  {text:'Engineering VP just joined the incident channel.',                   urgent:true},
+  {text:'I\'m getting paged again. Is this the same issue as before?',        urgent:false},
+  {text:'What\'s the blast radius? Is prod fully down or just degraded?',     urgent:false},
+  {text:'Just confirming someone is actively working on this right now?',     urgent:false},
+  {text:'We need customer comms drafted ASAP. What\'s the story?',            urgent:false},
+  {text:'Mobile team is completely blocked waiting for this.',                urgent:false},
+  {text:'Anyone need an extra pair of hands? I can jump on a call.',          urgent:false},
+  {text:'Monitoring shows this started 20 min ago. Anything in the logs?',   urgent:false},
+  {text:'Deployment team is blocked. Are rollbacks on the table?',            urgent:false},
+  {text:'Security asked if this is a potential breach. Can we rule it out?',  urgent:false},
+  {text:'I\'m watching the metrics. Error rate is still climbing.',           urgent:false},
+  {text:'Product manager is pinging me every 2 minutes. Please help.',        urgent:false},
+];
+
+const NF_URGENT_MSGS = [
+  {text:'⏰ 5 minutes until SLA breach per contract terms.',     urgent:true},
+  {text:'🚨 C-suite is watching the incident tracker live.',    urgent:true},
+  {text:'💸 Finance: revenue impact now exceeds $10k.',         urgent:true},
+  {text:'⚠️ Incident commander asking for progress update.',   urgent:true},
+  {text:'🔴 All customer-facing services showing errors.',      urgent:true},
+];
+
+let nfTimer = null;
+
+// Delay before next notification — shrinks with level and as time runs out
+function nfNextDelay() {
+  const lv = LEVEL_DEFS[Math.min(G.level, LEVEL_DEFS.length - 1)];
+  const ratio = lv ? Math.max(0, G.masterTimer / lv.timer) : 0.5; // 1=full time, 0=expired
+  // Level 1 base ~32s → Level 8 base ~10s; compresses to 35% as time runs out
+  const base = Math.max(10000, 32000 - G.level * 3000);
+  return Math.max(6000, base * (0.35 + 0.65 * ratio));
+}
+
+// Chance of a second notification stacking shortly after the first
+function nfStackChance() {
+  const lv = LEVEL_DEFS[Math.min(G.level, LEVEL_DEFS.length - 1)];
+  const ratio = lv ? Math.max(0, G.masterTimer / lv.timer) : 0.5;
+  // Level 1 full time: ~8% → Level 8 near zero: ~70%
+  return Math.min(0.70, 0.08 + G.level * 0.045 + (1 - ratio) * 0.42);
+}
+
+function startNotifs() {
+  stopNotifs();
+  nfTimer = setTimeout(() => {
+    if(document.getElementById('gameScreen').classList.contains('active')) {
+      showNotif();
+      if(Math.random() < nfStackChance()) {
+        setTimeout(() => showNotif(), 4000 + Math.random() * 3000);
+      }
+    }
+    scheduleNextNotif();
+  }, 10000 + Math.random() * 6000);
+}
+
+function stopNotifs() {
+  if(nfTimer) { clearTimeout(nfTimer); nfTimer = null; }
+  const c = document.getElementById('notifContainer');
+  if(c) c.innerHTML = '';
+}
+
+function scheduleNextNotif() {
+  nfTimer = setTimeout(() => {
+    if(!document.getElementById('gameScreen').classList.contains('active')) return;
+    showNotif();
+    if(Math.random() < nfStackChance()) {
+      setTimeout(() => showNotif(), 3000 + Math.random() * 3000);
+    }
+    scheduleNextNotif();
+  }, nfNextDelay());
+}
+
+function showNotif() {
+  const container = document.getElementById('notifContainer');
+  if(!container) return;
+  const alive = container.querySelectorAll('.notif:not(.leaving)');
+  if(alive.length >= 2) return;
+
+  // Urgent pool chance grows as time runs out: 0% at full time → 55% at zero
+  const lv = LEVEL_DEFS[Math.min(G.level, LEVEL_DEFS.length - 1)];
+  const ratio = lv ? Math.max(0, G.masterTimer / lv.timer) : 0.5;
+  const pool = Math.random() < (1 - ratio) * 0.55 ? NF_URGENT_MSGS : NF_MSGS;
+  const msg  = pool[Math.floor(Math.random() * pool.length)];
+
+  const person = NF_PEOPLE[Math.floor(Math.random() * NF_PEOPLE.length)];
+  const dur = 10000;
+  const now = new Date();
+  const ts  = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+
+  const el = document.createElement('div');
+  el.className = 'notif' + (msg.urgent ? ' urgent' : '');
+  el.style.setProperty('--nc', msg.urgent ? 'var(--red)' : person.color);
+  el.innerHTML =
+    `<div class="notif-av" style="background:${person.color}">${person.init}</div>` +
+    `<div class="notif-body">` +
+      `<div class="notif-hdr">` +
+        `<span class="notif-who">${person.name}</span>` +
+        `<span class="notif-ts">${ts}</span>` +
+        `<span class="notif-plat">${person.plat}</span>` +
+      `</div>` +
+      `<div class="notif-msg">${msg.text}</div>` +
+    `</div>` +
+    `<button class="notif-x" onclick="dismissNotif(this.parentElement)">✕</button>` +
+    `<div class="notif-bar" style="width:100%;transition:width ${dur}ms linear"></div>`;
+
+  container.appendChild(el);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const bar = el.querySelector('.notif-bar');
+    if(bar) bar.style.width = '0%';
+  }));
+  setTimeout(() => dismissNotif(el), dur);
+}
+
+function dismissNotif(el) {
+  if(!el || el.classList.contains('leaving')) return;
+  el.classList.add('leaving');
+  setTimeout(() => { if(el.parentElement) el.remove(); }, 300);
+}
+
+/* ======================================================
    AUTOCOMPLETE
 ====================================================== */
 function computeAC(val){
@@ -2073,6 +2249,7 @@ function loadLevel(idx){
     setTimeout(()=>showAlert('New incident queued: Database Replication Lag — HIGH severity. Activating in 30s.'),8000);
     setTimeout(()=>showAlert('CRITICAL: CDN edge nodes timing out — cascading failure detected!'),25000);
   }
+  startNotifs();
 }
 
 function tickMaster(){
@@ -2183,6 +2360,7 @@ function scorePop(){const e=document.getElementById('topScore');e.classList.add(
 
 function levelComplete(){
   clearInterval(G.masterInterval); G.incidents.forEach(i=>clearInterval(i.interval));
+  stopNotifs();
   const all=G.incidents.every(i=>i.solved); const bonus=all?1000:0;
   if(all) G.score+=bonus;
   let html='';
@@ -2199,6 +2377,7 @@ function levelComplete(){
 
 function gameOver(reason){
   clearInterval(G.masterInterval); G.incidents.forEach(i=>clearInterval(i.interval));
+  stopNotifs();
   let html='';
   if(reason==='timeout') html+=`<div class="sco-row"><span style="color:var(--red)">⏰ Master timer expired</span><span class="sco-pts neg">TIMEOUT</span></div>`;
   if(reason==='lives')   html+=`<div class="sco-row"><span style="color:var(--red)">💀 All lives lost</span><span></span></div>`;
