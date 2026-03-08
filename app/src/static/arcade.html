@@ -217,6 +217,18 @@
   @keyframes nfout   { from{transform:translateX(0);opacity:1;max-height:150px;margin-bottom:0} to{transform:translateX(115%);opacity:0;max-height:0;margin-bottom:-10px} }
   .notif.leaving { animation:nfout .3s ease forwards; pointer-events:none; }
 
+  /* ---- LOAD SCREEN ---- */
+  #loadScreen { flex-direction:column; align-items:center; justify-content:center; gap:28px; background:radial-gradient(ellipse at 50% 40%,#0a1a2a 0%,#070a0d 70%); }
+  .load-box { border:1px solid var(--border); background:var(--bg2); padding:28px 36px; max-width:520px; width:100%; display:flex; flex-direction:column; gap:12px; }
+  .load-title { font-family:'Orbitron',sans-serif; font-size:10px; font-weight:700; letter-spacing:3px; color:var(--amber); }
+  .load-status { font-size:11px; color:var(--text2); letter-spacing:1px; min-height:16px; }
+  .load-steps { font-size:10px; color:var(--muted); min-height:56px; max-height:56px; overflow:hidden; display:flex; flex-direction:column; gap:2px; }
+  .load-step-item { color:#3a7090; }
+  .load-step-item.active { color:var(--green); }
+  .load-track { width:100%; height:5px; background:var(--border); border-radius:3px; overflow:hidden; }
+  .load-fill { height:100%; background:var(--green); width:0%; transition:width 0.6s ease; border-radius:3px; box-shadow:0 0 12px rgba(0,255,157,.5); }
+  .load-pct { font-family:'Orbitron',sans-serif; font-size:22px; font-weight:700; color:var(--green); text-align:right; text-shadow:0 0 12px rgba(0,255,157,.4); }
+
   /* ---- MATRIX TRANSITION ---- */
   #matrixOverlay {
     display:none; position:fixed; inset:0; z-index:99999;
@@ -231,9 +243,24 @@
 </head>
 <body>
 
+<script src="/static/arcade-k8s.js"></script>
+
 <!-- MATRIX OVERLAY -->
 <div id="matrixOverlay">
   <canvas id="matrixCanvas"></canvas>
+</div>
+
+<!-- LOAD SCREEN -->
+<div id="loadScreen" class="screen">
+  <div class="logo">DevOps Survival</div>
+  <div class="logo-sub">INITIALIZING WAR ROOM</div>
+  <div class="load-box">
+    <div class="load-title">CLUSTER SETUP PROGRESS</div>
+    <div class="load-status" id="loadStatus">Connecting to Kubernetes cluster...</div>
+    <div class="load-steps" id="loadSteps"></div>
+    <div class="load-track"><div class="load-fill" id="loadFill"></div></div>
+    <div class="load-pct" id="loadPct">0%</div>
+  </div>
 </div>
 
 <!-- START -->
@@ -447,93 +474,95 @@
    SCENARIOS — each step has a hintCmd (shown by HINT)
 ====================================================== */
 const SC = {
-  /* ── ORIGINAL 8 ── */
+  /* ── ORIGINAL 8 — real K8s namespaces ── */
   nginx_config: {
     id:'nginx_config', severity:'critical', sevClass:'critical',
-    title:'NGINX Config Broken', service:'nginx.service',
-    description:'NGINX failing to start. Requests returning 502. Config syntax error suspected.',
-    timeLimit:180, points:500,
+    title:'NGINX Pod CrashLoopBackOff', service:'nginx-proxy',
+    description:'nginx-proxy pods crash-looping. NGINX fails to parse its config. All web traffic returning 502.',
+    timeLimit:200, points:500,
     steps:[
-      {label:'Read error log',            cmd:'cat',      arg:'/var/log/nginx/error.log', hintCmd:'cat /var/log/nginx/error.log', done:false},
-      {label:'Open config in vim',        cmd:'vim',      arg:'/etc/nginx/nginx.conf',    hintCmd:'vim /etc/nginx/nginx.conf',    done:false},
-      {label:'Fix semicolon & save (:wq)',cmd:'vim_save', arg:'/etc/nginx/nginx.conf',    hintCmd:'(in vim)  i  →  add ";" after "listen 80"  →  ESC  →  :wq', done:false},
+      {label:'Check pod status',       cmd:'kubectl', arg:'get pods',     hintCmd:'kubectl get pods',                            done:false},
+      {label:'Read nginx crash logs',  cmd:'kubectl', arg:'logs nginx',   hintCmd:'kubectl logs nginx-proxy-<pod-name>',         done:false},
+      {label:'Describe failing pod',   cmd:'kubectl', arg:'describe pod', hintCmd:'kubectl describe pod nginx-proxy-<pod-name>', done:false},
+      {label:'Rollback deployment',    cmd:'kubectl', arg:'rollout undo', hintCmd:'kubectl rollout undo deploy/nginx-proxy',     done:false},
     ],
   },
   crashloop: {
     id:'crashloop', severity:'critical', sevClass:'critical',
-    title:'API Pod CrashLoopBackOff', service:'api-service',
-    description:'api-deployment pods crash-looping. /api/* traffic is failing. Rollback needed.',
+    title:'API Pod CrashLoopBackOff', service:'api-deployment',
+    description:'api-deployment pods crash-looping. DB connection refused on startup. /api/* traffic is failing.',
     timeLimit:210, points:500,
     steps:[
-      {label:'Check pod status',    cmd:'kubectl', arg:'get pods',     hintCmd:'kubectl get pods',                          done:false},
-      {label:'Read pod crash logs', cmd:'kubectl', arg:'logs api',     hintCmd:'kubectl logs api-deployment-7d9f4b-xk2p9',  done:false},
-      {label:'Rollback deployment', cmd:'kubectl', arg:'rollout undo', hintCmd:'kubectl rollout undo deploy/api-deployment', done:false},
+      {label:'Check pod status',    cmd:'kubectl', arg:'get pods',     hintCmd:'kubectl get pods',                              done:false},
+      {label:'Read pod crash logs', cmd:'kubectl', arg:'logs api',     hintCmd:'kubectl logs api-deployment-<pod-name>',        done:false},
+      {label:'Rollback deployment', cmd:'kubectl', arg:'rollout undo', hintCmd:'kubectl rollout undo deploy/api-deployment',    done:false},
     ],
   },
   disk_space: {
     id:'disk_space', severity:'high', sevClass:'high',
-    title:'Disk Space Critical', service:'prod-node-01',
-    description:'Root partition at 97%. Deployments failing. JVM heap dumps filling /tmp.',
-    timeLimit:150, points:350,
+    title:'Ephemeral Storage Exhausted', service:'data-logger',
+    description:'data-logger pods evicted repeatedly. Ephemeral storage limit exceeded by runaway log writer in v2.0.',
+    timeLimit:160, points:350,
     steps:[
-      {label:'Check disk usage',         cmd:'df',  arg:'-h',      hintCmd:'df -h',          done:false},
-      {label:'List large files in /tmp', cmd:'ls',  arg:'/tmp',    hintCmd:'ls /tmp',         done:false},
-      {label:'Remove heap dump files',   cmd:'rm',  arg:'*.hprof', hintCmd:'rm /tmp/*.hprof', done:false},
+      {label:'Check pod states',     cmd:'kubectl', arg:'get pods',     hintCmd:'kubectl get pods',                              done:false},
+      {label:'Describe evicted pod', cmd:'kubectl', arg:'describe pod', hintCmd:'kubectl describe pod data-logger-<pod-name>',   done:false},
+      {label:'Rollback deployment',  cmd:'kubectl', arg:'rollout undo', hintCmd:'kubectl rollout undo deploy/data-logger',       done:false},
     ],
   },
   cpu_spike: {
     id:'cpu_spike', severity:'high', sevClass:'high',
-    title:'CPU Spike — 98%', service:'prod-node-01',
-    description:'CPU pegged at 98%. System unresponsive. Runaway worker processes detected.',
-    timeLimit:120, points:350,
+    title:'CPU Throttling — Runaway Workers', service:'stress-worker',
+    description:'stress-worker v2.0 has a CPU busy-loop with a 50m CPU limit. Cluster-wide throttling affecting all services.',
+    timeLimit:130, points:350,
     steps:[
-      {label:'List all processes',      cmd:'ps',   arg:'aux',    hintCmd:'ps aux',                     done:false},
-      {label:'Filter runaway workers',  cmd:'grep', arg:'worker', hintCmd:'ps aux | grep worker', done:false},
-      {label:'Kill high-CPU processes', cmd:'kill', arg:'-9',     hintCmd:'kill -9 7823',               done:false},
+      {label:'Check pod status',     cmd:'kubectl', arg:'get pods',     hintCmd:'kubectl get pods',                              done:false},
+      {label:'Describe pod limits',  cmd:'kubectl', arg:'describe pod', hintCmd:'kubectl describe pod stress-worker-<pod-name>', done:false},
+      {label:'Rollback deployment',  cmd:'kubectl', arg:'rollout undo', hintCmd:'kubectl rollout undo deploy/stress-worker',     done:false},
     ],
   },
   oom_crash: {
     id:'oom_crash', severity:'medium', sevClass:'medium',
-    title:'Service OOM Crash Loop', service:'data-transformer',
-    description:'data-transformer OOM-killing repeatedly. Memory leak in processing pipeline.',
-    timeLimit:160, points:200,
+    title:'Pod OOMKilled — Memory Limit', service:'data-transformer',
+    description:'data-transformer OOMKilled repeatedly. v1.3.0 allocates 200MB but pod limit is only 32Mi.',
+    timeLimit:170, points:200,
     steps:[
-      {label:'Tail application log',   cmd:'tail', arg:'app.log',       hintCmd:'tail -f /var/log/app.log',            done:false},
-      {label:'Grep for ERROR lines',   cmd:'grep', arg:'ERROR',         hintCmd:'cat /var/log/app.log | grep ERROR',         done:false},
-      {label:'Identify leaking class', cmd:'grep', arg:'DataTransform', hintCmd:'cat /var/log/app.log | grep DataTransform', done:false},
+      {label:'Check pod status',     cmd:'kubectl', arg:'get pods',     hintCmd:'kubectl get pods',                                    done:false},
+      {label:'Read crash logs',      cmd:'kubectl', arg:'logs data',    hintCmd:'kubectl logs data-transformer-<pod-name>',            done:false},
+      {label:'Describe pod memory',  cmd:'kubectl', arg:'describe pod', hintCmd:'kubectl describe pod data-transformer-<pod-name>',    done:false},
+      {label:'Rollback deployment',  cmd:'kubectl', arg:'rollout undo', hintCmd:'kubectl rollout undo deploy/data-transformer',        done:false},
     ],
   },
   docker_restart: {
     id:'docker_restart', severity:'medium', sevClass:'medium',
-    title:'Docker Container Restart Loop', service:'payment-service',
-    description:'payment-service container restarting every 30s. Bad image tag in prod.',
-    timeLimit:140, points:200,
+    title:'Payment Service ImagePullBackOff', service:'payment-service',
+    description:'payment-service v2.0.0-bad image does not exist in registry. All payment pods stuck in ImagePullBackOff.',
+    timeLimit:150, points:200,
     steps:[
-      {label:'List running containers', cmd:'docker', arg:'ps',   hintCmd:'docker ps',                               done:false},
-      {label:'Check container logs',    cmd:'docker', arg:'logs', hintCmd:'docker logs payment-service',             done:false},
-      {label:'Pull stable image',       cmd:'docker', arg:'pull', hintCmd:'docker pull payment-service:v1.2.3-stable',done:false},
+      {label:'Check pod states',     cmd:'kubectl', arg:'get pods',     hintCmd:'kubectl get pods',                                done:false},
+      {label:'Describe failing pod', cmd:'kubectl', arg:'describe pod', hintCmd:'kubectl describe pod payment-service-<pod-name>', done:false},
+      {label:'Rollback deployment',  cmd:'kubectl', arg:'rollout undo', hintCmd:'kubectl rollout undo deploy/payment-service',     done:false},
     ],
   },
   silent_deploy: {
     id:'silent_deploy', severity:'low', sevClass:'low',
-    title:'Silent Deployment Failure', service:'frontend-deployment',
-    description:'Latest deploy shows success in CI but pods are not updated. No errors visible.',
+    title:'Silent Deployment Failure', service:'frontend',
+    description:'Latest deploy shows success in CI but new pod is stuck 0/1 Ready while old pod stays alive. Readiness probe path changed silently.',
     timeLimit:130, points:100,
     steps:[
-      {label:'Check deployment status',  cmd:'kubectl', arg:'get deployments', hintCmd:'kubectl get deployments',                    done:false},
-      {label:'View rollout history',     cmd:'kubectl', arg:'rollout history',  hintCmd:'kubectl rollout history deploy/frontend',    done:false},
-      {label:'Describe pod for details', cmd:'kubectl', arg:'describe pod',     hintCmd:'kubectl describe pod frontend-6c8d9f-pp1kx', done:false},
+      {label:'Check deployment status', cmd:'kubectl', arg:'get deployments', hintCmd:'kubectl get deployments',                    done:false},
+      {label:'View rollout history',    cmd:'kubectl', arg:'rollout history',  hintCmd:'kubectl rollout history deploy/frontend',    done:false},
+      {label:'Describe failing pod',    cmd:'kubectl', arg:'describe pod',     hintCmd:'kubectl describe pod frontend-<pod-name>',   done:false},
     ],
   },
   disk_errors: {
     id:'disk_errors', severity:'low', sevClass:'low',
-    title:'Mysterious Disk Errors', service:'syslog',
-    description:'Intermittent EXT4 filesystem errors. Applications getting EROFS.',
+    title:'Pod Filesystem Read-Only Errors', service:'syslog-processor',
+    description:'syslog-processor crash-looping. v2.0 has readOnlyRootFilesystem: true — log writes failing with EROFS.',
     timeLimit:150, points:100,
     steps:[
-      {label:'Check syslog',     cmd:'cat',  arg:'syslog',      hintCmd:'cat /var/log/syslog',               done:false},
-      {label:'Filter EXT4 errors',cmd:'grep', arg:'EXT4',       hintCmd:'cat /var/log/syslog | grep EXT4',         done:false},
-      {label:'Check filesystem health', cmd:'df', arg:'-h', hintCmd:'df -h', done:false},
+      {label:'Check pod status',      cmd:'kubectl', arg:'get pods',     hintCmd:'kubectl get pods',                                    done:false},
+      {label:'Read error logs',       cmd:'kubectl', arg:'logs syslog',  hintCmd:'kubectl logs syslog-processor-<pod-name>',            done:false},
+      {label:'Describe security ctx', cmd:'kubectl', arg:'describe pod', hintCmd:'kubectl describe pod syslog-processor-<pod-name>',    done:false},
     ],
   },
 
@@ -541,126 +570,122 @@ const SC = {
   ssl_cert_expired: {
     id:'ssl_cert_expired', severity:'critical', sevClass:'critical',
     title:'SSL Certificate Expired', service:'nginx/tls',
-    description:'HTTPS returning SSL handshake failure. Monitoring shows cert validity 0 days. Users locked out of all services.',
+    description:'HTTPS returning SSL handshake failure. nginx-proxy cannot load TLS certificate. Users locked out of all services.',
     timeLimit:200, points:500,
     k8sPods:[
-      {name:'nginx-proxy-7d8f-xx3a1',  ready:'0/1', status:'Error',   restarts:8, age:'2h'},
-      {name:'frontend-6c8d9f-pp1kx',   ready:'1/1', status:'Running', restarts:0, age:'2d'},
+      {name:'nginx-proxy-7d8f-xx3a1', ready:'0/1', status:'CrashLoopBackOff', restarts:8, age:'2h'},
     ],
     steps:[
-      {label:'Read nginx error log',      cmd:'cat',      arg:'/var/log/nginx/error.log',  hintCmd:'cat /var/log/nginx/error.log',              done:false},
-      {label:'Inspect certificate file',  cmd:'cat',      arg:'/etc/ssl/certs/server.crt', hintCmd:'cat /etc/ssl/certs/server.crt',             done:false},
-      {label:'Check expiry date',         cmd:'grep',     arg:'Not After',                 hintCmd:'cat /etc/ssl/certs/server.crt | grep "Not After"', done:false},
-      {label:'Update nginx cert path',    cmd:'vim',      arg:'/etc/nginx/nginx.conf',     hintCmd:'vim /etc/nginx/nginx.conf',                 done:false},
-      {label:'Save config (:wq)',         cmd:'vim_save', arg:'/etc/nginx/nginx.conf',     hintCmd:'(in vim)  :wq  to save updated cert path',  done:false},
+      {label:'Check pod status',      cmd:'kubectl', arg:'get pods',     hintCmd:'kubectl get pods',                              done:false},
+      {label:'Read nginx SSL errors', cmd:'kubectl', arg:'logs nginx',   hintCmd:'kubectl logs nginx-proxy-<pod-name>',           done:false},
+      {label:'Describe failing pod',  cmd:'kubectl', arg:'describe pod', hintCmd:'kubectl describe pod nginx-proxy-<pod-name>',   done:false},
+      {label:'Rollback deployment',   cmd:'kubectl', arg:'rollout undo', hintCmd:'kubectl rollout undo deploy/nginx-proxy',       done:false},
     ],
   },
   etcd_failure: {
     id:'etcd_failure', severity:'critical', sevClass:'critical',
     title:'etcd Cluster Unhealthy', service:'kube-system/etcd',
-    description:'kubectl calls timing out. etcd leader election failed. Control plane is degraded — no new deployments possible.',
+    description:'etcd pod crashing. Leader election failed. Control plane degraded — no new deployments possible.',
     timeLimit:240, points:600,
     k8sPods:[
-      {name:'etcd-prod-node-01',           ready:'0/1', status:'Error',           restarts:5, age:'1h'},
-      {name:'kube-apiserver-prod-node-01', ready:'0/1', status:'CrashLoopBackOff',restarts:9, age:'1h'},
-      {name:'frontend-6c8d9f-pp1kx',       ready:'1/1', status:'Running',         restarts:0, age:'2d'},
+      {name:'etcd-sim-7d9f4b-xx3a1', ready:'0/1', status:'CrashLoopBackOff', restarts:5, age:'1h'},
     ],
     steps:[
-      {label:'Check control plane pods', cmd:'kubectl',    arg:'get pods',  hintCmd:'kubectl get pods',                          done:false},
-      {label:'Read etcd crash logs',     cmd:'kubectl',    arg:'logs etcd', hintCmd:'kubectl logs etcd-prod-node-01',            done:false},
-      {label:'Check system journal',     cmd:'journalctl', arg:'',          hintCmd:'journalctl',                                done:false},
-      {label:'Tail etcd log file',       cmd:'tail',       arg:'etcd.log',  hintCmd:'tail -f /var/log/etcd.log',                 done:false},
-      {label:'Verify cluster nodes',      cmd:'kubectl',    arg:'get nodes', hintCmd:'kubectl get nodes',                         done:false},
+      {label:'Check pod states',          cmd:'kubectl', arg:'get pods',     hintCmd:'kubectl get pods',                        done:false},
+      {label:'Read etcd crash logs',      cmd:'kubectl', arg:'logs etcd',    hintCmd:'kubectl logs etcd-sim-<pod-name>',        done:false},
+      {label:'Describe failing pod',      cmd:'kubectl', arg:'describe pod', hintCmd:'kubectl describe pod etcd-sim-<pod-name>',done:false},
+      {label:'Verify cluster nodes',      cmd:'kubectl', arg:'get nodes',    hintCmd:'kubectl get nodes',                       done:false},
+      {label:'Rollback etcd deployment',  cmd:'kubectl', arg:'rollout undo', hintCmd:'kubectl rollout undo deploy/etcd-sim',    done:false},
     ],
   },
   node_notready: {
     id:'node_notready', severity:'critical', sevClass:'critical',
     title:'Node NotReady — Workloads Evicted', service:'prod-node-02',
-    description:'prod-node-02 transitioned to NotReady. 40% of pods evicted and stuck Pending. kubelet crash due to disk pressure.',
+    description:'api-deployment stuck Pending. Pod requests 100 CPU cores — no node can satisfy. Workloads failing across the cluster.',
     timeLimit:260, points:600,
     k8sPods:[
-      {name:'api-deployment-7d9f4b-xk2p9',ready:'0/1', status:'Evicted', restarts:0, age:'5m'},
-      {name:'api-deployment-7d9f4b-new1',  ready:'0/1', status:'Pending', restarts:0, age:'2m'},
-      {name:'frontend-6c8d9f-pp1kx',       ready:'1/1', status:'Running', restarts:0, age:'2d'},
+      {name:'api-deployment-7d9f4b-xk2p9', ready:'0/1', status:'Pending', restarts:0, age:'5m'},
     ],
     steps:[
-      {label:'Check pod states',      cmd:'kubectl',    arg:'get pods',     hintCmd:'kubectl get pods',                                  done:false},
-      {label:'Describe evicted pod',  cmd:'kubectl',    arg:'describe pod', hintCmd:'kubectl describe pod api-deployment-7d9f4b-xk2p9',  done:false},
-      {label:'Check kubelet journal', cmd:'journalctl', arg:'',             hintCmd:'journalctl',                                        done:false},
-      {label:'Check node disk',       cmd:'df',         arg:'-h',           hintCmd:'df -h',                                             done:false},
-      {label:'Free disk space',       cmd:'rm',         arg:'*.hprof',      hintCmd:'rm /tmp/*.hprof',                                   done:false},
+      {label:'Check pod states',      cmd:'kubectl', arg:'get pods',     hintCmd:'kubectl get pods',                                 done:false},
+      {label:'Describe pending pod',  cmd:'kubectl', arg:'describe pod', hintCmd:'kubectl describe pod api-deployment-<pod-name>',   done:false},
+      {label:'Check cluster nodes',   cmd:'kubectl', arg:'get nodes',    hintCmd:'kubectl get nodes',                                done:false},
+      {label:'Rollback deployment',   cmd:'kubectl', arg:'rollout undo', hintCmd:'kubectl rollout undo deploy/api-deployment',       done:false},
     ],
   },
   db_conn_pool: {
     id:'db_conn_pool', severity:'high', sevClass:'high',
     title:'DB Connection Pool Exhausted', service:'postgres/api',
-    description:'API returning 503. PostgreSQL rejecting new connections. Max pool (100) reached by runaway workers.',
+    description:'API returning 503. api-service pod crashing — PostgreSQL connection pool exhausted. Max connections reached.',
     timeLimit:160, points:350,
+    k8sPods:[
+      {name:'api-service-5f9b-mn3q1', ready:'0/1', status:'CrashLoopBackOff', restarts:7, age:'30m'},
+    ],
     steps:[
-      {label:'Tail application log',   cmd:'tail', arg:'app.log',    hintCmd:'tail -f /var/log/app.log',        done:false},
-      {label:'Grep connection errors', cmd:'grep', arg:'connection', hintCmd:'tail -f /var/log/app.log | grep connection', done:false},
-      {label:'List all processes',     cmd:'ps',   arg:'aux',        hintCmd:'ps aux',                          done:false},
-      {label:'Kill runaway workers',   cmd:'kill', arg:'-9',         hintCmd:'kill -9 7823',                    done:false},
+      {label:'Check pod status',        cmd:'kubectl', arg:'get pods',     hintCmd:'kubectl get pods',                          done:false},
+      {label:'Read connection errors',  cmd:'kubectl', arg:'logs api',     hintCmd:'kubectl logs api-service-<pod-name>',       done:false},
+      {label:'Describe failing pod',    cmd:'kubectl', arg:'describe pod', hintCmd:'kubectl describe pod api-service-<pod-name>',done:false},
+      {label:'Rollback deployment',     cmd:'kubectl', arg:'rollout undo', hintCmd:'kubectl rollout undo deploy/api-service',   done:false},
     ],
   },
   log_rotation_fail: {
     id:'log_rotation_fail', severity:'high', sevClass:'high',
     title:'Log Rotation Failure — Disk Full', service:'logrotate',
-    description:'logrotate cron job silently failing. /var/log consuming 40G. App write errors starting to appear.',
+    description:'log-worker pod crash-looping. logrotate script failing. Disk at 97%. App write errors starting to appear.',
     timeLimit:150, points:350,
+    k8sPods:[
+      {name:'log-worker-8b3c-vv9p1', ready:'0/1', status:'CrashLoopBackOff', restarts:6, age:'20m'},
+    ],
     steps:[
-      {label:'Check disk usage',        cmd:'df',   arg:'-h',       hintCmd:'df -h',                    done:false},
-      {label:'List files in /var/log',  cmd:'ls',   arg:'/var/log', hintCmd:'ls /var/log',              done:false},
-      {label:'Find all log files',      cmd:'find', arg:'/var/log', hintCmd:'find /var/log',            done:false},
-      {label:'Remove rotated logs',     cmd:'rm',   arg:'.log',     hintCmd:'rm /var/log/app.log.1',    done:false},
+      {label:'Check pod states',           cmd:'kubectl', arg:'get pods',     hintCmd:'kubectl get pods',                          done:false},
+      {label:'Read log rotation errors',   cmd:'kubectl', arg:'logs log',     hintCmd:'kubectl logs log-worker-<pod-name>',        done:false},
+      {label:'Describe failing pod',       cmd:'kubectl', arg:'describe pod', hintCmd:'kubectl describe pod log-worker-<pod-name>',done:false},
+      {label:'Rollback deployment',        cmd:'kubectl', arg:'rollout undo', hintCmd:'kubectl rollout undo deploy/log-worker',    done:false},
     ],
   },
   network_policy_block: {
     id:'network_policy_block', severity:'high', sevClass:'high',
     title:'NetworkPolicy Blocking Traffic', service:'payment→database',
-    description:'payment-service cannot reach postgres:5432. NetworkPolicy tightened after audit. All payments failing.',
+    description:'payment-service crash-looping. NetworkPolicy blocking all egress from payment pods. DB connection refused.',
     timeLimit:140, points:350,
     k8sPods:[
-      {name:'payment-service-5f8b-qq2m3', ready:'1/1', status:'Running', restarts:12, age:'4h'},
-      {name:'postgres-0',                 ready:'1/1', status:'Running', restarts:0,  age:'5d'},
-      {name:'frontend-6c8d9f-pp1kx',      ready:'1/1', status:'Running', restarts:0,  age:'2d'},
+      {name:'payment-service-5f8b-qq2m3', ready:'0/1', status:'CrashLoopBackOff', restarts:12, age:'4h'},
     ],
     steps:[
-      {label:'Check pod states',        cmd:'kubectl', arg:'get pods',     hintCmd:'kubectl get pods',                                    done:false},
-      {label:'Describe payment pod',    cmd:'kubectl', arg:'describe pod', hintCmd:'kubectl describe pod payment-service-5f8b-qq2m3',     done:false},
-      {label:'Inspect network policies', cmd:'kubectl', arg:'get networkpolicies', hintCmd:'kubectl get networkpolicies',              done:false},
+      {label:'Check pod states',          cmd:'kubectl', arg:'get pods',            hintCmd:'kubectl get pods',                              done:false},
+      {label:'Read payment crash logs',   cmd:'kubectl', arg:'logs payment',        hintCmd:'kubectl logs payment-service-<pod-name>',       done:false},
+      {label:'Inspect network policies',  cmd:'kubectl', arg:'get networkpolicies', hintCmd:'kubectl get networkpolicies',                   done:false},
+      {label:'Rollback payment service',  cmd:'kubectl', arg:'rollout undo',        hintCmd:'kubectl rollout undo deploy/payment-service',   done:false},
     ],
   },
   resource_quota: {
     id:'resource_quota', severity:'medium', sevClass:'medium',
     title:'Namespace Quota Exceeded', service:'staging namespace',
-    description:'New deployments stuck in Pending. CPU/memory quota fully consumed by leaked batch jobs from last deploy.',
+    description:'worker-job scaled to 5 but only 3 pods created. Namespace ResourceQuota limits total pods. Deployment stuck.',
     timeLimit:180, points:200,
     k8sPods:[
-      {name:'worker-job-8b3f-vv9p1', ready:'0/1', status:'Pending', restarts:0, age:'20m'},
-      {name:'worker-job-8b3f-vv9p2', ready:'0/1', status:'Pending', restarts:0, age:'20m'},
-      {name:'frontend-6c8d9f-pp1kx', ready:'1/1', status:'Running', restarts:0, age:'2d'},
+      {name:'worker-job-8b3f-vv9p1', ready:'1/1', status:'Running', restarts:0, age:'20m'},
+      {name:'worker-job-8b3f-vv9p2', ready:'1/1', status:'Running', restarts:0, age:'20m'},
     ],
     steps:[
-      {label:'Check pod states',          cmd:'kubectl', arg:'get pods',        hintCmd:'kubectl get pods',                              done:false},
-      {label:'Check deployments',         cmd:'kubectl', arg:'get deployments', hintCmd:'kubectl get deployments',                       done:false},
-      {label:'Describe pending pod',      cmd:'kubectl', arg:'describe pod',    hintCmd:'kubectl describe pod worker-job-8b3f-vv9p1',    done:false},
-      {label:'Check namespace quota',     cmd:'kubectl', arg:'get resourcequota', hintCmd:'kubectl get resourcequota',                  done:false},
+      {label:'Check pod states',        cmd:'kubectl', arg:'get pods',          hintCmd:'kubectl get pods',                          done:false},
+      {label:'Check deployments',       cmd:'kubectl', arg:'get deployments',   hintCmd:'kubectl get deployments',                   done:false},
+      {label:'Inspect namespace quota', cmd:'kubectl', arg:'get resourcequota', hintCmd:'kubectl get resourcequota',                 done:false},
+      {label:'Rollback deployment',     cmd:'kubectl', arg:'rollout undo',      hintCmd:'kubectl rollout undo deploy/worker-job',    done:false},
     ],
   },
   configmap_missing: {
     id:'configmap_missing', severity:'medium', sevClass:'medium',
     title:'Missing ConfigMap — Pod Startup Fail', service:'worker-service',
-    description:'worker-service pods failing with "configmap not found". Config was accidentally deleted in last deploy.',
+    description:'worker-service pods stuck in CreateContainerConfigError. ConfigMap worker-config-v2 deleted during deploy cleanup.',
     timeLimit:140, points:200,
     k8sPods:[
-      {name:'worker-7f9b2c-rr4k2', ready:'0/1', status:'Error',   restarts:6, age:'30m'},
-      {name:'redis-0',             ready:'1/1', status:'Running', restarts:0, age:'5d'},
+      {name:'worker-7f9b2c-rr4k2', ready:'0/1', status:'CreateContainerConfigError', restarts:0, age:'30m'},
     ],
     steps:[
-      {label:'Check pod status',     cmd:'kubectl', arg:'get pods',    hintCmd:'kubectl get pods',                    done:false},
-      {label:'Read pod error logs',  cmd:'kubectl', arg:'logs worker', hintCmd:'kubectl logs worker-7f9b2c-rr4k2',    done:false},
-      {label:'Describe failing pod', cmd:'kubectl', arg:'describe pod',hintCmd:'kubectl describe pod worker-7f9b2c-rr4k2', done:false},
+      {label:'Check pod status',     cmd:'kubectl', arg:'get pods',     hintCmd:'kubectl get pods',                          done:false},
+      {label:'Describe failing pod', cmd:'kubectl', arg:'describe pod', hintCmd:'kubectl describe pod worker-7f9b2c-rr4k2',  done:false},
+      {label:'Rollback deployment',  cmd:'kubectl', arg:'rollout undo', hintCmd:'kubectl rollout undo deploy/worker-service', done:false},
     ],
   },
   secret_rotation: {
@@ -774,13 +799,18 @@ const SC = {
   },
   zombie_proc: {
     id:'zombie_proc', severity:'medium', sevClass:'medium',
-    title:'Zombie Processes Consuming PIDs', service:'prod-node-01',
-    description:'PID namespace near exhaustion. 200+ zombie processes. Fork failures beginning. Systemd not reaping children.',
+    title:'Zombie Processes Consuming PIDs', service:'zombie-monitor',
+    description:'PID namespace near exhaustion. 200+ zombie processes. Fork failures beginning. zombie-monitor pod crashing after detecting unreaped children.',
     timeLimit:130, points:200,
+    k8sPods:[
+      {name:'zombie-monitor-7c4d9f-pp2k1', ready:'0/1', status:'CrashLoopBackOff', restarts:18, age:'30m'},
+      {name:'redis-0',                     ready:'1/1', status:'Running',           restarts:0,  age:'5d'},
+    ],
     steps:[
-      {label:'List all processes',      cmd:'ps',   arg:'aux',    hintCmd:'ps aux',                     done:false},
-      {label:'Filter zombie processes', cmd:'grep', arg:'zombie', hintCmd:'ps aux | grep zombie', done:false},
-      {label:'Kill zombie parent',      cmd:'kill', arg:'-9',     hintCmd:'kill -9 7825',               done:false},
+      {label:'Check pod states',          cmd:'kubectl', arg:'get pods',         hintCmd:'kubectl get pods',                                 done:false},
+      {label:'Read zombie alert logs',    cmd:'kubectl', arg:'logs zombie',       hintCmd:'kubectl logs zombie-monitor-7c4d9f-pp2k1',         done:false},
+      {label:'Describe crashing pod',     cmd:'kubectl', arg:'describe pod',      hintCmd:'kubectl describe pod zombie-monitor-7c4d9f-pp2k1', done:false},
+      {label:'Rollback monitor deploy',   cmd:'kubectl', arg:'rollout undo',      hintCmd:'kubectl rollout undo deploy/zombie-monitor',       done:false},
     ],
   },
 };
@@ -824,6 +854,7 @@ let G = {
   acList:[], acIdx:-1,
   cwd:'~', prevCwd:'~',
   captureMode:false, captureBuffer:[],
+  arcadeMode:false,  // true when real K8s backend is available
 };
 
 function getPrompt() { return `root@prod-01:${G.cwd}#`; }
@@ -978,7 +1009,7 @@ function dispatchCmd(cmd, args, astr) {
   }
 }
 
-function run(raw) {
+async function run(raw) {
   const input = raw.trim(); if(!input) return;
   G.cmdHistory.unshift(input); G.histIdx = -1;
   hideAC();
@@ -989,7 +1020,17 @@ function run(raw) {
   const args = parts.slice(1);
   const astr = args.join(' ');
   checkStep(cmd, astr);
-  dispatchCmd(cmd, args, astr);
+
+  // Route kubectl to real cluster for the 8 arcade scenarios
+  const activeInc = G.activeCard !== null ? G.incidents[G.activeCard] : null;
+  const isArcadeScenario = activeInc && ARCADE_REAL_SCENARIOS.includes(activeInc.scenarioId);
+  if(cmd === 'kubectl' && G.arcadeMode && isArcadeScenario) {
+    const result = await arcadeExecute('kubectl', args, activeInc.scenarioId);
+    if(result.output) result.output.split('\n').forEach(l => { if(l !== undefined) T('o', xh(l)); });
+    if(result.error)  result.error.split('\n').forEach(l  => { if(l)              T('e', xh(l));  });
+  } else {
+    dispatchCmd(cmd, args, astr);
+  }
   scrollT();
 }
 
@@ -2239,10 +2280,89 @@ function xh(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').repla
 function startGame(){
   G.score=100; G.hearts=5; G.level=0; G.fs=buildFS();
   G.cwd='~'; G.prevCwd='~'; G.cmdHistory=[]; G.histIdx=-1;
+  G.arcadeMode=false;
   updateHearts(); updatePromptEl();
-  runMatrixTransition(function(){
-    showScreen('gameScreen'); loadLevel(0);
-  });
+
+  // Show loading screen while K8s scenarios are being set up
+  showScreen('loadScreen');
+  const statusEl = document.getElementById('loadStatus');
+  const fillEl   = document.getElementById('loadFill');
+  const pctEl    = document.getElementById('loadPct');
+  const stepsEl  = document.getElementById('loadSteps');
+
+  // Disable CSS transition — fake counter updates at 40ms intervals
+  fillEl.style.transition = 'none';
+
+  function showProg(msg, pct){
+    statusEl.textContent = msg;
+    fillEl.style.width   = pct + '%';
+    pctEl.textContent    = pct + '%';
+    const item = document.createElement('div');
+    item.className = 'load-step-item active';
+    item.textContent = '✓ ' + msg;
+    if(stepsEl.lastChild) stepsEl.lastChild.className = 'load-step-item';
+    stepsEl.appendChild(item);
+    if(stepsEl.children.length > 4) stepsEl.removeChild(stepsEl.firstChild);
+  }
+
+  function launch(){
+    runMatrixTransition(function(){ showScreen('gameScreen'); loadLevel(0); });
+  }
+
+  const _sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  async function runFakeCounter(isSetupDone) {
+    const STEP = 40; // ms per 1% increment
+    async function ramp(from, to, msg) {
+      for(let p = from; p <= to; p++){
+        showProg(msg, p);
+        await _sleep(STEP);
+      }
+    }
+
+    // 3–15%: quick, pause 3s
+    await ramp(3,  7,  'Connecting to Kubernetes cluster...');
+    await ramp(8,  15, 'Creating scenario namespaces...');
+    await _sleep(3000);
+
+    // 15–67%: quick, pause at 41% for 1s, then continue, pause 3s at 67%
+    await ramp(16, 33, 'Provisioning workload manifests...');
+    await ramp(34, 41, 'Deploying battle scenarios...');
+    await _sleep(1000);
+    await ramp(42, 52, 'Deploying battle scenarios...');
+    await ramp(53, 67, 'Configuring network policies...');
+    await _sleep(3000);
+
+    // 67–87%: quick, pause 4s
+    await ramp(68, 83, 'Applying resource quotas...');
+    await ramp(84, 87, 'Starting health monitors...');
+    await _sleep(4000);
+
+    // 87–92%: quick, then hold at 92% with animated dots until setup done
+    await ramp(88, 92, 'Syncing cluster state...');
+    let _dotCount = 3;
+    let _lastDotTick = Date.now();
+    while(!isSetupDone()){
+      const now = Date.now();
+      if(now - _lastDotTick >= 1000){ _dotCount++; _lastDotTick = now; }
+      statusEl.textContent = 'Initializing war room systems' + '.'.repeat(_dotCount);
+      await _sleep(100);
+    }
+
+    // 93–100%: quick finish, then launch
+    await ramp(93, 100, 'War room ready — initiating breach...');
+    launch();
+  }
+
+  let _setupDone = false;
+
+  arcadeSetup(
+    function(_msg, _pct){ /* real progress suppressed — fake counter controls display */ },
+    function(){ G.arcadeMode = true;  _setupDone = true; },
+    function(){ G.arcadeMode = false; _setupDone = true; }
+  );
+
+  runFakeCounter(() => _setupDone);
 }
 
 function runMatrixTransition(onDone){
@@ -2496,11 +2616,11 @@ function closeAlert(){document.getElementById('alertPop').classList.remove('on')
 ====================================================== */
 const TI = document.getElementById('termIn');
 
-TI.addEventListener('keydown', function(e){
+TI.addEventListener('keydown', async function(e){
   if(G.vimOpen) return;
   if(e.key==='Enter'){
     const v=this.value.trim(); this.value=''; hideAC();
-    if(v) run(v);
+    if(v) await run(v);
   } else if(e.key==='ArrowUp'){
     e.preventDefault();
     if(G.acList.length>0){ G.acIdx=Math.max(G.acIdx-1,0); updateACHighlight(); }

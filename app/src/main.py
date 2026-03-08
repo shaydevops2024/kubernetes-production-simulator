@@ -33,6 +33,10 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="K8s Production Demo", version="2.0.0")
 
+# Arcade game K8s backend
+from arcade_routes import router as arcade_router
+app.include_router(arcade_router)
+
 # Mount static files directory
 static_dir = Path(__file__).parent / "static"
 static_dir.mkdir(exist_ok=True)
