@@ -216,9 +216,25 @@
   @keyframes nfshake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-5px)} 60%{transform:translateX(5px)} 80%{transform:translateX(-3px)} }
   @keyframes nfout   { from{transform:translateX(0);opacity:1;max-height:150px;margin-bottom:0} to{transform:translateX(115%);opacity:0;max-height:0;margin-bottom:-10px} }
   .notif.leaving { animation:nfout .3s ease forwards; pointer-events:none; }
+
+  /* ---- MATRIX TRANSITION ---- */
+  #matrixOverlay {
+    display:none; position:fixed; inset:0; z-index:99999;
+    background:#000; opacity:0;
+    transition:opacity 0.3s ease;
+  }
+  #matrixOverlay.visible { display:block; }
+  #matrixOverlay.fade-in { opacity:1; }
+  #matrixOverlay.fade-out { opacity:0; }
+  #matrixCanvas { width:100%; height:100%; display:block; }
 </style>
 </head>
 <body>
+
+<!-- MATRIX OVERLAY -->
+<div id="matrixOverlay">
+  <canvas id="matrixCanvas"></canvas>
+</div>
 
 <!-- START -->
 <div id="startScreen" class="screen active">
@@ -2223,7 +2239,82 @@ function xh(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').repla
 function startGame(){
   G.score=100; G.hearts=5; G.level=0; G.fs=buildFS();
   G.cwd='~'; G.prevCwd='~'; G.cmdHistory=[]; G.histIdx=-1;
-  updateHearts(); showScreen('gameScreen'); updatePromptEl(); loadLevel(0);
+  updateHearts(); updatePromptEl();
+  runMatrixTransition(function(){
+    showScreen('gameScreen'); loadLevel(0);
+  });
+}
+
+function runMatrixTransition(onDone){
+  const overlay = document.getElementById('matrixOverlay');
+  const canvas  = document.getElementById('matrixCanvas');
+  const ctx     = canvas.getContext('2d');
+
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const fontSize = 14;
+  const cols = Math.floor(canvas.width / fontSize);
+  const drops = new Array(cols).fill(1);
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%^&*()_+-=[]{}|;:<>?/\\~`kubectl get pods apply delete describe logs exec namespace deployment service ingress configmap secret node crash OOMKilled CrashLoopBackOff Evicted Pending Running Failed';
+
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  overlay.classList.add('visible');
+  requestAnimationFrame(function(){ overlay.classList.add('fade-in'); });
+
+  let frame = 0;
+  const totalFrames = 35; // ~1.2s
+  let rafId;
+  let gameLaunched = false;
+
+  function draw(){
+    ctx.fillStyle = 'rgba(0,0,0,0.05)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.font = fontSize + 'px JetBrains Mono, monospace';
+
+    for(let i = 0; i < drops.length; i++){
+      const ch = chars[Math.floor(Math.random() * chars.length)];
+      const x  = i * fontSize;
+      const y  = drops[i] * fontSize;
+
+      // Lead character bright white, trail green
+      ctx.fillStyle = drops[i] * fontSize < canvas.height * 0.1 + Math.random()*20
+        ? '#fff'
+        : (Math.random() > 0.95 ? '#afffdf' : '#00ff9d');
+
+      ctx.fillText(ch, x, y);
+
+      if(y > canvas.height && Math.random() > 0.975){
+        drops[i] = 0;
+      }
+      drops[i]++;
+    }
+
+    frame++;
+    if(frame < totalFrames){
+      // Switch to game screen halfway through so it's ready underneath
+      if(!gameLaunched && frame >= Math.floor(totalFrames / 2)){
+        gameLaunched = true;
+        onDone();
+      }
+      rafId = requestAnimationFrame(draw);
+    } else {
+      if(!gameLaunched){ gameLaunched = true; onDone(); }
+      // Fade out over the already-loaded game screen
+      overlay.classList.remove('fade-in');
+      overlay.classList.add('fade-out');
+      setTimeout(function(){
+        overlay.classList.remove('visible','fade-out');
+        cancelAnimationFrame(rafId);
+      }, 280);
+    }
+  }
+
+  // Slight delay so fade-in transition plays first
+  setTimeout(function(){ rafId = requestAnimationFrame(draw); }, 80);
 }
 
 function loadLevel(idx){
