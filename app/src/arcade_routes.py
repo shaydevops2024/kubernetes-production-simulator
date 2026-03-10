@@ -65,7 +65,10 @@ SCENARIO_NS = {
     "zombie_proc":          "arcade-zombie-proc",
 }
 
-ALLOWED_KUBECTL = {"get", "logs", "describe", "rollout", "delete"}
+ALLOWED_KUBECTL = {
+    "get", "logs", "describe", "rollout", "delete",
+    "scale", "patch", "create", "explain", "api-resources",
+}
 
 # ── Formatting helpers ─────────────────────────────────────────────────────────
 
@@ -510,6 +513,344 @@ def fmt_get_clusterroles() -> str:
     return "\n".join(lines)
 
 
+def fmt_get_services(ns: str) -> str:
+    try:
+        svcs = core_v1.list_namespaced_service(ns).items
+    except ApiException as e:
+        return f"Error from server: {e.reason}"
+    if not svcs:
+        return "No resources found."
+    hdr = f"{'NAME':<30} {'TYPE':<12} {'CLUSTER-IP':<16} {'EXTERNAL-IP':<16} {'PORT(S)':<20} AGE"
+    lines = [hdr]
+    for s in svcs:
+        name     = s.metadata.name
+        stype    = s.spec.type or "ClusterIP"
+        cip      = s.spec.cluster_ip or "<none>"
+        ext_ip   = "<none>"
+        if s.status and s.status.load_balancer and s.status.load_balancer.ingress:
+            ext_ip = (s.status.load_balancer.ingress[0].ip
+                      or s.status.load_balancer.ingress[0].hostname or "<pending>")
+        ports = ",".join(
+            f"{p.port}/{p.protocol}" + (f":{p.node_port}" if p.node_port else "")
+            for p in (s.spec.ports or [])
+        )
+        age = _age(s.metadata.creation_timestamp)
+        lines.append(f"{name:<30} {stype:<12} {cip:<16} {ext_ip:<16} {ports:<20} {age}")
+    return "\n".join(lines)
+
+
+def fmt_get_events(ns: str) -> str:
+    try:
+        events = core_v1.list_namespaced_event(ns).items
+    except ApiException as e:
+        return f"Error from server: {e.reason}"
+    if not events:
+        return "No resources found."
+    events.sort(
+        key=lambda e: (e.last_timestamp or e.event_time
+                       or datetime.min.replace(tzinfo=timezone.utc)),
+        reverse=True
+    )
+    hdr = f"{'LAST SEEN':<12} {'TYPE':<10} {'REASON':<22} {'OBJECT':<40} MESSAGE"
+    lines = [hdr]
+    for ev in events[:25]:
+        age    = _age(ev.last_timestamp or ev.event_time)
+        etype  = ev.type or "Normal"
+        reason = (ev.reason or "")[:20]
+        obj    = (f"{ev.involved_object.kind}/{ev.involved_object.name}"
+                  if ev.involved_object else "")[:38]
+        msg    = (ev.message or "")[:80]
+        lines.append(f"{age:<12} {etype:<10} {reason:<22} {obj:<40} {msg}")
+    return "\n".join(lines)
+
+
+def fmt_get_configmaps(ns: str) -> str:
+    try:
+        cms = core_v1.list_namespaced_config_map(ns).items
+    except ApiException as e:
+        return f"Error from server: {e.reason}"
+    cms = [cm for cm in cms if not cm.metadata.name.startswith("kube-")]
+    if not cms:
+        return "No resources found."
+    hdr = f"{'NAME':<45} {'DATA':<6} AGE"
+    lines = [hdr]
+    for cm in cms:
+        data = len(cm.data) if cm.data else 0
+        age  = _age(cm.metadata.creation_timestamp)
+        lines.append(f"{cm.metadata.name:<45} {data:<6} {age}")
+    return "\n".join(lines)
+
+
+def fmt_get_pods_wide(ns: str) -> str:
+    try:
+        pods = core_v1.list_namespaced_pod(ns).items
+    except ApiException as e:
+        return f"Error from server: {e.reason}"
+    if not pods:
+        return "No resources found."
+    hdr = f"{'NAME':<52} {'READY':<7} {'STATUS':<22} {'RESTARTS':<10} {'AGE':<8} {'IP':<16} NODE"
+    rows = [hdr]
+    for p in pods:
+        ip   = p.status.pod_ip or "<none>"
+        node = p.spec.node_name or "<none>"
+        rows.append(
+            f"{p.metadata.name:<52} {_pod_ready(p):<7} {_pod_status(p):<22}"
+            f" {str(_pod_restarts(p)):<10} {_age(p.metadata.creation_timestamp):<8}"
+            f" {ip:<16} {node}"
+        )
+    return "\n".join(rows)
+
+
+def fmt_describe_deployment(name: str, ns: str) -> str:
+    try:
+        d = apps_v1.read_namespaced_deployment(name, ns)
+    except ApiException:
+        return f'Error from server (NotFound): deployments.apps "{name}" not found'
+    spec   = d.spec
+    status = d.status
+    desired   = spec.replicas or 0
+    ready     = status.ready_replicas or 0
+    available = status.available_replicas or 0
+    strategy  = spec.strategy.type if spec.strategy else "RollingUpdate"
+    lines = [
+        f"Name:               {d.metadata.name}",
+        f"Namespace:          {d.metadata.namespace}",
+        f"Replicas:           {desired} desired | {ready} ready | {available} available",
+        f"Strategy:           {strategy}",
+        "",
+        "Pod Template:",
+        "  Containers:",
+    ]
+    for c in (spec.template.spec.containers or []):
+        lines.append(f"    {c.name}:")
+        lines.append(f"      Image:    {c.image}")
+        if c.resources:
+            lim = c.resources.limits or {}
+            req = c.resources.requests or {}
+            if lim:
+                lines.append("      Limits:   " + "  ".join(f"{k}={v}" for k, v in lim.items()))
+            if req:
+                lines.append("      Requests: " + "  ".join(f"{k}={v}" for k, v in req.items()))
+        if c.liveness_probe:
+            lines.append(f"      Liveness: configured")
+        if c.readiness_probe:
+            lines.append(f"      Readiness: configured")
+    lines.append("")
+    lines.append("Conditions:")
+    for cond in (status.conditions or []):
+        lines.append(f"  {cond.type:<25} {cond.status:<8} {cond.message or ''}")
+    lines.append("")
+    lines.append("Events:")
+    try:
+        events = core_v1.list_namespaced_event(
+            ns, field_selector=f"involvedObject.name={d.metadata.name}"
+        ).items
+        if events:
+            for ev in events[-5:]:
+                age = _age(ev.last_timestamp or ev.event_time)
+                lines.append(f"  {ev.type or 'Normal':<9} {(ev.reason or ''):<20} {age:<8} {ev.message or ''}")
+        else:
+            lines.append("  <none>")
+    except Exception:
+        lines.append("  <events unavailable>")
+    return "\n".join(lines)
+
+
+def fmt_describe_node(name: str) -> str:
+    try:
+        nodes = core_v1.list_node().items
+    except ApiException as e:
+        return f"Error from server: {e.reason}"
+    node = None
+    if name:
+        for n in nodes:
+            if n.metadata.name == name or n.metadata.name.startswith(name):
+                node = n
+                break
+    if not node and nodes:
+        node = nodes[0]
+    if not node:
+        return f'Error from server (NotFound): nodes "{name}" not found'
+    n = node
+    ready_status = "Unknown"
+    for cond in (n.status.conditions or []):
+        if cond.type == "Ready":
+            ready_status = "True" if cond.status == "True" else "False"
+    roles = [k.replace("node-role.kubernetes.io/", "") for k in (n.metadata.labels or {})
+             if k.startswith("node-role.kubernetes.io/")]
+    info = n.status.node_info if n.status and n.status.node_info else None
+    lines = [
+        f"Name:               {n.metadata.name}",
+        f"Roles:              {','.join(roles) if roles else '<none>'}",
+        f"Status:             {'Ready' if ready_status == 'True' else 'NotReady'}",
+        f"Age:                {_age(n.metadata.creation_timestamp)}",
+        "",
+    ]
+    if info:
+        lines += [
+            "System Info:",
+            f"  OS Image:          {info.os_image or '<unknown>'}",
+            f"  Kernel Version:    {info.kernel_version or '<unknown>'}",
+            f"  Container Runtime: {info.container_runtime_version or '<unknown>'}",
+            f"  Kubelet Version:   {info.kubelet_version or '<unknown>'}",
+            "",
+        ]
+    if n.status and n.status.capacity:
+        lines.append("Capacity:")
+        for k, v in sorted(n.status.capacity.items()):
+            lines.append(f"  {k}: {v}")
+        lines.append("")
+    lines.append("Conditions:")
+    lines.append(f"  {'Type':<25} {'Status':<10} Reason")
+    for cond in (n.status.conditions or []):
+        lines.append(f"  {cond.type:<25} {cond.status:<10} {cond.reason or 'Unknown'}")
+    return "\n".join(lines)
+
+
+def fmt_rollout_status(deploy_name: str, ns: str) -> str:
+    try:
+        d = apps_v1.read_namespaced_deployment(deploy_name, ns)
+    except ApiException:
+        return f'Error from server (NotFound): deployments.apps "{deploy_name}" not found'
+    desired   = d.spec.replicas or 0
+    ready     = d.status.ready_replicas or 0
+    available = d.status.available_replicas or 0
+    if ready == desired and available == desired and desired > 0:
+        return f'deployment "{deploy_name}" successfully rolled out'
+    return (
+        f'Waiting for deployment "{deploy_name}" rollout to finish: '
+        f'{ready} of {desired} updated replicas are available...'
+    )
+
+
+def fmt_pod_logs_flags(name_prefix: str, ns: str,
+                       previous: bool = False, tail: int = 80,
+                       container: str = None) -> str:
+    pod = _find_pod(name_prefix, ns)
+    if not pod:
+        return f'Error from server (NotFound): pods "{name_prefix}" not found'
+    c_name = container or (pod.spec.containers[0].name if pod.spec.containers else None)
+    modes = [True, False] if previous else [False, True]
+    for prev in modes:
+        try:
+            logs = core_v1.read_namespaced_pod_log(
+                pod.metadata.name, ns, container=c_name, previous=prev, tail_lines=tail
+            )
+            if logs and logs.strip():
+                return logs
+        except Exception:
+            pass
+    return "(no logs available — pod may not have started yet)"
+
+
+_EXPLAIN_MAP = {
+    "pod": (
+        "KIND:     Pod\nVERSION:  v1\n\nDESCRIPTION:\n"
+        "  Pod is a collection of containers that can run on a host.\n\n"
+        "FIELDS:\n  apiVersion <string>\n  kind <string>\n  metadata <ObjectMeta>\n"
+        "  spec <PodSpec>\n    containers <[]Container> -required-\n    volumes <[]Volume>\n"
+        "    nodeSelector <map[string]string>\n    serviceAccountName <string>\n"
+        "  status <PodStatus>"
+    ),
+    "deployment": (
+        "KIND:     Deployment\nVERSION:  apps/v1\n\nDESCRIPTION:\n"
+        "  Deployment enables declarative updates for Pods and ReplicaSets.\n\n"
+        "FIELDS:\n  spec <DeploymentSpec> -required-\n"
+        "    replicas <integer>  (default: 1)\n"
+        "    selector <LabelSelector> -required-\n"
+        "    template <PodTemplateSpec> -required-\n"
+        "    strategy <DeploymentStrategy>\n      type: RollingUpdate | Recreate"
+    ),
+    "service": (
+        "KIND:     Service\nVERSION:  v1\n\nDESCRIPTION:\n"
+        "  Service is a named abstraction of software service.\n\n"
+        "FIELDS:\n  spec <ServiceSpec>\n    ports <[]ServicePort>\n"
+        "    selector <map[string]string>\n"
+        "    type <string>  (ClusterIP|NodePort|LoadBalancer|ExternalName)"
+    ),
+    "configmap": (
+        "KIND:     ConfigMap\nVERSION:  v1\n\nDESCRIPTION:\n"
+        "  ConfigMap holds configuration data for pods to consume.\n\n"
+        "FIELDS:\n  data <map[string]string>  (non-binary key/value pairs)\n"
+        "  binaryData <map[string][]byte>  (binary data)"
+    ),
+    "secret": (
+        "KIND:     Secret\nVERSION:  v1\n\nDESCRIPTION:\n"
+        "  Secret holds secret data. Values are base64-encoded.\n\n"
+        "FIELDS:\n  data <map[string][]byte>  (base64-encoded)\n"
+        "  stringData <map[string]string>  (plain text, written at creation)\n"
+        "  type <string>  (Opaque|kubernetes.io/dockerconfigjson|...)"
+    ),
+    "networkpolicy": (
+        "KIND:     NetworkPolicy\nVERSION:  networking.k8s.io/v1\n\nDESCRIPTION:\n"
+        "  Describes what network traffic is allowed for a set of pods.\n\n"
+        "FIELDS:\n  spec <NetworkPolicySpec>\n"
+        "    podSelector <LabelSelector> -required-\n"
+        "    ingress <[]NetworkPolicyIngressRule>\n"
+        "    egress <[]NetworkPolicyEgressRule>\n"
+        "    policyTypes <[]string>  (Ingress|Egress)"
+    ),
+    "persistentvolumeclaim": (
+        "KIND:     PersistentVolumeClaim\nVERSION:  v1\n\nFIELDS:\n"
+        "  spec <PersistentVolumeClaimSpec>\n"
+        "    accessModes <[]string>  (ReadWriteOnce|ReadOnlyMany|ReadWriteMany)\n"
+        "    resources <ResourceRequirements>\n"
+        "    storageClassName <string>"
+    ),
+    "horizontalpodautoscaler": (
+        "KIND:     HorizontalPodAutoscaler\nVERSION:  autoscaling/v2\n\nFIELDS:\n"
+        "  spec <HorizontalPodAutoscalerSpec>\n"
+        "    scaleTargetRef <CrossVersionObjectReference> -required-\n"
+        "    minReplicas <integer>\n    maxReplicas <integer> -required-\n"
+        "    metrics <[]MetricSpec>"
+    ),
+}
+
+
+def fmt_explain(resource: str) -> str:
+    key = resource.lower().split(".")[0]
+    aliases = {
+        "pods": "pod", "deployments": "deployment", "services": "service",
+        "svc": "service", "configmaps": "configmap", "cm": "configmap",
+        "secrets": "secret", "netpol": "networkpolicy",
+        "networkpolicies": "networkpolicy", "pvc": "persistentvolumeclaim",
+        "persistentvolumeclaims": "persistentvolumeclaim",
+        "hpa": "horizontalpodautoscaler",
+        "horizontalpodautoscalers": "horizontalpodautoscaler",
+    }
+    key = aliases.get(key, key)
+    if key in _EXPLAIN_MAP:
+        return _EXPLAIN_MAP[key]
+    return f"error: couldn't find resource for \"{resource}\"\nRun 'kubectl api-resources' to see available resource types."
+
+
+def fmt_api_resources() -> str:
+    return "\n".join([
+        f"{'NAME':<40} {'SHORTNAMES':<15} {'APIVERSION':<28} {'NAMESPACED':<12} KIND",
+        f"{'pods':<40} {'po':<15} {'v1':<28} {'true':<12} Pod",
+        f"{'services':<40} {'svc':<15} {'v1':<28} {'true':<12} Service",
+        f"{'configmaps':<40} {'cm':<15} {'v1':<28} {'true':<12} ConfigMap",
+        f"{'secrets':<40} {'':<15} {'v1':<28} {'true':<12} Secret",
+        f"{'events':<40} {'ev':<15} {'v1':<28} {'true':<12} Event",
+        f"{'namespaces':<40} {'ns':<15} {'v1':<28} {'false':<12} Namespace",
+        f"{'nodes':<40} {'no':<15} {'v1':<28} {'false':<12} Node",
+        f"{'persistentvolumeclaims':<40} {'pvc':<15} {'v1':<28} {'true':<12} PersistentVolumeClaim",
+        f"{'persistentvolumes':<40} {'pv':<15} {'v1':<28} {'false':<12} PersistentVolume",
+        f"{'resourcequotas':<40} {'quota':<15} {'v1':<28} {'true':<12} ResourceQuota",
+        f"{'serviceaccounts':<40} {'sa':<15} {'v1':<28} {'true':<12} ServiceAccount",
+        f"{'deployments':<40} {'deploy':<15} {'apps/v1':<28} {'true':<12} Deployment",
+        f"{'replicasets':<40} {'rs':<15} {'apps/v1':<28} {'true':<12} ReplicaSet",
+        f"{'statefulsets':<40} {'sts':<15} {'apps/v1':<28} {'true':<12} StatefulSet",
+        f"{'daemonsets':<40} {'ds':<15} {'apps/v1':<28} {'true':<12} DaemonSet",
+        f"{'horizontalpodautoscalers':<40} {'hpa':<15} {'autoscaling/v2':<28} {'true':<12} HorizontalPodAutoscaler",
+        f"{'networkpolicies':<40} {'netpol':<15} {'networking.k8s.io/v1':<28} {'true':<12} NetworkPolicy",
+        f"{'ingresses':<40} {'ing':<15} {'networking.k8s.io/v1':<28} {'true':<12} Ingress",
+        f"{'clusterroles':<40} {'':<15} {'rbac.authorization.k8s.io/v1':<28} {'false':<12} ClusterRole",
+        f"{'clusterrolebindings':<40} {'':<15} {'rbac.authorization.k8s.io/v1':<28} {'false':<12} ClusterRoleBinding",
+        f"{'storageclasses':<40} {'sc':<15} {'storage.k8s.io/v1':<28} {'false':<12} StorageClass",
+    ])
+
+
 def do_rollout_undo(deploy_name: str, ns: str) -> str:
     try:
         d = apps_v1.read_namespaced_deployment(deploy_name, ns)
@@ -556,68 +897,394 @@ def do_delete_pod(name_prefix: str, ns: str) -> str:
     except ApiException as e:
         return f"Error: {e.reason}"
 
+def do_scale(deploy_name: str, ns: str, replicas: int) -> str:
+    try:
+        apps_v1.patch_namespaced_deployment(deploy_name, ns, {"spec": {"replicas": replicas}})
+        return f'deployment.apps "{deploy_name}" scaled'
+    except ApiException as e:
+        if e.status == 404:
+            return f'Error from server (NotFound): deployments.apps "{deploy_name}" not found'
+        return f"Error: {e.reason}"
+
+
+def do_delete_networkpolicy(name: str, ns: str) -> str:
+    try:
+        networking_v1.delete_namespaced_network_policy(name, ns)
+        return f'networkpolicy.networking.k8s.io "{name}" deleted'
+    except ApiException as e:
+        if e.status == 404:
+            return f'Error from server (NotFound): networkpolicies.networking.k8s.io "{name}" not found'
+        return f"Error: {e.reason}"
+
+
+def do_rollout_restart(deploy_name: str, ns: str) -> str:
+    try:
+        patch = {"spec": {"template": {"metadata": {"annotations": {
+            "kubectl.kubernetes.io/restartedAt": datetime.now(timezone.utc).isoformat()
+        }}}}}
+        apps_v1.patch_namespaced_deployment(deploy_name, ns, patch)
+        return f"deployment.apps/{deploy_name} restarted"
+    except ApiException as e:
+        if e.status == 404:
+            return f'Error from server (NotFound): deployments.apps "{deploy_name}" not found'
+        return f"Error: {e.reason}"
+
+
+def do_create_configmap(name: str, ns: str, data: dict) -> str:
+    if not name:
+        return "error: must specify configmap name"
+    try:
+        core_v1.create_namespaced_config_map(ns, k8s.V1ConfigMap(
+            metadata=k8s.V1ObjectMeta(name=name, namespace=ns),
+            data=data or {}
+        ))
+        return f"configmap/{name} created"
+    except ApiException as e:
+        if e.status == 409:
+            return f'Error from server (AlreadyExists): configmaps "{name}" already exists'
+        return f"Error: {e.reason}"
+
+
+def do_create_secret(name: str, ns: str, data: dict) -> str:
+    if not name:
+        return "error: must specify secret name"
+    import base64
+    encoded = {k: base64.b64encode(v.encode()).decode() for k, v in (data or {}).items()}
+    try:
+        core_v1.create_namespaced_secret(ns, k8s.V1Secret(
+            metadata=k8s.V1ObjectMeta(name=name, namespace=ns),
+            type="Opaque",
+            data=encoded
+        ))
+        return f"secret/{name} created"
+    except ApiException as e:
+        if e.status == 409:
+            return f'Error from server (AlreadyExists): secrets "{name}" already exists'
+        return f"Error: {e.reason}"
+
+
+def do_patch_deployment(name: str, ns: str, patch_str: str) -> str:
+    try:
+        import json as _json
+        patch = _json.loads(patch_str)
+    except (ValueError, TypeError):
+        return f"error: invalid patch — must be valid JSON"
+    try:
+        apps_v1.patch_namespaced_deployment(name, ns, patch)
+        return f"deployment.apps/{name} patched"
+    except ApiException as e:
+        if e.status == 404:
+            return f'Error from server (NotFound): deployments.apps "{name}" not found'
+        return f"Error: {e.reason}"
+
+
+# ── Flag parser ────────────────────────────────────────────────────────────────
+
+def _parse_flags(args: list) -> dict:
+    """Extract kubectl flags, return {clean, fmt, tail, previous, container}."""
+    clean, fmt, tail, previous, container = [], None, None, False, None
+    i = 0
+    while i < len(args):
+        a = args[i]
+        if a in ("-o", "--output") and i + 1 < len(args):
+            i += 1; fmt = args[i].lower()
+        elif a.startswith("-o=") or a.startswith("--output="):
+            fmt = a.split("=", 1)[1].lower()
+        elif a.startswith("--tail="):
+            try: tail = int(a.split("=", 1)[1])
+            except ValueError: pass
+        elif a == "--tail" and i + 1 < len(args):
+            i += 1
+            try: tail = int(args[i])
+            except ValueError: pass
+        elif a in ("--previous", "-p"):
+            previous = True
+        elif a == "--show-labels":
+            fmt = "wide"
+        elif a in ("-c", "--container") and i + 1 < len(args):
+            i += 1; container = args[i]
+        elif a.startswith("-c=") or a.startswith("--container="):
+            container = a.split("=", 1)[1]
+        elif a in ("-n", "--namespace", "-l", "--selector",
+                   "--field-selector", "--sort-by") and i + 1 < len(args):
+            i += 1  # consume value, ignore (namespace enforced by scenario)
+        elif a in ("-A", "--all-namespaces", "--watch", "-w",
+                   "--no-headers", "-f", "--follow"):
+            pass  # accepted but ignored
+        elif a.startswith("-"):
+            pass  # unknown flag
+        else:
+            clean.append(a)
+        i += 1
+    return {"clean": clean, "fmt": fmt, "tail": tail,
+            "previous": previous, "container": container}
+
+
 # ── Main kubectl dispatcher ────────────────────────────────────────────────────
 
 async def run_kubectl(args: list, ns: str) -> str:
     if not args:
-        return "kubectl: no subcommand specified"
-    sub = args[0].lower()
-    if sub not in ALLOWED_KUBECTL:
-        return f"kubectl: subcommand '{sub}' is restricted in arcade mode"
+        return (
+            "kubectl controls the Kubernetes cluster manager.\n\n"
+            "Usage: kubectl [command] [TYPE] [NAME] [flags]\n\n"
+            "Basic commands:\n"
+            "  get         Display one or many resources\n"
+            "  describe    Show details of a specific resource\n"
+            "  logs        Print the logs for a container in a pod\n"
+            "  rollout     Manage the rollout of a resource\n"
+            "  scale       Set a new size for a deployment\n"
+            "  delete      Delete resources by name\n"
+            "  create      Create a resource (configmap, secret)\n"
+            "  patch       Update field(s) of a resource\n"
+            "  explain     Documentation of resource specs\n"
+            "  api-resources  List API resource types\n\n"
+            "Use 'kubectl <command> --help' for more information."
+        )
 
+    sub = args[0].lower()
+    rest = args[1:]
+
+    if sub not in ALLOWED_KUBECTL:
+        return (
+            f'error: unknown command "{sub}" for "kubectl"\n'
+            f"Run 'kubectl --help' for usage."
+        )
+
+    p = _parse_flags(rest)
+    clean = p["clean"]
+    fmt   = p["fmt"]
+
+    # ── GET ──────────────────────────────────────────────────────────────────
     if sub == "get":
-        res = (args[1] if len(args) > 1 else "").lower()
-        if res in ("pods", "po"):
-            return fmt_get_pods(ns)
+        res  = (clean[0] if clean else "").lower()
+        name = clean[1] if len(clean) > 1 else ""
+
+        if res in ("pods", "po", "pod"):
+            return fmt_get_pods_wide(ns) if fmt == "wide" else fmt_get_pods(ns)
+
         if res in ("deployments", "deploy", "deployment"):
             return fmt_get_deployments(ns)
+
+        if res in ("services", "svc", "service"):
+            return fmt_get_services(ns)
+
+        if res in ("events", "event", "ev"):
+            return fmt_get_events(ns)
+
+        if res in ("configmaps", "configmap", "cm"):
+            return fmt_get_configmaps(ns)
+
         if res in ("nodes", "node", "no"):
             return fmt_get_nodes()
+
         if res in ("networkpolicies", "networkpolicy", "netpol"):
             return fmt_get_networkpolicies(ns)
+
         if res in ("resourcequota", "resourcequotas", "quota"):
             return fmt_get_resourcequota(ns)
+
         if res in ("hpa", "horizontalpodautoscaler", "horizontalpodautoscalers"):
             return fmt_get_hpa(ns)
+
         if res in ("pvc", "persistentvolumeclaim", "persistentvolumeclaims"):
             return fmt_get_pvc(ns)
+
         if res in ("secret", "secrets"):
             return fmt_get_secrets(ns)
+
         if res in ("clusterrole", "clusterroles"):
             return fmt_get_clusterroles()
-        return f"kubectl: resource '{res}' not supported in arcade mode"
 
+        if res == "all":
+            return (
+                "=== pods ===\n" + fmt_get_pods(ns) +
+                "\n\n=== deployments ===\n" + fmt_get_deployments(ns) +
+                "\n\n=== services ===\n" + fmt_get_services(ns)
+            )
+
+        if not res:
+            return "error: must specify the type of resource to get\nExample: kubectl get pods"
+
+        return (
+            f'error: the server doesn\'t have a resource type "{res}"\n'
+            f"Run 'kubectl api-resources' to see available types."
+        )
+
+    # ── LOGS ──────────────────────────────────────────────────────────────────
     if sub == "logs":
-        name = args[1] if len(args) > 1 else ""
-        return fmt_pod_logs(name, ns)
+        name = clean[0] if clean else ""
+        if not name:
+            return "error: pod name required\nUsage: kubectl logs <pod-name> [flags]"
+        return fmt_pod_logs_flags(
+            name, ns,
+            previous=p["previous"],
+            tail=p["tail"] or 80,
+            container=p["container"]
+        )
 
+    # ── DESCRIBE ─────────────────────────────────────────────────────────────
     if sub == "describe":
-        res  = (args[1] if len(args) > 1 else "").lower()
-        name = args[2] if len(args) > 2 else ""
+        res  = (clean[0] if clean else "").lower()
+        name = clean[1] if len(clean) > 1 else ""
+
         if res in ("pod", "pods", "po"):
             return fmt_describe_pod(name, ns)
-        if res in ("deployment", "deploy"):
-            return fmt_get_deployments(ns)
-        return f"kubectl: describe '{res}' not supported"
 
+        if res in ("deployment", "deploy", "deployments"):
+            if not name:
+                try:
+                    deploys = apps_v1.list_namespaced_deployment(ns).items
+                    if deploys:
+                        name = deploys[0].metadata.name
+                except Exception:
+                    pass
+            return fmt_describe_deployment(name, ns) if name else \
+                "error: must specify deployment name"
+
+        if res in ("node", "nodes", "no"):
+            return fmt_describe_node(name)
+
+        if res in ("service", "svc", "services"):
+            return fmt_get_services(ns) + "\n(use kubectl get svc for service info)"
+
+        if not res:
+            return "error: must specify resource type\nUsage: kubectl describe <type> [name]"
+
+        return f"error: describe '{res}' not supported — try: pod, deployment, node"
+
+    # ── ROLLOUT ───────────────────────────────────────────────────────────────
     if sub == "rollout":
-        action = (args[1] if len(args) > 1 else "").lower()
-        target = args[2] if len(args) > 2 else ""
+        action = (clean[0] if clean else "").lower()
+        target = clean[1] if len(clean) > 1 else ""
         deploy_name = target.split("/")[-1] if "/" in target else target
+
         if action == "undo":
+            if not deploy_name:
+                return "error: must specify deployment\nUsage: kubectl rollout undo deploy/<name>"
             return do_rollout_undo(deploy_name, ns)
         if action == "history":
+            if not deploy_name:
+                return "error: must specify deployment\nUsage: kubectl rollout history deploy/<name>"
             return fmt_rollout_history(deploy_name, ns)
-        return f"kubectl: rollout '{action}' not supported"
+        if action == "status":
+            if not deploy_name:
+                return "error: must specify deployment\nUsage: kubectl rollout status deploy/<name>"
+            return fmt_rollout_status(deploy_name, ns)
+        if action == "restart":
+            if not deploy_name:
+                return "error: must specify deployment\nUsage: kubectl rollout restart deploy/<name>"
+            return do_rollout_restart(deploy_name, ns)
+        return (
+            f"error: unknown rollout command: {action}\n"
+            "Available: undo, history, status, restart"
+        )
 
+    # ── DELETE ────────────────────────────────────────────────────────────────
     if sub == "delete":
-        res  = (args[1] if len(args) > 1 else "").lower()
-        name = args[2] if len(args) > 2 else ""
-        if res in ("pod", "pods", "po"):
-            return do_delete_pod(name, ns)
-        return f"kubectl: delete '{res}' not allowed in arcade mode"
+        res  = (clean[0] if clean else "").lower()
+        name = clean[1] if len(clean) > 1 else ""
 
-    return "kubectl: unknown error"
+        if res in ("pod", "pods", "po"):
+            if not name:
+                return "error: must specify pod name\nUsage: kubectl delete pod <name>"
+            return do_delete_pod(name, ns)
+
+        if res in ("networkpolicy", "networkpolicies", "netpol"):
+            if not name:
+                return "error: must specify networkpolicy name\nUsage: kubectl delete networkpolicy <name>"
+            return do_delete_networkpolicy(name, ns)
+
+        if res in ("deployment", "deploy"):
+            return "error: deleting deployments is not allowed — use 'kubectl rollout undo' to restore"
+
+        if not res:
+            return "error: must specify resource type\nUsage: kubectl delete <type> <name>"
+
+        return f"error: delete '{res}' not supported in arcade mode"
+
+    # ── SCALE ─────────────────────────────────────────────────────────────────
+    if sub == "scale":
+        target = clean[0] if clean else ""
+        deploy_name = target.split("/")[-1] if "/" in target else target
+
+        replicas = None
+        for a in rest:
+            if a.startswith("--replicas="):
+                try: replicas = int(a.split("=", 1)[1])
+                except ValueError: pass
+        if replicas is None:
+            return "error: required flag \"--replicas\" not set\nUsage: kubectl scale deployment/<name> --replicas=N"
+        if not deploy_name:
+            return "error: must specify deployment name\nUsage: kubectl scale deployment/<name> --replicas=N"
+        return do_scale(deploy_name, ns, replicas)
+
+    # ── PATCH ─────────────────────────────────────────────────────────────────
+    if sub == "patch":
+        res  = (clean[0] if clean else "").lower()
+        name = clean[1] if len(clean) > 1 else ""
+
+        patch_str = None
+        for j, a in enumerate(rest):
+            if a in ("-p", "--patch") and j + 1 < len(rest):
+                patch_str = rest[j + 1]; break
+            elif a.startswith("-p=") or a.startswith("--patch="):
+                patch_str = a.split("=", 1)[1]; break
+
+        if not patch_str:
+            return "error: must specify --patch with JSON content\nUsage: kubectl patch deployment <name> -p '{...}'"
+
+        if res in ("deployment", "deploy"):
+            deploy_name = name.split("/")[-1] if "/" in name else name
+            return do_patch_deployment(deploy_name, ns, patch_str)
+
+        return f"error: patch for '{res}' not supported in arcade mode"
+
+    # ── CREATE ────────────────────────────────────────────────────────────────
+    if sub == "create":
+        res = (clean[0] if clean else "").lower()
+
+        if res == "configmap":
+            name = clean[1] if len(clean) > 1 else ""
+            data = {}
+            for a in rest:
+                if a.startswith("--from-literal="):
+                    kv = a[len("--from-literal="):]
+                    if "=" in kv:
+                        k, v = kv.split("=", 1)
+                        data[k] = v
+            return do_create_configmap(name, ns, data)
+
+        if res == "secret":
+            sub2 = clean[1] if len(clean) > 1 else ""
+            name = clean[2] if len(clean) > 2 else ""
+            if sub2 != "generic":
+                return "error: use 'kubectl create secret generic <name> --from-literal=key=val'"
+            data = {}
+            for a in rest:
+                if a.startswith("--from-literal="):
+                    kv = a[len("--from-literal="):]
+                    if "=" in kv:
+                        k, v = kv.split("=", 1)
+                        data[k] = v
+            return do_create_secret(name, ns, data)
+
+        if not res:
+            return "error: must specify resource type\nUsage: kubectl create configmap|secret <name>"
+
+        return f"error: 'create {res}' not supported in arcade mode — try: configmap, secret"
+
+    # ── EXPLAIN ───────────────────────────────────────────────────────────────
+    if sub == "explain":
+        resource = clean[0] if clean else ""
+        if not resource:
+            return "error: must specify resource type\nUsage: kubectl explain <resource>"
+        return fmt_explain(resource)
+
+    # ── API-RESOURCES ─────────────────────────────────────────────────────────
+    if sub == "api-resources":
+        return fmt_api_resources()
+
+    return f'error: unknown command "{sub}" for "kubectl"'
 
 # ── Namespace + deployment helpers ────────────────────────────────────────────
 
@@ -1525,6 +2192,37 @@ async def execute_command(body: dict):
 
     output = await run_kubectl(args, ns)
     return JSONResponse({"output": output, "error": ""})
+
+
+@router.get("/status/{scenario}")
+async def get_scenario_status(scenario: str):
+    """Return pod health for a scenario namespace — used by frontend to auto-detect resolution."""
+    ns = SCENARIO_NS.get(scenario)
+    if not ns:
+        return JSONResponse({"healthy": False, "error": f"Unknown scenario: {scenario}"})
+    try:
+        pods = core_v1.list_namespaced_pod(ns).items
+    except ApiException as e:
+        return JSONResponse({"healthy": False, "error": str(e.reason), "ready": 0, "total": 0, "pods": []})
+
+    if not pods:
+        return JSONResponse({"healthy": False, "ready": 0, "total": 0, "pods": []})
+
+    total = len(pods)
+    ready_count = 0
+    pod_list = []
+    for p in pods:
+        status = _pod_status(p)
+        ready  = _pod_ready(p)
+        cs     = p.status.container_statuses or []
+        is_ready   = bool(cs) and all(c.ready for c in cs)
+        is_running = (p.status.phase or "").lower() == "running"
+        if is_ready and is_running:
+            ready_count += 1
+        pod_list.append({"name": p.metadata.name, "ready": ready, "status": status})
+
+    healthy = (ready_count == total and total > 0)
+    return JSONResponse({"healthy": healthy, "ready": ready_count, "total": total, "pods": pod_list})
 
 
 @router.delete("/cleanup")

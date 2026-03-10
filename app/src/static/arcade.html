@@ -102,9 +102,20 @@
   .card-pts { font-size:10px; font-family:'Orbitron',sans-serif; font-weight:600; color:var(--green); opacity:0; transition:opacity .3s; }
   .icard.solved .card-pts { opacity:1; }
 
+  /* POD STATUS indicator (free-form mode) */
+  .pod-status { display:flex; align-items:center; gap:4px; font-size:12px; margin-top:2px; flex-wrap:wrap; }
+  .pod-status .ps-dot { flex-shrink:0; }
+  .pod-status .ps-dot.ok  { color:var(--green); text-shadow:0 0 4px rgba(0,255,157,.7); }
+  .pod-status .ps-dot.bad { color:var(--red); text-shadow:0 0 4px rgba(255,58,58,.7); animation:tpulse .8s ease-in-out infinite alternate; }
+  .pod-status .ps-dot.meh { color:var(--amber); }
+  .pod-status .ps-text { color:var(--text2); }
+  .ns-badge { font-size:9px; color:var(--muted); letter-spacing:.5px; font-style:italic; margin-top:2px; }
+
   /* CHEATSHEET */
-  .cheatsheet { background:var(--bg2); border:1px solid var(--border); border-radius:3px; padding:8px; overflow:hidden; display:flex; flex-direction:column; gap:5px; }
-  .cs-title { font-family:'Orbitron',sans-serif; font-size:9px; font-weight:700; letter-spacing:2px; color:var(--text); text-transform:uppercase; border-bottom:1px solid var(--border); padding-bottom:5px; flex-shrink:0; }
+  .cheatsheet { background:var(--bg2); border:1px solid var(--border); border-radius:3px; padding:8px; overflow:hidden; display:flex; flex-direction:column; gap:5px; transition:padding .2s; }
+  .cs-title { font-family:'Orbitron',sans-serif; font-size:9px; font-weight:700; letter-spacing:2px; color:var(--text); text-transform:uppercase; border-bottom:1px solid var(--border); padding-bottom:5px; flex-shrink:0; display:flex; align-items:center; justify-content:space-between; }
+  .cs-toggle-btn { background:none; border:none; color:var(--muted); cursor:pointer; font-size:12px; padding:0 2px; line-height:1; flex-shrink:0; transition:color .15s; }
+  .cs-toggle-btn:hover { color:var(--green); }
   .cs-body { overflow-y:auto; flex:1; }
   .cs-body::-webkit-scrollbar{width:3px;} .cs-body::-webkit-scrollbar-thumb{background:var(--muted);}
   .cs-cols { display:flex; gap:8px; height:100%; }
@@ -117,6 +128,13 @@
   .cs-cmd span { font-size:10px; color:var(--text2); -webkit-user-select:text; user-select:text; }
   .cs-body { -webkit-user-select:text; user-select:text; }
   .cheatsheet { -webkit-user-select:text; user-select:text; }
+  /* collapsed cheatsheet */
+  .gcontent.cs-collapsed { grid-template-columns:34px 1fr 1fr; }
+  .cheatsheet.collapsed { padding:0; gap:0; cursor:pointer; -webkit-user-select:none; user-select:none; }
+  .cheatsheet.collapsed .cs-body { display:none; }
+  .cheatsheet.collapsed .cs-title { border-bottom:none; padding:0; width:34px; height:100%; flex-direction:column-reverse; justify-content:center; align-items:center; gap:0; writing-mode:vertical-rl; transform:rotate(180deg); letter-spacing:3px; color:var(--muted); font-size:8px; }
+  .cheatsheet.collapsed .cs-title-text { display:block; }
+  .cheatsheet.collapsed .cs-toggle-btn { transform:rotate(180deg); margin:0 0 6px 0; font-size:10px; }
 
   /* TERMINAL */
   .term-panel { background:#050810; border:1px solid var(--border); border-radius:3px; display:flex; flex-direction:column; overflow:hidden; grid-column:span 2; position:relative; }
@@ -198,9 +216,9 @@
 
   /* CHAT NOTIFICATIONS */
   #notifContainer { position:fixed; bottom:54px; right:16px; z-index:5000; display:flex; flex-direction:column-reverse; gap:10px; width:360px; pointer-events:none; }
-  .notif { background:#12182a; border:1px solid #2e3d58; border-left:4px solid var(--nc,#4caf50); border-radius:7px; padding:14px 38px 16px 14px; display:flex; gap:12px; align-items:flex-start; pointer-events:all; position:relative; overflow:hidden; box-shadow:0 6px 28px rgba(0,0,0,.65); animation:nfin .32s ease; }
+  .notif { background:#12182a; border:1px solid #2e3d58; border-left:4px solid var(--nc,#4caf50); border-radius:7px; padding:20px 40px 22px 16px; display:flex; gap:14px; align-items:flex-start; pointer-events:all; position:relative; overflow:hidden; box-shadow:0 6px 28px rgba(0,0,0,.65); animation:nfin .32s ease; min-height:88px; }
   .notif.urgent { border-left-color:var(--red); box-shadow:0 6px 28px rgba(255,58,58,.18); animation:nfin .25s ease, nfshake .45s ease .25s; }
-  .notif-av { width:38px; height:38px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:#fff; flex-shrink:0; background:var(--nc,#607d8b); letter-spacing:0; }
+  .notif-av { width:44px; height:44px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; color:#fff; flex-shrink:0; background:var(--nc,#607d8b); letter-spacing:0; }
   .notif-body { flex:1; min-width:0; }
   .notif-hdr { display:flex; align-items:center; gap:6px; margin-bottom:5px; flex-wrap:wrap; }
   .notif-who { font-size:13px; font-weight:700; color:#e8f0fa; white-space:nowrap; }
@@ -218,16 +236,101 @@
   .notif.leaving { animation:nfout .3s ease forwards; pointer-events:none; }
 
   /* ---- LOAD SCREEN ---- */
-  #loadScreen { flex-direction:column; align-items:center; justify-content:center; gap:28px; background:radial-gradient(ellipse at 50% 40%,#0a1a2a 0%,#070a0d 70%); }
-  .load-box { border:1px solid var(--border); background:var(--bg2); padding:28px 36px; max-width:520px; width:100%; display:flex; flex-direction:column; gap:12px; }
+  #loadScreen { flex-direction:column; align-items:center; justify-content:center; gap:20px; background:radial-gradient(ellipse at 50% 40%,#0a1a2a 0%,#070a0d 70%); padding:24px; }
+  .load-box { border:1px solid var(--border); background:var(--bg2); padding:18px 28px; max-width:620px; width:100%; display:flex; flex-direction:column; gap:10px; }
   .load-title { font-family:'Orbitron',sans-serif; font-size:10px; font-weight:700; letter-spacing:3px; color:var(--amber); }
   .load-status { font-size:11px; color:var(--text2); letter-spacing:1px; min-height:16px; }
-  .load-steps { font-size:10px; color:var(--muted); min-height:56px; max-height:56px; overflow:hidden; display:flex; flex-direction:column; gap:2px; }
+  .load-steps { font-size:10px; color:var(--muted); min-height:44px; max-height:44px; overflow:hidden; display:flex; flex-direction:column; gap:2px; }
   .load-step-item { color:#3a7090; }
   .load-step-item.active { color:var(--green); }
-  .load-track { width:100%; height:5px; background:var(--border); border-radius:3px; overflow:hidden; }
+  .load-track { width:100%; height:4px; background:var(--border); border-radius:3px; overflow:hidden; }
   .load-fill { height:100%; background:var(--green); width:0%; transition:width 0.6s ease; border-radius:3px; box-shadow:0 0 12px rgba(0,255,157,.5); }
-  .load-pct { font-family:'Orbitron',sans-serif; font-size:22px; font-weight:700; color:var(--green); text-align:right; text-shadow:0 0 12px rgba(0,255,157,.4); }
+  .load-pct-row { display:flex; align-items:center; justify-content:space-between; }
+  .load-pct { font-family:'Orbitron',sans-serif; font-size:14px; font-weight:700; color:var(--green); text-shadow:0 0 8px rgba(0,255,157,.4); }
+  .load-pct-label { font-size:9px; color:var(--muted); letter-spacing:2px; }
+
+  /* ---- TUTORIAL CAROUSEL ---- */
+  .tut-wrap { max-width:620px; width:100%; display:flex; flex-direction:column; gap:12px; }
+  .tut-header { display:flex; align-items:center; justify-content:space-between; }
+  .tut-label { font-family:'Orbitron',sans-serif; font-size:9px; font-weight:700; letter-spacing:3px; color:var(--amber); }
+  .tut-dots { display:flex; gap:6px; align-items:center; }
+  .tut-dot { width:6px; height:6px; border-radius:50%; background:var(--muted); transition:all .3s; cursor:pointer; }
+  .tut-dot.active { background:var(--green); box-shadow:0 0 8px rgba(0,255,157,.7); width:18px; border-radius:3px; }
+  .tut-slides { position:relative; overflow:hidden; border:1px solid var(--border); background:var(--bg2); }
+  .tut-slide { display:none; flex-direction:column; gap:14px; padding:20px 24px; animation:tutfade .4s ease; }
+  .tut-slide.active { display:flex; }
+  @keyframes tutfade { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+  .tut-slide-num { font-family:'Orbitron',sans-serif; font-size:8px; letter-spacing:2px; color:var(--muted); }
+  .tut-slide-title { font-family:'Orbitron',sans-serif; font-size:13px; font-weight:700; color:var(--green); letter-spacing:2px; text-shadow:0 0 12px rgba(0,255,157,.4); }
+  .tut-slide-desc { font-size:11px; color:var(--text2); line-height:1.8; }
+  .tut-slide-desc b { color:var(--amber); }
+  /* diagram containers */
+  .tut-diagram { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted); background:var(--bg); border:1px solid #111e2a; padding:12px 14px; overflow:hidden; }
+  /* slide 1 — cards row */
+  .dg-cards { display:flex; gap:6px; }
+  .dg-card { flex:1; border:1px solid #1e2d3d; padding:7px 8px; display:flex; flex-direction:column; gap:4px; font-size:10px; min-width:0; }
+  .dg-card.sev-crit { border-left:3px solid var(--red); }
+  .dg-card.sev-high { border-left:3px solid var(--amber); }
+  .dg-card.standby  { border-style:dashed; opacity:.4; align-items:center; justify-content:center; font-size:9px; color:var(--muted); }
+  .dg-card-hdr { display:flex; justify-content:space-between; align-items:center; }
+  .dg-sev-crit { color:var(--red); font-size:9px; letter-spacing:1px; }
+  .dg-sev-high { color:var(--amber); font-size:9px; letter-spacing:1px; }
+  .dg-timer    { color:var(--red); font-family:'Orbitron',sans-serif; font-size:9px; }
+  .dg-timer-ok { color:var(--amber); font-family:'Orbitron',sans-serif; font-size:9px; }
+  .dg-card-title { color:var(--text2); font-size:10px; }
+  .dg-active-badge { font-size:8px; color:var(--green); letter-spacing:1px; border:1px solid var(--green); padding:1px 6px; align-self:flex-start; }
+  /* slide 2 — terminal */
+  .dg-term { display:flex; flex-direction:column; gap:0; border:1px solid #1e2d3d; }
+  .dg-term-hdr { background:#0d1117; border-bottom:1px solid #1e2d3d; padding:6px 10px; display:flex; flex-direction:column; gap:3px; }
+  .dg-term-body { padding:8px 10px; }
+  .dg-term-row { display:flex; gap:6px; font-size:10px; }
+  .dg-term-key { color:var(--amber); min-width:60px; }
+  .dg-term-val { color:var(--green); }
+  .dg-term-prompt { color:var(--green); font-size:10px; }
+  .dg-cursor { display:inline-block; width:7px; height:11px; background:var(--green); opacity:.8; animation:blink 1s step-end infinite; vertical-align:middle; }
+  @keyframes blink { 50%{opacity:0} }
+  /* slide 3 — cheatsheet */
+  .dg-sheet { display:flex; gap:10px; }
+  .dg-sheet-box { flex:1; border:1px solid #1e2d3d; }
+  .dg-sheet-title { background:#0d1117; border-bottom:1px solid #1e2d3d; padding:4px 8px; font-size:9px; color:var(--amber); letter-spacing:1px; }
+  .dg-sheet-row { display:flex; justify-content:space-between; padding:3px 8px; font-size:9px; border-bottom:1px solid #0a141c; }
+  .dg-sheet-row:last-child { border-bottom:none; }
+  .dg-sheet-cmd { color:var(--green); }
+  .dg-sheet-desc { color:#3a7090; }
+  .dg-hint-row { margin-top:8px; display:flex; align-items:center; gap:8px; font-size:9px; color:var(--text2); }
+  .dg-hint-key { border:1px solid var(--amber); color:var(--amber); padding:1px 6px; font-size:9px; }
+  /* slide 4 — topbar */
+  .dg-topbar { background:#0d1117; border:1px solid #1e2d3d; padding:8px 12px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:10px; }
+  .dg-topbar-logo { color:var(--green); font-family:'Orbitron',sans-serif; font-size:10px; font-weight:800; }
+  .dg-topbar-sep { color:#2a4a60; }
+  .dg-topbar-item { color:#8ab4cc; font-size:9px; }
+  .dg-topbar-val { color:var(--text); font-weight:600; }
+  .dg-topbar-hearts { display:flex; gap:2px; }
+  .dg-topbar-spacer { flex:1; }
+  .dg-master { color:var(--red); font-family:'Orbitron',sans-serif; font-size:14px; font-weight:700; }
+  .dg-annotations { margin-top:8px; display:flex; flex-direction:column; gap:4px; font-size:9px; }
+  .dg-ann-row { display:flex; align-items:center; gap:6px; }
+  .dg-ann-arrow { color:var(--amber); }
+  .dg-ann-label { color:var(--muted); }
+  /* slide 5 — severity */
+  .dg-sev-list { display:flex; flex-direction:column; gap:6px; }
+  .dg-sev-row { display:flex; align-items:center; gap:10px; padding:5px 8px; border:1px solid #111e2a; font-size:10px; }
+  .dg-sev-badge { font-size:9px; letter-spacing:1px; min-width:72px; font-weight:700; }
+  .dg-sev-desc { color:#3a7090; }
+  .dg-tip { margin-top:8px; font-size:9px; color:var(--green); border-left:2px solid var(--green); padding-left:8px; }
+  /* slide 6 — ready screen */
+  .dg-ready { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:18px 0 10px; }
+  .dg-ready-icon { font-size:36px; animation:readypulse 1.5s ease-in-out infinite; }
+  @keyframes readypulse { 0%,100%{filter:drop-shadow(0 0 6px rgba(0,255,157,.4));} 50%{filter:drop-shadow(0 0 20px rgba(0,255,157,.9));} }
+  .dg-ready-title { font-family:'Orbitron',sans-serif; font-size:16px; font-weight:900; color:var(--green); letter-spacing:4px; text-shadow:0 0 20px rgba(0,255,157,.5); text-align:center; }
+  .dg-ready-sub { font-family:'Orbitron',sans-serif; font-size:9px; letter-spacing:3px; color:var(--amber); text-align:center; }
+  .dg-ready-dots { display:flex; gap:8px; margin-top:4px; }
+  .dg-ready-dot { width:5px; height:5px; border-radius:50%; background:var(--green); animation:rdot 1.2s ease-in-out infinite; }
+  .dg-ready-dot:nth-child(2){animation-delay:.2s;}
+  .dg-ready-dot:nth-child(3){animation-delay:.4s;}
+  @keyframes rdot { 0%,100%{opacity:.2;transform:scale(1);} 50%{opacity:1;transform:scale(1.4);} }
+  .tut-progress { height:1px; background:#0d1520; width:100%; }
+  .tut-progress-fill { height:100%; background:#6b4f00; width:0%; transition:width linear; opacity:.6; }
 
   /* ---- MATRIX TRANSITION ---- */
   #matrixOverlay {
@@ -254,12 +357,161 @@
 <div id="loadScreen" class="screen">
   <div class="logo">DevOps Survival</div>
   <div class="logo-sub">INITIALIZING WAR ROOM</div>
+
+  <!-- TUTORIAL CAROUSEL -->
+  <div class="tut-wrap">
+    <div class="tut-header">
+      <div class="tut-label">// WAR ROOM BRIEFING</div>
+      <div class="tut-dots" id="tutDots"></div>
+    </div>
+    <div class="tut-slides" id="tutSlides">
+
+      <!-- SLIDE 1: Incident Cards -->
+      <div class="tut-slide active">
+        <div>
+          <div class="tut-slide-num">01 / 05</div>
+          <div class="tut-slide-title">INCIDENT CARDS</div>
+        </div>
+        <div class="tut-diagram">
+          <div class="dg-cards">
+            <div class="dg-card sev-crit">
+              <div class="dg-card-hdr"><span class="dg-sev-crit">■ CRITICAL</span><span class="dg-timer">2:14</span></div>
+              <div class="dg-card-title">CrashLoopBackOff</div>
+              <div class="dg-active-badge">◀ ACTIVE FOCUS</div>
+            </div>
+            <div class="dg-card sev-high">
+              <div class="dg-card-hdr"><span class="dg-sev-high">▲ HIGH</span><span class="dg-timer-ok">4:55</span></div>
+              <div class="dg-card-title">OOMKilled</div>
+            </div>
+            <div class="dg-card standby">— STANDBY —</div>
+          </div>
+        </div>
+        <div class="tut-slide-desc">Up to <b>3 incidents</b> fire simultaneously at the top. Each card shows the <b>severity</b>, <b>incident type</b>, and a <b>countdown timer</b>. Click a card to focus it — the terminal loads its context and steps.</div>
+      </div>
+
+      <!-- SLIDE 2: Terminal -->
+      <div class="tut-slide">
+        <div>
+          <div class="tut-slide-num">02 / 05</div>
+          <div class="tut-slide-title">THE TERMINAL</div>
+        </div>
+        <div class="tut-diagram">
+          <div class="dg-term">
+            <div class="dg-term-hdr">
+              <div class="dg-term-row"><span class="dg-term-key">INCIDENT:</span><span class="dg-term-val">CrashLoopBackOff — namespace: arcade-crashloop</span></div>
+              <div class="dg-term-row"><span class="dg-term-key">STATUS:</span><span style="color:var(--red)">pods: 0/1 running</span></div>
+            </div>
+            <div class="dg-term-body">
+              <div class="dg-term-row" style="margin-bottom:4px"><span class="dg-term-prompt">root@prod-01:~# kubectl get pods</span></div>
+              <div class="dg-term-row" style="color:var(--red);font-size:9px">api-deployment-xxx   0/1   CrashLoopBackOff   12   5m</div>
+              <div class="dg-term-row" style="margin-top:4px"><span class="dg-term-prompt">root@prod-01:~#</span> <span class="dg-cursor"></span></div>
+            </div>
+          </div>
+        </div>
+        <div class="tut-slide-desc">This is a <b>real Kubernetes cluster</b>. The terminal runs actual <b>kubectl commands</b> against live namespaces. Investigate freely — there are no forced steps. The incident auto-resolves when pods are healthy. Type <b>?</b> for progressive hints.</div>
+      </div>
+
+      <!-- SLIDE 3: Cheatsheet -->
+      <div class="tut-slide">
+        <div>
+          <div class="tut-slide-num">03 / 05</div>
+          <div class="tut-slide-title">COMMAND REFERENCE</div>
+        </div>
+        <div class="tut-diagram">
+          <div class="dg-sheet">
+            <div class="dg-sheet-box">
+              <div class="dg-sheet-title">📋 Command Ref — bottom-left panel</div>
+              <div class="dg-sheet-row"><span class="dg-sheet-cmd">kubectl get pods</span><span class="dg-sheet-desc">list pods</span></div>
+              <div class="dg-sheet-row"><span class="dg-sheet-cmd">kubectl logs &lt;pod&gt;</span><span class="dg-sheet-desc">view logs</span></div>
+              <div class="dg-sheet-row"><span class="dg-sheet-cmd">kubectl describe</span><span class="dg-sheet-desc">full info</span></div>
+              <div class="dg-sheet-row"><span class="dg-sheet-cmd">kubectl rollout undo</span><span class="dg-sheet-desc">roll back</span></div>
+            </div>
+          </div>
+          <div class="dg-hint-row">
+            <span class="dg-hint-key">F1</span>
+            <span>or</span>
+            <span class="dg-hint-key">💡 HINT</span>
+            <span>— reveals the exact command for the current step</span>
+          </div>
+        </div>
+        <div class="tut-slide-desc">The <b>bottom-left panel</b> is your cheatsheet — Linux, kubectl, and system commands at a glance. Stuck? Press <b>F1</b> or click <b>💡 HINT</b> to reveal the exact command for the current step.</div>
+      </div>
+
+      <!-- SLIDE 4: Topbar -->
+      <div class="tut-slide">
+        <div>
+          <div class="tut-slide-num">04 / 05</div>
+          <div class="tut-slide-title">TOP BAR — SURVIVAL STATUS</div>
+        </div>
+        <div class="tut-diagram">
+          <div class="dg-topbar">
+            <span class="dg-topbar-logo">⚡ DevOps Survival</span>
+            <span class="dg-topbar-sep">//</span>
+            <span class="dg-topbar-item">LVL <span class="dg-topbar-val">3</span></span>
+            <span class="dg-topbar-sep">|</span>
+            <span class="dg-topbar-item">SCORE <span class="dg-topbar-val">840</span></span>
+            <span class="dg-topbar-sep">|</span>
+            <div class="dg-topbar-hearts"><span style="color:var(--red)">❤</span><span style="color:var(--red)">❤</span><span style="color:var(--red)">❤</span><span style="color:#333">❤</span><span style="color:#333">❤</span></div>
+            <span class="dg-topbar-spacer"></span>
+            <span class="dg-master">03:45</span>
+          </div>
+          <div class="dg-annotations">
+            <div class="dg-ann-row"><span class="dg-ann-arrow">▲</span><span style="color:var(--amber)">score</span><span class="dg-ann-label">— increases by solving incidents</span></div>
+            <div class="dg-ann-row"><span class="dg-ann-arrow">▲</span><span style="color:var(--red)">hearts</span><span class="dg-ann-label">— lose one each time an incident escalates (5 max)</span></div>
+            <div class="dg-ann-row"><span class="dg-ann-arrow">▲</span><span style="color:var(--red)">master timer</span><span class="dg-ann-label">— level clock, hits zero = game over</span></div>
+          </div>
+        </div>
+        <div class="tut-slide-desc">Watch the top bar at all times. You have <b>5 hearts</b> — each time an incident escalates (timer runs out) you lose one. The <b>master timer</b> is the level clock. When it hits zero, it's game over.</div>
+      </div>
+
+      <!-- SLIDE 5: Severity + Strategy -->
+      <div class="tut-slide">
+        <div>
+          <div class="tut-slide-num">05 / 05</div>
+          <div class="tut-slide-title">TRIAGE STRATEGY</div>
+        </div>
+        <div class="tut-diagram">
+          <div class="dg-sev-list">
+            <div class="dg-sev-row"><span class="dg-sev-badge" style="color:var(--red)">■ CRITICAL</span><span class="dg-sev-desc">escalates fast — resolve first, heavy penalty if missed</span></div>
+            <div class="dg-sev-row"><span class="dg-sev-badge" style="color:var(--amber)">▲ HIGH</span><span class="dg-sev-desc">moderate timer — tackle after critical</span></div>
+            <div class="dg-sev-row"><span class="dg-sev-badge" style="color:#ff8c00">● MEDIUM</span><span class="dg-sev-desc">lower urgency — still worth resolving</span></div>
+            <div class="dg-sev-row"><span class="dg-sev-badge" style="color:var(--blue)">◆ LOW</span><span class="dg-sev-desc">bonus points — safe to handle last</span></div>
+          </div>
+          <div class="dg-tip">Tip: solve fastest → chain combos → max score</div>
+        </div>
+        <div class="tut-slide-desc">Incidents are color-coded by severity. <b>Triage smartly</b> — tackle critical fires first, then work down. Resolving multiple incidents quickly earns you <b>combo bonuses</b>. Speed matters as much as accuracy.</div>
+      </div>
+
+      <!-- SLIDE 6: Ready -->
+      <div class="tut-slide" id="tutReadySlide">
+        <div class="tut-diagram" style="border:none;background:transparent;padding:0;">
+          <div class="dg-ready">
+            <div class="dg-ready-icon">⚡</div>
+            <div class="dg-ready-title">WAR ROOM ONLINE</div>
+            <div class="dg-ready-sub">ENTERING THE SIMULATION</div>
+            <div class="dg-ready-dots">
+              <div class="dg-ready-dot"></div>
+              <div class="dg-ready-dot"></div>
+              <div class="dg-ready-dot"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="tut-progress"><div class="tut-progress-fill" id="tutProgressFill"></div></div>
+  </div>
+
+  <!-- PROGRESS BAR -->
   <div class="load-box">
     <div class="load-title">CLUSTER SETUP PROGRESS</div>
     <div class="load-status" id="loadStatus">Connecting to Kubernetes cluster...</div>
     <div class="load-steps" id="loadSteps"></div>
     <div class="load-track"><div class="load-fill" id="loadFill"></div></div>
-    <div class="load-pct" id="loadPct">0%</div>
+    <div class="load-pct-row">
+      <div class="load-pct-label">INITIALIZING WAR ROOM...</div>
+      <div class="load-pct" id="loadPct">0%</div>
+    </div>
   </div>
 </div>
 
@@ -274,11 +526,12 @@
   <div class="start-box">
     <div style="margin-bottom:8px;color:var(--amber);font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2px;">MISSION BRIEFING</div>
     <b>Your infrastructure is on fire.</b> Multiple incidents are firing simultaneously. You have limited time to triage, diagnose, and resolve each one before it escalates.<br><br>
-    → <b>Click an incident card</b> to focus it and load context in the terminal<br>
-    → <b>Type commands</b> to investigate and resolve each step in order<br>
-    → Press <b>F1</b> or the <b>💡 HINT button</b> to see the exact command for the current step<br>
+    → <b>Click an incident card</b> to load its context in the terminal<br>
+    → <b>Investigate freely</b> — run any kubectl command you know<br>
+    → The incident <b>auto-resolves</b> when pods are healthy again<br>
+    → Type <b>?</b> or press <b>💡 HINT</b> for progressive clues<br>
     → Watch your <b>hearts</b> — 5 escalations and it's game over<br><br>
-    <span style="color:var(--text2);font-size:10px;">CRITICAL incidents escalate fast. Prioritize by severity.</span>
+    <span style="color:var(--text2);font-size:10px;">This is a real K8s cluster. Commands run against live namespaces.</span>
   </div>
   <button class="btn-start" onclick="startGame()">⚡ ENTER THE WAR ROOM</button>
 </div>
@@ -312,15 +565,18 @@
     <div class="mtimer" id="masterTimer">--:--</div>
   </div>
 
-  <div class="gcontent">
+  <div class="gcontent" id="gcontent">
     <!-- Row 1: 3 incident cards -->
     <div class="icard empty" id="card0"><span>— STANDBY —</span></div>
     <div class="icard empty" id="card1"><span>— STANDBY —</span></div>
     <div class="icard empty" id="card2"><span>— STANDBY —</span></div>
 
     <!-- Row 2 left: cheatsheet -->
-    <div class="cheatsheet">
-      <div class="cs-title">📋 Command Ref</div>
+    <div class="cheatsheet" id="cheatsheetPanel" onclick="cheatsheetPanelClick(event)">
+      <div class="cs-title">
+        <span class="cs-title-text">📋 Cheatsheet</span>
+        <button class="cs-toggle-btn" id="csToggle" onclick="toggleCheatsheet(event)" title="Collapse">◀</button>
+      </div>
       <div class="cs-body">
         <div class="cs-cols">
           <!-- LEFT: Linux / System -->
@@ -369,18 +625,35 @@
             <div class="cs-cmd"><code>docker pull &lt;image&gt;</code><span>pull</span></div>
             <div class="cs-cmd"><code>docker stats</code><span>resources</span></div>
             <div class="cs-cmd"><code>docker exec -it &lt;c&gt; sh</code></div>
-            <div class="cs-sec-title">kubectl</div>
-            <div class="cs-cmd"><code>kubectl get pods</code><span>pod status</span></div>
+            <div class="cs-sec-title">kubectl — investigate</div>
+            <div class="cs-cmd"><code>kubectl get pods [-o wide]</code></div>
             <div class="cs-cmd"><code>kubectl get deployments</code></div>
             <div class="cs-cmd"><code>kubectl get svc</code><span>services</span></div>
-            <div class="cs-cmd"><code>kubectl get events</code><span>events</span></div>
-            <div class="cs-cmd"><code>kubectl logs &lt;pod&gt;</code><span>pod logs</span></div>
+            <div class="cs-cmd"><code>kubectl get events</code></div>
+            <div class="cs-cmd"><code>kubectl get cm|secrets|hpa|pvc</code></div>
+            <div class="cs-cmd"><code>kubectl get networkpolicies</code></div>
+            <div class="cs-cmd"><code>kubectl get resourcequota</code></div>
+            <div class="cs-cmd"><code>kubectl get nodes</code></div>
+            <div class="cs-cmd"><code>kubectl logs &lt;pod&gt; [--previous]</code></div>
+            <div class="cs-cmd"><code>kubectl logs &lt;pod&gt; --tail=50</code></div>
             <div class="cs-cmd"><code>kubectl describe pod &lt;p&gt;</code></div>
+            <div class="cs-cmd"><code>kubectl describe deploy &lt;d&gt;</code></div>
+            <div class="cs-cmd"><code>kubectl describe node &lt;n&gt;</code></div>
+            <div class="cs-sec-title">kubectl — fix</div>
             <div class="cs-cmd"><code>kubectl rollout undo deploy/&lt;d&gt;</code></div>
+            <div class="cs-cmd"><code>kubectl rollout restart deploy/&lt;d&gt;</code></div>
             <div class="cs-cmd"><code>kubectl rollout history deploy/&lt;d&gt;</code></div>
-            <div class="cs-cmd"><code>kubectl apply -f &lt;file&gt;</code></div>
+            <div class="cs-cmd"><code>kubectl rollout status deploy/&lt;d&gt;</code></div>
+            <div class="cs-cmd"><code>kubectl scale deploy/&lt;d&gt; --replicas=N</code></div>
             <div class="cs-cmd"><code>kubectl delete pod &lt;p&gt;</code></div>
-            <div class="cs-cmd"><code>kubectl exec -it &lt;p&gt; sh</code></div>
+            <div class="cs-cmd"><code>kubectl delete networkpolicy &lt;n&gt;</code></div>
+            <div class="cs-cmd"><code>kubectl create configmap &lt;n&gt; --from-literal=k=v</code></div>
+            <div class="cs-cmd"><code>kubectl create secret generic &lt;n&gt; --from-literal=k=v</code></div>
+            <div class="cs-cmd"><code>kubectl patch deploy &lt;d&gt; -p '{"spec":...}'</code></div>
+            <div class="cs-sec-title">kubectl — reference</div>
+            <div class="cs-cmd"><code>kubectl explain &lt;resource&gt;</code></div>
+            <div class="cs-cmd"><code>kubectl api-resources</code></div>
+            <div class="cs-cmd"><code>?</code><span>show scenario hints</span></div>
             <div class="cs-sec-title">Helm</div>
             <div class="cs-cmd"><code>helm ls</code><span>list releases</span></div>
             <div class="cs-cmd"><code>helm upgrade &lt;r&gt; &lt;chart&gt;</code></div>
@@ -855,7 +1128,9 @@ let G = {
   cwd:'~', prevCwd:'~',
   captureMode:false, captureBuffer:[],
   arcadeMode:false,  // true when real K8s backend is available
+  hintCounters:{},   // {scenarioId: nextHintIndex}
 };
+let G_pollTimer = null;
 
 function getPrompt() { return `root@prod-01:${G.cwd}#`; }
 function updatePromptEl() { const el=document.querySelector('.term-prompt'); if(el) el.textContent=getPrompt()+' '; }
@@ -921,7 +1196,171 @@ const K8S = {
 };
 
 /* ======================================================
-   HINT — shows ONLY current step's command
+   NAMESPACE MAP
+====================================================== */
+const SCENARIO_NS_JS = {
+  nginx_config:'arcade-nginx-config', crashloop:'arcade-crashloop',
+  disk_space:'arcade-disk-space', cpu_spike:'arcade-cpu-spike',
+  oom_crash:'arcade-oom-crash', docker_restart:'arcade-docker-restart',
+  silent_deploy:'arcade-silent-deploy', disk_errors:'arcade-disk-errors',
+  ssl_cert_expired:'arcade-ssl-cert', etcd_failure:'arcade-etcd-failure',
+  node_notready:'arcade-node-notready', db_conn_pool:'arcade-db-conn-pool',
+  log_rotation_fail:'arcade-log-rotation', network_policy_block:'arcade-network-policy',
+  resource_quota:'arcade-resource-quota', configmap_missing:'arcade-configmap-missing',
+  secret_rotation:'arcade-secret-rotation', hpa_not_scaling:'arcade-hpa-scaling',
+  pvc_pending:'arcade-pvc-pending', liveness_probe:'arcade-liveness-probe',
+  rbac_denied:'arcade-rbac-denied', docker_registry:'arcade-docker-registry',
+  dns_fail:'arcade-dns-fail', zombie_proc:'arcade-zombie-proc',
+};
+
+/* ======================================================
+   PROGRESSIVE HINTS — revealed one at a time with ?/F1
+====================================================== */
+const SCENARIO_HINTS = {
+  nginx_config:[
+    '💡 Start: kubectl get pods  — look for CrashLoopBackOff',
+    '💡 Read crash logs: kubectl logs <pod-name>  (the nginx config has a syntax error)',
+    '💡 Inspect the pod: kubectl describe pod <pod-name>  — see init container events',
+    '🔧 Fix: kubectl rollout undo deploy/nginx-proxy',
+  ],
+  crashloop:[
+    '💡 Start: kubectl get pods  — check what is crashing',
+    '💡 Read the crash logs: kubectl logs <pod-name>  — look for the fatal error message',
+    '🔧 Fix: kubectl rollout undo deploy/api-deployment  — revert the broken version',
+  ],
+  disk_space:[
+    '💡 Start: kubectl get pods  — look for Evicted pods',
+    '💡 Describe the evicted pod: kubectl describe pod <pod-name>  — check ephemeral-storage',
+    '🔧 Fix: kubectl rollout undo deploy/data-logger  — v2.0 writes unbounded log files',
+  ],
+  cpu_spike:[
+    '💡 Start: kubectl get pods  — check pod state',
+    '💡 Describe the pod: kubectl describe pod <pod-name>  — look at CPU limits vs requests',
+    '🔧 Fix: kubectl rollout undo deploy/stress-worker  — v2.0 has a busy-loop with 50m limit',
+  ],
+  oom_crash:[
+    '💡 Start: kubectl get pods  — look for OOMKilled in the status',
+    '💡 Read previous logs: kubectl logs <pod-name> --previous  — see what was allocated',
+    '💡 Describe the pod: kubectl describe pod <pod-name>  — check memory limits',
+    '🔧 Fix: kubectl rollout undo deploy/data-transformer  — v1.3.0 allocates 200MB with a 32Mi limit',
+  ],
+  docker_restart:[
+    '💡 Start: kubectl get pods  — look for ImagePullBackOff',
+    '💡 Describe the pod: kubectl describe pod <pod-name>  — see which image it\'s pulling',
+    '🔧 Fix: kubectl rollout undo deploy/payment-service  — the image v2.0.0-bad does not exist',
+  ],
+  silent_deploy:[
+    '💡 Start: kubectl get deployments  — a rollout may be stalled',
+    '💡 Check history: kubectl rollout history deploy/frontend',
+    '💡 Describe the pod: kubectl describe pod <pod-name>  — look at readiness probe',
+    '🔧 Fix: kubectl rollout undo deploy/frontend  — probe path changed to /healthz but nginx serves /',
+  ],
+  disk_errors:[
+    '💡 Start: kubectl get pods  — check status',
+    '💡 Read logs: kubectl logs <pod-name>  — look for EROFS errors',
+    '💡 Describe pod: kubectl describe pod <pod-name>  — check securityContext',
+    '🔧 Fix: kubectl rollout undo deploy/syslog-processor  — v2.0 sets readOnlyRootFilesystem: true',
+  ],
+  ssl_cert_expired:[
+    '💡 Start: kubectl get pods  — look for CrashLoopBackOff',
+    '💡 Read logs: kubectl logs <pod-name>  — look for SSL_CTX_use_certificate_file error',
+    '💡 Describe pod: kubectl describe pod <pod-name>  — check init container or events',
+    '🔧 Fix: kubectl rollout undo deploy/nginx-proxy',
+  ],
+  etcd_failure:[
+    '💡 Start: kubectl get pods  — check etcd-sim pod',
+    '💡 Read logs: kubectl logs <pod-name>  — look for leader election failure',
+    '💡 Check nodes: kubectl get nodes  — see if cluster control plane is degraded',
+    '🔧 Fix: kubectl rollout undo deploy/etcd-sim',
+  ],
+  node_notready:[
+    '💡 Start: kubectl get pods  — look for Pending pods',
+    '💡 Describe the pending pod: kubectl describe pod <pod-name>  — see why it won\'t schedule',
+    '💡 Check nodes: kubectl get nodes  — see node capacity',
+    '🔧 Fix: kubectl rollout undo deploy/api-deployment  — it requests 100 CPU cores (impossible)',
+  ],
+  db_conn_pool:[
+    '💡 Start: kubectl get pods  — check api-service',
+    '💡 Read logs: kubectl logs <pod-name>  — look for "connection pool exhausted"',
+    '💡 Describe pod: kubectl describe pod <pod-name>',
+    '🔧 Fix: kubectl rollout undo deploy/api-service  — v3.2.0 exhausts the pool immediately',
+  ],
+  log_rotation_fail:[
+    '💡 Start: kubectl get pods',
+    '💡 Read logs: kubectl logs <pod-name>  — look for logrotate/disk errors',
+    '💡 Describe pod: kubectl describe pod <pod-name>',
+    '🔧 Fix: kubectl rollout undo deploy/log-worker',
+  ],
+  network_policy_block:[
+    '💡 Start: kubectl get pods  — check payment-service',
+    '💡 Read logs: kubectl logs <pod-name>  — look for "connection refused" to DB',
+    '💡 List network policies: kubectl get networkpolicies  — find what is blocking egress',
+    '🔧 Fix: kubectl delete networkpolicy <policy-name>  — remove the deny-all-egress policy',
+  ],
+  resource_quota:[
+    '💡 Start: kubectl get pods  — fewer pods than expected?',
+    '💡 Check deployments: kubectl get deployments  — desired vs available',
+    '💡 Check quota: kubectl get resourcequota  — see how much is used',
+    '🔧 Fix: kubectl scale deployment/worker-job --replicas=2  — scale down within quota limits',
+  ],
+  configmap_missing:[
+    '💡 Start: kubectl get pods  — look for CreateContainerConfigError',
+    '💡 Describe pod: kubectl describe pod <pod-name>  — see which ConfigMap is missing',
+    '💡 List configmaps: kubectl get configmaps',
+    '🔧 Fix: kubectl rollout undo deploy/worker-service  — worker-config-v2 was deleted',
+  ],
+  secret_rotation:[
+    '💡 Start: kubectl get pods  — check auth-service',
+    '💡 Read logs: kubectl logs <pod-name>  — look for secret not found',
+    '💡 List secrets: kubectl get secrets  — see what exists',
+    '🔧 Fix: kubectl rollout undo deploy/auth-service  — secret wasn\'t synced from Vault',
+  ],
+  hpa_not_scaling:[
+    '💡 Start: kubectl get pods  — count how many pods are running',
+    '💡 Check deployments: kubectl get deployments',
+    '💡 Inspect HPA: kubectl get hpa  — look at TARGETS column',
+    '💡 Describe HPA: kubectl describe deploy api-deployment  — metrics-server not reporting CPU (observe-only)',
+  ],
+  pvc_pending:[
+    '💡 Start: kubectl get pods  — postgres is Pending',
+    '💡 Describe pod: kubectl describe pod postgres-0  — see PVC binding failure',
+    '💡 Check PVCs: kubectl get pvc  — see Pending status',
+    '💡 No StorageClass "standard" exists. This is an observe-and-understand scenario.',
+  ],
+  liveness_probe:[
+    '💡 Start: kubectl get pods  — look for high restart count (28+)',
+    '💡 Read logs: kubectl logs <pod-name>  — see liveness probe failure messages',
+    '💡 Describe pod: kubectl describe pod <pod-name>  — check probe path under Containers',
+    '🔧 Fix: kubectl rollout undo deploy/cache-service  — probe path /health should be /healthz',
+  ],
+  rbac_denied:[
+    '💡 Start: kubectl get pods  — check ci-runner',
+    '💡 Read logs: kubectl logs <pod-name>  — look for "Forbidden" RBAC errors',
+    '💡 Check ClusterRoles: kubectl get clusterroles  — find ci-runner-role',
+    '💡 ci-runner-role is missing "list" verb. Needs ClusterRole patch (observe-only scenario).',
+  ],
+  docker_registry:[
+    '💡 Start: kubectl get pods  — look for ImagePullBackOff on new pods',
+    '💡 Describe a failing pod: kubectl describe pod <pod-name>  — see registry error',
+    '💡 Check secrets: kubectl get secrets  — is regcred pull secret present?',
+    '🔧 Fix: kubectl rollout undo deploy/<deployment>  — registry pull secret expired',
+  ],
+  dns_fail:[
+    '💡 Start: kubectl get pods  — look for CoreDNS CrashLoopBackOff',
+    '💡 Read logs: kubectl logs <pod-name>  — look for invalid ConfigMap syntax',
+    '💡 Check events: kubectl get events  — see recent failures',
+    '🔧 Fix: kubectl rollout undo deploy/coredns  — bad CoreDNS ConfigMap update',
+  ],
+  zombie_proc:[
+    '💡 Start: kubectl get pods  — check zombie-monitor',
+    '💡 Read logs: kubectl logs <pod-name>  — look for "PID namespace" or zombie count',
+    '💡 Describe pod: kubectl describe pod <pod-name>',
+    '🔧 Fix: kubectl rollout undo deploy/zombie-monitor  — v2 detects zombie PIDs and crashes',
+  ],
+};
+
+/* ======================================================
+   HINT — progressive per-scenario clues
 ====================================================== */
 function triggerHint() {
   const idx = G.activeCard;
@@ -930,6 +1369,27 @@ function triggerHint() {
   if(!inc) return;
   const s = SC[inc.scenarioId];
   if(inc.solved) { T('s','✅ This incident is already resolved.'); scrollT(); return; }
+
+  // Free-form mode: progressive per-scenario hints
+  if(G.arcadeMode && ARCADE_REAL_SCENARIOS.includes(inc.scenarioId)) {
+    const hints = SCENARIO_HINTS[inc.scenarioId] || [];
+    if(!hints.length) { T('i','💡 Investigate with kubectl — no specific hints available.'); scrollT(); return; }
+    const key = inc.scenarioId;
+    if(!G.hintCounters[key]) G.hintCounters[key] = 0;
+    const hIdx = G.hintCounters[key];
+    T('i', hints[hIdx]);
+    if(hIdx < hints.length - 1) {
+      G.hintCounters[key]++;
+      T('h', `  (${hints.length - hIdx - 1} more hint${hints.length - hIdx - 1 !== 1 ? 's' : ''} available — press 💡 HINT again)`);
+    } else {
+      T('h', '  (all hints revealed)');
+      G.hintCounters[key] = 0; // reset for next cycle
+    }
+    scrollT();
+    return;
+  }
+
+  // Simulated fallback mode: guided steps
   const step = s.steps.find(st => !st.done);
   if(!step) return;
   T('i', `💡 HINT — current step: "${step.label}"`);
@@ -943,7 +1403,7 @@ function triggerHint() {
 function dispatchCmd(cmd, args, astr) {
   switch(cmd) {
     case 'help':       doHelp(); break;
-    case 'hint':       triggerHint(); break;
+    case 'hint': case '?': triggerHint(); break;
     case 'clear':      if(!G.captureMode) document.getElementById('termOut').innerHTML=''; break;
     case 'ls':         doLs(args); break;
     case 'cat':        doCat(args); break;
@@ -1009,6 +1469,11 @@ function dispatchCmd(cmd, args, astr) {
   }
 }
 
+function isActiveArcade() {
+  const ai = G.activeCard !== null ? G.incidents[G.activeCard] : null;
+  return !!(ai && G.arcadeMode && ARCADE_REAL_SCENARIOS.includes(ai.scenarioId));
+}
+
 async function run(raw) {
   const input = raw.trim(); if(!input) return;
   G.cmdHistory.unshift(input); G.histIdx = -1;
@@ -1019,9 +1484,11 @@ async function run(raw) {
   const cmd = parts[0].toLowerCase();
   const args = parts.slice(1);
   const astr = args.join(' ');
-  checkStep(cmd, astr);
 
-  // Route kubectl to real cluster for the 8 arcade scenarios
+  // In free-form arcade mode, skip guided step checking
+  if(!isActiveArcade()) checkStep(cmd, astr);
+
+  // Route kubectl to real cluster for arcade scenarios
   const activeInc = G.activeCard !== null ? G.incidents[G.activeCard] : null;
   const isArcadeScenario = activeInc && ARCADE_REAL_SCENARIOS.includes(activeInc.scenarioId);
   if(cmd === 'kubectl' && G.arcadeMode && isArcadeScenario) {
@@ -1042,10 +1509,11 @@ function runPiped(input) {
   const lCmd = lParts[0].toLowerCase();
   const lArgs = lParts.slice(1);
   const lAstr = lArgs.join(' ');
-  checkStep(lCmd, lAstr);
-  // Also check right side if it's a grep step
-  const rParts0 = rightRaw.trim().split(/\s+/);
-  if(rParts0[0].toLowerCase() === 'grep') checkStep('grep', rParts0.slice(1).join(' '));
+  if(!isActiveArcade()) {
+    checkStep(lCmd, lAstr);
+    const rParts0 = rightRaw.trim().split(/\s+/);
+    if(rParts0[0].toLowerCase() === 'grep') checkStep('grep', rParts0.slice(1).join(' '));
+  }
   // Capture left side output
   G.captureMode = true; G.captureBuffer = [];
   dispatchCmd(lCmd, lArgs, lAstr);
@@ -1144,10 +1612,19 @@ function solveIncident(idx) {
   inc.solved = true; inc.earnedPts = total;
   G.score += total;
   clearInterval(inc.interval);
-  T('s',`✅ INCIDENT RESOLVED: ${s.title}`);
+  const isArcade = G.arcadeMode && ARCADE_REAL_SCENARIOS.includes(inc.scenarioId);
+  if(isArcade){
+    T('s',`✅ PODS HEALTHY — Incident resolved: ${s.title}`);
+    T('s',`   All pods Running+Ready in namespace ${SCENARIO_NS_JS[inc.scenarioId]||'?'}`);
+  } else {
+    T('s',`✅ INCIDENT RESOLVED: ${s.title}`);
+  }
   T('s',`   Base: ${s.points}pts + Time bonus: ${bonus}pts = +${total}pts`);
   updateTopBar(); renderCard(idx); scorePop();
-  if(G.incidents.every(i=>i.solved)) setTimeout(levelComplete,1500);
+  if(G.incidents.every(i=>i.solved)){
+    stopAllPolling();
+    setTimeout(levelComplete,1500);
+  }
 }
 
 /* ======================================================
@@ -1172,18 +1649,31 @@ function doHelp() {
   T('o','  ip a / ip r   ifconfig   nslookup &lt;host&gt;   dig &lt;host&gt;');
   T('o','');
   T('i','  CONTAINERS & ORCHESTRATION');
-  T('o','  docker ps | logs &lt;name&gt; | pull &lt;image&gt; | stats | exec -it &lt;c&gt; sh');
-  T('o','  kubectl get pods | get deployments | get svc | get events');
-  T('o','  kubectl logs &lt;pod&gt; | describe pod &lt;p&gt; | rollout undo/history');
-  T('o','  kubectl apply -f &lt;file&gt; | delete pod &lt;p&gt; | exec -it &lt;p&gt; sh');
+  T('o','  docker ps | logs &lt;name&gt; | pull &lt;image&gt; | stats');
   T('o','  helm ls | upgrade | rollback   git log | status | diff');
+  T('o','');
+  T('i','  KUBECTL — INVESTIGATE');
+  T('o','  kubectl get pods [-n &lt;ns&gt;] [-o wide]   kubectl get pods --all-namespaces');
+  T('o','  kubectl get deployments | svc | events | configmaps | networkpolicies');
+  T('o','  kubectl logs &lt;pod&gt; [-n &lt;ns&gt;] [--previous] [--tail=N] [-c &lt;container&gt;]');
+  T('o','  kubectl describe pod &lt;p&gt; | describe deploy &lt;d&gt; | describe node &lt;n&gt;');
+  T('o','  kubectl rollout history deploy/&lt;name&gt;   kubectl rollout status deploy/&lt;name&gt;');
+  T('o','  kubectl explain &lt;resource&gt;   kubectl api-resources');
+  T('o','');
+  T('i','  KUBECTL — FIX');
+  T('o','  kubectl rollout undo deploy/&lt;name&gt;   kubectl rollout restart deploy/&lt;name&gt;');
+  T('o','  kubectl scale deploy &lt;name&gt; --replicas=&lt;N&gt;');
+  T('o','  kubectl delete pod &lt;pod&gt;   kubectl delete networkpolicy &lt;name&gt;');
+  T('o','  kubectl patch deploy &lt;name&gt; -p \'{"spec":{...}}\'');
+  T('o','  kubectl create configmap &lt;name&gt; --from-literal=key=value');
+  T('o','  kubectl create secret generic &lt;name&gt; --from-literal=key=value');
   T('o','');
   T('i','  PIPES  (chain any commands)');
   T('o','  cmd | grep &lt;pattern&gt;   cmd | wc -l   cmd | head -n 10   cmd | tail -n 20   cmd | sort');
   T('o','');
   T('i','  TIPS');
   T('o','  TAB — autocomplete commands &amp; paths   ↑↓ — command history');
-  T('o','  hint / F1 — show exact next command for active incident');
+  T('o','  ? / hint / F1 — progressive hints for active incident (reveal one clue at a time)');
   T('o','  clear — clear terminal');
   T('i','└────────────────────────────────────────────────────────────────────────');
 }
@@ -2274,9 +2764,117 @@ function T(cls,html){
 function scrollT(){const o=document.getElementById('termOut');o.scrollTop=o.scrollHeight;}
 function xh(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
+function toggleCheatsheet(e){
+  if(e) e.stopPropagation();
+  const panel=document.getElementById('cheatsheetPanel');
+  const btn=document.getElementById('csToggle');
+  const gc=document.getElementById('gcontent');
+  const collapsed=panel.classList.toggle('collapsed');
+  gc.classList.toggle('cs-collapsed',collapsed);
+  btn.textContent=collapsed?'▶':'◀';
+  btn.title=collapsed?'Expand':'Collapse';
+}
+function cheatsheetPanelClick(e){
+  const panel=document.getElementById('cheatsheetPanel');
+  if(panel.classList.contains('collapsed')) toggleCheatsheet(e);
+}
+
+/* ======================================================
+   STATUS POLLING — auto-detect incident resolution
+====================================================== */
+async function pollAllIncidents() {
+  if(!G.arcadeMode) return;
+  for(let i = 0; i < G.incidents.length; i++) {
+    const inc = G.incidents[i];
+    if(!inc || inc.solved || inc.escalated) continue;
+    if(!ARCADE_REAL_SCENARIOS.includes(inc.scenarioId)) continue;
+    try {
+      const resp = await fetch('/api/arcade/status/' + inc.scenarioId);
+      if(!resp.ok) continue;
+      const data = await resp.json();
+      inc.podStatus = {ready: data.ready || 0, total: data.total || 0, healthy: data.healthy || false};
+      renderCard(i);
+      if(data.healthy && !inc.solved) {
+        solveIncident(i);
+      }
+    } catch(_) { /* network error — ignore */ }
+  }
+}
+
+function startAllPolling() {
+  stopAllPolling();
+  if(!G.arcadeMode) return;
+  setTimeout(pollAllIncidents, 1500);   // initial poll after 1.5s
+  G_pollTimer = setInterval(pollAllIncidents, 6000);
+}
+
+function stopAllPolling() {
+  if(G_pollTimer) { clearInterval(G_pollTimer); G_pollTimer = null; }
+}
+
 /* ======================================================
    GAME FLOW
 ====================================================== */
+function startTutorialCarousel(){
+  const slides    = document.querySelectorAll('.tut-slide');
+  const dotsWrap  = document.getElementById('tutDots');
+  const fillEl    = document.getElementById('tutProgressFill');
+  const DURATION  = 7000; // ms per slide
+  const LAST      = slides.length - 1; // index of the ready slide
+  let current     = 0;
+  let interval    = null;
+
+  // Build dots — only for slides 1-5, not the ready slide
+  dotsWrap.innerHTML = '';
+  slides.forEach((_,i) => {
+    if(i === LAST) return; // no dot for the ready slide
+    const d = document.createElement('div');
+    d.className = 'tut-dot' + (i === 0 ? ' active' : '');
+    d.addEventListener('click', () => { if(current !== LAST) goTo(i); });
+    dotsWrap.appendChild(d);
+  });
+
+  function goTo(idx){
+    slides[current].classList.remove('active');
+    if(current !== LAST) dotsWrap.children[current].classList.remove('active');
+    current = idx;
+    slides[current].classList.add('active');
+
+    if(current === LAST){
+      // Last slide: hide dots + progress bar, no more cycling
+      clearInterval(interval);
+      dotsWrap.style.opacity = '0';
+      fillEl.style.transition = 'none';
+      fillEl.style.width = '0%';
+    } else {
+      dotsWrap.children[current].classList.add('active');
+      animateProgress();
+    }
+  }
+
+  function animateProgress(){
+    fillEl.style.transition = 'none';
+    fillEl.style.width = '0%';
+    void fillEl.offsetWidth;
+    fillEl.style.transition = `width ${DURATION}ms linear`;
+    fillEl.style.width = '100%';
+  }
+
+  function next(){
+    const nextIdx = current + 1;
+    if(nextIdx <= LAST) goTo(nextIdx);
+    // if already on LAST, interval is already cleared — nothing happens
+  }
+
+  animateProgress();
+  interval = setInterval(next, DURATION);
+
+  // Stop carousel cleanly when load screen is done (called by launch())
+  window._stopTutCarousel = function(){
+    clearInterval(interval);
+  };
+}
+
 function startGame(){
   G.score=100; G.hearts=5; G.level=0; G.fs=buildFS();
   G.cwd='~'; G.prevCwd='~'; G.cmdHistory=[]; G.histIdx=-1;
@@ -2285,6 +2883,7 @@ function startGame(){
 
   // Show loading screen while K8s scenarios are being set up
   showScreen('loadScreen');
+  startTutorialCarousel();
   const statusEl = document.getElementById('loadStatus');
   const fillEl   = document.getElementById('loadFill');
   const pctEl    = document.getElementById('loadPct');
@@ -2306,6 +2905,7 @@ function startGame(){
   }
 
   function launch(){
+    if(window._stopTutCarousel) window._stopTutCarousel();
     runMatrixTransition(function(){ showScreen('gameScreen'); loadLevel(0); });
   }
 
@@ -2443,15 +3043,22 @@ function loadLevel(idx){
   const lv=LEVEL_DEFS[idx];
   const chosen=shufflePick(lv.pool, lv.count);
   Object.values(SC).forEach(s=>s.steps.forEach(st=>{st.done=false;}));
+  G.hintCounters = {};
   G.incidents=chosen.map(sid=>({
     scenarioId:sid,
     timeLeft:Math.floor((SC[sid].timeLimit+(lv.timeBonus||0))*(lv.timeMultiplier||1)),
     solved:false, escalated:false, earnedPts:0, interval:null,
+    podStatus:null,
   }));
   G.activeCard=null; G.masterTimer=lv.timer;
   renderCards(); updateTopBar(); clearTerm();
-  T('i',`=== ${lv.name} — ${chosen.length} incident(s) active ===`);
-  T('o','Click an incident card to investigate. Press 💡 HINT for step-by-step guidance.');
+  T('i',`=== ${lv.name} — ${chosen.length} incident${chosen.length>1?'s':''} active ===`);
+  if(G.arcadeMode) {
+    T('o','Click an incident card to investigate. Type ? or press 💡 HINT for progressive clues.');
+    T('i','Real K8s cluster — run any kubectl command freely. Incidents auto-resolve when pods are healthy.');
+  } else {
+    T('o','Click an incident card to investigate. Press 💡 HINT for step-by-step guidance.');
+  }
   T('o','');
   if(G.masterInterval) clearInterval(G.masterInterval);
   G.masterInterval=setInterval(tickMaster,1000);
@@ -2461,6 +3068,7 @@ function loadLevel(idx){
     setTimeout(()=>showAlert('CRITICAL: CDN edge nodes timing out — cascading failure detected!'),25000);
   }
   startNotifs();
+  startAllPolling();
 }
 
 function tickMaster(){
@@ -2515,27 +3123,54 @@ function renderCard(i){
   card.className=cls;
   const pct=inc.timeLeft/s.timeLimit;
   const tc=pct>0.5?'ok':pct>0.25?'warn':'danger';
-  const dpct=(s.steps.filter(st=>st.done).length/s.steps.length)*100;
+  const isArcade = G.arcadeMode && ARCADE_REAL_SCENARIOS.includes(inc.scenarioId);
+  let bodyHtml;
+  if(isArcade){
+    const ps = inc.podStatus;
+    const ns = SCENARIO_NS_JS[inc.scenarioId] || '—';
+    let podDots = '';
+    if(ps && ps.pods){
+      podDots = ps.pods.map(p=>{
+        const ok = p.ready && p.phase==='Running';
+        const bad = ['CrashLoopBackOff','Error','ImagePullBackOff','Evicted'].includes(p.phase);
+        const cls2 = ok?'ok':bad?'bad':'meh';
+        return `<span class="ps-dot ${cls2}" title="${p.name}: ${p.phase}">●</span>`;
+      }).join('');
+    } else {
+      podDots = `<span style="color:var(--muted);font-size:9px">fetching…</span>`;
+    }
+    const readyTxt = ps ? `${ps.ready}/${ps.total} ready` : '';
+    bodyHtml = `
+      <div class="pod-status">${podDots}</div>
+      <span class="ns-badge">${xh(ns)}</span>
+      ${readyTxt?`<span style="font-size:9px;color:var(--text2)">${readyTxt}</span>`:''}
+    `;
+  } else {
+    const dpct=(s.steps.filter(st=>st.done).length/s.steps.length)*100;
+    bodyHtml = `
+      <div class="cprog"><div class="cprog-fill" style="width:${dpct}%;background:${dpct>=100?'var(--green)':'var(--amber)'}"></div></div>
+      <div class="checklist">
+        ${s.steps.map((st,si)=>{
+          const done=st.done;
+          const nxt=!done&&s.steps.slice(0,si).every(x=>x.done);
+          return `<div class="chkitem ${done?'done':''} ${nxt&&!inc.solved?'nxt':''}">
+            <span class="chkico">${done?'✓':nxt?'▶':'○'}</span>
+            <span>${xh(st.label)}</span>
+          </div>`;
+        }).join('')}
+      </div>
+    `;
+  }
   card.innerHTML=`
     <div class="active-badge">● ACTIVE</div>
     <div class="card-hdr">
       <span class="sevbadge ${s.sevClass}">${s.severity.toUpperCase()}</span>
       <span class="ctimer ${tc}" id="timer_${i}">${fmt(inc.timeLeft)}</span>
     </div>
-    <div class="cprog"><div class="cprog-fill" style="width:${dpct}%;background:${dpct>=100?'var(--green)':'var(--amber)'}"></div></div>
     <div class="ctitle">${xh(s.title)}</div>
     <div class="csvc">${xh(s.service)}</div>
     <div class="cdesc">${xh(s.description)}</div>
-    <div class="checklist">
-      ${s.steps.map((st,si)=>{
-        const done=st.done;
-        const nxt=!done&&s.steps.slice(0,si).every(x=>x.done);
-        return `<div class="chkitem ${done?'done':''} ${nxt&&!inc.solved?'nxt':''}">
-          <span class="chkico">${done?'✓':nxt?'▶':'○'}</span>
-          <span>${xh(st.label)}</span>
-        </div>`;
-      }).join('')}
-    </div>
+    ${bodyHtml}
     <div class="card-pts">${inc.solved?`+${inc.earnedPts} pts`:''}</div>
     <div class="solved-ov">✓ RESOLVED</div>
   `;
@@ -2547,14 +3182,23 @@ function focusCard(i){
   if(prev!==null&&prev!==i) renderCard(prev);
   renderCard(i);
   const inc=G.incidents[i]; const s=SC[inc.scenarioId];
+  const isArcade = G.arcadeMode && ARCADE_REAL_SCENARIOS.includes(inc.scenarioId);
+  const ns = SCENARIO_NS_JS[inc.scenarioId] || 'default';
   document.getElementById('termLabel').textContent=`[${s.severity.toUpperCase()}] ${s.title}`;
+  if(inc.solved){
+    T('s','✅ Already resolved.');
+    T('o',''); scrollT(); document.getElementById('termIn').focus();
+    return;
+  }
+  if(isArcade){
+    // clean: just run kubectl get pods, no header noise
+    run(`kubectl get pods -n ${ns}`);
+    return; // run() handles scroll+focus
+  }
   T('i',`\n--- Incident: ${s.title} [${s.service}] ---`);
   T('o',s.description);
-  if(inc.solved){ T('s','✅ Already resolved.'); }
-  else {
-    const nx=s.steps.find(st=>!st.done);
-    if(nx){ T('h',`Next step: ${nx.label}`); T('h',`Press 💡 HINT or F1 to see the exact command.`); }
-  }
+  const nx=s.steps.find(st=>!st.done);
+  if(nx){ T('h',`Next step: ${nx.label}`); T('h',`Press 💡 HINT or F1 to see the exact command.`); }
   T('o',''); scrollT();
   document.getElementById('termIn').focus();
 }
@@ -2571,7 +3215,7 @@ function scorePop(){const e=document.getElementById('topScore');e.classList.add(
 
 function levelComplete(){
   clearInterval(G.masterInterval); G.incidents.forEach(i=>clearInterval(i.interval));
-  stopNotifs();
+  stopNotifs(); stopAllPolling();
   const all=G.incidents.every(i=>i.solved); const bonus=all?1000:0;
   if(all) G.score+=bonus;
   let html='';
@@ -2588,7 +3232,7 @@ function levelComplete(){
 
 function gameOver(reason){
   clearInterval(G.masterInterval); G.incidents.forEach(i=>clearInterval(i.interval));
-  stopNotifs();
+  stopNotifs(); stopAllPolling();
   let html='';
   if(reason==='timeout') html+=`<div class="sco-row"><span style="color:var(--red)">⏰ Master timer expired</span><span class="sco-pts neg">TIMEOUT</span></div>`;
   if(reason==='lives')   html+=`<div class="sco-row"><span style="color:var(--red)">💀 All lives lost</span><span></span></div>`;
